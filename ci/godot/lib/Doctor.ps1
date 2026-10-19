@@ -109,14 +109,14 @@ function Invoke-Doctor($Info) {
     # --- Report -----------------------------------------------------------------------------------
     $colors = @{ OK = 'Green'; INFO = 'Cyan'; WARN = 'Yellow'; FAIL = 'Red' }
     foreach ($check in $checks) {
-        Write-Host ('[{0,-4}] ' -f $check.Status) -ForegroundColor $colors[$check.Status] -NoNewline
-        Write-Host $check.Message
-        if ($check.Fix -and $check.Status -ne 'OK') { Write-Host "       fix: $($check.Fix)" -ForegroundColor DarkGray }
+        Write-Console ('[{0,-4}] ' -f $check.Status) -ForegroundColor $colors[$check.Status] -NoNewline
+        Write-Console $check.Message
+        if ($check.Fix -and $check.Status -ne 'OK') { Write-Console "       fix: $($check.Fix)" -ForegroundColor DarkGray }
     }
     $counts = $checks | Group-Object Status -AsHashTable
     $fails = if ($counts -and $counts.ContainsKey('FAIL')) { $counts['FAIL'].Count } else { 0 }
     $warns = if ($counts -and $counts.ContainsKey('WARN')) { $counts['WARN'].Count } else { 0 }
-    Write-Host ''
+    Write-Console ''
     Write-CiLog "$fails problem(s), $warns warning(s)"
     Set-JsonField checks @($checks | ForEach-Object { [ordered]@{ status = $_.Status; message = $_.Message; fix = $_.Fix ? $_.Fix : $null } })
     Set-JsonField problems $fails

@@ -74,12 +74,6 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
-    # Every log line in the libraries goes through Write-Host; send them to stderr so stdout stays pure JSON.
-    function Write-Host {
-        param([Parameter(ValueFromRemainingArguments)][object[]]$Object, [switch]$NoNewline, $ForegroundColor, $BackgroundColor)
-        $text = $Object -join ' '
-        if ($NoNewline) { [Console]::Error.Write($text) } else { [Console]::Error.WriteLine($text) }
-    }
     Enable-JsonMode $Command
 }
 # Any unexpected terminating error still ends with a structured result.

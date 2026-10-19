@@ -1,12 +1,14 @@
 # JSON output (`-Json`)
 
-Every command takes `-Json`. Stdout then holds **exactly one JSON document**; all logs, Godot output and
+Every command takes `-Json`. The process's stdout then holds **exactly one JSON document**; all logs, Godot output and
 progress go to stderr. Exit code: 0 when `ok` is true, 1 otherwise. Parse stdout, ignore stderr unless you need the
 raw log.
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 test -Json 2>$null | ConvertFrom-Json
+pwsh -NoProfile -File ci/godot/godot-ci.ps1 test -Json 2>$null | ConvertFrom-Json
 ```
+Run it as a child process, as an agent does. The document is written to the process's standard output, so dot-sourcing or calling the script
+in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 
 ## Envelope
 

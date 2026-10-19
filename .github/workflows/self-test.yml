@@ -115,9 +115,9 @@ jobs:
       - name: JSON output is one valid document
         shell: pwsh
         run: |
-          $d = ./ci/godot/godot-ci.ps1 detect -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 detect -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
           if ($d.schema -ne 'godot-ci/1' -or -not $d.ok -or $d.runners.Count -lt 3) { throw "unexpected detect output" }
-          $d = ./ci/godot/godot-ci.ps1 doctor -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.checks.Count -lt 1) { throw "unexpected doctor output" }
       - name: Plan
         shell: pwsh
@@ -126,7 +126,7 @@ jobs:
           git -C $dir init -q
           Copy-Item -Recurse examples/gdscript/* $dir
           ./ci/godot/godot-ci.ps1 plan -Do init -Project $dir
-          $d = ./ci/godot/godot-ci.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
           if ($d.currentPhase.id -ne 'concept' -or $d.nextActions.Count -lt 1) { throw "unexpected plan output" }
       - name: Export the Windows build and launch it
         shell: pwsh

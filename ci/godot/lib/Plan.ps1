@@ -123,7 +123,7 @@ function Invoke-Trello([string]$Method, [string]$Resource, [hashtable]$Body) {
     }
 }
 
-# Maps each plan column to a Trello list by name (case-insensitive prefix, so "Done 🎉" matches "done").
+# Maps each plan column to a Trello list by name (case-insensitive prefix, so "Done" matches "done").
 function Get-TrelloListMap($Plan, [string]$BoardId) {
     $lists = @(Invoke-Trello GET "boards/$BoardId/lists?filter=open&fields=name")
     $names = @{ backlog = 'Backlog'; design = 'Design'; todo = 'To Do'; doing = 'Doing'; verify = 'Testing'; done = 'Done' }
@@ -172,7 +172,7 @@ function Sync-PlanTrello([string]$Path, [string]$Dir, $Info, [string]$Board) {
     $plan | Add-Member -NotePropertyName trello -NotePropertyValue $trello -Force
     Save-Plan $plan $Path
     Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $Dir 'PLAN.md')
-    foreach ($warning in $warnings) { Write-Host "WARNING: $warning" -ForegroundColor Yellow }
+    foreach ($warning in $warnings) { Write-Console "WARNING: $warning" -ForegroundColor Yellow }
     Write-CiLog "Trello sync: $created card(s) created, $moved task(s) moved from the board"
     Set-JsonField sync ([ordered]@{ board = $Board; created = $created; moved = $moved; warnings = $warnings })
 }
@@ -259,17 +259,17 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
     Set-JsonField warnings $state.warnings
 
     if ($Action -in 'add', 'move', 'sync') { return }
-    Write-Host ''
+    Write-Console ''
     foreach ($phase in $state.phases) {
         $label = $phase.complete ? 'done   ' : ($phase.id -eq $state.current.id ? 'CURRENT' : 'later  ')
-        Write-Host ("{0} {1}  {2}/{3} gates" -f $label, $phase.name.PadRight(26), @($phase.gates | Where-Object done).Count, $phase.gates.Count)
+        Write-Console ("{0} {1}  {2}/{3} gates" -f $label, $phase.name.PadRight(26), @($phase.gates | Where-Object done).Count, $phase.gates.Count)
     }
     if ($state.current) {
-        Write-Host ''; Write-Host "Now: $($state.current.name) - $($state.current.goal)"
+        Write-Console ''; Write-Console "Now: $($state.current.name) - $($state.current.goal)"
         foreach ($gate in $state.current.gates | Where-Object { -not $_.done }) {
-            Write-Host "  [ ] $($gate.id): $($gate.text)$($gate.auto ? '  (auto)' : '')"
+            Write-Console "  [ ] $($gate.id): $($gate.text)$($gate.auto ? '  (auto)' : '')"
         }
-    } else { Write-Host 'Every phase is complete.' }
-    foreach ($warning in $state.warnings) { Write-Host "WARNING: $warning" -ForegroundColor Yellow }
-    Write-Host ("Board: " + (($state.board.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ' | '))
+    } else { Write-Console 'Every phase is complete.' }
+    foreach ($warning in $state.warnings) { Write-Console "WARNING: $warning" -ForegroundColor Yellow }
+    Write-Console ("Board: " + (($state.board.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ' | '))
 }

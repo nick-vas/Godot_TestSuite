@@ -56,7 +56,7 @@ function Write-Annotation([string]$Runner, $Failure) {
     $location = Get-FailureLocation "$($Failure.Details)`n$($Failure.Message)"
     if ($location) { $props += "file=$(Escape $location.File -Property)", "line=$($location.Line)" }
     $message = if ($Failure.Message.Trim()) { $Failure.Message.Trim() } else { 'failed' }
-    Write-Host "::error $($props -join ',')::$(Escape $message)"
+    Write-Console "::error $($props -join ',')::$(Escape $message)"
 }
 
 # Summarises one runner's results and returns them; .Ok is true when tests ran and none failed. A run

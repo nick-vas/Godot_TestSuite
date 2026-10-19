@@ -7,8 +7,8 @@ function Write-InitStep([string]$Status, [string]$Message) {
         $script:JsonDoc['steps'] += [ordered]@{ status = $Status; message = $Message }
     }
     $color = @{ added = 'Green'; updated = 'Green'; skipped = 'DarkGray' }[$Status]
-    Write-Host ('  {0,-8} ' -f $Status) -ForegroundColor $color -NoNewline
-    Write-Host $Message
+    Write-Console ('  {0,-8} ' -f $Status) -ForegroundColor $color -NoNewline
+    Write-Console $Message
 }
 
 function Add-GitignoreEntries([string]$ProjectDir, [string[]]$Entries) {
@@ -240,7 +240,7 @@ function Add-McpConfig($Info, [string]$Server) {
     $root = $root ? $root : $Info.ProjectDir
     if ($Server -eq 'godot-ai') {
         Write-InitStep skipped 'godot-ai configures its own clients: install the addon, enable it, press Configure in the Godot AI dock'
-        Write-Host '           https://github.com/hi-godot/godot-ai (Godot 4.7+, needs uv)'
+        Write-Console '           https://github.com/hi-godot/godot-ai (Godot 4.7+, needs uv)'
         return
     }
     $file = Join-Path $root '.mcp.json'
@@ -258,7 +258,7 @@ function Add-McpConfig($Info, [string]$Server) {
         Write-InitStep added '.mcp.json: godot-mcp (satelliteoflove/godot-mcp)'
     }
     $project = $Info.ProjectDir
-    Write-Host '           next: npx @satelliteoflove/godot-mcp --install-addon "' -NoNewline
-    Write-Host "$project`"" 
-    Write-Host '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
+    Write-Console '           next: npx @satelliteoflove/godot-mcp --install-addon "' -NoNewline
+    Write-Console "$project`"" 
+    Write-Console '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
 }

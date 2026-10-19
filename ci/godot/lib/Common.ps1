@@ -1,6 +1,18 @@
 # Shared helpers: logging, running native programs, scanning Godot logs.
 
-function Write-CiLog([string]$Message) { Write-Host "[godot-ci] $Message" }
+# All console output goes through here so -Json can send it to stderr and keep stdout for the result.
+function Write-Console {
+    param([Parameter(Position = 0)][string]$Text = '', [switch]$NoNewline, [System.ConsoleColor]$ForegroundColor)
+    if ($script:JsonMode) {
+        if ($NoNewline) { [Console]::Error.Write($Text) } else { [Console]::Error.WriteLine($Text) }
+        return
+    }
+    $arguments = @{ Object = $Text; NoNewline = $NoNewline }
+    if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $arguments.ForegroundColor = $ForegroundColor }
+    Write-Host @arguments
+}
+
+function Write-CiLog([string]$Message) { Write-Console "[godot-ci] $Message" }
 
 # -Json: stdout carries exactly one JSON document (schema "godot-ci/1"); every log line goes to stderr.
 # Functions add their part with Set-JsonField; the entry point prints the result at the end.
@@ -18,7 +30,7 @@ function Write-JsonResult {
 
 # Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
 function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
-    Write-Host "[godot-ci] ERROR: $Message" -ForegroundColor Red
+    Write-Console "[godot-ci] ERROR: $Message" -ForegroundColor Red
     if ($script:JsonMode) {
         $script:JsonDoc['ok'] = $false
         $script:JsonDoc['error'] = [ordered]@{ code = $Code; message = $Message }
@@ -29,18 +41,18 @@ function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
 
 # Collapsible log groups on GitHub Actions, plain headers elsewhere.
 function Start-LogGroup([string]$Title) {
-    if ($env:GITHUB_ACTIONS) { Write-Host "::group::$Title" } else { Write-Host "== $Title ==" }
+    if ($env:GITHUB_ACTIONS) { Write-Console "::group::$Title" } else { Write-Console "== $Title ==" }
 }
-function Stop-LogGroup { if ($env:GITHUB_ACTIONS) { Write-Host '::endgroup::' } }
+function Stop-LogGroup { if ($env:GITHUB_ACTIONS) { Write-Console '::endgroup::' } }
 
 # Runs a program, streaming its output (stdout and stderr) to the console and, if given, a log file.
 # Returns the exit code instead of throwing, so callers decide what a failure means.
 function Invoke-Logged {
     param([string]$FilePath, [string[]]$ArgumentList = @(), [string]$LogFile)
     if ($LogFile) {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | ForEach-Object { Write-Host $_ }
+        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | ForEach-Object { Write-Console $_ }
     } else {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { Write-Host "$_" }
+        & $FilePath @ArgumentList 2>&1 | ForEach-Object { Write-Console "$_" }
     }
     return $LASTEXITCODE
 }
@@ -94,8 +106,8 @@ function Get-GodotLogErrors([string]$LogFile) { return Select-GodotErrors @(Get-
 function Assert-GodotLogClean([string]$LogFile, [string]$What) {
     $errors = @(Get-GodotLogErrors $LogFile)
     if ($errors.Count -gt 0) {
-        Write-Host '[godot-ci] Godot reported errors:' -ForegroundColor Red
-        $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $_" }
+        Write-Console '[godot-ci] Godot reported errors:' -ForegroundColor Red
+        $errors | Select-Object -First 30 | ForEach-Object { Write-Console "  $_" }
         Set-JsonField engineErrors @($errors | Select-Object -First 30 | ForEach-Object {
             $at = [regex]::Match($_, '(?<file>res://[^\s:()]+):(?<line>\d+)')
             [ordered]@{ message = $_.Trim(); file = $at.Success ? $at.Groups['file'].Value : $null; line = $at.Success ? [int]$at.Groups['line'].Value : $null } })
