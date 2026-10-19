@@ -128,6 +128,18 @@ jobs:
           ./ci/godot/godot-ci.ps1 plan -Do init -Project $dir
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
           if ($d.currentPhase.id -ne 'concept' -or $d.nextActions.Count -lt 1) { throw "unexpected plan output" }
+      - name: MCP config is written, kept on re-run, and merged into an existing file
+        shell: pwsh
+        run: |
+          $dir = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'mcp-test')
+          git -C $dir init -q
+          Copy-Item -Recurse examples/gdscript/* $dir
+          '{"mcpServers":{"other":{"command":"x"}}}' | Set-Content (Join-Path $dir '.mcp.json')
+          pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
+          pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
+          $servers = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.PSObject.Properties.Name
+          if (($servers | Sort-Object) -join ',' -ne 'godot-mcp,minimal-godot-mcp,other') { throw "unexpected servers: $servers" }
+          if (-not (Test-Path (Join-Path $dir '.mcp.json.bak'))) { throw 'no backup of the existing .mcp.json' }
       - name: Export the Windows build and launch it
         shell: pwsh
         run: ./ci/godot/godot-ci.ps1 export -Project examples/breakout/game -Preset Windows -Run

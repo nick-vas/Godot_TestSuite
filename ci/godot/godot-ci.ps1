@@ -51,6 +51,8 @@ param(
     # init: also register an editor-bridge MCP server for the project.
     [ValidateSet('none', 'godot-mcp', 'godot-ai')]
     [string]$Mcp = 'none',
+    # init: also register minimal-godot-mcp (GDScript diagnostics and the running game's console).
+    [switch]$McpDiagnostics,
     # init: also add AGENTS.md, CLAUDE.md and the agent skills.
     [switch]$Agents,
     # plan: init (create plan/plan.json), status (default), done (mark a manual gate done: -Id).
@@ -254,7 +256,7 @@ Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solutio
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
-    'init' { Initialize-Project $info; if ($Agents) { Add-AgentFiles $info $PSCommandPath }; if ($Mcp -ne 'none') { Add-McpConfig $info $Mcp } }
+    'init' { Initialize-Project $info; if ($Agents) { Add-AgentFiles $info $PSCommandPath }; if ($Mcp -ne 'none' -or $McpDiagnostics) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) } }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }

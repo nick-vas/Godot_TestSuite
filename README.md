@@ -62,7 +62,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
-| **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server |
+| **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
 | **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md` and nine skills in `.agents/skills` and `.claude/skills` |
@@ -137,7 +137,7 @@ What has been run, and what has not.
 **Why does it fail when Godot exited 0?** Godot exits 0 after printing script errors, so the kit scans the log and fails.
 
 **Do I need the editor MCP server?** No. The CLI, flows, plan and skills work without it. It adds the live editor and running game; see
-[docs/mcp.md](docs/mcp.md) for the two supported servers.
+[docs/mcp.md](docs/mcp.md) for the two supported servers and the optional GDScript-diagnostics companion.
 
 **Do I need Trello?** No. `plan.json` is the source of truth; Trello is a view you can drag cards in.
 

@@ -29,6 +29,26 @@ pwsh ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp     # adds godot-mcp to .
 does not run: install the addon (`npx @satelliteoflove/godot-mcp --install-addon <project>`), enable it under
 Project Settings > Plugins, restart the agent. `-Mcp godot-ai` prints the manual steps, because that server configures clients from its own dock.
 
+## Companion: GDScript diagnostics and the game console
+
+[minimal-godot-mcp](https://github.com/ryanmazzolini/minimal-godot-mcp) (MIT, Node 22+) is a small second server the bridge's own docs recommend.
+It talks to the editor's built-in language server and debug adapter, so it needs no addon, only the editor open on the project.
+
+```powershell
+pwsh ci/godot/godot-ci.ps1 init -Mcp godot-mcp -McpDiagnostics     # both; -McpDiagnostics also works on its own
+```
+
+| Tool | Does |
+|---|---|
+| `get_diagnostics` | errors in one `.gd` file, with line, column and message, in seconds |
+| `scan_workspace_diagnostics` | the same for every `.gd` file (skips `addons/` and `.godot/`) |
+| `get_console_output` | what the running game printed, with file and line where known; needs a running scene (F5) |
+| `clear_console_output` | empties that buffer |
+
+It speeds up the loop while editing; the gate is still `test -Json` (the `validate` runner loads every script headless). It checks **GDScript only**,
+so for a C# game only the console tool helps; C# errors come from `build -Json`. It is registered as `minimal-godot-mcp` in `.mcp.json` so it is
+not confused with `godot-mcp`. Not run in this repository's CI.
+
 ## The loop
 
 Author or inspect through the bridge, save, then `test -Json`. The editor is not the build: CI and exports read files on disk, and
