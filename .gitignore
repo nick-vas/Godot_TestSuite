@@ -2,3 +2,6 @@ test-results/
 build/
 bench-results/
 screenshots/
+/.vs/slnx.sqlite
+/.vs/slnx.sqlite-journal
+*.vsidx
