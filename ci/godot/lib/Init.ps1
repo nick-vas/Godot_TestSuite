@@ -2,6 +2,10 @@
 # safe to run again. Prints what it changed.
 
 function Write-InitStep([string]$Status, [string]$Message) {
+    if ($script:JsonMode) {
+        if (-not $script:JsonDoc.Contains('steps')) { $script:JsonDoc['steps'] = @() }
+        $script:JsonDoc['steps'] += [ordered]@{ status = $Status; message = $Message }
+    }
     $color = @{ added = 'Green'; updated = 'Green'; skipped = 'DarkGray' }[$Status]
     Write-Host ('  {0,-8} ' -f $Status) -ForegroundColor $color -NoNewline
     Write-Host $Message
@@ -199,4 +203,31 @@ function Initialize-Project($Info) {
     Add-ExportExcludes $project $excludes
     New-CiWorkflow $project
     Write-CiLog 'Done. Next: pwsh ci/godot/godot-ci.ps1 doctor, then pwsh ci/godot/godot-ci.ps1 test'
+}
+
+# init -Agents: AGENTS.md (CLAUDE.md imports it) and the skills, so any coding agent knows the workflow. Adds only.
+function Add-AgentFiles($Info, [string]$SuiteScript) {
+    $root = Get-GitRoot $Info.ProjectDir
+    $root = $root ? $root : $Info.ProjectDir
+    $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
+    $relative = [System.IO.Path]::GetRelativePath($root, $SuiteScript) -replace '\\', '/'
+    $agents = Join-Path $root 'AGENTS.md'
+    if (Test-Path -LiteralPath $agents) { Write-InitStep skipped 'AGENTS.md exists' }
+    else {
+        (Get-Content -LiteralPath (Join-Path $PSScriptRoot '../templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', $relative |
+            Set-Content -LiteralPath $agents -Encoding utf8
+        Write-InitStep added 'AGENTS.md'
+    }
+    $claude = Join-Path $root 'CLAUDE.md'
+    if (Test-Path -LiteralPath $claude) { Write-InitStep skipped 'CLAUDE.md exists (add "@AGENTS.md" to it)' }
+    else { Set-Content -LiteralPath $claude -Value '@AGENTS.md' -Encoding utf8; Write-InitStep added 'CLAUDE.md (imports AGENTS.md)' }
+    foreach ($skill in Get-ChildItem -LiteralPath (Join-Path $suiteRoot '.agents/skills') -Directory) {
+        foreach ($base in '.agents/skills', '.claude/skills') {
+            $target = Join-Path $root "$base/$($skill.Name)"
+            if (Test-Path -LiteralPath $target) { continue }
+            New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+            Copy-Item -LiteralPath $skill.FullName -Destination $target -Recurse
+        }
+        Write-InitStep added "skill $($skill.Name) (.agents/skills and .claude/skills)"
+    }
 }

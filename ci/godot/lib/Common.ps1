@@ -2,8 +2,28 @@
 
 function Write-CiLog([string]$Message) { Write-Host "[godot-ci] $Message" }
 
-function Stop-GodotCi([string]$Message) {
+# -Json: stdout carries exactly one JSON document (schema "godot-ci/1"); every log line goes to stderr.
+# Functions add their part with Set-JsonField; the entry point prints the result at the end.
+$script:JsonMode = $false
+$script:JsonDoc = [ordered]@{}
+
+function Enable-JsonMode([string]$Command) {
+    $script:JsonMode = $true
+    $script:JsonDoc = [ordered]@{ schema = 'godot-ci/1'; command = $Command; ok = $true }
+}
+function Set-JsonField([string]$Name, $Value) { if ($script:JsonMode) { $script:JsonDoc[$Name] = $Value } }
+function Write-JsonResult {
+    if ($script:JsonMode) { [Console]::Out.WriteLine(($script:JsonDoc | ConvertTo-Json -Depth 8)) }
+}
+
+# Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
+function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
     Write-Host "[godot-ci] ERROR: $Message" -ForegroundColor Red
+    if ($script:JsonMode) {
+        $script:JsonDoc['ok'] = $false
+        $script:JsonDoc['error'] = [ordered]@{ code = $Code; message = $Message }
+        Write-JsonResult
+    }
     exit 1
 }
 
@@ -18,9 +38,9 @@ function Stop-LogGroup { if ($env:GITHUB_ACTIONS) { Write-Host '::endgroup::' } 
 function Invoke-Logged {
     param([string]$FilePath, [string[]]$ArgumentList = @(), [string]$LogFile)
     if ($LogFile) {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | Out-Host
+        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | ForEach-Object { Write-Host $_ }
     } else {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Out-Host
+        & $FilePath @ArgumentList 2>&1 | ForEach-Object { Write-Host "$_" }
     }
     return $LASTEXITCODE
 }
@@ -41,7 +61,9 @@ function Get-ToolsDir {
 # GODOT_CI_IGNORE_ERRORS environment variable (a regex).
 $script:KnownNoise = @(
     # The Android export plugin can read editor settings during headless shutdown (timing-dependent).
-    'EditorSettings not instantiated yet when getting setting'
+    'EditorSettings not instantiated yet when getting setting',
+    # Seen once on a cold 4.7.2 import: a C++ engine singleton read during editor shutdown. No script or file is named.
+    '^\s*ERROR: Parameter "singleton" is null\.$'
 )
 
 # Godot often exits 0 after printing errors, so builds, exports and smoke runs also scan the log.
@@ -74,7 +96,10 @@ function Assert-GodotLogClean([string]$LogFile, [string]$What) {
     if ($errors.Count -gt 0) {
         Write-Host '[godot-ci] Godot reported errors:' -ForegroundColor Red
         $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $_" }
-        Stop-GodotCi "$What produced errors (set GODOT_CI_IGNORE_ERRORS to ignore a known message)"
+        Set-JsonField engineErrors @($errors | Select-Object -First 30 | ForEach-Object {
+            $at = [regex]::Match($_, '(?<file>res://[^\s:()]+):(?<line>\d+)')
+            [ordered]@{ message = $_.Trim(); file = $at.Success ? $at.Groups['file'].Value : $null; line = $at.Success ? [int]$at.Groups['line'].Value : $null } })
+        Stop-GodotCi "$What produced errors (set GODOT_CI_IGNORE_ERRORS to ignore a known message)" 'engine-errors'
     }
 }
 
@@ -117,4 +142,29 @@ function Get-GitRoot([string]$Dir) {
 function ConvertTo-GodotVersion([string]$Version) {
     $v = $Version -replace '-(rc|beta|dev|alpha)\.(\d)', '-$1$2'
     return $v -replace '^(\d+\.\d+)\.0(?=-|$)', '$1'
+}
+
+# "src/Foo.cs(12,5): error CS1002: ; expected [proj]" lines from dotnet build -> structured errors.
+function Get-DotnetDiagnostics([string]$LogFile) {
+    $seen = @{}
+    foreach ($line in Get-Content -LiteralPath $LogFile) {
+        $m = [regex]::Match($line, '^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\): error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$')
+        if ($m.Success -and -not $seen.ContainsKey($m.Value)) {
+            $seen[$m.Value] = $true
+            [ordered]@{ file = $m.Groups['file'].Value; line = [int]$m.Groups['line'].Value; column = [int]$m.Groups['col'].Value
+                code = $m.Groups['code'].Value; message = $m.Groups['msg'].Value }
+        }
+    }
+}
+
+# Where a failure happened: the first absolute .cs/.gd path with a line number in the text.
+function Get-FailureLocation([string]$Text) {
+    $m = [regex]::Match($Text, '(?:in |at )?(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)')
+    if (-not $m.Success) { return $null }
+    $file = $m.Groups['file'].Value
+    if ($env:GITHUB_WORKSPACE) {
+        $relative = [System.IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $file)
+        if (-not $relative.StartsWith('..')) { $file = $relative -replace '\\', '/' }
+    }
+    return [pscustomobject]@{ File = $file; Line = [int]$m.Groups['line'].Value }
 }

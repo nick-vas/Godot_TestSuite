@@ -100,7 +100,7 @@ function Get-ProjectInfo {
     $sln = if ($Solution) { (Resolve-Path -LiteralPath $Solution).Path } else { Find-Solution $projectDir }
 
     $version = if ($GodotVersion) { $GodotVersion } else { Get-GodotVersionFromProject $projectDir }
-    if (-not $version) { $version = if ($env:GODOT_VERSION) { $env:GODOT_VERSION } else { '4.6.1' } }
+    if (-not $version) { $version = if ($env:GODOT_VERSION) { $env:GODOT_VERSION } else { '4.7.2' } }
     $version = ConvertTo-GodotVersion $version
     $isCSharp = @(Get-ChildItem -LiteralPath $projectDir -File -Filter '*.csproj').Count -gt 0
 

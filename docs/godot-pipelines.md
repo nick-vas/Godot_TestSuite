@@ -43,7 +43,7 @@ their own.
 
 [`examples/breakout`](../examples/breakout) uses all of them at once, and
 [`examples/gdscript`](../examples/gdscript) is the minimal GDScript setup. Versions that work with Godot
-4.6.1 and .NET 8:
+4.7.2 and .NET 8:
 
 **gdUnit4Net**: add to the Godot project's csproj, write `[TestSuite]` classes and mark engine tests with
 `[RequireGodotRuntime]`. The suite writes the `.runsettings` (`GODOT_BIN`, `--headless`) for you.
@@ -55,8 +55,8 @@ their own.
 ```
 gdUnit4Net writes a `gdunit4_testadapter_v5/` folder into the project; add it to `.gitignore`.
 
-**GoDotTest**: reference `Chickensoft.GoDotTest`. 2.0.31 is the last version built against Godot 4.6.1;
-newer ones need Godot 4.7. Add a small scene whose script calls `GoTest.RunTests(...)`, like
+**GoDotTest**: reference `Chickensoft.GoDotTest`. 2.0.47 is verified on Godot 4.7.2; older
+GoDotTest versions target older Godot minors. Add a small scene whose script calls `GoTest.RunTests(...)`, like
 [`GoDotTestRunner.cs`](../examples/breakout/game/test/godottest/GoDotTestRunner.cs); the suite finds it.
 
 **GUT**: just write `test_*.gd` scripts that extend `GutTest`. The suite installs GUT v9.4.0–v9.7.1 to

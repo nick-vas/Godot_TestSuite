@@ -116,5 +116,13 @@ function Invoke-Doctor($Info) {
     $warns = if ($counts -and $counts.ContainsKey('WARN')) { $counts['WARN'].Count } else { 0 }
     Write-Host ''
     Write-CiLog "$fails problem(s), $warns warning(s)"
-    if ($fails -gt 0) { exit 1 }
+    Set-JsonField checks @($checks | ForEach-Object { [ordered]@{ status = $_.Status; message = $_.Message; fix = $_.Fix ? $_.Fix : $null } })
+    Set-JsonField problems $fails
+    Set-JsonField warnings $warns
+    if ($fails -gt 0) {
+        Set-JsonField ok $false
+        Set-JsonField error ([ordered]@{ code = 'doctor-problems'; message = "$fails problem(s) found" })
+        Write-JsonResult
+        exit 1
+    }
 }

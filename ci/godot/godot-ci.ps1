@@ -17,15 +17,16 @@
 param(
     # test (default): build, then run every test runner. build: install, addons, compile, import.
     # export: build, then export presets. setup: install Godot/.NET only. detect: print what was found.
+    # doctor: check tools and project. init: wire the suite in. plan: A-to-Z game plan with gates.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
     [string]$Project,
     # .sln/.csproj for dotnet. Default: the nearest one at or above the project.
     [string]$Solution,
-    # e.g. 4.6.1 or 4.7-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.6.1.
+    # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
     # validate, dotnet, gdunit4, godottest, gut, smoke (or none to only build). Default: detected.
     [string[]]$Runners,
@@ -46,12 +47,34 @@ param(
     # setup: also install export templates.
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT.
-    [switch]$GitHubOutput
+    [switch]$GitHubOutput,
+    # init: also add AGENTS.md, CLAUDE.md and the agent skills.
+    [switch]$Agents,
+    # plan: init (create plan/plan.json), status (default), done (mark a manual gate done: -Id).
+    [ValidateSet('status', 'init', 'done')]
+    [string]$Do = 'status',
+    # plan -Do done: the gate to mark, e.g. prototype.loop.
+    [string]$Id,
+    # plan -Do init: the game's name (default: config/name).
+    [string]$Game,
+    # Print one JSON document on stdout (schema godot-ci/1) and send all logs to stderr. For agents and scripts.
+    [switch]$Json
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+if ($Json) {
+    # Every log line in the libraries goes through Write-Host; send them to stderr so stdout stays pure JSON.
+    function Write-Host {
+        param([Parameter(ValueFromRemainingArguments)][object[]]$Object, [switch]$NoNewline, $ForegroundColor, $BackgroundColor)
+        $text = $Object -join ' '
+        if ($NoNewline) { [Console]::Error.Write($text) } else { [Console]::Error.WriteLine($text) }
+    }
+    Enable-JsonMode $Command
+}
+# Any unexpected terminating error still ends with a structured result.
+trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
 
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
 $presets = @(if ($Preset) { $Preset | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { $info.Presets })
@@ -70,7 +93,20 @@ if ($Command -eq 'detect') {
         'presets'         = ConvertTo-Json -Compress -InputObject @($presets)
         'preset-platforms' = ConvertTo-Json -Compress -InputObject $platforms
     }
-    $values.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+    if ($Json) {
+        $details = Get-ExportPresetDetails $info.ProjectDir
+        Set-JsonField project $info.ProjectDir
+        Set-JsonField name $info.Name
+        Set-JsonField csharp $info.IsCSharp
+        Set-JsonField solution $info.Solution
+        Set-JsonField godotVersion $info.GodotVersion
+        Set-JsonField runners @($info.Runners)
+        Set-JsonField goDotTestScene $info.GoDotTestScene
+        Set-JsonField presets @($presets | ForEach-Object { [ordered]@{ name = $_; platform = $platforms[$_] } })
+        Write-JsonResult
+    } else {
+        $values.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+    }
     if ($GitHubOutput -and $env:GITHUB_OUTPUT) {
         $values.GetEnumerator() | ForEach-Object { Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "$($_.Key)=$($_.Value)" }
     }
@@ -91,13 +127,22 @@ function Invoke-Setup([switch]$WithTemplates) {
 function Invoke-Build {
     # GUT whenever GUT tests exist, not only for the gut runner: validate loads those scripts too.
     $needsGut = $info.Runners -contains 'gut' -or @(Get-GutTestFiles $info.ProjectDir).Count -gt 0
-    if ($needsGut -and -not (Test-Path -LiteralPath (Join-Path $info.ProjectDir 'addons/gut/gut_cmdln.gd'))) {
-        Install-Addon $info.ProjectDir "gut@$(Get-GutTag $info.GodotVersion)"
+    if ($needsGut) {
+        # An addon this suite installed carries a version stamp and is kept in step with the Godot version
+        # (GUT releases are tied to one Godot minor). One without a stamp is the user's own and is left alone.
+        $gut = Join-Path $info.ProjectDir 'addons/gut'
+        $userManaged = (Test-Path -LiteralPath (Join-Path $gut 'gut_cmdln.gd')) -and -not (Test-Path -LiteralPath (Join-Path $gut '.godot-ci-version'))
+        if (-not $userManaged) { Install-Addon $info.ProjectDir "gut@$(Get-GutTag $info.GodotVersion)" }
     }
     if ($info.Solution) {
         Start-LogGroup "dotnet build $($info.Solution)"
-        Invoke-Checked dotnet @('build', $info.Solution, '-c', 'Debug')
+        $buildLog = [System.IO.Path]::GetTempFileName()
+        $code = Invoke-Logged dotnet @('build', $info.Solution, '-c', 'Debug') $buildLog
         Stop-LogGroup
+        if ($code -ne 0) {
+            Set-JsonField diagnostics @(Get-DotnetDiagnostics $buildLog)
+            Stop-GodotCi "dotnet build exited with $code" 'build-failed'
+        }
     } else {
         Write-CiLog 'No .sln/.csproj; skipping dotnet build (GDScript-only project)'
     }
@@ -105,7 +150,7 @@ function Invoke-Build {
     $log = [System.IO.Path]::GetTempFileName()
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
     Stop-LogGroup
-    if ($code -ne 0) { Stop-GodotCi "Godot import exited with $code" }
+    if ($code -ne 0) { Stop-GodotCi "Godot import exited with $code" 'import-failed' }
     Assert-GodotLogClean $log 'Import'
     Write-CiLog 'Build OK'
 }
@@ -117,7 +162,7 @@ function Assert-SafeToClear([string]$Dir) {
     $target = & $norm $Dir
     foreach ($precious in $PWD.Path, $info.ProjectDir) {
         if ((& $norm $precious).StartsWith($target, [StringComparison]::OrdinalIgnoreCase)) {
-            Stop-GodotCi "-Results $Dir would delete $precious; point it at a dedicated folder such as test-results"
+            Stop-GodotCi "-Results $Dir would delete $precious; point it at a dedicated folder such as test-results" 'unsafe-results-dir'
         }
     }
 }
@@ -133,22 +178,28 @@ function Invoke-Tests {
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
+    Set-JsonField resultsDir $resultsDir
+    Set-JsonField coverage ([ordered]@{ linePercent = $percent; minimum = $MinCoverage })
+    Set-JsonField runnerResults @($runs | ForEach-Object {
+        [ordered]@{ runner = $_.Runner; ok = $_.Ok; total = $_.Total; passed = $_.Passed; failed = $_.Failed
+            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line } }) } })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
-    if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" }
+    if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }
     if ($MinCoverage -gt 0) {
-        if ($null -eq $percent) { Stop-GodotCi "-MinCoverage $MinCoverage was set, but no coverage was collected" }
-        if ($percent -lt $MinCoverage) { Stop-GodotCi "Line coverage $percent% is below the minimum of $MinCoverage%" }
+        if ($null -eq $percent) { Stop-GodotCi "-MinCoverage $MinCoverage was set, but no coverage was collected" 'no-coverage' }
+        if ($percent -lt $MinCoverage) { Stop-GodotCi "Line coverage $percent% is below the minimum of $MinCoverage%" 'coverage-below-minimum' }
         Write-CiLog "Line coverage $percent% meets the minimum of $MinCoverage%"
     }
     Write-CiLog "All runners passed: $($info.Runners -join ', ')"
 }
 
 function Invoke-Export {
-    if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" }
+    if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
+    $exports = @()
     $details = Get-ExportPresetDetails $info.ProjectDir
     foreach ($name in $presets) {
-        if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" }
+        if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
         if (-not $preset.ExportPath) { Stop-GodotCi "Preset '$name' has no export_path" }
         $dir = Join-Path ([System.IO.Path]::GetFullPath($Output)) (ConvertTo-SafeName $name)
@@ -159,11 +210,13 @@ function Invoke-Export {
         $log = [System.IO.Path]::GetTempFileName()
         $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-release', $name, $file) $log
         Stop-LogGroup
-        if ($code -ne 0) { Stop-GodotCi "Export '$name' exited with $code" }
+        if ($code -ne 0) { Stop-GodotCi "Export '$name' exited with $code" 'export-failed' }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" }
         Assert-GodotLogClean $log "Export '$name'"
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
 
+        $exports += [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        Set-JsonField exports $exports
         if ($Run) { Test-ExportedBuild $name $preset.Platform $file }
     }
 }
@@ -190,9 +243,11 @@ Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solutio
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
-    'init' { Initialize-Project $info }
+    'init' { Initialize-Project $info; if ($Agents) { Add-AgentFiles $info $PSCommandPath } }
+    'plan' { Invoke-Plan $info $Do $Id $Game }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }
     'export' { Invoke-Setup -WithTemplates; Invoke-Build; Invoke-Export }
 }
+Write-JsonResult
