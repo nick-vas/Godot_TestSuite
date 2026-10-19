@@ -40,15 +40,19 @@ separate, headless tool.
 1. Install [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)
    (`winget install Microsoft.PowerShell`), Git and, for C#, the [.NET 8 SDK](https://dotnet.microsoft.com/download).
    Node 20+ is only needed if you use the editor bridge.
-2. Add the kit to your game (submodule or copy `ci/godot`) and let `init` wire it in:
+2. Clone the kit once, **outside** your game, and point it at the game with `-Project`. Nothing of the kit goes into your
+   game's repository or its exported builds:
    ```powershell
-   git submodule add https://github.com/nick-vas/Godot_TestSuite tools/godot-test-suite
-   pwsh tools/godot-test-suite/ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp
+   git clone https://github.com/nick-vas/Godot_TestSuite C:\Tools\godot-test-suite
+   $kit = 'C:\Tools\godot-test-suite\ci\godot\godot-ci.ps1'
+   pwsh $kit init -Agents -Mcp godot-mcp -Project 'C:\path\to\your\game'
    ```
+   Prefer it inside the game repo (a submodule, so everyone gets the same version)? That works too: the kit's folders carry a
+   `.gdignore` file, so Godot neither imports nor exports them, and the kit's own detection skips them.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
 4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
 
-`init` only adds: new files, plus lines in `.gitignore`, your csproj (test packages kept out of release builds), the export presets'
+`init` only adds to your game: new files, plus lines in `.gitignore`, your csproj (test packages kept out of release builds), the export presets'
 exclude filters, `project.godot` (`solution_directory`) and `.mcp.json`. It never overwrites a file, skips what is already there, and prints
 each change; `.mcp.json` is backed up first. `doctor` checks a machine and a project.
 

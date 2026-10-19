@@ -30,6 +30,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   `add_child` before reading anything the scene sets up.
 - `bench` and `shot` need a display. Here, start `Xvfb :99 &` and set `DISPLAY=:99`; do not use `xvfb-run`, which merges stderr into
   stdout and breaks `-Json`.
+- The `.gdignore` files at the repository root and in `ci/godot/` keep the kit out of a game it is placed inside (Godot neither
+  imports nor exports it, and `Find-ProjectFiles` skips folders that have one). Do not remove them.
 - Verify with the examples: `pwsh ci/godot/godot-ci.ps1 test -Project examples/breakout/game` and `-Project examples/gdscript`
   must be green; `doctor` and `plan` on both. Changing a version matrix entry means re-running both on that Godot.
 - Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass. A skill description says only when to use it, never how.

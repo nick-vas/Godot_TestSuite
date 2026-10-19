@@ -84,6 +84,20 @@ jobs:
           ./ci/godot/godot-ci.ps1 doctor -Project $game
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./ci/godot/godot-ci.ps1 test -Project $game -Results (Join-Path $game 'test-results')
+      - name: The kit inside a game stays out of it
+        shell: pwsh
+        run: |
+          # A submodule layout: the kit, as committed, in a folder of the game. Its .gdignore files must hide it from Godot
+          # and from detection, so only the game's own files are seen.
+          $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'game-with-kit')
+          Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $game
+          New-Item -ItemType Directory (Join-Path $game 'tools/kit') | Out-Null
+          git archive HEAD | tar -x -C (Join-Path $game 'tools/kit')
+          $kit = Join-Path $game 'tools/kit/ci/godot/godot-ci.ps1'
+          $d = pwsh -NoProfile -File $kit detect -Json -Project $game 2>$null | ConvertFrom-Json
+          if (($d.runners -join ',') -ne 'validate,smoke') { throw "the kit's own examples leaked into detection: $($d.runners -join ',')" }
+          $d = pwsh -NoProfile -File $kit test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or $d.runnerResults[0].total -ne 3) { throw "validate should load only the game's 3 files: $($d | ConvertTo-Json -Depth 6)" }
 
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.

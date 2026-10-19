@@ -32,6 +32,7 @@ description: Use when a Godot 4.x C# project works in the editor but fails or mi
 | A one-way platform blocks the wrong direction | One-way shapes block motion along their local +Y | Rotate the body 180 degrees to block upward motion |
 | A scene script's class is not found | Scripts attached to scenes need file name = class name | Extra `partial` Godot classes in one file are fine when you create them with `new` |
 | Banding blobs in a posterized look, dark additive particles | Posterize plus soft fog; fog applied to additive materials | Reduce fog softness under posterize; disable fog on particle materials |
+| Build tools or test kits end up inside the exported game | Godot imports and exports every resource under the project folder, `.gd` scripts included | Keep tooling outside the project folder, or put an empty `.gdignore` file in its folder (this kit ships one) |
 | `xvfb-run` output is not valid JSON | `xvfb-run` merges the command's stderr into stdout | Start `Xvfb :99 &` yourself and set `DISPLAY=:99` |
 
 When in doubt: `doctor -Json`, then `test -Json`.

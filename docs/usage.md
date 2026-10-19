@@ -4,12 +4,18 @@ Ten ways to use the suite. The [README](../README.md) has the short version.
 
 ### 1. Add the suite to an existing game
 
-Put the suite in your game's repository, either as a submodule (easy to update) or by copying the
-`ci/godot` folder, then let `init` wire it in:
+Keep the suite outside your game and point it at the game with `-Project`; then nothing of it ends up in your repository or
+your exported builds:
 ```powershell
-git submodule add https://github.com/nick-vas/Godot_TestSuite tools/godot-test-suite
-pwsh tools/godot-test-suite/ci/godot/godot-ci.ps1 init
+git clone https://github.com/nick-vas/Godot_TestSuite C:\Tools\godot-test-suite
+pwsh C:\Tools\godot-test-suite\ci\godot\godot-ci.ps1 init -Project 'C:\path\to\your\game'
 ```
+With the suite outside, `init -Agents` writes its full path into `AGENTS.md`, so agents call it from there.
+
+To share one pinned version with everyone on the game's repository instead, add it as a submodule:
+`git submodule add https://github.com/nick-vas/Godot_TestSuite tools/godot-test-suite`. Its folders carry a `.gdignore` file, so
+Godot never imports or exports them, and the suite's own detection ignores them. If you copy only the `ci/godot` folder,
+keep its `.gdignore`: without it, the suite's four `.gd` tool scripts would be exported with your game.
 `init` only adds things and never overwrites a file, so it's safe to run again. It adds:
 - a starter test: gdUnit4Net for C# projects (packages kept out of release builds), GUT for GDScript;
 - `.gitignore` entries and test-folder exclusions in your export presets;
