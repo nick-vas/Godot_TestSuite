@@ -1,0 +1,114 @@
+# `bench` and `shot`: measure a scene's frame pacing, and save real screenshots of scenes. Both run the game with a window by
+# default, because a headless run draws nothing: bench -Headless still works but measures CPU time only, and shot needs a display.
+
+# Linux without a display server cannot open a window. Say so before Godot fails with a less helpful message.
+function Assert-Display([string]$What) {
+    if ($IsLinux -and -not $env:DISPLAY -and -not $env:WAYLAND_DISPLAY) {
+        Stop-GodotCi "$What needs a display, and this machine has none. Run it under a virtual one: xvfb-run -a pwsh ci/godot/godot-ci.ps1 ..." 'no-display'
+    }
+}
+
+# -GameArgs '--a','--b' arrives as one "--a,--b" string when the script is started with pwsh -File, so split on commas the
+# same way -Runners and -Preset are split. A single game argument therefore cannot contain a comma.
+function Split-GameArgs([string[]]$GameArgs) {
+    @($GameArgs | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
+# Engine arguments shared by bench and shot. Audio is replaced by the dummy driver: it is not what is being measured, and on
+# machines without a sound device the real driver prints an engine error.
+function Get-WindowArgs([string]$Resolution, [switch]$Uncapped, [int]$MaxFps) {
+    $arguments = @('--audio-driver', 'Dummy')
+    if ($Resolution) {
+        if ($Resolution -notmatch '^\d+x\d+$') { Stop-GodotCi "-Resolution must look like 1920x1080, not '$Resolution'" 'invalid-arguments' }
+        $arguments += '--resolution', $Resolution
+    }
+    if ($Uncapped) { $arguments += '--disable-vsync' }
+    if ($MaxFps -gt 0) { $arguments += '--max-fps', "$MaxFps" }
+    return $arguments
+}
+
+function Invoke-Bench {
+    param($Info, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
+        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs)
+    if (-not $Headless) { Assert-Display 'bench' }
+    $tool = (Join-Path $PSScriptRoot '../tools/bench.gd' | Resolve-Path).Path -replace '\\', '/'
+    $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps)
+    if ($Headless) { $engine = @('--headless') + $engine }
+    $user = @("--bench-seconds=$Seconds", "--bench-warmup=$Warmup") + $(if ($Scene) { "--bench-scene=$Scene" }) + @(Split-GameArgs $GameArgs)
+
+    New-Item -ItemType Directory -Force $ResultsDir | Out-Null
+    $log = Join-Path $ResultsDir 'bench.log'
+    Start-LogGroup "Benchmark $(if ($Scene) { $Scene } else { 'main scene' }) for $Seconds s after $Warmup s warm-up"
+    $code = Invoke-Logged $env:GODOT_BIN (@($engine) + @('-s', $tool, '--') + @($user)) $log
+    Stop-LogGroup
+    if ($code -ne 0) { Stop-GodotCi "Godot exited with $code during the benchmark" 'bench-failed' }
+    $line = Get-Content -LiteralPath $log | Where-Object { $_ -match '^@@bench ' } | Select-Object -Last 1
+    if (-not $line) { Stop-GodotCi 'The benchmark printed no result; see bench.log' 'bench-failed' }
+    $result = ($line -replace '^@@bench ', '') | ConvertFrom-Json -AsHashtable
+    if ($result.ContainsKey('error')) { Stop-GodotCi "Benchmark: $($result.error)" 'bench-failed' }
+
+    $result['label'] = $Label
+    $result['budgetMs'] = $BudgetMs
+    $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir 'bench.json') -Encoding utf8
+    Add-BenchCsvRow (Join-Path $ResultsDir 'bench.csv') $result
+    Set-JsonField bench $result
+
+    $summary = "{0} frames: avg {1} fps, 1% low {2}, 0.1% low {3}, p99 {4} ms, max {5} ms, {6} frame(s) over 33 ms, {7} hitch(es)" -f
+        $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, @($result.hitches).Count
+    Write-CiLog $summary
+    if ($result.display -eq 'headless') { Write-CiLog 'Headless: nothing was drawn, so these are CPU timings only' }
+    foreach ($monitor in $result.customMonitors.GetEnumerator()) { Write-CiLog "  $($monitor.Key): +$($monitor.Value.delta)" }
+    # After the numbers are saved and reported: errors the game printed while measured still fail the run.
+    Assert-GodotLogClean $log 'The benchmark'
+    if ($BudgetMs -gt 0 -and $result.frameMs.p99 -gt $BudgetMs) {
+        Stop-GodotCi "p99 frame time $($result.frameMs.p99) ms is over the budget of $BudgetMs ms" 'bench-over-budget'
+    }
+}
+
+# One row per run, so runs can be compared over time (label each one: -Label "vsync-on 1080p").
+function Add-BenchCsvRow([string]$Path, $Result) {
+    $monitors = ($Result.customMonitors.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value.delta)" }) -join ';'
+    $row = [ordered]@{
+        time = (Get-Date).ToString('s'); label = $Result.label; scene = $Result.scene; resolution = $Result.resolution
+        renderer = $Result.renderer; vsync = $Result.vsync; maxFps = $Result.maxFps; display = $Result.display
+        frames = $Result.frames; fpsAvg = $Result.fps.avg; low1 = $Result.fps.low1; low01 = $Result.fps.low01
+        p50Ms = $Result.frameMs.p50; p99Ms = $Result.frameMs.p99; maxMs = $Result.frameMs.max
+        over20ms = $Result.over20ms; over33ms = $Result.over33ms; hitches = @($Result.hitches).Count
+        drawCallsAvg = $Result.drawCalls.avg; customMonitorDeltas = $monitors
+    }
+    $exists = Test-Path -LiteralPath $Path
+    [pscustomobject]$row | Export-Csv -LiteralPath $Path -Append:$exists -NoTypeInformation -Encoding utf8
+}
+
+function Invoke-Shot {
+    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs)
+    Assert-Display 'shot'
+    $tool = (Join-Path $PSScriptRoot '../tools/shot.gd' | Resolve-Path).Path -replace '\\', '/'
+    $dir = [System.IO.Path]::GetFullPath($OutputDir)
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution)
+    $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $user = @("--shot-frames=$Frames", "--shot-dir=$($dir -replace '\\', '/')") + $(if ($scenes) { "--shot-scenes=$($scenes -join ',')" }) +
+        @(Split-GameArgs $GameArgs)
+
+    $log = Join-Path $dir 'shot.log'
+    Start-LogGroup "Screenshots after $Frames frames$(if ($Resolution) { " at $Resolution" })"
+    $code = Invoke-Logged $env:GODOT_BIN (@($engine) + @('-s', $tool, '--') + @($user)) $log
+    Stop-LogGroup
+    if ($code -ne 0) { Stop-GodotCi "Godot exited with $code while taking screenshots" 'shot-failed' }
+    $shots = @(); $problems = @()
+    foreach ($line in Get-Content -LiteralPath $log) {
+        if ($line -match '^@@shot ok (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<w>\d+)\|(?<h>\d+)$') {
+            $shots += [ordered]@{ scene = $Matches.scene; file = [System.IO.Path]::GetFullPath($Matches.file); width = [int]$Matches.w; height = [int]$Matches.h }
+        } elseif ($line -match '^@@shot error (?<msg>.+)$') {
+            $problems += $Matches.msg
+        }
+    }
+    Set-JsonField shots $shots
+    foreach ($shot in $shots) { Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))" }
+    if ($problems.Count -gt 0 -or $shots.Count -eq 0) {
+        Stop-GodotCi "Screenshots failed: $(if ($problems) { $problems -join '; ' } else { 'no scene produced an image' })" 'shot-failed'
+    }
+    # After reporting the pictures: a scene that printed errors while it ran still fails the run.
+    Assert-GodotLogClean $log 'The screenshot run'
+}

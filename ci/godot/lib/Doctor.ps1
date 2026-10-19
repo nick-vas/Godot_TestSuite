@@ -13,6 +13,14 @@ function Get-GitignoreFiles([string]$ProjectDir) {
     }
 }
 
+# Godot export filters are comma-separated wildcards, matched against the path in the project and against the file name.
+function Test-ExportFilterMatch([string]$Path, [string]$Filter) {
+    foreach ($pattern in $Filter -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) {
+        if ($Path -like $pattern -or (Split-Path $Path -Leaf) -like $pattern) { return $true }
+    }
+    return $false
+}
+
 function Invoke-Doctor($Info) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
@@ -95,8 +103,18 @@ function Invoke-Doctor($Info) {
     if ($details.Count -eq 0) {
         Add-Check INFO 'No export presets yet' 'Project > Export > Add...'
     }
+    # Godot exports resources only; notes and design documents ship only when a preset's include_filter pulls them in.
+    $documents = @(Find-ProjectFiles -Root $project -Filter '*.*' | Where-Object { $_.Extension -in '.md', '.pdf' } |
+        ForEach-Object { [System.IO.Path]::GetRelativePath($project, $_.FullName) -replace '\\', '/' })
+    $presetsText = if ($details.Count -gt 0) { Get-Content -LiteralPath (Join-Path $project 'export_presets.cfg') -Raw } else { '' }
     foreach ($preset in $details.Values) {
-        $filter = (Get-Content -LiteralPath (Join-Path $project 'export_presets.cfg') -Raw) -match "(?ms)name=""$([regex]::Escape($preset.Name))"".*?^exclude_filter=""(?<f>[^""]*)""" ? $Matches.f : ''
+        $filter = $presetsText -match "(?ms)name=""$([regex]::Escape($preset.Name))"".*?^exclude_filter=""(?<f>[^""]*)""" ? $Matches.f : ''
+        $include = $presetsText -match "(?ms)name=""$([regex]::Escape($preset.Name))"".*?^include_filter=""(?<f>[^""]*)""" ? $Matches.f : ''
+        $shipped = @($documents | Where-Object { (Test-ExportFilterMatch $_ $include) -and -not (Test-ExportFilterMatch $_ $filter) })
+        if ($shipped.Count -gt 0) {
+            Add-Check WARN "Export preset '$($preset.Name)' ships $($shipped.Count) document(s) because its include filter '$include' matches them: $(($shipped | Select-Object -First 3) -join ', ')" `
+                'Add *.md, *.pdf to its exclude filter, or narrow the include filter'
+        }
         $missing = @($testDirs | Where-Object { $filter -notmatch [regex]::Escape("$_/") })
         if ($missing.Count -gt 0) {
             Add-Check WARN "Export preset '$($preset.Name)' ships test folders: $($missing -join ', ')" `

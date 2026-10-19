@@ -20,5 +20,18 @@ description: Use when a Godot 4.x C# project works in the editor but fails or mi
 | `-Results .` deletes work | `-Results` is wiped each run | The suite refuses the project folder, cwd or parents (`unsafe-results-dir`) |
 | Zero tests "passes" | A runner that finds nothing is misconfigured | The suite fails it; wire the framework instead |
 | Windows build zip not executable on Linux | Zip lost the exec bit | The release tool re-adds it for ELF binaries |
+| A debug scene path works in the editor but the exported build ignores it | Release exports ignore scene paths on the command line | Make debug entry points user flags after `--` (`OS.GetCmdlineUserArgs()`); pass them with `-GameArgs` (`godot-automation-hooks`) |
+| Exports fail or behave oddly after an upgrade | Editor, `Godot.NET.Sdk/x.y.z` and export templates differ | All three must match; the kit installs the matching templates into the editor's own folder (`%APPDATA%\Godot\export_templates\<version>.mono`) |
+| Notes or design PDFs inside the export | A preset's `include_filter` matches them (by default Godot exports resources only) | `doctor` warns; add `*.md, *.pdf` to the exclude filter or narrow the include filter |
+| Movie-writer frames are the wrong size | The movie writer is tied to the startup window size | Use `shot -Resolution`, or save `GetViewport().GetTexture().GetImage()` after `RenderingServer.FramePostDraw` |
+| Screenshot of a headless run is empty | Headless draws nothing | Run `shot` with a display (a virtual one on Linux) |
+| Engine crashes on exit (`corrupted size`, exit 134) after adding a custom monitor | The monitor's callable outlives its node | `Performance.RemoveCustomMonitor` in `_ExitTree` |
+| `N resources still in use at exit` in a headless run | Usually the dummy audio driver at shutdown; harmless there | If it fails your runs, set `GODOT_CI_IGNORE_ERRORS='resources still in use at exit'`; investigate if it also appears with a real audio device |
+| `ERR_CANT_OPEN` from `audio_driver_alsa` on a server or CI machine | No sound device | `bench` and `shot` already use the dummy audio driver; pass `--audio-driver Dummy` to your own runs |
+| V-Sync on, yet thousands of FPS | The driver ignores V-Sync (seen: Compatibility renderer on NVIDIA) | Try Mobile on Vulkan with `fallback_to_opengl3`; cap `Engine.MaxFps` at the refresh rate as a safety net (`godot-performance`) |
+| A one-way platform blocks the wrong direction | One-way shapes block motion along their local +Y | Rotate the body 180 degrees to block upward motion |
+| A scene script's class is not found | Scripts attached to scenes need file name = class name | Extra `partial` Godot classes in one file are fine when you create them with `new` |
+| Banding blobs in a posterized look, dark additive particles | Posterize plus soft fog; fog applied to additive materials | Reduce fog softness under posterize; disable fog on particle materials |
+| `xvfb-run` output is not valid JSON | `xvfb-run` merges the command's stderr into stdout | Start `Xvfb :99 &` yourself and set `DISPLAY=:99` |
 
 When in doubt: `doctor -Json`, then `test -Json`.

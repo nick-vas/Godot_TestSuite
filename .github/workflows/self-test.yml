@@ -85,6 +85,53 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./ci/godot/godot-ci.ps1 test -Project $game -Results (Join-Path $game 'test-results')
 
+  # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
+  # prove the commands work, not how fast anything is.
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Virtual display
+        run: |
+          if ! command -v Xvfb >/dev/null; then sudo apt-get update -q && sudo apt-get install -y -q xvfb; fi
+          # Start Xvfb directly: xvfb-run merges stderr into stdout, which would break -Json.
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+      - name: bench, headless and with a window
+        shell: pwsh
+        run: |
+          $ci = './ci/godot/godot-ci.ps1'
+          $d = pwsh -NoProfile -File $ci bench -Json -Headless -Project examples/breakout/game -Seconds 2 -Warmup 1 -Label headless 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or $d.bench.display -ne 'headless' -or $d.bench.frames -lt 10) { throw "headless bench: $($d | ConvertTo-Json -Depth 5)" }
+          $d = pwsh -NoProfile -File $ci bench -Json -Project examples/breakout/game -Seconds 2 -Warmup 1 -Resolution 1280x720 -Label window 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or $d.bench.display -eq 'headless' -or $d.bench.resolution -ne '1280x720') { throw "window bench: $($d | ConvertTo-Json -Depth 5)" }
+          $d = pwsh -NoProfile -File $ci bench -Json -Headless -Project examples/breakout/game -Seconds 1 -Warmup 0 -BudgetMs 0.001 2>$null | ConvertFrom-Json
+          if ($d.ok -or $d.error.code -ne 'bench-over-budget') { throw "budget gate: $($d | ConvertTo-Json -Depth 5)" }
+          $rows = @(Import-Csv bench-results/bench.csv)
+          if ($rows.Count -ne 3) { throw "expected 3 rows in bench.csv, got $($rows.Count)" }
+          # The budget check ends with a command that fails on purpose; GitHub's pwsh wrapper exits with $LASTEXITCODE.
+          exit 0
+      - name: shot
+        shell: pwsh
+        run: |
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Resolution 1920x1080 -Frames 30 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or $d.shots.Count -ne 1 -or -not (Test-Path $d.shots[0].file)) { throw "shot: $($d | ConvertTo-Json -Depth 5)" }
+          # The example keeps its 4:3 arena (aspect "keep"), so a 1920x1080 window gives a 1440x1080 picture.
+          if ($d.shots[0].width -ne 1440 -or $d.shots[0].height -ne 1080) { throw "unexpected size $($d.shots[0].width)x$($d.shots[0].height)" }
+      - name: -GameArgs reach the game
+        shell: pwsh
+        run: |
+          $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'args-game')
+          Set-Content (Join-Path $game 'project.godot') "config_version=5`n[application]`nconfig/name=`"Args`"`nrun/main_scene=`"res://main.tscn`""
+          Set-Content (Join-Path $game 'main.gd') "extends Node`nfunc _ready() -> void:`n`tif not `"--autoplay`" in OS.get_cmdline_user_args():`n`t`tpush_error(`"no --autoplay flag`")"
+          Set-Content (Join-Path $game 'main.tscn') "[gd_scene load_steps=2 format=3]`n[ext_resource type=`"Script`" path=`"res://main.gd`" id=`"1`"]`n[node name=`"Main`" type=`"Node`"]`nscript = ExtResource(`"1`")"
+          $ci = './ci/godot/godot-ci.ps1'
+          $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r1" -GameArgs '--seed=3,--autoplay' 2>$null | ConvertFrom-Json
+          if (-not $d.ok) { throw "with the flag: $($d | ConvertTo-Json -Depth 6)" }
+          $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r2" 2>$null | ConvertFrom-Json
+          if ($d.ok -or $d.error.code -ne 'tests-failed') { throw "without the flag the smoke run should fail: $($d | ConvertTo-Json -Depth 6)" }
+          exit 0   # the last run failed on purpose; see the bench step
+
   # The composite action inside a custom workflow.
   action:
     runs-on: ubuntu-latest
