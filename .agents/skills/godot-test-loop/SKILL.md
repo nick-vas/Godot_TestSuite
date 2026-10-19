@@ -1,6 +1,6 @@
 ---
 name: godot-test-loop
-description: Use when adding or changing behaviour in a Godot 4.7 (GDScript or C#) project. Drives a test-first loop with godot-ci.ps1 and reads failures as JSON instead of scraping logs.
+description: Use when adding, changing or fixing behaviour in a Godot 4.x project, before writing implementation code.
 ---
 
 # Test-first loop for Godot
@@ -23,9 +23,9 @@ pwsh ci/godot/godot-ci.ps1 test -Json            # path may differ: a submodule,
    `-Runners gut -Filter test_combo` / `-Runners godottest -Filter PlayerTest`.
    A pass before you wrote the code means the test checks nothing.
 4. **Make it pass with the smallest change.**
-5. **Run the whole suite.** `test -Json` with no filter. `validate` and `smoke` run too: they catch broken
-   scene references and runtime errors that no unit test covers.
-6. **Refactor with the suite green**, then repeat.
+5. **Run the whole suite.** `test -Json` with no filter. `validate`, `flows` and `smoke` run too: they catch broken
+   scene references, broken UI flows and runtime errors that no unit test covers (`godot-ui-flows`).
+6. **Refactor with the suite green**, then repeat. Before saying it is done, follow `godot-verify-before-done`.
 
 ## Reading the result
 

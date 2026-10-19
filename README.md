@@ -32,20 +32,24 @@ pwsh ci/godot/godot-ci.ps1 test -Json       # every time: build + every test, on
 | **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
 | **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files |
 | **Test first** | `test -Json [-Runners x -Filter y]` | per-runner pass/fail with `file`/`line`; fails on zero tests and on any engine `ERROR:` |
-| **Catch what tests miss** | built-in `validate` and `smoke` runners | loads every script/scene, plays the main scene |
+| **Catch what tests miss** | built-in `validate`, `flows` and `smoke` runners | loads every script/scene; plays UI flows (`*.flow.json`: press, input, wait, assert); plays the main scene |
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line, C# error code |
 | **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
-| **Plan A to Z** | `plan -Json` | phase, open gates, timebox and work-in-progress warnings |
-| **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md`, six skills in `.agents/skills` and `.claude/skills` |
+| **Plan A to Z** | `plan -Json`, `plan -Do add\|move\|sync` | phase, open gates, tasks with a work-in-progress limit, optional Trello sync |
+| **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; this suite stays the verification gate |
+| **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md`, nine skills in `.agents/skills` and `.claude/skills` |
 
-Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`. Verified on Godot 4.7.2 and .NET 8.
+Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
 
 ## Skills
 
 | Skill | Use it when |
 |---|---|
 | `godot-test-loop` | adding or changing behaviour: write the failing test, make it pass, run everything |
+| `godot-verify-before-done` | about to say something is done, fixed or passing |
+| `godot-ui-flows` | a change affects menus, HUD, scene flow or input |
+| `godot-editor-bridge` | using an editor MCP server alongside this suite |
 | `godot-diagnose` | starting work or when something fails mysteriously: detect, doctor, validate |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
@@ -81,8 +85,8 @@ repositories; Linux runners are the cheapest on private ones. More: [docs/usage.
 
 **Why does it fail when Godot exited 0?** Godot exits 0 after printing script errors, so the suite scans the log and fails.
 
-**Does it work with an editor MCP server?** Yes; they are complementary. The editor MCP authors, this verifies. See
-[docs/strategies.md](docs/strategies.md).
+**Does it work with an editor MCP server?** Yes, by design: the editor MCP authors and inspects, this verifies. `init -Mcp godot-mcp` registers one;
+see [docs/mcp.md](docs/mcp.md).
 
 **Does it edit my files?** Only `init` and `plan -Do init|done`, and only by adding. Nothing is overwritten.
 
@@ -94,7 +98,9 @@ repositories; Linux runners are the cheapest on private ones. More: [docs/usage.
 | [docs/reference.md](docs/reference.md) | Parameters, workflow inputs, cost |
 | [docs/json.md](docs/json.md) | The `-Json` contract and error codes |
 | [docs/godot-pipelines.md](docs/godot-pipelines.md) | Test frameworks, versions, release-safe packaging |
-| [docs/plan.md](docs/plan.md) | The A-to-Z plan and where it comes from |
-| [docs/strategies.md](docs/strategies.md) | Open design choices, options and recommendations |
+| [docs/plan.md](docs/plan.md) | The A-to-Z plan, tasks and Trello sync, and where it comes from |
+| [docs/mcp.md](docs/mcp.md) | Editor-bridge MCP: which server and how it fits |
+| [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
+| [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
 | [AGENTS.md](AGENTS.md) | Working on this repository |
 | [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md) | Project |

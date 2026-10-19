@@ -87,6 +87,8 @@ function Invoke-Doctor($Info) {
     }
     $testDirs = @($gutFiles | ForEach-Object { (ConvertTo-ResPath $project $_.DirectoryName) -replace '^res://', '' } |
         ForEach-Object { ($_ -split '/')[0] } | Where-Object { $_ })
+    $testDirs += @(Find-ProjectFiles -Root $project -Filter '*.flow.json' | ForEach-Object { (ConvertTo-ResPath $project $_.DirectoryName) -replace '^res://', '' } |
+        ForEach-Object { ($_ -split '/')[0] } | Where-Object { $_ })
     if (Test-Path -LiteralPath (Join-Path $project 'test')) { $testDirs += 'test' }
     $testDirs = @($testDirs | Sort-Object -Unique)
     $details = Get-ExportPresetDetails $project

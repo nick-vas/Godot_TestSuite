@@ -53,6 +53,27 @@ remove gates freely: `plan.json` is yours after `init`.
   playtests and verdicts are manual gates that need a human.
 - **Marketing starts in the vertical slice**, not after the beta.
 
+## Tasks and Trello
+
+Day-to-day work lives in `plan.json` `tasks`, edited with commands so an agent cannot corrupt the file:
+
+```powershell
+pwsh ci/godot/godot-ci.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
+pwsh ci/godot/godot-ci.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
+```
+
+Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
+
+**Trello sync** (`plan -Do sync -Board <id or short link>`) keeps the plan the source of truth and uses Trello as the place you drag things:
+- a task with no card gets one in the matching list;
+- a card you moved to another list moves its task (Trello wins on column only);
+- a card that is gone (archived or deleted) is reported and left alone;
+- it never imports cards you created on the board, and never deletes anything.
+
+Set `TRELLO_KEY` and `TRELLO_TOKEN` (from https://trello.com/app-key) in the environment. They are sent in a request header, never in a URL,
+and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json.
+The API call paths were exercised against a local mock of the Trello API, not against a live board.
+
 ## Not covered (yet)
 
 Budget, team roles and live-ops staffing from the studio template (a solo plan has one role). Platform certification for

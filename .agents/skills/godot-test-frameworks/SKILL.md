@@ -1,6 +1,6 @@
 ---
 name: godot-test-frameworks
-description: Use when choosing or setting up a test framework in a Godot 4.7 project - GUT vs gdUnit4(Net) vs GoDotTest vs plain dotnet test - and when pinning compatible package versions.
+description: Use when choosing or setting up a test framework for a Godot 4.x project, or pinning compatible test package versions.
 ---
 
 # Choosing a Godot test framework

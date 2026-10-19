@@ -22,6 +22,11 @@ jobs:
           $issues = Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
+      - name: Skills pass their own validator, and the validator catches broken fixtures
+        shell: pwsh
+        run: |
+          ./ci/godot/tools/Test-Skills.ps1
+          ./tests/Test-SkillFixtures.ps1
       - name: Parse action manifests
         # actionlint covers workflows only; make sure every composite action is valid YAML.
         run: |

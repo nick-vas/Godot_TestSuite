@@ -103,7 +103,7 @@ function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode)
         Failures = @($totals.Failures | Select-Object -First 10 | ForEach-Object {
             $at = Get-FailureLocation "$($_.Details)`n$($_.Message)"
             [pscustomobject]@{ Name = $_.Name; Message = ($_.Message.Trim() -split "`n")[0]
-                File = $at ? $at.File : ($_.Name -match '^(?<f>.+?\.(?:gd|cs))[.:]' ? $Matches.f : $null); Line = $at ? $at.Line : $null } })
+                File = $at ? $at.File : ($_.Name -match 'res://(?<f>\S+?\.(?:gd|cs|tscn|tres|json))' ? $Matches.f : ($_.Name -match '^(?<f>.+?\.(?:gd|cs))[.:]' ? $Matches.f : $null)); Line = $at ? $at.Line : $null } })
     }
 }
 

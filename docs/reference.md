@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `dotnet`, `gdunit4`, `godottest`, `gut`, `smoke`; `none` to only build |
+| `-Runners` | detected | `validate`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
@@ -17,7 +17,9 @@
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go |
 | `-Frames` | `120` | How long smoke runs and launched exports play |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
-| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>` |
+| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync` |
+| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board |
+| `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
 | `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md and the skills |
 
 **Workflow inputs** (`godot.yml`), all optional:

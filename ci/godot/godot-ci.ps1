@@ -48,13 +48,22 @@ param(
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT.
     [switch]$GitHubOutput,
+    # init: also register an editor-bridge MCP server for the project.
+    [ValidateSet('none', 'godot-mcp', 'godot-ai')]
+    [string]$Mcp = 'none',
     # init: also add AGENTS.md, CLAUDE.md and the agent skills.
     [switch]$Agents,
     # plan: init (create plan/plan.json), status (default), done (mark a manual gate done: -Id).
-    [ValidateSet('status', 'init', 'done')]
+    [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync')]
     [string]$Do = 'status',
-    # plan -Do done: the gate to mark, e.g. prototype.loop.
+    # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move: the task id.
     [string]$Id,
+    # plan -Do add: the task title.
+    [string]$Title,
+    # plan -Do add|move: backlog, design, todo, doing, verify or done.
+    [string]$Column,
+    # plan -Do sync: the Trello board id or short link (needs TRELLO_KEY and TRELLO_TOKEN).
+    [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
     # Print one JSON document on stdout (schema godot-ci/1) and send all logs to stderr. For agents and scripts.
@@ -149,6 +158,14 @@ function Invoke-Build {
     Start-LogGroup 'Godot import'
     $log = [System.IO.Path]::GetTempFileName()
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
+    # Exit codes of 128 and up mean Godot was killed by a signal (observed: 134, an abort, now and then on 4.7.2 when
+    # the import cache is stale, and once again on the retry). That is the engine crashing, not a project error, so
+    # try again, up to twice. An ordinary failure is never retried.
+    for ($attempt = 1; $code -ge 128 -and $attempt -le 2; $attempt++) {
+        Write-CiLog "Godot crashed during import (exit $code); retry $attempt of 2"
+        Set-JsonField importRetried $attempt
+        $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
+    }
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "Godot import exited with $code" 'import-failed' }
     Assert-GodotLogClean $log 'Import'
@@ -174,7 +191,7 @@ function Invoke-Tests {
     if (Test-Path -LiteralPath $resultsDir) { Remove-Item -Recurse -Force $resultsDir }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate') -Frames $Frames
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows') -Frames $Frames
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -243,8 +260,8 @@ Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solutio
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
-    'init' { Initialize-Project $info; if ($Agents) { Add-AgentFiles $info $PSCommandPath } }
-    'plan' { Invoke-Plan $info $Do $Id $Game }
+    'init' { Initialize-Project $info; if ($Agents) { Add-AgentFiles $info $PSCommandPath }; if ($Mcp -ne 'none') { Add-McpConfig $info $Mcp } }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }

@@ -1,7 +1,17 @@
-# Strategies to choose from
+# Strategies and decisions
 
-Open decisions for how this toolkit grows, with what other projects do, trade-offs and a recommendation. Each is
-independent. Research current as of October 2026.
+How this toolkit grows, with what other projects do and the trade-offs. The **Decision** line on each section records what was
+chosen. Research current as of October 2026.
+
+| # | Topic | Decision |
+|---|---|---|
+| 1 | Distribution of agent knowledge | A: skills and AGENTS.md in the repo (installer later) |
+| 2 | Agent <-> engine interface | **C: editor-bridge MCP**, with the CLI as the verification gate ([mcp.md](mcp.md)) |
+| 3 | Verifying beyond unit tests | **UI flows** plus validate, smoke and `export -Run` ([flows](../.agents/skills/godot-ui-flows/SKILL.md)) |
+| 4 | Planning model | **A with C**: `plan.json` is the source of truth, Trello is synced ([plan.md](plan.md)) |
+| 5 | Naming and repo shape | Unchanged |
+| 6 | Quality bars for skills | A validator plus fixtures plus pressure tests ([skills-quality.md](skills-quality.md)) |
+
 
 ## 1. Distribution of agent knowledge
 
@@ -26,8 +36,8 @@ The gap in the field is *verified, test-centred* skills; most packs are API chea
 | C. Editor-bridge MCP ([godot-mcp](https://github.com/Coding-Solo/godot-mcp), [godot-ai](https://github.com/hi-godot/godot-ai), [satelliteoflove](https://github.com/satelliteoflove/godot-mcp)) | Scene edits, screenshots, live playtest | Needs the editor open; usually single client; not CI |
 | D. Both: CLI for verification, editor MCP for authoring | Best capability | Two stacks to document |
 
-**Recommend A, plus documenting D** (use an existing editor MCP for authoring; this suite is the verification gate).
-Add B only if a client needs MCP specifically; it would be a thin wrapper around the same JSON.
+**Decision: C**, with the CLI as the gate (the D arrangement). The editor MCP authors and inspects; `godot-ci.ps1` verifies. `init -Mcp godot-mcp`
+registers the server; see [mcp.md](mcp.md).
 
 ## 3. Verifying a change beyond unit tests
 
@@ -39,7 +49,8 @@ Add B only if a client needs MCP specifically; it would be a thin wrapper around
 | Screenshot regression | visual regressions | flaky across GPUs; headless has no renderer |
 | UI automation ([graydwarf/godot-ui-automation](https://github.com/graydwarf/godot-ui-automation)) | UI flows | extra dependency |
 
-**Recommend scripted playtests next** (seeded RNG, input log, state assertions); defer screenshots.
+**Decision: UI flows** (declarative, seeded, state assertions, run headless by the `flows` runner) on top of what exists. Scripted
+playtests via the editor bridge's frozen-time stepping cover the live-editor side; screenshots stay deferred.
 
 ## 4. Planning model
 
@@ -49,17 +60,17 @@ Add B only if a client needs MCP specifically; it would be a thin wrapper around
 | B. GitHub Issues/Projects as the source | Visible to collaborators; needs API/auth; offline-hostile |
 | C. Trello/Notion sync | Matches existing boards; third-party credentials |
 
-**Recommend A**, with optional export of `tasks` to Issues later.
+**Decision: A with C.** `plan.json` stays the source of truth; `plan -Do sync` mirrors tasks to a Trello board and pulls card moves back.
 
 ## 5. Naming and repo shape
 
 The repo is `Godot_TestSuite`, but it now plans, diagnoses and ships too. Options: keep the name; rename to something broader
 (e.g. a `godot-agents` family); or split `godot-ci` (the script) from `godot-agent-kit` (skills, templates, plan). Renaming breaks
 `uses: nick-vas/Godot_TestSuite/...` pins, so do it once, before there are users, with a redirect-friendly GitHub rename.
-**Recommend keep the name until a 1.0 tag**, then decide.
+**Decision: keep the name.**
 
 ## 6. Quality bars for the skills themselves
 
 [GodotPrompter](https://github.com/jame581/GodotPrompter) enforces 16 KB per SKILL.md, C# parity with GDScript, and examples
 verified on the target engine. Cheap to copy: a CI job that checks front-matter, size, and that every command in a skill parses
-(`godot-ci.ps1 <cmd> -Json` smoke). **Recommend adding that lint** before the skill count grows.
+(`godot-ci.ps1 <cmd> -Json` smoke). **Decision: build it, and compare against superpowers' discipline bar.** Result in [skills-quality.md](skills-quality.md).

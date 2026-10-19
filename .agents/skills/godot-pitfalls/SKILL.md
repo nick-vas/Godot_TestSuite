@@ -1,6 +1,6 @@
 ---
 name: godot-pitfalls
-description: Use when a Godot 4.x C# project builds in the editor but fails or misbehaves in CI, exports, or release builds - export exclusions, solution_directory, RequireGodotRuntime, stale GUT, silent exit codes.
+description: Use when a Godot 4.x C# project works in the editor but fails or misbehaves in CI, exports or release builds.
 ---
 
 # Pitfalls we hit (and the fix)

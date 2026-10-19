@@ -33,6 +33,7 @@ WAT (~310 stars) only supports Godot 3.
 | `gdunit4` | never: select it explicitly | `dotnet test` on the Godot project's csproj only | `dotnet test --filter` | ✅ needs `coverlet.collector` |
 | `godottest` | the Godot csproj references `Chickensoft.GoDotTest` | the scene whose script calls `GoTest.RunTests`, else the main scene | suite name | ✅ via coverlet |
 | `gut` | a `.gd` file `extends GutTest` | `.gutconfig.json` if present, else `test_*.gd` in those folders | test name | – |
+| `flows` | a `*.flow.json` file exists | plays each UI flow in the real engine, headless: presses, input actions, waits, asserts on node properties; one case per flow ([format](../.agents/skills/godot-ui-flows/SKILL.md)) | path contains the text | – |
 | `smoke` | `project.godot` has a main scene | the main scene for N frames | – | – |
 | `validate` | always | loads every script, scene and resource (outside `addons/`) and instantiates each scene; one test case per file | – | – |
 
@@ -85,6 +86,9 @@ exclude_filter="test/*, addons/gut/*, gdunit4_testadapter*/*"
 - Builds, exports and smoke runs fail on any `ERROR:` or `SCRIPT ERROR:` Godot prints. A short list of
   engine-internal messages is ignored (`$KnownNoise` in [`lib/Common.ps1`](../ci/godot/lib/Common.ps1)). To
   ignore more, set the `GODOT_CI_IGNORE_ERRORS` environment variable to a regex.
+- Godot 4.7.2 sometimes aborts (exit 134) while importing, mostly seen when the import cache is stale. The suite retries the import up to twice
+  on any exit code of 128 or more, never on ordinary failures, and reports `importRetried` in the JSON. It could not be reproduced on demand, so
+  this is a mitigation, not a fix.
 - On Linux, if Microsoft's download servers are blocked (as in sandboxed cloud sessions), setup falls back
   to the distro's `dotnet-sdk-8.0` package.
 
@@ -95,11 +99,14 @@ ci/godot/godot-ci.ps1               the entry point: detect -> setup -> build ->
 ci/godot/lib/Common.ps1             logging, running programs, Godot log checks, file search
 ci/godot/lib/Setup.ps1              .NET SDK, Godot .NET editor, export templates, addons (GUT)
 ci/godot/lib/Detect.ps1             project, solution, Godot version, runners, GoDotTest scene, presets
-ci/godot/lib/Runners.ps1            validate | dotnet | gdunit4 | godottest | gut | smoke
+ci/godot/lib/Runners.ps1            validate | dotnet | gdunit4 | godottest | gut | flows | smoke
 ci/godot/lib/Report.ps1             JUnit/TRX -> summaries, annotations, zero-tests check, coverage
 ci/godot/lib/Doctor.ps1             `doctor`: tool and project checks with fixes
-ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export filters, CI workflow
+ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export filters, CI workflow, agent files, MCP config
+ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, Trello sync
 ci/godot/tools/validate.gd          the load check Godot runs for the validate runner
+ci/godot/tools/flows.gd             the UI-flow player Godot runs for the flows runner
+ci/godot/tools/Test-Skills.ps1      checks the agent skills (structure, budgets, real commands and versions)
 ci/godot/tools/Publish-PrComment.ps1  the pull request summary comment (workflow only)
 ci/godot/tools/Publish-Release.ps1    zips exports into a GitHub Release (workflow only)
 .github/actions/godot               composite action: detect, cache, run godot-ci.ps1, upload artifacts

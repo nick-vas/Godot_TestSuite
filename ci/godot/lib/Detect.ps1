@@ -116,11 +116,12 @@ function Get-ProjectInfo {
         $gameCsprojs = @(Get-ChildItem -LiteralPath $projectDir -File -Filter '*.csproj')
         if (Test-ContainsText $gameCsprojs 'Chickensoft\.GoDotTest') { $selected += 'godottest' }
         if (@(Get-GutTestFiles $projectDir).Count -gt 0) { $selected += 'gut' }
+        if (@(Find-ProjectFiles -Root $projectDir -Filter '*.flow.json').Count -gt 0) { $selected += 'flows' }
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'dotnet', 'gdunit4', 'godottest', 'gut', 'smoke'
+    $valid = 'validate', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 

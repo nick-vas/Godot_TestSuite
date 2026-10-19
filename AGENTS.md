@@ -7,6 +7,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 - `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan`, all with `-Json`.
 - `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan.
+- `ci/godot/tools/` `validate.gd`, `flows.gd` (run inside Godot), `Test-Skills.ps1` (skill validator), release/PR-comment tools.
+- `tests/` the skill-validator self-test and its deliberately broken fixtures.
 - `ci/godot/templates/` files `init` and `plan` copy into a game (`plan.json`, `AGENTS.md`).
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them).
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
@@ -23,6 +25,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   (PowerShell variables are case-insensitive).
 - Verify with the examples: `pwsh ci/godot/godot-ci.ps1 test -Project examples/breakout/game` and `-Project examples/gdscript`
   must be green; `doctor` and `plan` on both. Changing a version matrix entry means re-running both on that Godot.
+- Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass. A skill description says only when to use it, never how.
+  Commands, flags, error codes and versions quoted in a skill are checked against the real script, `docs/json.md` and `examples/breakout`.
 - Commit as the repository owner. Do not add AI attribution trailers to commits or PR descriptions.
 - Do not rewrite pushed history.
 

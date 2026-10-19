@@ -1,0 +1,10 @@
+{
+  "bad-workflow-description": "description-summarizes-workflow",
+  "bad-trigger": "description-trigger",
+  "bad-name": "name-mismatch",
+  "bad-cross-ref": "cross-reference",
+  "bad-command": "unknown-command",
+  "bad-error-code": "unknown-error-code",
+  "bad-version": "version-drift",
+  "over-budget": "size"
+}

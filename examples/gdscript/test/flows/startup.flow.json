@@ -1,0 +1,9 @@
+{
+  "name": "the main scene scores its twelve hits at start-up",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "score:points", "gt": 0 } }
+  ]
+}

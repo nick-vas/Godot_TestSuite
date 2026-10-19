@@ -231,3 +231,34 @@ function Add-AgentFiles($Info, [string]$SuiteScript) {
         Write-InitStep added "skill $($skill.Name) (.agents/skills and .claude/skills)"
     }
 }
+
+# init -Mcp: registers an editor-bridge MCP server for the project in .mcp.json (adds only; a changed file is backed up).
+# The addon still has to be installed into the project and enabled in the editor, which needs Node and the editor,
+# so the steps are printed and not run.
+function Add-McpConfig($Info, [string]$Server) {
+    $root = Get-GitRoot $Info.ProjectDir
+    $root = $root ? $root : $Info.ProjectDir
+    if ($Server -eq 'godot-ai') {
+        Write-InitStep skipped 'godot-ai configures its own clients: install the addon, enable it, press Configure in the Godot AI dock'
+        Write-Host '           https://github.com/hi-godot/godot-ai (Godot 4.7+, needs uv)'
+        return
+    }
+    $file = Join-Path $root '.mcp.json'
+    $config = [ordered]@{ mcpServers = [ordered]@{} }
+    if (Test-Path -LiteralPath $file) {
+        try { $config = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable -Depth 10 }
+        catch { Stop-GodotCi ".mcp.json is not valid JSON; fix it or remove it first ($($_.Exception.Message))" 'invalid-mcp-config' }
+        if (-not $config.ContainsKey('mcpServers')) { $config['mcpServers'] = [ordered]@{} }
+    }
+    if ($config['mcpServers'].ContainsKey('godot-mcp')) { Write-InitStep skipped '.mcp.json already has godot-mcp' }
+    else {
+        if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file -Destination "$file.bak" -Force }
+        $config['mcpServers']['godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@satelliteoflove/godot-mcp') }
+        $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $file -Encoding utf8
+        Write-InitStep added '.mcp.json: godot-mcp (satelliteoflove/godot-mcp)'
+    }
+    $project = $Info.ProjectDir
+    Write-Host '           next: npx @satelliteoflove/godot-mcp --install-addon "' -NoNewline
+    Write-Host "$project`"" 
+    Write-Host '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
+}

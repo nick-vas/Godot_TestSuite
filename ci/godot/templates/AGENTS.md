@@ -21,7 +21,8 @@ pwsh {{SUITE}} plan -Json             # where the project is in the plan, what i
 - Keep engine-free logic in plain classes so it can be tested without Godot.
 - Test code and packages stay out of release builds (`godot-pitfalls`). Run `doctor` after touching csproj,
   `project.godot` or export presets.
-- Before ending a task: `test -Json` is green and `plan -Json` shows no new warnings.
+- Before saying anything is done: a fresh `test -Json` with `ok: true` (`godot-verify-before-done`). `plan -Json` shows no new warnings.
+- Scene or UI behaviour gets a flow in `test/flows/*.flow.json` (`godot-ui-flows`). If an editor MCP is connected, save what you changed there, then verify here.
 - Do not commit `.godot/`, `bin/`, `obj/`, `test-results/`, `build/`, `gdunit4_testadapter*/`.
 
 ## Layout
@@ -30,4 +31,5 @@ pwsh {{SUITE}} plan -Json             # where the project is in the plan, what i
 
 ## Skills
 
-`godot-test-loop`, `godot-diagnose`, `godot-test-frameworks`, `godot-pitfalls`, `godot-export-release`, `godot-game-plan`.
+`godot-test-loop`, `godot-verify-before-done`, `godot-diagnose`, `godot-test-frameworks`, `godot-ui-flows`, `godot-editor-bridge`,
+`godot-pitfalls`, `godot-export-release`, `godot-game-plan`.

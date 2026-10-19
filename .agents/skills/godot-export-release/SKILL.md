@@ -1,6 +1,6 @@
 ---
 name: godot-export-release
-description: Use when exporting, smoke-launching or releasing a Godot 4.7 game from the command line or GitHub Actions, including tagged releases and gold-master checks.
+description: Use when exporting, launching an exported build, or releasing a Godot 4.x game from the command line or GitHub Actions.
 ---
 
 # Export and release

@@ -1,6 +1,6 @@
 ---
 name: godot-diagnose
-description: Use when starting work in a Godot project, or when a build, import, export or test run fails for unclear reasons. Explains detect, doctor and the validate runner and how to read their JSON.
+description: Use when starting work in a Godot project, or when a build, import, export or test run fails and the cause is unclear.
 ---
 
 # detect, doctor, validate

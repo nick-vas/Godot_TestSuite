@@ -32,7 +32,9 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `invalid-arguments` | `plan` problems | - |
+| `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit`, `invalid-arguments` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
+| `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
+| `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
 | `failed` | Generic failure without a specific code | `error.message` |
 
@@ -43,7 +45,7 @@ Branch on `error.code`; `message` can change.
 
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`.
 
-**build**: on failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`), `message`;
+**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line`.
 
 **test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
@@ -59,6 +61,8 @@ The same data is in `test-results/summary.json`.
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 
+**flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
+
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`), `nextActions[]`
 (`id`, `text`, `auto`, `check`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
-(tasks per column), `warnings[]`.
+(tasks per column), `warnings[]`. `plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved`, `warnings`).
