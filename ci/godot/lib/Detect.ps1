@@ -100,7 +100,7 @@ function Get-ProjectInfo {
     $sln = if ($Solution) { (Resolve-Path -LiteralPath $Solution).Path } else { Find-Solution $projectDir }
 
     $version = if ($GodotVersion) { $GodotVersion } else { Get-GodotVersionFromProject $projectDir }
-    if (-not $version) { $version = if ($env:GODOT_VERSION) { $env:GODOT_VERSION } else { '4.6.1' } }
+    if (-not $version) { $version = if ($env:GODOT_VERSION) { $env:GODOT_VERSION } else { '4.7.2' } }
     $version = ConvertTo-GodotVersion $version
     $isCSharp = @(Get-ChildItem -LiteralPath $projectDir -File -Filter '*.csproj').Count -gt 0
 
@@ -116,11 +116,12 @@ function Get-ProjectInfo {
         $gameCsprojs = @(Get-ChildItem -LiteralPath $projectDir -File -Filter '*.csproj')
         if (Test-ContainsText $gameCsprojs 'Chickensoft\.GoDotTest') { $selected += 'godottest' }
         if (@(Get-GutTestFiles $projectDir).Count -gt 0) { $selected += 'gut' }
+        if (@(Find-ProjectFiles -Root $projectDir -Filter '*.flow.json').Count -gt 0) { $selected += 'flows' }
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'dotnet', 'gdunit4', 'godottest', 'gut', 'smoke'
+    $valid = 'validate', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 

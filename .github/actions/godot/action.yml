@@ -8,7 +8,7 @@ inputs:
     description: Folder with project.godot (default - detected)
     default: ""
   godot-version:
-    description: "e.g. 4.6.1 or 4.7-rc1 (default - from Godot.NET.Sdk in the csproj, else 4.6.1)"
+    description: "e.g. 4.7.2 or 4.8-rc1 (default - from Godot.NET.Sdk in the csproj, else 4.7.2)"
     default: ""
   runners:
     description: "Comma list of dotnet, gdunit4, godottest, gut, smoke, or none (default - detected)"

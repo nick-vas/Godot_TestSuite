@@ -1,237 +1,163 @@
-# Godot Test Suite
+# Godot Agent Kit
 
-Build, test, export and release **Godot 4** projects (GDScript or C#). It's one PowerShell script that you
-run locally on Windows, and the same script packed into a GitHub workflow for a Linux runner. It detects
-your project, Godot version and test frameworks for you.
+**Tools that let AI coding agents build, test, ship and plan Godot 4.7 games - for any genre, solo or small team.**
+
+An agent can already write GDScript and C#. What it lacks is a way to know whether the game still works, and a plan that says
+what to build next. This kit supplies both:
+
+- **Verify**: one PowerShell 7 script that detects your project, installs the right Godot, runs every test framework you use,
+  plays your UI flows, exports and launches the build, and reports in **JSON an agent can read**. It runs on your Windows machine
+  and, packed into a GitHub workflow, on a Linux runner.
+- **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
+- **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
+- **Teach**: `AGENTS.md` and nine skills that make the agent work test first and prove it is done before it says so.
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 init       # once: wire the suite into your game
-pwsh ci/godot/godot-ci.ps1            # every time: install Godot if needed, build, run every test
+pwsh ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp   # once: tests, CI, AGENTS.md, skills, editor bridge
+pwsh ci/godot/godot-ci.ps1 test -Json                    # every time: build + every test, one JSON result
 ```
 
-```yaml
-# .github/workflows/godot-ci.yml (init writes this for you): the same tests on a GitHub Linux runner
-on: [push, pull_request]
-jobs:
-  godot:
-    permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
+## How the pieces fit
+
+```
+   plan -Json            what phase am I in, what is next
+        |
+   editor MCP            author and inspect: scenes, nodes, running game, live state   (needs the editor)
+        |
+   godot-ci.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
+        |
+   plan -Do move/done    record progress; Trello mirrors the board
 ```
 
-**Requirements:**
-- [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)
-  (`winget install Microsoft.PowerShell`)
-- the [.NET 8 SDK](https://dotnet.microsoft.com/download) for C# projects
-- Git
+The editor is what you see; the files on disk are what CI and the export see. So the agent authors through the bridge, saves, and
+is done only when `test -Json` says `ok: true`. Neither editor MCP server builds C#, which is why the verification gate is a
+separate, headless tool.
 
-The script downloads Godot itself: the .NET build for C# projects, and the standard build (no .NET needed)
-for GDScript projects. GitHub's Linux runners already have all of this. Run
-`pwsh ci/godot/godot-ci.ps1 doctor` to check a machine and a project.
+## Quick start
 
-## What it detects
+1. Install [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)
+   (`winget install Microsoft.PowerShell`), Git and, for C#, the [.NET 8 SDK](https://dotnet.microsoft.com/download).
+   Node 20+ is only needed if you use the editor bridge.
+2. Add the kit to your game (submodule or copy `ci/godot`) and let `init` wire it in:
+   ```powershell
+   git submodule add https://github.com/nick-vas/Godot_TestSuite tools/godot-test-suite
+   pwsh tools/godot-test-suite/ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp
+   ```
+3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
+4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
 
-| From your project | It does |
+`init` only adds: new files, plus lines in `.gitignore`, your csproj (test packages kept out of release builds), the export presets'
+exclude filters, `project.godot` (`solution_directory`) and `.mcp.json`. It never overwrites a file, skips what is already there, and prints
+each change; `.mcp.json` is backed up first. `doctor` checks a machine and a project.
+
+## What it gives an agent
+
+| Capability | Command | Result |
+|---|---|---|
+| **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
+| **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files |
+| **Test first** | `test -Json [-Runners x -Filter y]` | per-runner pass/fail with `file`/`line`; fails on zero tests and on any engine `ERROR:` |
+| **Play the UI** | `flows` runner | `*.flow.json` files: press buttons, send input actions, wait, assert on node properties, headless in the real engine |
+| **Catch what tests miss** | `validate` and `smoke` runners | loads every script, scene and resource; plays the main scene |
+| **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
+| **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
+| **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
+| **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server |
+| **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
+| **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
+| **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md` and nine skills in `.agents/skills` and `.claude/skills` |
+
+Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
+
+## Skills
+
+| Skill | Use it when |
 |---|---|
-| `project.godot` (shallowest in the repo) | uses that folder as the project |
-| every script, scene and resource | **validate** runner: loads each one and instantiates each scene, so broken references and parse errors fail even in files no test touches |
-| `Godot.NET.Sdk/4.6.1` in the `.csproj` | installs that exact Godot .NET version (else 4.6.1) |
-| a `.sln` next to or above the project | builds it and runs `dotnet test` on it |
-| test projects (`Microsoft.NET.Test.Sdk`, `gdUnit4.test.adapter`) | **dotnet** runner: xUnit, NUnit, MSTest and [gdUnit4Net](https://github.com/godot-gdunit-labs/gdUnit4Net) scene tests |
-| `Chickensoft.GoDotTest` in the `.csproj` | **godottest** runner, using the scene whose script calls `GoTest.RunTests` |
-| `.gd` files that `extends GutTest` | **gut** runner; installs the [GUT](https://github.com/bitwes/Gut) release that matches your Godot |
-| `run/main_scene` in `project.godot` | **smoke** runner: plays the main scene headless and fails on any error |
-| presets in `export_presets.cfg` | what `export` builds |
+| `godot-test-loop` | adding or changing behaviour: write the failing test, make it pass, run everything |
+| `godot-verify-before-done` | about to say something is done, fixed or passing |
+| `godot-ui-flows` | a change affects menus, HUD, scene flow or input |
+| `godot-editor-bridge` | using an editor MCP server alongside this kit |
+| `godot-diagnose` | starting work or when something fails mysteriously: detect, doctor, validate |
+| `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
+| `godot-pitfalls` | it works in the editor but not in CI or the export |
+| `godot-export-release` | exporting, smoke-launching, tagged releases |
+| `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
 
-All runners run one after another after a single build. A run that finds zero tests fails, and so does any
-Godot `ERROR:`, even when Godot exits 0. Every run writes `test-results/summary.md`. On GitHub, it also gets a
-results table on the run page, failures annotated on the failing line, and, on pull requests, one comment
-with the results.
+The skills are checked like code. `ci/godot/tools/Test-Skills.ps1` enforces structure and a 16 KB budget, requires descriptions to say only
+*when* to use a skill, and verifies that every command, flag, error code and package version a skill quotes exists in the script, the JSON
+contract and the example project. Deliberately broken fixtures must fail in CI. How this compares with GodotPrompter and superpowers:
+[docs/skills-quality.md](docs/skills-quality.md).
 
-## Usage scenarios
+## The plan
 
-### 1. Add the suite to an existing game
+Seven phases, each with gates: concept, prototype, vertical slice, production, alpha and beta, launch, post-launch.
 
-Put the suite in your game's repository, either as a submodule (easy to update) or by copying the
-`ci/godot` folder, then let `init` wire it in:
-```powershell
-git submodule add https://github.com/nick-vas/Godot_TestSuite tools/godot-test-suite
-pwsh tools/godot-test-suite/ci/godot/godot-ci.ps1 init
-```
-`init` only adds things and never overwrites a file, so it's safe to run again. It adds:
-- a starter test: gdUnit4Net for C# projects (packages kept out of release builds), GUT for GDScript;
-- `.gitignore` entries and test-folder exclusions in your export presets;
-- `solution_directory` in `project.godot` when your `.sln` lives outside the project folder;
-- `.github/workflows/godot-ci.yml`.
+| Gate type | Example | Who closes it |
+|---|---|---|
+| Automatic | a test runner is detected, an export preset exists, `docs/GDD.md` exists | the project, by being true |
+| Manual | a stranger played the prototype for 15 minutes; the PROCEED/PIVOT/KILL verdict | you, with `plan -Do done -Id <gate>` |
 
-### 2. Run the tests locally, and check your setup
+A phase past its timebox warns you to cut scope, never testing. Tasks live in `plan/plan.json` and move through
+Backlog, Design, To Do, Doing, Verify and Done; `move` refuses to put a task in Doing past the work-in-progress limit.
+`plan -Do sync -Board <id>` mirrors tasks to a Trello board and pulls back cards you dragged to another list; it needs
+`TRELLO_KEY` and `TRELLO_TOKEN` in the environment. Where the plan comes from, and the Trello rules: [docs/plan.md](docs/plan.md).
 
-```powershell
-pwsh ci/godot/godot-ci.ps1            # build + every detected test
-pwsh ci/godot/godot-ci.ps1 doctor     # tools and project checks, each with a fix
-pwsh ci/godot/godot-ci.ps1 detect     # show what it found, change nothing
-Get-Help ci/godot/godot-ci.ps1 -Detailed
-```
-`doctor` catches the mistakes that break CI or ship broken builds. Examples: no `solution_directory`
-(exports would silently drop your C# code), test packages or test folders going into release builds, GUT
-files that won't run, and a missing .NET SDK. Godot is downloaded once to `~/.godot-ci`.
-
-### 3. The same tests on a GitHub Linux runner, with a PR comment
+## GitHub
 
 ```yaml
 on: [push, pull_request]
 jobs:
   godot:
-    permissions:
-      contents: read
-      pull-requests: write     # lets it comment; without this it just warns
-    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
-```
-The workflow runs the same script, with the same detection, on `ubuntu-latest`, the cheapest runner. On
-pull requests it keeps a single comment up to date with the results table, failures, and coverage compared
-with the base branch. You don't need the submodule for CI; the workflow brings its own copy of the script,
-pinned to the `@ref` you use.
-
-### 4. A GDScript-only game with GUT
-
-Write `test_*.gd` files that `extends GutTest`, and the suite installs the GUT version for your Godot
-release; you don't commit `addons/gut`. See [`examples/gdscript`](examples/gdscript).
-
-### 5. A C# game with unit tests, scene tests and in-engine tests
-
-Keep engine-free logic in a class library tested with xUnit, add gdUnit4Net scene tests, and optionally
-GoDotTest suites. All of them are detected and run. See [`examples/breakout`](examples/breakout) and the
-[framework setup notes](docs/godot-pipelines.md#setting-each-one-up).
-
-### 6. Fast pull-request checks, full runs on `main`
-
-```yaml
-on:
-  pull_request:
-  push:
-    branches: [main]
-jobs:
-  godot:
     permissions: { contents: read, pull-requests: write }
     uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
-    with:
-      # Unit tests only on PRs; every framework once merged.
-      runners: ${{ github.event_name == 'pull_request' && 'dotnet' || '' }}
 ```
+Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. Free on public
+repositories; Linux runners are the cheapest on private ones. More: [docs/usage.md](docs/usage.md).
 
-### 7. Windows builds, checked and released on every tag
+## Status
 
-```yaml
-on:
-  push:
-    tags: ['v*']
-jobs:
-  release:
-    permissions:
-      contents: write          # to create the release
-    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
-    with:
-      exports: Windows         # a preset name from export_presets.cfg, or "all"
-      run-exports: true        # launch the .exe on a Windows runner and fail on errors
-      release: true            # zip it and publish a GitHub Release with generated notes
-```
-Tests run first. Then each preset is exported, launched headless on a runner of its own OS, and zipped
-as `<game>-<tag>-<preset>.zip` into a GitHub Release. Launching the export catches what the editor hides:
-missing assets, code trimmed from the build, and release-only bugs. On a non-tag run, `release: true` builds
-the zips but doesn't publish them (a dry run).
+What has been run, and what has not.
 
-Locally: `pwsh ci/godot/godot-ci.ps1 export -Preset Windows -Run` exports to `build/` and launches the
-`.exe`.
+| | |
+|---|---|
+| Verified | Both examples (C# with every framework, GDScript with GUT) pass on Godot 4.7.2, locally and in GitHub Actions on Linux and Windows; `-Json` output for each command; UI flows including failure cases; `init -Agents`, `init -Mcp` file handling; the skill validator and its fixtures |
+| Tested against a mock only | Trello sync (a local imitation of the API; no live board yet) |
+| Not run | The editor MCP servers themselves (they need the editor); `export` for non-Windows presets |
+| Known | Godot 4.7.2 occasionally aborts during import on some machines. The kit retries the import up to twice and reports `importRetried`; the cause is not found, and it has not shown up in CI |
+| Not evidenced | That the skills change agent behaviour. A first pressure test found no difference because the model already behaved well; [docs/skills-quality.md](docs/skills-quality.md) says what a harder test needs |
 
-### 8. Coverage report and a minimum
+## FAQ
 
-```powershell
-pwsh ci/godot/godot-ci.ps1 -Coverage            # report: test-results/coverage/index.html
-pwsh ci/godot/godot-ci.ps1 -MinCoverage 60      # fail below 60% line coverage
-```
-In the workflow: `coverage: true` or `min-coverage: 60`. GoDotTest measures code that only runs inside the
-engine. dotnet coverage needs `coverlet.collector` in the test project, and covers code tested outside
-the engine: gdUnit4Net's `[RequireGodotRuntime]` tests run inside Godot, where the collector can't see them.
+**Do I need GitHub?** No. Everything runs locally; the workflow is the same script on a Linux runner.
 
-### 9. Run a subset of tests
+**GDScript or C#?** Both. GDScript projects use GUT and need no .NET; C# projects can use all frameworks.
 
-```powershell
-pwsh ci/godot/godot-ci.ps1 -Runners dotnet -Filter 'FullyQualifiedName~Combo'   # dotnet test filter
-pwsh ci/godot/godot-ci.ps1 -Runners gut -Filter test_combo                       # GUT test name
-pwsh ci/godot/godot-ci.ps1 -Runners godottest -Filter PlayerTest                 # GoDotTest suite
-pwsh ci/godot/godot-ci.ps1 -Runners validate                                     # just the load check
-pwsh ci/godot/godot-ci.ps1 -Runners none                                         # build only
-```
-The workflow takes the same values as `runners` and `filter` inputs, e.g. for a manual `workflow_dispatch`.
+**Which test framework should I pick?** [`godot-test-frameworks`](.agents/skills/godot-test-frameworks/SKILL.md) has the table.
 
-### 10. Several games in one repository
+**Why does it fail when Godot exited 0?** Godot exits 0 after printing script errors, so the kit scans the log and fails.
 
-```powershell
-pwsh ci/godot/godot-ci.ps1 -Project games/arena
-```
-```yaml
-jobs:
-  godot:
-    strategy:
-      matrix:
-        project: [games/arena, games/puzzle]
-    permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
-    with:
-      project: ${{ matrix.project }}
-```
-Artifacts and PR comments are per game (named after `config/name`), so they don't collide.
+**Do I need the editor MCP server?** No. The CLI, flows, plan and skills work without it. It adds the live editor and running game; see
+[docs/mcp.md](docs/mcp.md) for the two supported servers.
 
-## Reference
+**Do I need Trello?** No. `plan.json` is the source of truth; Trello is a view you can drag cards in.
 
-**Script** (`ci/godot/godot-ci.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor` and `init`.
+**Does it edit my files?** Only `init` (the additions listed in the quick start) and the `plan` commands (`plan/plan.json` and `plan/PLAN.md`).
+None of them changes your game scripts or scenes. Run `detect` or `doctor` first if you want to see before anything is written.
 
-| Parameter | Default | |
-|---|---|---|
-| `-Project` | detected | Folder with `project.godot` |
-| `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
-| `-GodotVersion` | from csproj, else `4.6.1` | e.g. `4.6.1`, `4.7-rc1` |
-| `-Runners` | detected | `validate`, `dotnet`, `gdunit4`, `godottest`, `gut`, `smoke`; `none` to only build |
-| `-Filter` | | Passed to each runner's filter |
-| `-Coverage` | off | One merged coverage report |
-| `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
-| `-Preset` | every preset | `export`: which presets |
-| `-Run` | off | `export`: launch builds this machine can run |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go |
-| `-Frames` | `120` | How long smoke runs and launched exports play |
+**Can I call it from a script?** Yes: run it as a process (`pwsh -NoProfile -File ci/godot/godot-ci.ps1 test -Json`) and read stdout.
+Logs go to stderr. See [docs/json.md](docs/json.md).
 
-**Workflow inputs** (`godot.yml`), all optional:
+## Documentation
 
-| Input | Default | |
-|---|---|---|
-| `project`, `godot-version`, `runners`, `filter` | detected | As the script parameters |
-| `coverage`, `min-coverage` | off | Coverage report; fail below a percentage |
-| `pr-comment` | `true` | Results comment on pull requests (needs `pull-requests: write`) |
-| `exports` | none | `all`, or a comma list of preset names |
-| `run-exports` | `false` | Launch each export on a runner of its own OS |
-| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`) |
-| `runs-on` | `ubuntu-latest` | `windows-latest` also works |
-| `lfs`, `submodules`, `retention-days` | | Checkout options and artifact retention |
-
-**Your own workflow:** the composite action runs one command with setup and caching, then uploads the
-results or the build.
-```yaml
-      - uses: nick-vas/Godot_TestSuite/.github/actions/godot@main
-        with:
-          command: export        # test, build or export
-          preset: Windows
-      - run: echo "upload the Windows build to itch.io, Steam, ..."
-```
-
-**Cost:** jobs run in the repository that calls the workflow. They're free on public repositories; on private
-ones they use your Actions minutes, and Linux runners are the cheapest (Windows minutes count about 2×).
-One test job builds once for every framework. Exports and Windows runners only run when you ask for them.
-
-**Claude Code cloud sessions** run Linux. Install PowerShell in the environment's setup script, then use
-the script as usual:
-```bash
-mkdir -p /opt/pwsh && curl -fsSL https://github.com/PowerShell/PowerShell/releases/download/v7.6.6/powershell-7.6.6-linux-x64.tar.gz | tar xz -C /opt/pwsh && ln -sf /opt/pwsh/pwsh /usr/local/bin/pwsh
-```
-
-More on each framework, the five most popular Godot test projects, and how to set each one up:
-[docs/godot-pipelines.md](docs/godot-pipelines.md).
+| | |
+|---|---|
+| [docs/usage.md](docs/usage.md) | Ten usage scenarios |
+| [docs/reference.md](docs/reference.md) | Parameters, workflow inputs, cost |
+| [docs/json.md](docs/json.md) | The `-Json` contract and error codes |
+| [docs/godot-pipelines.md](docs/godot-pipelines.md) | Test frameworks, versions, release-safe packaging |
+| [docs/plan.md](docs/plan.md) | The A-to-Z plan, tasks and Trello sync, and where it comes from |
+| [docs/mcp.md](docs/mcp.md) | Editor-bridge MCP: which server and how it fits |
+| [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
+| [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
+| [AGENTS.md](AGENTS.md) | Working on this repository |
+| [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md) | Project |

@@ -87,6 +87,8 @@ function Invoke-Doctor($Info) {
     }
     $testDirs = @($gutFiles | ForEach-Object { (ConvertTo-ResPath $project $_.DirectoryName) -replace '^res://', '' } |
         ForEach-Object { ($_ -split '/')[0] } | Where-Object { $_ })
+    $testDirs += @(Find-ProjectFiles -Root $project -Filter '*.flow.json' | ForEach-Object { (ConvertTo-ResPath $project $_.DirectoryName) -replace '^res://', '' } |
+        ForEach-Object { ($_ -split '/')[0] } | Where-Object { $_ })
     if (Test-Path -LiteralPath (Join-Path $project 'test')) { $testDirs += 'test' }
     $testDirs = @($testDirs | Sort-Object -Unique)
     $details = Get-ExportPresetDetails $project
@@ -107,14 +109,22 @@ function Invoke-Doctor($Info) {
     # --- Report -----------------------------------------------------------------------------------
     $colors = @{ OK = 'Green'; INFO = 'Cyan'; WARN = 'Yellow'; FAIL = 'Red' }
     foreach ($check in $checks) {
-        Write-Host ('[{0,-4}] ' -f $check.Status) -ForegroundColor $colors[$check.Status] -NoNewline
-        Write-Host $check.Message
-        if ($check.Fix -and $check.Status -ne 'OK') { Write-Host "       fix: $($check.Fix)" -ForegroundColor DarkGray }
+        Write-Console ('[{0,-4}] ' -f $check.Status) -ForegroundColor $colors[$check.Status] -NoNewline
+        Write-Console $check.Message
+        if ($check.Fix -and $check.Status -ne 'OK') { Write-Console "       fix: $($check.Fix)" -ForegroundColor DarkGray }
     }
     $counts = $checks | Group-Object Status -AsHashTable
     $fails = if ($counts -and $counts.ContainsKey('FAIL')) { $counts['FAIL'].Count } else { 0 }
     $warns = if ($counts -and $counts.ContainsKey('WARN')) { $counts['WARN'].Count } else { 0 }
-    Write-Host ''
+    Write-Console ''
     Write-CiLog "$fails problem(s), $warns warning(s)"
-    if ($fails -gt 0) { exit 1 }
+    Set-JsonField checks @($checks | ForEach-Object { [ordered]@{ status = $_.Status; message = $_.Message; fix = $_.Fix ? $_.Fix : $null } })
+    Set-JsonField problems $fails
+    Set-JsonField warnings $warns
+    if ($fails -gt 0) {
+        Set-JsonField ok $false
+        Set-JsonField error ([ordered]@{ code = 'doctor-problems'; message = "$fails problem(s) found" })
+        Write-JsonResult
+        exit 1
+    }
 }

@@ -22,6 +22,11 @@ jobs:
           $issues = Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
+      - name: Skills pass their own validator, and the validator catches broken fixtures
+        shell: pwsh
+        run: |
+          ./ci/godot/tools/Test-Skills.ps1
+          ./tests/Test-SkillFixtures.ps1
       - name: Parse action manifests
         # actionlint covers workflows only; make sure every composite action is valid YAML.
         run: |
@@ -107,6 +112,22 @@ jobs:
       - name: Doctor
         shell: pwsh
         run: ./ci/godot/godot-ci.ps1 doctor -Project examples/breakout/game
+      - name: JSON output is one valid document
+        shell: pwsh
+        run: |
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 detect -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
+          if ($d.schema -ne 'godot-ci/1' -or -not $d.ok -or $d.runners.Count -lt 3) { throw "unexpected detect output" }
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or $d.checks.Count -lt 1) { throw "unexpected doctor output" }
+      - name: Plan
+        shell: pwsh
+        run: |
+          $dir = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'plan-test')
+          git -C $dir init -q
+          Copy-Item -Recurse examples/gdscript/* $dir
+          ./ci/godot/godot-ci.ps1 plan -Do init -Project $dir
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
+          if ($d.currentPhase.id -ne 'concept' -or $d.nextActions.Count -lt 1) { throw "unexpected plan output" }
       - name: Export the Windows build and launch it
         shell: pwsh
         run: ./ci/godot/godot-ci.ps1 export -Project examples/breakout/game -Preset Windows -Run

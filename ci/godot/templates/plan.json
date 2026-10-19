@@ -1,0 +1,82 @@
+{
+  "schema": "godot-plan/1",
+  "game": "",
+  "pitch": "",
+  "weeklyHours": 10,
+  "wipLimit": 2,
+  "phases": [
+    {
+      "id": "concept", "name": "Concept", "timeboxWeeks": 2,
+      "goal": "Decide what the game is, and what it is not, before writing code.",
+      "gates": [
+        { "id": "concept.pitch", "text": "One-sentence pitch and 3 design pillars written (docs/GDD.md)", "check": "file:docs/GDD.md" },
+        { "id": "concept.scope", "text": "Scope ladder written: must / should / could / won't, sized to your weekly hours", "check": "manual" },
+        { "id": "concept.market", "text": "Market check: 3 comparable games, what yours does differently, who plays it", "check": "manual" },
+        { "id": "concept.kill", "text": "Kill criteria for the prototype written down (e.g. 'a stranger doesn't ask for a second run')", "check": "manual" }
+      ]
+    },
+    {
+      "id": "prototype", "name": "Prototype", "timeboxWeeks": 4,
+      "goal": "Prove the core loop is fun with the ugliest possible build.",
+      "gates": [
+        { "id": "prototype.setup", "text": "Project builds and the suite is wired in (godot-ci init)", "check": "ci" },
+        { "id": "prototype.loop", "text": "Core loop is playable from the main scene", "check": "manual" },
+        { "id": "prototype.stranger", "text": "A stranger played 15 minutes unprompted and you watched what they did", "check": "manual" },
+        { "id": "prototype.verdict", "text": "Verdict recorded in docs/DECISIONS.md: PROCEED, PIVOT or KILL", "check": "file:docs/DECISIONS.md" }
+      ]
+    },
+    {
+      "id": "vertical-slice", "name": "Vertical slice", "timeboxWeeks": 8,
+      "goal": "One polished, representative slice that runs end to end: menu, play, save, quit.",
+      "gates": [
+        { "id": "slice.tests", "text": "A test framework is chosen and tests run in CI (godot-ci detect lists a test runner)", "check": "tests" },
+        { "id": "slice.export", "text": "An export preset exists and godot-ci export -Run passes", "check": "preset" },
+        { "id": "slice.flow", "text": "Menu, one full level/encounter, UI and save/load work together", "check": "manual" },
+        { "id": "slice.feel", "text": "Game feel pass: input, feedback, audio and juice on the core action", "check": "manual" },
+        { "id": "slice.verdict", "text": "Slice verdict recorded: PROCEED, PIVOT or KILL; scope ladder re-sized from real velocity", "check": "manual" }
+      ]
+    },
+    {
+      "id": "production", "name": "Production", "timeboxWeeks": 24,
+      "goal": "Build the rest as a series of playable milestones, cutting scope (never testing) when one slips.",
+      "gates": [
+        { "id": "production.milestones", "text": "Milestones listed in docs/MILESTONES.md, each a playable build 2-6 weeks apart", "check": "file:docs/MILESTONES.md" },
+        { "id": "production.content", "text": "All 'must' scope items implemented", "check": "manual" },
+        { "id": "production.regression", "text": "Every fixed bug has a regression test", "check": "manual" },
+        { "id": "production.freeze", "text": "Feature freeze: no new features, only the existing list gets finished", "check": "manual" }
+      ]
+    },
+    {
+      "id": "alpha-beta", "name": "Alpha and beta", "timeboxWeeks": 8,
+      "goal": "Stabilise: bugs, balance, performance, accessibility, localisation. No new features.",
+      "gates": [
+        { "id": "beta.alpha", "text": "Alpha: every feature exists end to end, even if rough; internal playthrough done", "check": "manual" },
+        { "id": "beta.playtest", "text": "Closed playtest with 5+ people you don't know; top issues triaged", "check": "manual" },
+        { "id": "beta.perf", "text": "Performance checked on minimum-spec hardware", "check": "manual" },
+        { "id": "beta.a11y", "text": "Accessibility basics: rebindable input, readable text, no colour-only cues", "check": "manual" },
+        { "id": "beta.tests", "text": "Full suite green with a coverage floor you chose", "check": "tests" }
+      ]
+    },
+    {
+      "id": "launch", "name": "Release candidate and launch", "timeboxWeeks": 4,
+      "goal": "Ship it, from a clean export, with a page people could find.",
+      "gates": [
+        { "id": "launch.store", "text": "Store page live ('Coming soon') with capsule art, trailer and tags, ideally months before launch", "check": "manual" },
+        { "id": "launch.demo", "text": "Demo build tested on a clean machine", "check": "manual" },
+        { "id": "launch.gold", "text": "Gold master: release build exported by CI, launched with export -Run, no engine errors", "check": "preset" },
+        { "id": "launch.legal", "text": "Licences, credits, privacy/age-rating and refund basics sorted", "check": "manual" },
+        { "id": "launch.release", "text": "Tagged GitHub release created from CI; builds uploaded to the store", "check": "manual" }
+      ]
+    },
+    {
+      "id": "post-launch", "name": "Post-launch", "timeboxWeeks": 8,
+      "goal": "Fix what players hit, listen, then decide what the next game or update is.",
+      "gates": [
+        { "id": "post.hotfix", "text": "Day-one hotfix path rehearsed (tag, CI export, upload)", "check": "manual" },
+        { "id": "post.feedback", "text": "First two weeks of feedback and crash reports triaged", "check": "manual" },
+        { "id": "post.retro", "text": "Retrospective written: what to repeat, what to stop (docs/RETRO.md)", "check": "file:docs/RETRO.md" }
+      ]
+    }
+  ],
+  "tasks": []
+}

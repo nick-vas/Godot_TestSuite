@@ -53,17 +53,10 @@ function Write-Annotation([string]$Runner, $Failure) {
         return $Text
     }
     $props = @("title=$(Escape "${Runner}: $($Failure.Name)" -Property)")
-    $location = [regex]::Match("$($Failure.Details)`n$($Failure.Message)", '(?:in |at )?(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)')
-    if ($location.Success) {
-        $file = $location.Groups['file'].Value
-        if ($env:GITHUB_WORKSPACE) {
-            $relative = [System.IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $file)
-            if (-not $relative.StartsWith('..')) { $file = $relative -replace '\\', '/' }
-        }
-        $props += "file=$(Escape $file -Property)", "line=$($location.Groups['line'].Value)"
-    }
+    $location = Get-FailureLocation "$($Failure.Details)`n$($Failure.Message)"
+    if ($location) { $props += "file=$(Escape $location.File -Property)", "line=$($location.Line)" }
     $message = if ($Failure.Message.Trim()) { $Failure.Message.Trim() } else { 'failed' }
-    Write-Host "::error $($props -join ',')::$(Escape $message)"
+    Write-Console "::error $($props -join ',')::$(Escape $message)"
 }
 
 # Summarises one runner's results and returns them; .Ok is true when tests ran and none failed. A run
@@ -108,7 +101,9 @@ function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode)
         Runner = $Runner; Ok = $ok; Total = $totals.Total; Passed = $totals.Passed
         Failed = $totals.Failed; Skipped = $totals.Skipped
         Failures = @($totals.Failures | Select-Object -First 10 | ForEach-Object {
-            [pscustomobject]@{ Name = $_.Name; Message = ($_.Message.Trim() -split "`n")[0] } })
+            $at = Get-FailureLocation "$($_.Details)`n$($_.Message)"
+            [pscustomobject]@{ Name = $_.Name; Message = ($_.Message.Trim() -split "`n")[0]
+                File = $at ? $at.File : ($_.Name -match 'res://(?<f>\S+?\.(?:gd|cs|tscn|tres|json))' ? $Matches.f : ($_.Name -match '^(?<f>.+?\.(?:gd|cs))[.:]' ? $Matches.f : $null)); Line = $at ? $at.Line : $null } })
     }
 }
 

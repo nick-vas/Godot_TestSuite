@@ -47,15 +47,15 @@ function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter
 }
 
 # One case per file from tools/validate.gd's markers; errors printed between a file's markers fail it.
-function ConvertFrom-ValidateLog([string]$LogFile) {
+function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate') {
     $cases = @(); $current = $null; $buffer = @(); $outside = @()
     foreach ($raw in Get-Content -LiteralPath $LogFile) {
         $line = $raw -replace "`e\[[0-9;]*m", ''
-        if ($line -match '^@@validate begin (?<path>.+)$') {
+        if ($line -match "^@@$Marker begin (?<path>.+)`$") {
             $current = $Matches.path; $buffer = @()
-        } elseif ($current -and $line.StartsWith("@@validate end $current ")) {
+        } elseif ($current -and $line.StartsWith("@@$Marker end $current ")) {
             # Matched by the known path rather than a regex: paths may contain spaces.
-            $status = $line.Substring("@@validate end $current ".Length)
+            $status = $line.Substring("@@$Marker end $current ".Length)
             $problems = @(Select-GodotErrors $buffer)
             if ($status -ne 'ok') { $problems = @($status) + $problems }
             $cases += @{ Name = $current; Failure = ($problems -join "`n") }
@@ -142,6 +142,16 @@ function Invoke-TestRunner {
             $cases = @(ConvertFrom-ValidateLog $log)
             if ($code -ne 0) { $cases += @{ Name = 'validate'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'validate.junit.xml') 'validate' $cases
+        }
+        'flows' {
+            $log = Join-Path $ResultsDir 'flows.log'
+            $tool = (Join-Path $PSScriptRoot '../tools/flows.gd' | Resolve-Path).Path -replace '\\', '/'
+            Start-LogGroup 'UI flows'
+            $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool, '--', $Filter) $log
+            Stop-LogGroup
+            $cases = @(ConvertFrom-ValidateLog $log 'flow')
+            if ($code -ne 0) { $cases += @{ Name = 'flows'; Failure = "Godot exited with $code" } }
+            Write-JUnitCases (Join-Path $ResultsDir 'flows.junit.xml') 'flows' $cases
         }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'

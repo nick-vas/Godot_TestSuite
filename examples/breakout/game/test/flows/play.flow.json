@@ -1,0 +1,10 @@
+{
+  "name": "the self-playing paddle breaks bricks and scores",
+  "scene": "res://Main.tscn",
+  "seed": 7,
+  "steps": [
+    { "assert": { "node": ".", "prop": "Score", "equals": 0 } },
+    { "wait_until": { "node": ".", "prop": "Score", "gt": 0 }, "timeout": 900 },
+    { "assert": { "node": ".", "prop": "Floor", "ge": 1 } }
+  ]
+}
