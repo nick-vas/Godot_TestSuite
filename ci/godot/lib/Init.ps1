@@ -232,33 +232,49 @@ function Add-AgentFiles($Info, [string]$SuiteScript) {
     }
 }
 
-# init -Mcp: registers an editor-bridge MCP server for the project in .mcp.json (adds only; a changed file is backed up).
-# The addon still has to be installed into the project and enabled in the editor, which needs Node and the editor,
-# so the steps are printed and not run.
-function Add-McpConfig($Info, [string]$Server) {
+# init -Mcp / -McpDiagnostics: registers MCP servers for the project in .mcp.json (adds only; a changed file is backed up).
+# -Mcp godot-mcp is the editor bridge; -McpDiagnostics adds minimal-godot-mcp (GDScript diagnostics and the running game's
+# console, through Godot's own language server and debug adapter, so no addon). The bridge's addon still has to be installed
+# and enabled in the editor, which needs Node and the editor, so those steps are printed and not run.
+function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics) {
     $root = Get-GitRoot $Info.ProjectDir
     $root = $root ? $root : $Info.ProjectDir
     if ($Server -eq 'godot-ai') {
         Write-InitStep skipped 'godot-ai configures its own clients: install the addon, enable it, press Configure in the Godot AI dock'
         Write-Console '           https://github.com/hi-godot/godot-ai (Godot 4.7+, needs uv)'
-        return
     }
+    $wanted = [ordered]@{}
+    if ($Server -eq 'godot-mcp') {
+        $wanted['godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@satelliteoflove/godot-mcp') }
+    }
+    if ($Diagnostics) {
+        $wanted['minimal-godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@ryanmazzolini/minimal-godot-mcp') }
+    }
+    if ($wanted.Count -eq 0) { return }
+
     $file = Join-Path $root '.mcp.json'
     $config = [ordered]@{ mcpServers = [ordered]@{} }
     if (Test-Path -LiteralPath $file) {
         try { $config = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable -Depth 10 }
         catch { Stop-GodotCi ".mcp.json is not valid JSON; fix it or remove it first ($($_.Exception.Message))" 'invalid-mcp-config' }
-        if (-not $config.ContainsKey('mcpServers')) { $config['mcpServers'] = [ordered]@{} }
+        if (-not $config.Contains('mcpServers')) { $config['mcpServers'] = [ordered]@{} }
     }
-    if ($config['mcpServers'].ContainsKey('godot-mcp')) { Write-InitStep skipped '.mcp.json already has godot-mcp' }
-    else {
-        if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file -Destination "$file.bak" -Force }
-        $config['mcpServers']['godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@satelliteoflove/godot-mcp') }
-        $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $file -Encoding utf8
-        Write-InitStep added '.mcp.json: godot-mcp (satelliteoflove/godot-mcp)'
+    $changed = $false
+    foreach ($name in $wanted.Keys) {
+        if ($config['mcpServers'].Contains($name)) { Write-InitStep skipped ".mcp.json already has $name"; continue }
+        if (-not $changed -and (Test-Path -LiteralPath $file)) { Copy-Item -LiteralPath $file -Destination "$file.bak" -Force }
+        $config['mcpServers'][$name] = $wanted[$name]
+        $changed = $true
+        Write-InitStep added ".mcp.json: $name"
     }
-    $project = $Info.ProjectDir
-    Write-Console '           next: npx @satelliteoflove/godot-mcp --install-addon "' -NoNewline
-    Write-Console "$project`"" 
-    Write-Console '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
+    if ($changed) { $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $file -Encoding utf8 }
+
+    if ($wanted.Contains('godot-mcp')) {
+        Write-Console "           next: npx @satelliteoflove/godot-mcp --install-addon `"$($Info.ProjectDir)`""
+        Write-Console '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
+    }
+    if ($wanted.Contains('minimal-godot-mcp')) {
+        Write-Console '           minimal-godot-mcp needs Node 22+ and the editor open on this project (its language server is on by default).'
+        Write-Console '           It checks GDScript only; the console tool needs a running scene (F5). C# is checked by: godot-ci.ps1 build'
+    }
 }

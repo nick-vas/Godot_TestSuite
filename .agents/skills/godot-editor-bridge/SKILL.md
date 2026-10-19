@@ -28,6 +28,10 @@ prints). Alternative: **hi-godot/godot-ai** (MIT; Godot 4.7+, `uv`), configured 
 Neither server builds C#: godot-ai treats C# as text-only and reports no compiler errors. After editing a `.cs` file through the bridge,
 run `build -Json` and read `diagnostics[]`.
 
+Optional companion for GDScript projects: `init -Mcp godot-mcp -McpDiagnostics` also registers `minimal-godot-mcp` (Node 22+, no addon). Its
+`get_diagnostics` / `scan_workspace_diagnostics` check `.gd` files in seconds while you edit, and `get_console_output` returns the running game's
+console (start the scene first). It checks GDScript only and does not replace `test -Json`.
+
 ## Working loop
 
 1. Orient with the files: `detect -Json`, `plan -Json`. Use the bridge for what files cannot tell you (live tree, running state).

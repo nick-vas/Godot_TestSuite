@@ -19,6 +19,7 @@
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync` |
 | `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board |
+| `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
 | `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md and the skills |
 
