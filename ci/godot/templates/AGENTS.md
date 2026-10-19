@@ -12,6 +12,8 @@ pwsh {{SUITE}} test -Json             # build + every detected test runner
 pwsh {{SUITE}} test -Json -Runners dotnet -Filter 'FullyQualifiedName~Name'
 pwsh {{SUITE}} export -Json -Preset Windows -Run
 pwsh {{SUITE}} plan -Json             # where the project is in the plan, what is next
+pwsh {{SUITE}} shot -Json -Scene res://ui/Menu.tscn -Resolution 1920x1080   # look at a screen (needs a display)
+pwsh {{SUITE}} bench -Json -GameArgs '--stress' -BudgetMs 16.7               # frame pacing of the worst case
 ```
 
 ## Rules
@@ -23,6 +25,10 @@ pwsh {{SUITE}} plan -Json             # where the project is in the plan, what i
   `project.godot` or export presets.
 - Before saying anything is done: a fresh `test -Json` with `ok: true` (`godot-verify-before-done`). `plan -Json` shows no new warnings.
 - Scene or UI behaviour gets a flow in `test/flows/*.flow.json` (`godot-ui-flows`). If an editor MCP is connected, save what you changed there, then verify here.
+- After a UI change, take screenshots at the target resolution and look at them (`godot-ui-layout`). After a change in a hot path,
+  run `bench` before and after (`godot-performance`).
+- Debug entry points are flags after `--` (`--seed`, `--autoplay`, `--no-save`), passed with `-GameArgs` (`godot-automation-hooks`).
+- Log one tagged line per meaningful event (`[Fight] won in 142.5s`), so checks are a `grep` away.
 - Do not commit `.godot/`, `bin/`, `obj/`, `test-results/`, `build/`, `gdunit4_testadapter*/`.
 
 ## Layout
@@ -32,4 +38,5 @@ pwsh {{SUITE}} plan -Json             # where the project is in the plan, what i
 ## Skills
 
 `godot-test-loop`, `godot-verify-before-done`, `godot-diagnose`, `godot-test-frameworks`, `godot-ui-flows`, `godot-editor-bridge`,
-`godot-pitfalls`, `godot-export-release`, `godot-game-plan`.
+`godot-pitfalls`, `godot-export-release`, `godot-game-plan`, `godot-performance`, `godot-automation-hooks`, `godot-ui-layout`,
+`godot-architecture`.

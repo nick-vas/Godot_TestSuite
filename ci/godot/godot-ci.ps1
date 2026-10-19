@@ -12,14 +12,19 @@
     ./ci/godot/godot-ci.ps1 test -Runners gut -Filter test_combo
 .EXAMPLE
     ./ci/godot/godot-ci.ps1 export -Preset Windows -Run    # export, then launch the build to check it starts
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 bench -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -BudgetMs 16.7
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
 #>
 [CmdletBinding()]
 param(
     # test (default): build, then run every test runner. build: install, addons, compile, import.
     # export: build, then export presets. setup: install Godot/.NET only. detect: print what was found.
     # doctor: check tools and project. init: wire the suite in. plan: A-to-Z game plan with gates.
+    # bench: measure a scene's frame pacing. shot: save screenshots of scenes at a resolution.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -42,8 +47,27 @@ param(
     [switch]$Run,
     [string]$Results = 'test-results',
     [string]$Output = 'build',
-    # Frames the smoke runner plays.
+    # Frames the smoke runner plays, launched exports play, and shot waits before each screenshot.
     [int]$Frames = 120,
+    # Your game's own flags, passed after "--" to smoke runs, export -Run, bench and shot (read them with
+    # OS.GetCmdlineUserArgs()). Release exports ignore scene paths, so debug entry points belong here, e.g. '--autoplay','--seed=3'.
+    [string[]]$GameArgs,
+    # bench, shot: the scenes (res:// paths). Default: the main scene. bench uses the first.
+    [string[]]$Scene,
+    # bench: seconds to measure, after -Warmup seconds that are not counted.
+    [double]$Seconds = 10,
+    [double]$Warmup = 3,
+    # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
+    [double]$BudgetMs = 0,
+    # bench: a name for this run in bench.csv, e.g. 'vsync-off 1080p'.
+    [string]$Label = '',
+    # bench, shot: window size, e.g. 1920x1080.
+    [string]$Resolution,
+    # bench: V-Sync off, to see the headroom. -MaxFps caps the frame rate instead.
+    [switch]$Uncapped,
+    [int]$MaxFps = 0,
+    # bench: run without a window. Nothing is drawn, so this measures CPU time only; it works where there is no display.
+    [switch]$Headless,
     # setup: also install export templates.
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT.
@@ -74,13 +98,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
 
+$GameArgs = @(Split-GameArgs $GameArgs)
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
 $presets = @(if ($Preset) { $Preset | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { $info.Presets })
 
@@ -187,7 +212,7 @@ function Invoke-Tests {
     if (Test-Path -LiteralPath $resultsDir) { Remove-Item -Recurse -Force $resultsDir }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows') -Frames $Frames
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows') -Frames $Frames -GameArgs $GameArgs
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -244,7 +269,7 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
     if (-not $IsWindows) { Invoke-Checked chmod @('+x', $File) }
     Start-LogGroup "Run exported '$Name' ($Frames frames)"
     $log = [System.IO.Path]::GetTempFileName()
-    $code = Invoke-Logged $File @('--headless', '--quit-after', "$Frames") $log
+    $code = Invoke-Logged $File (@('--headless', '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })) $log
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "The exported '$Name' build exited with $code" }
     Assert-GodotLogClean $log "The exported '$Name' build"
@@ -262,5 +287,16 @@ switch ($Command) {
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }
     'export' { Invoke-Setup -WithTemplates; Invoke-Build; Invoke-Export }
+    'bench' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Bench -Info $info -Scene @($Scene)[0] -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
+            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs `
+            -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'bench-results' })))
+    }
+    'shot' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs `
+            -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
+    }
 }
 Write-JsonResult

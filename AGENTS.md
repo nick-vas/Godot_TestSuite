@@ -5,9 +5,9 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Layout
 
-- `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan.
-- `ci/godot/tools/` `validate.gd`, `flows.gd` (run inside Godot), `Test-Skills.ps1` (skill validator), release/PR-comment tools.
+- `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan bench shot`, all with `-Json`.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure.
+- `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator), release/PR-comment tools.
 - `tests/` the skill-validator self-test and its deliberately broken fixtures.
 - `ci/godot/templates/` files `init` and `plan` copy into a game (`plan.json`, `AGENTS.md`).
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them).
@@ -19,10 +19,17 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 - PowerShell 7.2+, strict mode 3.0, `$ErrorActionPreference = 'Stop'`. Wrap results that may be empty or single in `@(...)`
   and iterate with `foreach`; never index a pipeline result (PowerShell unrolls one-item arrays).
+- Short helper names collide with built-in aliases (`r` is Invoke-History, `rp` is Remove-ItemProperty, `h` is Get-History): use
+  Verb-Noun names. In array literals `,` binds tighter than `+`: `@(1, 2 + 3)` is `(1, 2) + 3`, three items `1, 2, 3`; write `@(1, (2 + 3))` for `1, 5`. Overwrite a zip with
+  `Compress-Archive -Force` instead of deleting wildcard paths. Windows machines have no Python: keep tooling in PowerShell or GDScript.
 - Never `Write-Output` from helpers; return values are the pipeline. Logs use `Write-Host`/`Write-CiLog` (stderr in `-Json`).
 - Fail with `Stop-GodotCi "message" 'stable-code'`. Codes are API: add to `docs/json.md`, never rename.
 - `$script:JsonDoc` is the `-Json` result; add fields with `Set-JsonField`. The `-Json` switch and state must not share a name
   (PowerShell variables are case-insensitive).
+- Scripts run inside Godot (`-s tools/x.gd`) cannot see the scene's `_ready` until the first frame: `await process_frame` after
+  `add_child` before reading anything the scene sets up.
+- `bench` and `shot` need a display. Here, start `Xvfb :99 &` and set `DISPLAY=:99`; do not use `xvfb-run`, which merges stderr into
+  stdout and breaks `-Json`.
 - Verify with the examples: `pwsh ci/godot/godot-ci.ps1 test -Project examples/breakout/game` and `-Project examples/gdscript`
   must be green; `doctor` and `plan` on both. Changing a version matrix entry means re-running both on that Godot.
 - Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass. A skill description says only when to use it, never how.

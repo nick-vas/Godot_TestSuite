@@ -1,0 +1,61 @@
+---
+name: godot-architecture
+description: Use when structuring a new Godot game or system, separating gameplay from visuals, or making game state testable and reproducible.
+---
+
+# Architecture patterns that pay off
+
+Patterns from a shipped-quality Godot 4.7 C# project. They exist to keep gameplay deterministic, testable without a renderer, and
+easy for an agent to verify.
+
+## Simulate simple, present rich
+
+Run gameplay in the simplest space that works, and mirror it onto the visuals every frame.
+
+- Physics and rules in 2D (`CharacterBody2D` with `MoveAndCollide`, one-way platforms), presentation in 3D: a view node copies
+  positions with a fixed scale (`40 px = 1 m`). Visual styles become swappable, and gameplay stays deterministic and testable headless.
+- A `Visual` wrapper owns flash, tint and squash for every actor, so effects are added in one place.
+- Style definitions (stage, actors, colour grade) as data classes, so a level's look is a value, not a scene fork.
+
+## State in plain C#
+
+Run state (`RunState`, the map, encounters) as plain C# classes owned by one autoload, not spread over nodes. Plain classes are
+testable with xUnit in milliseconds (`godot-test-frameworks`), can be saved by serialising one object, and survive scene changes.
+Nodes read state and send intents; they do not own the rules.
+
+## Reproducible randomness
+
+Derive each decision point's RNG from the run seed and its identity (`seed ^ act ^ floor ^ column`, or `HashCode.Combine`). A
+`--seed` then reproduces the whole run, and changing one level does not reshuffle the rest (`godot-automation-hooks`).
+
+## Generated content with rules
+
+For generated maps or levels, generate freely and then enforce fairness rules, and test the rules over many seeds. Example from a
+Slay-the-Spire-style map: a few paths climb from the bottom, each step goes up-left, up or up-right without crossing an existing
+edge, all paths merge at the boss; the first floor is a battle, the middle a treasure, the floor before the boss a rest; no elite or
+rest early or twice in a row.
+
+## Systems with an exact solver
+
+When a system has a small state space (a puzzle, a crafting graph, a path), give it an exact solver. It powers autoplay, par
+scores, hints and generation:
+
+- Tower of Hanoi: recursive optimal next move from any legal position. Toads and Frogs, Chinese rings, river crossing: breadth-first
+  search. Lights Out: Gauss-Jordan elimination over GF(2), trying every free-variable combination for the shortest solution.
+- Par = optimal + small slack. Generate starts by random moves from the solved state, or verify them with the solver.
+- On a dead end, take back only as many moves as the solver needs to make it solvable again; a full reset is too harsh.
+- Do not mark the start state with a sentinel move value (`-1`) if `-1` can be a legal move; compare against the start state.
+- Show which pieces can act right now; it cuts frustration.
+
+## Full-screen grade
+
+A full-screen grade shader on a `CanvasLayer` with layer `-1` grades the 3D world but not the UI on higher layers (posterize,
+crosshatch, paper tint, grain, vignette). Posterize plus soft fog creates banding blobs; fog darkens additive particles (disable fog
+on those materials). Cheerful assets under a stark grade give a distinctive look cheaply.
+
+## Checklist
+
+- [ ] rules and state live in plain classes with unit tests
+- [ ] visuals mirror state; nothing in a visual decides gameplay
+- [ ] every random decision comes from a seeded, per-decision RNG
+- [ ] generated content has written fairness rules, tested over many seeds

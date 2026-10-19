@@ -15,7 +15,7 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `godot-ci/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 
@@ -37,6 +37,10 @@ Branch on `error.code`; `message` can change.
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit`, `invalid-arguments` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
+| `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
+| `bench-failed` | `bench` could not load the scene, Godot exited non-zero, or no result was printed | `error.message` |
+| `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
+| `no-display` | `bench` (without `-Headless`) or `shot` on Linux with no display server; use a virtual display | - |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
 | `failed` | Generic failure without a specific code | `error.message` |
 
@@ -60,6 +64,16 @@ or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line
 The same data is in `test-results/summary.json`.
 
 **export**: `exports[]`: `preset`, `platform`, `file`.
+
+**bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
+`max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`; a hitch is a frame longer than twice the median and
+over 8.33 ms), `hitchThresholdMs`, `drawCalls` (`avg`, `max`), `objects` and `staticMemoryMB` (`start`, `end`), `customMonitors`
+(each custom monitor the game registered: `start`, `end`, `delta`), `display` (`headless` means CPU timings only), `renderer`,
+`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
+row is appended to `bench-results/bench.csv`.
+
+**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG), `width`, `height`. With a fixed aspect ratio (`keep`), the
+picture is the game area without the black bars, so it can be smaller than `-Resolution`.
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 

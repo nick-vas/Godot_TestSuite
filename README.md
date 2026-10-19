@@ -10,7 +10,8 @@ what to build next. This kit supplies both:
   and, packed into a GitHub workflow, on a Linux runner.
 - **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
 - **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
-- **Teach**: `AGENTS.md` and nine skills that make the agent work test first and prove it is done before it says so.
+- **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
+- **Teach**: `AGENTS.md` and thirteen skills that make the agent work test first and prove it is done before it says so.
 
 ```powershell
 pwsh ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp   # once: tests, CI, AGENTS.md, skills, editor bridge
@@ -25,6 +26,7 @@ pwsh ci/godot/godot-ci.ps1 test -Json                    # every time: build + e
    editor MCP            author and inspect: scenes, nodes, running game, live state   (needs the editor)
         |
    godot-ci.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
+   bench / shot          measure frame pacing, look at screens                          (with a display)
         |
    plan -Do move/done    record progress; Trello mirrors the board
 ```
@@ -62,10 +64,13 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
+| **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, frames over 20/33 ms, a timestamped hitch log, draw calls, GC via custom monitors; one CSV row per labelled run |
+| **See the screens** | `shot -Scene X,Y -Resolution 1920x1080` | real PNG frames an agent can open, at any resolution |
+| **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md` and nine skills in `.agents/skills` and `.claude/skills` |
+| **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md` and thirteen skills in `.agents/skills` and `.claude/skills` |
 
 Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
 
@@ -78,6 +83,10 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-ui-flows` | a change affects menus, HUD, scene flow or input |
 | `godot-editor-bridge` | using an editor MCP server alongside this kit |
 | `godot-diagnose` | starting work or when something fails mysteriously: detect, doctor, validate |
+| `godot-performance` | stutter, hitches, frame drops, or a milestone where frame rate matters |
+| `godot-automation-hooks` | the game must be played, measured or balanced without a person; runs must be reproducible |
+| `godot-ui-layout` | menus, HUD or text must look right at several resolutions |
+| `godot-architecture` | structuring a game or system so it stays deterministic and testable |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
 | `godot-export-release` | exporting, smoke-launching, tagged releases |
@@ -120,9 +129,9 @@ What has been run, and what has not.
 
 | | |
 |---|---|
-| Verified | Both examples (C# with every framework, GDScript with GUT) pass on Godot 4.7.2, locally and in GitHub Actions on Linux and Windows; `-Json` output for each command; UI flows including failure cases; `init -Agents`, `init -Mcp` file handling; the skill validator and its fixtures |
+| Verified | Both examples (C# with every framework, GDScript with GUT) pass on Godot 4.7.2, locally and in GitHub Actions on Linux and Windows; `-Json` output for each command; UI flows including failure cases; `init -Agents`, `init -Mcp` file handling; the skill validator and its fixtures; `bench` and `shot` under a virtual display (software OpenGL) and `bench -Headless` |
 | Tested against a mock only | Trello sync (a local imitation of the API; no live board yet) |
-| Not run | The editor MCP servers themselves (they need the editor); `export` for non-Windows presets |
+| Not run | The editor MCP servers themselves (they need the editor); `export` for non-Windows presets; `bench` and `shot` on a real GPU and on Windows (their numbers here come from software rendering) |
 | Known | Godot 4.7.2 occasionally aborts during import on some machines. The kit retries the import up to twice and reports `importRetried`; the cause is not found, and it has not shown up in CI |
 | Not evidenced | That the skills change agent behaviour. A first pressure test found no difference because the model already behaved well; [docs/skills-quality.md](docs/skills-quality.md) says what a harder test needs |
 
@@ -157,6 +166,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/godot-pipelines.md](docs/godot-pipelines.md) | Test frameworks, versions, release-safe packaging |
 | [docs/plan.md](docs/plan.md) | The A-to-Z plan, tasks and Trello sync, and where it comes from |
 | [docs/mcp.md](docs/mcp.md) | Editor-bridge MCP: which server and how it fits |
+| [docs/case-study-breakout-roguelike.md](docs/case-study-breakout-roguelike.md) | Lessons from a real Godot 4.7 C# game, and what the kit does with each |
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
 | [AGENTS.md](AGENTS.md) | Working on this repository |

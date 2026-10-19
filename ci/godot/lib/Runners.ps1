@@ -73,7 +73,7 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
 }
 
 function Invoke-TestRunner {
-    param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames)
+    param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs)
 
     if (Test-Path -LiteralPath $ResultsDir) { Remove-Item -Recurse -Force $ResultsDir }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
@@ -156,7 +156,8 @@ function Invoke-TestRunner {
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'
             Start-LogGroup "Smoke run ($Frames frames)"
-            $code = Invoke-Logged $godot @('--headless', '--path', $project, '--quit-after', "$Frames") $log
+            $smokeArgs = @('--headless', '--path', $project, '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })
+            $code = Invoke-Logged $godot $smokeArgs $log
             Stop-LogGroup
             $errors = @(Get-GodotLogErrors $log)
             $message = if ($code -ne 0) { "Godot exited with $code" }

@@ -189,7 +189,7 @@ function Initialize-Project($Info) {
     $project = $Info.ProjectDir
     $isCSharp = @(Get-ChildItem -LiteralPath $project -File -Filter '*.csproj').Count -gt 0
     Write-CiLog "Setting up $project"
-    $ignore = @('.godot/', 'test-results/', 'build/')
+    $ignore = @('.godot/', 'test-results/', 'build/', 'screenshots/')
     $excludes = @('test/*')
     if ($isCSharp) {
         $ignore += 'gdunit4_testadapter*/'; $excludes += 'gdunit4_testadapter*/*'
