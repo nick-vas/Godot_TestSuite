@@ -9,7 +9,7 @@ Run everything through `godot-ci.ps1` (PowerShell 7). It detects the project, in
 and runs every test framework the project uses. Always pass `-Json` so stdout is one parseable document.
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 test -Json            # path may differ: a submodule, tools/godot-test-suite/...
+pwsh ci/godot/godot-ci.ps1 test -Json            # the exact path is in AGENTS.md (a clone outside the game, or a submodule)
 ```
 
 ## The loop

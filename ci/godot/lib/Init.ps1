@@ -210,11 +210,16 @@ function Add-AgentFiles($Info, [string]$SuiteScript) {
     $root = Get-GitRoot $Info.ProjectDir
     $root = $root ? $root : $Info.ProjectDir
     $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
-    $relative = [System.IO.Path]::GetRelativePath($root, $SuiteScript) -replace '\\', '/'
+    # Inside the game repo (a submodule): a relative path, which works on every clone. Outside it (a separate clone of the
+    # kit, so it never ships with the game): the full path, since "../../Tools/..." would only hold on this machine anyway.
+    $relative = [System.IO.Path]::GetRelativePath($root, $SuiteScript)
+    $suitePath = if ($relative.StartsWith('..') -or [System.IO.Path]::IsPathRooted($relative)) { $SuiteScript } else { $relative }
+    $suitePath = $suitePath -replace '\\', '/'
+    if ($suitePath -match '\s') { $suitePath = "`"$suitePath`"" }
     $agents = Join-Path $root 'AGENTS.md'
     if (Test-Path -LiteralPath $agents) { Write-InitStep skipped 'AGENTS.md exists' }
     else {
-        (Get-Content -LiteralPath (Join-Path $PSScriptRoot '../templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', $relative |
+        (Get-Content -LiteralPath (Join-Path $PSScriptRoot '../templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', $suitePath.Replace('$', '$$') |
             Set-Content -LiteralPath $agents -Encoding utf8
         Write-InitStep added 'AGENTS.md'
     }
@@ -222,13 +227,15 @@ function Add-AgentFiles($Info, [string]$SuiteScript) {
     if (Test-Path -LiteralPath $claude) { Write-InitStep skipped 'CLAUDE.md exists (add "@AGENTS.md" to it)' }
     else { Set-Content -LiteralPath $claude -Value '@AGENTS.md' -Encoding utf8; Write-InitStep added 'CLAUDE.md (imports AGENTS.md)' }
     foreach ($skill in Get-ChildItem -LiteralPath (Join-Path $suiteRoot '.agents/skills') -Directory) {
-        foreach ($base in '.agents/skills', '.claude/skills') {
+        $copied = @(foreach ($base in '.agents/skills', '.claude/skills') {
             $target = Join-Path $root "$base/$($skill.Name)"
             if (Test-Path -LiteralPath $target) { continue }
             New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
             Copy-Item -LiteralPath $skill.FullName -Destination $target -Recurse
-        }
-        Write-InitStep added "skill $($skill.Name) (.agents/skills and .claude/skills)"
+            $base
+        })
+        if ($copied.Count -gt 0) { Write-InitStep added "skill $($skill.Name) ($($copied -join ' and '))" }
+        else { Write-InitStep skipped "skill $($skill.Name) is already there" }
     }
 }
 

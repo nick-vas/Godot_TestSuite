@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- The kit no longer ships inside games: `.gdignore` files at the repository root and in `ci/godot/` keep Godot from importing and
+  exporting the kit's `.gd` tools when it sits inside a project (a 4.7.2 export test found all four in the pack), and detection now
+  skips folders with a `.gdignore`, as Godot does, so the kit's own examples no longer add GUT and flow runners to the game.
+- The README now recommends cloning the kit outside the game and using `-Project`. `init -Agents` then writes the kit's full
+  (quoted, when needed) path into `AGENTS.md` instead of a fragile `../../` path.
+- `init -Agents` reports skills that already exist as skipped instead of added.
 - From the Breakout Roguelike case study (`docs/case-study-breakout-roguelike.md`):
   - `bench`: frame pacing of a scene (1%/0.1% lows, p50/p99/max, frames over 20/33 ms, hitch log, draw calls, custom monitors such as GC
     counts), a labelled CSV row per run, and a `-BudgetMs` gate (`bench-over-budget`).

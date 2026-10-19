@@ -128,6 +128,9 @@ function Find-ProjectFiles {
         Get-ChildItem -LiteralPath $dir -File -Filter $Filter -ErrorAction SilentlyContinue | Sort-Object Name
         Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue | Sort-Object Name |
             Where-Object { $_.Name -notin $script:PrunedDirs -and $_.Name -notlike 'gdunit4_testadapter*' } |
+            # A folder with a .gdignore file is not part of the Godot project (this kit's own folder has one), so skip it
+            # the way Godot does. Only subfolders are checked: the root is where the search was asked to look.
+            Where-Object { -not (Test-Path -LiteralPath (Join-Path $_.FullName '.gdignore')) } |
             ForEach-Object { $queue.Enqueue($_.FullName) }
     }
 }
