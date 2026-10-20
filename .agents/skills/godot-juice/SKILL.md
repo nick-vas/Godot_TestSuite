@@ -17,7 +17,7 @@ Add it deliberately, and verify it with the `juice` runner instead of by eye.
 | Hit-stop | a 30 to 80 ms freeze on a big hit sells the impact | pause the two actors (`ProcessMode`), not `Engine.TimeScale`, which also slows UI and audio |
 | Screen shake | weight; small and short | `Camera2D.Offset` driven by noise, decaying over 0.1 to 0.3 s; scale it by a settings slider |
 | Squash and stretch | elasticity on jumps, landings and hits | a `Tween` on the visual's `Scale`, never on the physics body |
-| Flash | marks who was hit | a shader `flash` uniform on the visual for 1 to 3 frames |
+| Flash | marks who was hit | a shader `flash` uniform on the visual for 1 to 3 frames; never more than three flashes a second across the screen (WCAG 2.3.1, a seizure risk): at a fast hit rate, flash only the first hit or tint instead |
 | Particles | spark, dust, debris at the contact point | pre-warmed `GpuParticles2D`, one-shot, pooled (`godot-patterns` Object Pool) |
 | Telegraphs | a danger is readable before it lands | a wind-up animation or marker at least 300 ms ahead |
 | Numbers | damage and score pop where they happened | pooled labels with a short rise-and-fade tween |

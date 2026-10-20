@@ -101,6 +101,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-performance` | stutter, hitches, frame drops, or a milestone where frame rate matters |
 | `godot-automation-hooks` | the game must be played, measured or balanced without a person; runs must be reproducible |
 | `godot-ui-layout` | menus, HUD or text must look right at several resolutions |
+| `godot-ui-accessibility` | menus and HUD must work with a gamepad alone, a screen reader, low vision or motion sensitivity (WCAG 2.2, read for games) |
 | `godot-architecture` | structuring a game or system so it stays deterministic and testable |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
@@ -199,6 +200,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/research.md](docs/research.md) | Measured output sizes and the studies behind the plugin, quiet output and evals |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
+| [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |
 | [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |
 | [AGENTS.md](AGENTS.md) | Working on this repository |
 | [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md) | Project |

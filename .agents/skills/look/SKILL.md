@@ -26,7 +26,9 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://
 ```
 
 Ask it to judge each picture against `docs/STYLE.md` and its "Choices": text too small or clipped, contrast, overlap, things
-outside the safe area, colours off the palette, screens that disagree with each other. Report the problems as a table:
+outside the safe area, colours off the palette, screens that disagree with each other, and the rules in
+`godot-ui-accessibility` that a picture can show (colour alone, focus outline, target size, text painted into images).
+Name the WCAG criterion with each accessibility problem. Report the problems as a table:
 screen | resolution | problem | rule it breaks | screenshot path. Do not fix anything the user has not chosen to fix.
 
 ## 3. Before and after

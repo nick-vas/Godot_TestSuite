@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- Accessibility for menus and UI:
+  - `docs/wcag-ui.md`: all 86 WCAG 2.2 success criteria read as rules for game menus, HUD and settings screens (31 apply as
+    written, 49 in game terms, 6 do not apply), each with the Godot 4.7 property or API that meets it, read from the engine.
+  - `godot-ui-accessibility` skill: the working rules (gamepad-only navigation, focus, WCAG contrast in C#, target size,
+    screen readers through AccessKit, reduce motion, three flashes a second), with C# compiled against Godot 4.7.2.
+  - Found in Godot 4.7.2's defaults: `ui_accept` and `ui_cancel` have no gamepad button, and `Color.Luminance` is not
+    WCAG's relative luminance unless the colour goes through `SrgbToLinear()` first.
+  - `templates/STYLE.md`: the Danger colour failed its own 4.5:1 rule (4.2:1); now #F2555A at 4.9:1, with each colour's
+    ratio in the palette and the WCAG numbers in the readability and motion rules. `godot-juice`, `godot-ui-layout` and
+    `look` point at the new rules.
 - Look and feel (roadmap phase 4):
   - `shot -Baseline <folder>` compares each screenshot with the earlier one of the same name, inside Godot: `compare`
     (`changedPercent`, `sizeChanged`) and a `<name>.compare.png` with before, after and the changes in red.
