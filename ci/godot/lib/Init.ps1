@@ -321,6 +321,6 @@ function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics) {
     }
     if ($wanted.Contains('minimal-godot-mcp')) {
         Write-Console '           minimal-godot-mcp needs Node 22+ and the editor open on this project (its language server is on by default).'
-        Write-Console '           It checks GDScript only; the console tool needs a running scene (F5). C# is checked by: ' + (Format-KitCommand 'build')
+        Write-Console ('           It checks GDScript only; the console tool needs a running scene (F5). C# is checked by: ' + (Format-KitCommand 'build'))
     }
 }

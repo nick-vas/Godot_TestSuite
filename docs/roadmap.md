@@ -8,7 +8,7 @@ ones) and starts only after the previous one is merged. This page is the plan; t
 | Phase | State |
 |---|---|
 | 0. Loose ends | Done |
-| 1. Self-improvement | Plugin packaging, `retro`, run history and `kit-review` done, plus the ten agent-efficiency items in [research.md](research.md) (`-Quiet`, failure details, verifier subagent, Stop hook, evals). Open: the weekly canary job, scheduling the monthly review, and the first eval numbers from a machine where the eval sandbox can run Godot |
+| 1. Self-improvement | Plugin packaging, `retro`, run history and `kit-review` done, plus the ten agent-efficiency items in [research.md](research.md) (`-Quiet`, failure details, verifier subagent, Stop hook, evals). The weekly canary runs Fridays 18:47 UTC. Open: scheduling the monthly review, and the first eval numbers from a machine where the eval sandbox can run Godot |
 | 2. `/game` | Not started |
 | 3. Architecture | Not started |
 | 4. Look and feel | Not started |
@@ -137,5 +137,5 @@ matches it.
 
 - **Copied skills:** existing games keep theirs. The plugin move reuses what is good in them; nothing is deleted.
 - **`/retro`:** on demand only.
-- **Weekly review:** Friday night (time zone to confirm when it is scheduled).
+- **Weekly review:** Friday night, Athens time (Europe/Athens). The canary runs before it, at 18:47 UTC.
 - **Architecture runner:** every rule starts as a warning.

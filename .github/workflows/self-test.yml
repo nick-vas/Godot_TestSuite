@@ -28,6 +28,21 @@ jobs:
         run: |
           ./ci/godot/tools/Test-Skills.ps1
           ./tests/Test-SkillFixtures.ps1
+      - name: Version updates rewrite every pin and keep the skills valid
+        shell: pwsh
+        run: |
+          # On a copy, with made-up releases: a new Godot minor with its GUT release, and a package update.
+          $copy = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'versions')
+          git archive HEAD | tar -x -C $copy
+          $latest = Join-Path $env:RUNNER_TEMP 'latest.json'
+          '{"godot":"4.99.0","gut":"v9.99.0","gdUnit4.api":"9.9.9"}' | Set-Content $latest
+          $r = pwsh -NoProfile -File ./ci/godot/tools/Update-Versions.ps1 -Root $copy -LatestFile $latest -Apply -Json | ConvertFrom-Json
+          if ($r.updates.Count -ne 3 -or $r.changed.Count -lt 10) { throw "unexpected result: $($r | ConvertTo-Json -Depth 5)" }
+          $csproj = Get-Content (Join-Path $copy 'examples/breakout/game/Breakout.csproj') -Raw
+          if ($csproj -notmatch 'Godot\.NET\.Sdk/4\.99\.0' -or $csproj -notmatch '"gdUnit4.api" Version="9\.9\.9"') { throw 'csproj pins were not updated' }
+          if ((Get-Content (Join-Path $copy 'ci/godot/lib/Setup.ps1') -Raw) -notmatch "'\^4\\\.99' \{ 'v9\.99\.0' \} '\^4\\\.7'") { throw 'the GUT mapping for the new minor is missing' }
+          pwsh -NoProfile -File ./ci/godot/tools/Test-Skills.ps1 -Root $copy
+          if ($LASTEXITCODE) { throw 'the skills no longer validate after the update' }
       - name: Parse action manifests
         # actionlint covers workflows only; make sure every composite action is valid YAML.
         run: |
@@ -137,6 +152,8 @@ jobs:
           ./ci/godot/godot-ci.ps1 init -Plugin -Project $plugged | Out-Null
           $settings = Get-Content (Join-Path $plugged '.claude/settings.json') -Raw | ConvertFrom-Json -AsHashtable
           if (-not $settings.enabledPlugins['godot-agent-kit@godot-agent-kit'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
+          # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
+          exit 0
 
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.

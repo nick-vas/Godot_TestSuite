@@ -137,7 +137,9 @@ jobs:
     permissions: { contents: read, pull-requests: write }
     uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
 ```
-Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. Free on public
+Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. In this
+repository, a weekly canary tries new Godot, test-framework and GUT releases on both examples and opens a pull request for
+those that pass (`ci/godot/tools/Update-Versions.ps1` shows what is out of date). Free on public
 repositories; Linux runners are the cheapest on private ones. More: [docs/usage.md](docs/usage.md).
 
 ## Status

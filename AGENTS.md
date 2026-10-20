@@ -7,7 +7,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 - `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan bench shot`, all with `-Json`.
 - `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure.
-- `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator), release/PR-comment tools.
+- `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator),
+  `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
 - `tests/` the skill-validator self-test and its deliberately broken fixtures.
 - `ci/godot/templates/` files `init` and `plan` copy into a game (`plan.json`, `AGENTS.md`).
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).

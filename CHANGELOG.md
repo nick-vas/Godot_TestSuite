@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Weekly canary (`.github/workflows/canary.yml`, Fridays 18:47 UTC): `ci/godot/tools/Update-Versions.ps1` compares the pinned
+  Godot, test-framework packages and GUT with the newest stable releases and rewrites every pin together;
+  `ci/godot/tools/Invoke-Canary.ps1` tries the updates on both examples (all together, then one by one). Updates that pass
+  become a pull request, failures an issue each, and a Godot minor without a GUT release is reported as blocked.
 - Agent efficiency, each item measured or sourced in [docs/research.md](docs/research.md):
   - `-Quiet`: Godot and dotnet output goes only to `<Results>/godot-ci.log` (named by the new `log` JSON field); stderr drops
     from 7-16 KB to about 1 KB per test run on the examples.
