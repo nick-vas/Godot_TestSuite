@@ -10,3 +10,4 @@ screenshots/
 /.vs/VSWorkspaceState.json
 
 evals/results/
+.godot/

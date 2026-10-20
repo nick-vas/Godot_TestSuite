@@ -6,11 +6,11 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 ## Layout
 
 - `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan bench shot status`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
-- `tests/` self-tests with deliberately broken fixtures: the skill validator's and the architecture rules'.
-- `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `AGENTS.md`, `GDD.md`, `ADR.md`).
+- `tests/` self-tests with deliberately broken fixtures: the skill validator's, the architecture rules' and the juice runner's (`juice-fixture`).
+- `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `AGENTS.md`, `GDD.md`, `ADR.md`, `STYLE.md`).
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` and `godot-architect` subagents, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
@@ -37,7 +37,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   imports nor exports it, and `Find-ProjectFiles` skips folders that have one). Do not remove them.
 - Verify with the examples: `pwsh ci/godot/godot-ci.ps1 test -Project examples/breakout/game` and `-Project examples/gdscript`
   must be green; `doctor` and `plan` on both. Changing a version matrix entry means re-running both on that Godot.
-- Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass; architecture rules: `pwsh tests/Test-ArchitectureFixtures.ps1`. A skill description says only when to use it, never how.
+- Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass; architecture rules: `pwsh tests/Test-ArchitectureFixtures.ps1`; juice log: `pwsh tests/Test-JuiceLog.ps1`. A skill description says only when to use it, never how.
   Commands, flags, error codes and versions quoted in a skill are checked against the real script, `docs/json.md` and `examples/breakout`.
 - Commit as the repository owner. Do not add AI attribution trailers to commits or PR descriptions.
 - Do not rewrite pushed history.

@@ -76,7 +76,8 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, frames over 20/33 ms, a timestamped hitch log, draw calls, GC via custom monitors; one CSV row per labelled run |
-| **See the screens** | `shot -Scene X,Y -Resolution 1920x1080` | real PNG frames an agent can open, at any resolution |
+| **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames an agent can open, at any resolution; with a baseline, the percentage changed and a before, after and diff image |
+| **Feel the game** | `juice` runner, `juice.json` | an autoplay run in which every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
@@ -102,6 +103,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-ui-layout` | menus, HUD or text must look right at several resolutions |
 | `godot-architecture` | structuring a game or system so it stays deterministic and testable |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
+| `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
 | `godot-export-release` | exporting, smoke-launching, tagged releases |
@@ -110,6 +112,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `kit-review` (manual) | monthly: which parts of the kit cost the most or help the least |
 | `game` (manual) | where the game stands and what to do next; drafts the GDD the first time, keeps Trello in step |
 | `weekly-review` (manual) | Friday: the week in review and next week's tasks |
+| `look` (manual) | how the game looks: writes `docs/STYLE.md` once, critiques screenshots against it, before and after as a choice |
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
 images stay out of the main conversation. The `godot-architect` subagent compares designs for a new system before code is

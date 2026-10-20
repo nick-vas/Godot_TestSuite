@@ -67,6 +67,8 @@ or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line
 ```
 The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`, `message`): findings that do not fail the
 run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
+The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
+`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder.
 
 `message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
 and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;
@@ -87,7 +89,10 @@ over 8.33 ms), `hitchThresholdMs`, `drawCalls` (`avg`, `max`), `objects` and `st
 row is appended to `bench-results/bench.csv`.
 
 **shot**: `shots[]` with `scene`, `file` (absolute path of the PNG), `width`, `height`. With a fixed aspect ratio (`keep`), the
-picture is the game area without the black bars, so it can be smaller than `-Resolution`.
+picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
+also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
+differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the
+changes in red).
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 
@@ -108,5 +113,7 @@ picture is the game area without the black bars, so it can be smaller than `-Res
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
+- `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
+  in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, plan overruns.

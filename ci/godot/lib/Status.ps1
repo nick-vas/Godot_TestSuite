@@ -11,6 +11,21 @@ function Get-GddPath($Info) {
     return $null
 }
 
+# docs/STYLE.md (templates/STYLE.md) and juice.json: what /look and the juice runner check against.
+function Get-LookSetup($Info) {
+    $candidates = @((Join-Path $Info.ProjectDir 'docs/STYLE.md'))
+    $root = Get-GitRoot $Info.ProjectDir
+    if ($root -and -not (Test-Path -LiteralPath (Join-Path $root '.gdignore'))) { $candidates += Join-Path $root 'docs/STYLE.md' }
+    $style = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    $resolutions = @()
+    if ($style) {
+        $line = [regex]::Match((Get-Content -LiteralPath $style -Raw), '(?m)^Resolutions:\s*(?<r>.+)$').Groups['r'].Value
+        $resolutions = @($line -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+x\d+$' })
+    }
+    $juice = Get-JuiceConfig $Info.ProjectDir
+    return [ordered]@{ styleGuide = $style; resolutions = $resolutions; juiceRules = $juice ? @($juice.rules).Count : 0 }
+}
+
 # Features are "### F<n> <name>" headings with a "Priority:" line and "Done when:" bullets (templates/GDD.md).
 function Read-Gdd([string]$Path) {
     $text = Get-Content -LiteralPath $Path -Raw
@@ -201,6 +216,8 @@ function Invoke-Status($Info) {
     Set-JsonField features $features
     Set-JsonField plan $plan
     Set-JsonField decisions $decisions
+    $look = Get-LookSetup $Info
+    Set-JsonField look $look
     Set-JsonField runs $runs
     Set-JsonField git $git
     Set-JsonField inventory $inventory
@@ -219,6 +236,7 @@ function Invoke-Status($Info) {
         else { Write-Console "Plan: none ($(Format-KitCommand 'plan -Do init'))" }
         if ($lastTest) { Write-Console "Last test run: $(Format-RunTime $lastTest.time) $(if ($lastTest.ok) { 'passed' } else { "failed ($($lastTest.code))" })" }
         if ($git) { Write-Console "Git: $($git.commits7Days) commit(s) this week, $($git.uncommitted) uncommitted change(s), last commit $($git.lastCommit)" }
+        Write-Console "Look: $(if ($look.styleGuide) { "style guide ($($look.resolutions -join ', '))" } else { 'no style guide (/look writes one)' }); $(if ($look.juiceRules) { "$($look.juiceRules) juice rule(s)" } else { 'no juice.json' })"
         if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }
         Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }

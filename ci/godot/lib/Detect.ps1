@@ -118,10 +118,12 @@ function Get-ProjectInfo {
         if (@(Get-GutTestFiles $projectDir).Count -gt 0) { $selected += 'gut' }
         if (@(Find-ProjectFiles -Root $projectDir -Filter '*.flow.json').Count -gt 0) { $selected += 'flows' }
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
+        # A bot run that checks every gameplay event got its feedback in time, when juice.json says what to expect.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'juice.json')) { $selected += 'juice' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 
