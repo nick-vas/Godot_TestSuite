@@ -235,11 +235,15 @@ function ConvertTo-GodotVersion([string]$Version) {
 function Get-DotnetDiagnostics([string]$LogFile) {
     $seen = @{}
     foreach ($line in Get-Content -LiteralPath $LogFile) {
-        $m = [regex]::Match($line, '^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\): error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$')
+        # Compiler errors name a file, line and column; restore and project errors (NU1605, MSB...) only the project.
+        $m = [regex]::Match($line, '^\s*(?<file>.+?)(?:\((?<line>\d+),(?<col>\d+)\))? : error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$')
+        if (-not $m.Success) { $m = [regex]::Match($line, '^\s*(?<file>.+?)\((?<line>\d+),(?<col>\d+)\): error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$') }
         if ($m.Success -and -not $seen.ContainsKey($m.Value)) {
             $seen[$m.Value] = $true
-            [ordered]@{ file = $m.Groups['file'].Value; line = [int]$m.Groups['line'].Value; column = [int]$m.Groups['col'].Value
-                code = $m.Groups['code'].Value; message = $m.Groups['msg'].Value }
+            [ordered]@{ file = $m.Groups['file'].Value
+                line = $m.Groups['line'].Success ? [int]$m.Groups['line'].Value : $null
+                column = $m.Groups['col'].Success ? [int]$m.Groups['col'].Value : $null
+                code = $m.Groups['code'].Value; message = $m.Groups['msg'].Value.Trim() }
         }
     }
 }

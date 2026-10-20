@@ -5,6 +5,9 @@
   Godot, test-framework packages and GUT with the newest stable releases and rewrites every pin together;
   `ci/godot/tools/Invoke-Canary.ps1` tries the updates on both examples (all together, then one by one). Updates that pass
   become a pull request, failures an issue each, and a Godot minor without a GUT release is reported as blocked.
+  First run on real releases: Microsoft.NET.Test.Sdk 18.11.0, Chickensoft.GoDotTest 2.0.48, xunit 2.9.3 and
+  xunit.runner.visualstudio 4.0.1 pass; gdUnit4.test.adapter 3.1.1 fails (it needs the pre-release gdUnit4.api 5.1.0-rc5).
+- Build diagnostics now include restore and project errors (`NU1605` and the like, with no line or column), not only compiler errors.
 - Agent efficiency, each item measured or sourced in [docs/research.md](docs/research.md):
   - `-Quiet`: Godot and dotnet output goes only to `<Results>/godot-ci.log` (named by the new `log` JSON field); stderr drops
     from 7-16 KB to about 1 KB per test run on the examples.

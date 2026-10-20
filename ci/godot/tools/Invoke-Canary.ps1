@@ -45,6 +45,12 @@ function Test-Updates([string[]]$Selected) {
             $runs = if ($d.PSObject.Properties['runnerResults']) { @($d.runnerResults) } else { @() }
             $first = @($runs | ForEach-Object { $_.failures } | Select-Object -First 3 |
                 ForEach-Object { "$($_.name): $($_.message)$(if ($_.file) { " ($($_.file):$($_.line))" })" })
+            # Build and engine errors say why far better than the exit code.
+            foreach ($field in 'diagnostics', 'engineErrors') {
+                if ($d.PSObject.Properties[$field]) {
+                    $first += @($d.$field | Select-Object -First 3 | ForEach-Object { "$(if ($_.PSObject.Properties['code']) { "$($_.code) " })$($_.message)$(if ($_.file) { " ($($_.file):$($_.line))" })" })
+                }
+            }
             $problems += "${project}: $($d.error.code) - $($d.error.message)$(if ($first) { "; " + ($first -join '; ') })"
         }
     }
