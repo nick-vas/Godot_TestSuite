@@ -1,0 +1,8 @@
+{
+  "parent-path": "parent-path",
+  "ui-mutates-state": "ui-mutates-state",
+  "per-frame-lookup": "per-frame-lookup",
+  "per-frame-alloc": "per-frame-alloc",
+  "event-not-unsubscribed": "event-not-unsubscribed",
+  "too-many-autoloads": "too-many-autoloads"
+}

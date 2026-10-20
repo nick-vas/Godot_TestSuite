@@ -34,7 +34,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, dotnet, gdunit4, godottest, gut, smoke (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -108,7 +108,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -236,7 +236,7 @@ function Invoke-Tests {
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows') -Frames $Frames -GameArgs $GameArgs
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture') -Frames $Frames -GameArgs $GameArgs
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -244,7 +244,8 @@ function Invoke-Tests {
     Set-JsonField coverage ([ordered]@{ linePercent = $percent; minimum = $MinCoverage })
     Set-JsonField runnerResults @($runs | ForEach-Object {
         [ordered]@{ runner = $_.Runner; ok = $_.Ok; total = $_.Total; passed = $_.Passed; failed = $_.Failed
-            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line; details = $_.Details } }) } })
+            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line; details = $_.Details } })
+            warnings = @($_.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } }) } })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }

@@ -24,7 +24,7 @@ function Test-PlanGate($Gate, $Info) {
     $root = Split-Path (Split-Path (Get-PlanPath $Info))
     switch -Regex ($check) {
         '^manual$' { return $null }
-        '^tests$' { return @($Info.Runners | Where-Object { $_ -notin 'validate', 'smoke' }).Count -gt 0 }
+        '^tests$' { return @($Info.Runners | Where-Object { $_ -notin 'validate', 'architecture', 'smoke' }).Count -gt 0 }
         '^preset$' { return $Info.Presets.Count -gt 0 }
         '^ci$' {
             $files = @(Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -File -ErrorAction SilentlyContinue)

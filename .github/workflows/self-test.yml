@@ -28,6 +28,9 @@ jobs:
         run: |
           ./ci/godot/tools/Test-Skills.ps1
           ./tests/Test-SkillFixtures.ps1
+      - name: Architecture rules catch their fixtures and stay quiet on clean code
+        shell: pwsh
+        run: ./tests/Test-ArchitectureFixtures.ps1
       - name: Version updates rewrite every pin and keep the skills valid
         shell: pwsh
         run: |
@@ -136,7 +139,7 @@ jobs:
           git archive HEAD | tar -x -C (Join-Path $game 'tools/kit')
           $kit = Join-Path $game 'tools/kit/ci/godot/godot-ci.ps1'
           $d = pwsh -NoProfile -File $kit detect -Json -Project $game 2>$null | ConvertFrom-Json
-          if (($d.runners -join ',') -ne 'validate,smoke') { throw "the kit's own examples leaked into detection: $($d.runners -join ',')" }
+          if (($d.runners -join ',') -ne 'validate,architecture,smoke') { throw "the kit's own examples leaked into detection: $($d.runners -join ',')" }
           $d = pwsh -NoProfile -File $kit test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.runnerResults[0].total -ne 3) { throw "validate should load only the game's 3 files: $($d | ConvertTo-Json -Depth 6)" }
       - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)

@@ -7,6 +7,7 @@
 #   gut        GUT (GDScript): .gutconfig.json if present, else test_*.gd next to any GutTest script
 #   smoke      plays the main scene for N frames and fails on any engine or script error
 #   validate   loads every script, scene and resource and instantiates every scene (tools/validate.gd)
+#   architecture  a static scan of the scripts for structural problems (lib/Architecture.ps1); warnings unless configured
 #
 # -Filter means: dotnet/gdunit4 `dotnet test --filter`; godottest suite name; gut test name.
 
@@ -153,6 +154,9 @@ function Invoke-TestRunner {
             if ($code -ne 0) { $cases += @{ Name = 'flows'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'flows.junit.xml') 'flows' $cases
         }
+        'architecture' {
+            $code = Invoke-ArchitectureRunner $project $ResultsDir
+        }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'
             Start-LogGroup "Smoke run ($Frames frames)"
@@ -177,5 +181,11 @@ function Invoke-TestRunner {
             ForEach-Object { Move-Item -LiteralPath $_.FullName (Join-Path $coverageDir "$Runner-$($_.Directory.Name).cobertura.xml") }
     }
 
-    return Write-TestSummary $Runner $ResultsDir $code
+    $summary = Write-TestSummary $Runner $ResultsDir $code
+    $findings = Join-Path $ResultsDir 'findings.json'
+    $warnings = @(if (Test-Path -LiteralPath $findings) {
+        Get-Content -LiteralPath $findings -Raw | ConvertFrom-Json | Where-Object { $_ -and $_.severity -eq 'warning' }
+    })
+    $summary | Add-Member -NotePropertyName Warnings -NotePropertyValue $warnings
+    return $summary
 }

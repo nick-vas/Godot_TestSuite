@@ -30,4 +30,6 @@ pwsh {{SUITE}} bench -Json -Quiet -GameArgs '--stress' -BudgetMs 16.7
 - Log one tagged line per meaningful event (`[Fight] won in 142.5s`), so checks are a `grep` away.
 - `docs/GDD.md` is the scope. Before building anything it does not contain, ask: add it as a feature, or drop it.
 - Tag each test that proves a GDD feature with `GDD:F<n>` in its name or a comment on it.
+- A change that adds a system, an autoload or a dependency between scenes goes to the `godot-architect` subagent first; its
+  decision in `docs/decisions/` is accepted before code is written. The `architecture` runner warns when code drifts.
 - Game-specific lessons are in `docs/lessons.md`; read it before changing a system it mentions.
