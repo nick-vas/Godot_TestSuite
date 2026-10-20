@@ -54,9 +54,9 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
 | Terrain, caves, height, biome blends | noise | Godot's `FastNoiseLite` (`Seed`, `Frequency`, `GetNoise2D`) |
 | Cave systems | cellular automata: random fill, then a few smoothing passes | a dozen lines; no library |
 | Rooms and corridors | binary space partition, or place rooms and join them with a spanning tree | a few dozen lines |
-| Tile maps that follow adjacency rules learned from a sample | Wave Function Collapse | Maxim Gumin's [WaveFunctionCollapse](https://github.com/mxgmn/WaveFunctionCollapse) (C#, MIT); Godot add-ons wrap ports of it |
+| Tile maps that follow adjacency rules learned from a sample | Wave Function Collapse | Maxim Gumin's [WaveFunctionCollapse](https://github.com/mxgmn/WaveFunctionCollapse) (C#, MIT); the [Fast WFC](https://godotengine.org/asset-library/asset/4149) add-on (MIT, built for Godot 4.4) wraps a C++ port |
 | Dungeons, mazes, towns from rewrite rules | MarkovJunior | Maxim Gumin's [MarkovJunior](https://github.com/mxgmn/MarkovJunior) (C#, MIT) |
-| Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (licence not yet confirmed: see `docs/roadmap.md`), or the expander below |
+| Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (licence not yet confirmed: see `docs/roadmap.md`; the npm `tracery-grammar` fork is ISC), or the expander below |
 | Loot, encounters, upgrades | weighted tables | below |
 
 Both of Gumin's projects are C#, so their source can sit in a C# Godot project; keep their MIT licence text with it. Hand-made

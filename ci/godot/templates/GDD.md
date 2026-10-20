@@ -10,6 +10,8 @@
 
 One sentence: what the player does and why it is fun.
 
+Genre: up to three gameplay and three setting terms from the kit's `genres.json` (see `godot-game-design`).
+
 ## Pillars
 
 1. A design rule every feature must serve.

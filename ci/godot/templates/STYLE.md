@@ -19,11 +19,12 @@ formula (`godot-ui-accessibility`); do not judge it by eye.
 
 ## Type
 
-Font family and weights. Smallest text: 24 px at 1080p (scales with the window); HUD numbers 32 px or more.
+Font family and weights, with a sans-serif option. Smallest text at 1080p, measured as body height (ascender to
+descender): 18 px on PC, 26 px on console and TV (XAG 101); a UI scale setting up to 200%. HUD numbers 32 px or more.
 
 ## Readability
 
-- Text contrast at least 4.5:1 against what is behind it, after the post-process grade; 3:1 for text of 24 px or more,
+- Text contrast at least 4.5:1 against what is behind it, after the post-process grade; 3:1 only for large text (36 px on PC, 52 px on console, at 1080p: XAG 102),
   and for focus rings, slider tracks, checkboxes and HUD icons (WCAG 1.4.3, 1.4.11).
 - Nothing is told by colour alone: states and teams also get an icon, shape or word (1.4.1).
 - Everything important inside the central 90% of the screen (safe area).
@@ -34,7 +35,8 @@ Font family and weights. Smallest text: 24 px at 1080p (scales with the window);
 
 - Feedback starts within 100 ms of the action (juice.json checks it).
 - UI transitions 150 to 250 ms, ease out; nothing bounces more than once.
-- Screen shake and flashes can be reduced in the settings; never more than three flashes a second (WCAG 2.3.1).
+- Screen shake and flashes can be reduced in the settings; never more than three flashes a second over about 20% of the screen
+  (WCAG 2.3.1, XAG 118).
 
 ## Choices
 
