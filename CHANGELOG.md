@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `godot-math` skill, adapted from Denny Burzynski's *Mathematics for Game Developers* (LibreTexts, CC BY 4.0): its
+  vectors, matrices and trigonometry mapped to Godot 4's C# API. Godot's conventions measured in 4.7.2 where they differ
+  from the book's: y points down, so a positive 2D angle turns clockwise on screen; radians; forward is -Z; `Bounce`, not
+  `Reflect`, bounces off a surface. The book's worked answers match Godot's results; every call named compiles.
+
 - Sources completed:
   - Game Accessibility Guidelines: the 16 basic and intermediate menu, settings and input rules that WCAG and the XAGs miss
     (game speed, settings remembered, one-press start, controls reminder from the input map, windowed mode, stationary
