@@ -21,7 +21,12 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 $skillDirs = @(Get-ChildItem -LiteralPath (Join-Path $Root '.agents/skills') -Directory)
 if ($IncludeFixtures) { $skillDirs += @(Get-ChildItem -LiteralPath (Join-Path $Root 'tests/skill-fixtures') -Directory) }
 $skillNames = @($skillDirs | ForEach-Object Name)
+$agentFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root 'agents') -File -Filter '*.md' -ErrorAction SilentlyContinue)
+$agentNames = @($agentFiles | ForEach-Object BaseName)
 $maxBytes = 16KB; $warnBytes = 15.5KB
+# AGENTS.md is loaded into every session of every game: only what an agent cannot infer belongs there (context files
+# that restate the obvious add about 20% cost and no success; see docs/research.md).
+$agentsTemplateMaxBytes = 4KB
 
 # --- Ground truth the skills are checked against ---------------------------------------------------------
 $entry = Join-Path $Root 'ci/godot/godot-ci.ps1'
@@ -42,6 +47,25 @@ $sdk = [regex]::Match($csproj, 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
 $findings = [System.Collections.Generic.List[object]]::new()
 function Add-Finding([string]$Level, [string]$Skill, [string]$Rule, [string]$Message) {
     $findings.Add([pscustomobject]@{ Level = $Level; Skill = $Skill; Rule = $Rule; Message = $Message })
+}
+
+# Every godot-ci.ps1 invocation must use a real command, real parameters and real values.
+function Test-Invocations([string]$Name, [string]$Text) {
+    $code = (@([regex]::Matches($Text, '(?s)```.*?```') | ForEach-Object Value) + @([regex]::Matches($Text, '`[^`\r\n]+`') | ForEach-Object Value)) -join "`n"
+    foreach ($m in [regex]::Matches($code, '(?m)godot-ci\.ps1\s+(?<args>[^\r\n#`]*)')) {
+        $argv = $m.Groups['args'].Value
+        $first = [regex]::Match($argv, '^(?<c>[a-z]+)\b').Groups['c'].Value
+        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "godot-ci.ps1 has no command '$first' (has: $($commands -join ', '))" }
+        foreach ($p in [regex]::Matches($argv, '(?<![\w-])-(?<p>[A-Za-z]+)\b')) {
+            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "godot-ci.ps1 has no parameter -$($p.Groups['p'].Value)" }
+        }
+        foreach ($set in 'Do', 'Runners', 'Column') {
+            $v = [regex]::Match($argv, "-$set\s+(?<v>[A-Za-z0-9,|]+)").Groups['v'].Value
+            if ($v -and $params[$set] -and $v -notmatch '[|<]') {
+                foreach ($one in $v -split ',') { if ($one -notin $params[$set] -and $one -ne 'none') { Add-Finding error $Name invalid-value "-$set $one is not one of: $($params[$set] -join ', ')" } }
+            }
+        }
+    }
 }
 
 foreach ($dir in $skillDirs) {
@@ -74,6 +98,12 @@ foreach ($dir in $skillDirs) {
         if (($description -split '(?<=[.!?])\s+').Count -gt 1) { Add-Finding warning $name description-sentences 'description has several sentences; one trigger sentence is easier to match' }
     }
 
+    # A model named in a skill switches the main conversation's model for that turn, which reprocesses the whole
+    # conversation without the prompt cache. Only a skill that runs in its own subagent (context: fork) may pick one.
+    if ($fields['model'] -and $fields['context'] -ne 'fork') {
+        Add-Finding error $name model-in-main-context "sets model '$($fields['model'])' without 'context: fork'; that turn loses the prompt cache"
+    }
+
     # Size budget
     if ($bytes -ge $maxBytes) { Add-Finding error $name size "SKILL.md is $bytes bytes (limit $maxBytes); move detail to a reference file" }
     elseif ($bytes -ge $warnBytes) { Add-Finding warning $name size "SKILL.md is $bytes bytes, close to the $maxBytes limit" }
@@ -81,25 +111,10 @@ foreach ($dir in $skillDirs) {
     # Cross-references to other skills
     foreach ($m in [regex]::Matches($text, '`(godot-[a-z0-9-]+)`')) {
         $ref = $m.Groups[1].Value
-        if ($ref -ne $name -and $ref -notin $skillNames -and -not $ref.StartsWith('godot-ci')) { Add-Finding error $name cross-reference "refers to skill '$ref', which does not exist" }
+        if ($ref -ne $name -and $ref -notin $skillNames -and $ref -notin $agentNames -and -not $ref.StartsWith('godot-ci')) { Add-Finding error $name cross-reference "refers to skill '$ref', which does not exist" }
     }
 
-    # Every godot-ci.ps1 invocation must use a real command, real parameters and real values.
-    $code = (@([regex]::Matches($text, '(?s)```.*?```') | ForEach-Object Value) + @([regex]::Matches($text, '`[^`\r\n]+`') | ForEach-Object Value)) -join "`n"
-    foreach ($m in [regex]::Matches($code, '(?m)godot-ci\.ps1\s+(?<args>[^\r\n#`]*)')) {
-        $argv = $m.Groups['args'].Value
-        $first = [regex]::Match($argv, '^(?<c>[a-z]+)\b').Groups['c'].Value
-        if ($first -and $first -notin $commands) { Add-Finding error $name unknown-command "godot-ci.ps1 has no command '$first' (has: $($commands -join ', '))" }
-        foreach ($p in [regex]::Matches($argv, '(?<![\w-])-(?<p>[A-Za-z]+)\b')) {
-            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $name unknown-parameter "godot-ci.ps1 has no parameter -$($p.Groups['p'].Value)" }
-        }
-        foreach ($set in 'Do', 'Runners', 'Column') {
-            $v = [regex]::Match($argv, "-$set\s+(?<v>[A-Za-z0-9,|]+)").Groups['v'].Value
-            if ($v -and $params[$set] -and $v -notmatch '[|<]') {
-                foreach ($one in $v -split ',') { if ($one -notin $params[$set] -and $one -ne 'none') { Add-Finding error $name invalid-value "-$set $one is not one of: $($params[$set] -join ', ')" } }
-            }
-        }
-    }
+    Test-Invocations $name $text
 
     # Error codes named in a table's first column must be documented in docs/json.md.
     foreach ($m in [regex]::Matches($text, '(?m)^\|\s*((?:`[a-z]+(?:-[a-z]+)+`(?:\s*/\s*)?)+)\s*\|')) {
@@ -120,6 +135,19 @@ foreach ($dir in $skillDirs) {
     if ($sdkMention.Success -and $sdk -and $sdkMention.Groups['v'].Value -ne $sdk) {
         Add-Finding error $name version-drift "Godot.NET.Sdk/$($sdkMention.Groups['v'].Value) here but $sdk in examples/breakout"
     }
+}
+
+# Subagents shipped with the kit: their kit commands are checked like a skill's.
+foreach ($agent in $agentFiles) { Test-Invocations "agent:$($agent.BaseName)" (Get-Content -LiteralPath $agent.FullName -Raw) }
+
+$template = Join-Path $Root 'ci/godot/templates/AGENTS.md'
+if (Test-Path -LiteralPath $template) {
+    $templateText = Get-Content -LiteralPath $template -Raw
+    $templateBytes = [System.Text.Encoding]::UTF8.GetByteCount($templateText)
+    if ($templateBytes -gt $agentsTemplateMaxBytes) {
+        Add-Finding error 'templates/AGENTS.md' agents-template-size "$templateBytes bytes (limit $agentsTemplateMaxBytes); it loads into every session, so move detail into a skill"
+    }
+    Test-Invocations 'templates/AGENTS.md' $templateText
 }
 
 $errors = @($findings | Where-Object Level -eq 'error')

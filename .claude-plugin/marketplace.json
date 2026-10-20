@@ -1,0 +1,8 @@
+{
+  "name": "godot-agent-kit",
+  "owner": { "name": "nick-vas" },
+  "description": "The Godot Agent Kit as a Claude Code plugin.",
+  "plugins": [
+    { "name": "godot-agent-kit", "source": "./", "description": "Skills, a verifier subagent and a test gate for Godot 4.7 games." }
+  ]
+}

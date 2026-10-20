@@ -11,11 +11,12 @@ to headless runs. Look at real frames.
 ## See it
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 shot -Json -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
-pwsh ci/godot/godot-ci.ps1 shot -Json -Scene res://ui/MainMenu.tscn -Resolution 1280x720 -Output screenshots/720p
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn -Resolution 1280x720 -Output screenshots/720p
 ```
 
-`shots[]` lists the PNG files; open them and check every screen, at the target resolution and at least one other aspect ratio,
+`shots[]` lists the PNG files. Screenshots fill context fast: for more than a couple of screens, ask the `godot-verifier`
+subagent to take and judge them and return only the problems. Otherwise open them and check every screen, at the target resolution and at least one other aspect ratio,
 after every UI change. `shot` needs a display: on Windows it just works; on a Linux machine without one, start a virtual display
 (`Xvfb :99 &` and `DISPLAY=:99`). With the editor bridge open, `godot_editor_read` can capture the running game too
 (`godot-editor-bridge`).

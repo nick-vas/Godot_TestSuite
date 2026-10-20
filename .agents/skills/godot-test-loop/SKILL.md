@@ -6,10 +6,11 @@ description: Use when adding, changing or fixing behaviour in a Godot 4.x projec
 # Test-first loop for Godot
 
 Run everything through `godot-ci.ps1` (PowerShell 7). It detects the project, installs the right Godot, builds,
-and runs every test framework the project uses. Always pass `-Json` so stdout is one parseable document.
+and runs every test framework the project uses. Always pass `-Json -Quiet`: stdout is one parseable document and Godot's
+own output goes to a log file instead of your context. Where the path below is not filled in, AGENTS.md has it.
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 test -Json            # the exact path is in AGENTS.md (a clone outside the game, or a submodule)
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet   # failures come with file, line and message; the full log is the file "log" names
 ```
 
 ## The loop

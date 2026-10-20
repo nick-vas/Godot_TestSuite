@@ -10,7 +10,9 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator), release/PR-comment tools.
 - `tests/` the skill-validator self-test and its deliberately broken fixtures.
 - `ci/godot/templates/` files `init` and `plan` copy into a game (`plan.json`, `AGENTS.md`).
-- `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them).
+- `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
+- `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` subagent, the Stop hook.
+- `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
 - `examples/breakout` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract.

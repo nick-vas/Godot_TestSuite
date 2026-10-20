@@ -11,11 +11,13 @@ what to build next. This kit supplies both:
 - **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
 - **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
 - **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
-- **Teach**: `AGENTS.md` and thirteen skills that make the agent work test first and prove it is done before it says so.
+- **Teach**: `AGENTS.md` and fifteen skills that make the agent work test first and prove it is done before it says so.
+- **Stay lean and get better**: a Claude Code plugin with a verifier subagent and a Stop hook, quiet JSON output that keeps
+  logs out of the agent's context, and a `retro` that turns a session's mistakes into kit changes, each measured with evals.
 
 ```powershell
 pwsh ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp   # once: tests, CI, AGENTS.md, skills, editor bridge
-pwsh ci/godot/godot-ci.ps1 test -Json                    # every time: build + every test, one JSON result
+pwsh ci/godot/godot-ci.ps1 test -Json -Quiet             # every time: build + every test, one JSON result
 ```
 
 ## How the pieces fit
@@ -49,6 +51,10 @@ separate, headless tool.
    ```
    Prefer it inside the game repo (a submodule, so everyone gets the same version)? That works too: the kit's folders carry a
    `.gdignore` file, so Godot neither imports nor exports them, and the kit's own detection skips them.
+   With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin` writes the game's
+   `.claude/settings.json` so Claude Code loads the skills, the `godot-verifier` subagent and the Stop hook straight from
+   your clone (a `git pull` there updates every game). Or install it by hand: `/plugin marketplace add <your clone>`, then
+   `/plugin install godot-agent-kit@godot-agent-kit`.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
 4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
 
@@ -62,7 +68,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 |---|---|---|
 | **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
 | **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files |
-| **Test first** | `test -Json [-Runners x -Filter y]` | per-runner pass/fail with `file`/`line`; fails on zero tests and on any engine `ERROR:` |
+| **Test first** | `test -Json -Quiet [-Runners x -Filter y]` | per-runner pass/fail with the failure's `message`, `file`, `line`; fails on zero tests and on any engine `ERROR:`; Godot's output stays in a log file |
 | **Play the UI** | `flows` runner | `*.flow.json` files: press buttons, send input actions, wait, assert on node properties, headless in the real engine |
 | **Catch what tests miss** | `validate` and `smoke` runners | loads every script, scene and resource; plays the main scene |
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
@@ -74,7 +80,9 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Teach the agent** | `init -Agents` | `AGENTS.md`, `CLAUDE.md` and thirteen skills in `.agents/skills` and `.claude/skills` |
+| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, fifteen skills and the `godot-verifier` subagent, copied or as a plugin |
+| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last passing `test` run |
+| **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
 
 Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
 
@@ -95,6 +103,11 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
 | `godot-export-release` | exporting, smoke-launching, tagged releases |
 | `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
+| `retro` (manual) | end of a session: turn what went wrong into lessons and kit pull requests |
+| `kit-review` (manual) | monthly: which parts of the kit cost the most or help the least |
+
+The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
+images stay out of the main conversation.
 
 The skills are checked like code. `ci/godot/tools/Test-Skills.ps1` enforces structure and a 16 KB budget, requires descriptions to say only
 *when* to use a skill, and verifies that every command, flag, error code and package version a skill quotes exists in the script, the JSON
@@ -138,6 +151,7 @@ What has been run, and what has not.
 | Not run | The editor MCP servers themselves (they need the editor); `export` for non-Windows presets; `bench` and `shot` on a real GPU and on Windows (their numbers here come from software rendering) |
 | Known | Godot 4.7.2 occasionally aborts during import on some machines. The kit retries the import up to twice and reports `importRetried`; the cause is not found, and it has not shown up in CI |
 | Not evidenced | That the skills change agent behaviour. A first pressure test found no difference because the model already behaved well; [docs/skills-quality.md](docs/skills-quality.md) says what a harder test needs |
+| Evals | `claude plugin eval` runs the suite, but where the harness runs as root its sandbox is read-only, so in the first runs neither arm could run Godot ([docs/research.md](docs/research.md)). Real numbers need the `Evals` workflow or a Linux/WSL2 machine |
 
 ## FAQ
 
@@ -172,6 +186,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/mcp.md](docs/mcp.md) | Editor-bridge MCP: which server and how it fits |
 | [docs/case-study-breakout-roguelike.md](docs/case-study-breakout-roguelike.md) | Lessons from a real Godot 4.7 C# game, and what the kit does with each |
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
+| [docs/research.md](docs/research.md) | Measured output sizes and the studies behind the plugin, quiet output and evals |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
 | [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |
 | [AGENTS.md](AGENTS.md) | Working on this repository |

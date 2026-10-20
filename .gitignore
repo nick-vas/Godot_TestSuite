@@ -8,3 +8,5 @@ screenshots/
 *.wsuo
 /.vs/Godot_TestSuite.slnx/v18/DocumentLayout.json
 /.vs/VSWorkspaceState.json
+
+evals/results/

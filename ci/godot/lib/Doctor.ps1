@@ -42,8 +42,25 @@ function Invoke-Doctor($Info) {
     }
     $version, $release = $Info.GodotVersion -split '-', 2
     $paths = Get-GodotPaths $version ($release ? $release : 'stable') $isCSharp
-    if (Test-Path -LiteralPath $paths.Bin) { Add-Check OK "Godot $($Info.GodotVersion) installed in $(Get-ToolsDir)" }
-    else { Add-Check INFO "Godot $($Info.GodotVersion) will be downloaded on the first run (about 100 MB)" }
+    if ($env:GODOT_BIN) {
+        # Your own Godot (GODOT_BIN) is used by test, build, bench and shot; check it is the one this project needs.
+        if (-not (Test-Path -LiteralPath $env:GODOT_BIN)) {
+            Add-Check FAIL "GODOT_BIN points to a file that does not exist: $env:GODOT_BIN" 'Set GODOT_BIN to the full path of the Godot executable, or remove it to let the kit download Godot'
+        } else {
+            $reported = (& $env:GODOT_BIN --version 2>$null | Select-Object -Last 1) -as [string]
+            $wanted = "$version.$($release ? $release : 'stable')"
+            if (-not $reported -or -not $reported.StartsWith($wanted)) {
+                Add-Check FAIL "GODOT_BIN is Godot $reported, but the project needs $($Info.GodotVersion)" "Point GODOT_BIN at Godot $($Info.GodotVersion)$(if ($isCSharp) { ' (.NET)' })"
+            } elseif ($isCSharp -and $reported -notmatch '\.mono\.') {
+                Add-Check FAIL "GODOT_BIN is not the .NET (mono) build of Godot, which C# projects need: $env:GODOT_BIN" 'Use the Godot .NET download'
+            } elseif ($IsWindows -and $env:GODOT_BIN -notmatch '_console\.exe$') {
+                Add-Check WARN "GODOT_BIN is not the _console.exe build, so the kit cannot read Godot's output: $env:GODOT_BIN" 'Use the _console.exe file next to it'
+            } else {
+                Add-Check OK "Godot $reported from GODOT_BIN ($env:GODOT_BIN)"
+            }
+        }
+    } elseif (Test-Path -LiteralPath $paths.Bin) { Add-Check OK "Godot $($Info.GodotVersion) installed in $(Get-ToolsDir)" }
+    else { Add-Check INFO "Godot $($Info.GodotVersion) will be downloaded on the first run (about 100 MB); set GODOT_BIN to use your own" }
     if ($Info.Presets.Count -gt 0 -and -not (Test-Path -LiteralPath (Join-Path $paths.TemplatesDir 'version.txt'))) {
         Add-Check INFO 'Export templates will be downloaded on the first export (about 1 GB)'
     }
@@ -61,14 +78,14 @@ function Invoke-Doctor($Info) {
             Add-Check WARN 'No .sln found; Godot needs one to export C# projects' 'Project > Tools > C# > Create C# solution'
         } elseif ((Split-Path $Info.Solution) -ne $project -and $projectGodot -notmatch '(?m)^project/solution_directory=') {
             Add-Check FAIL "The .sln is outside the project folder, but project.godot doesn't say where" `
-                "Add solution_directory under [dotnet] in project.godot (or run: godot-ci.ps1 init). Without it, exports ship without your C# code"
+                "Add solution_directory under [dotnet] in project.godot (or run: $(Format-KitCommand 'init')). Without it, exports ship without your C# code"
         }
     }
 
     # --- Tests ------------------------------------------------------------------------------------
     $testRunners = @($Info.Runners | Where-Object { $_ -notin 'validate', 'smoke' })
     if ($testRunners.Count -eq 0) {
-        Add-Check WARN 'No tests found; only the load check and smoke run will happen' 'Run: godot-ci.ps1 init (adds a starter test)'
+        Add-Check WARN 'No tests found; only the load check and smoke run will happen' "Run: $(Format-KitCommand 'init') (adds a starter test)"
     } else {
         Add-Check OK "Test runners: $($Info.Runners -join ', ')"
     }

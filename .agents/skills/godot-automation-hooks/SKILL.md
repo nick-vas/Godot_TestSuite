@@ -30,10 +30,10 @@ public static class Flags
 The kit passes the same flags everywhere with `-GameArgs` (comma-separated, so one value cannot contain a comma):
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 test -Json -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
-pwsh ci/godot/godot-ci.ps1 export -Json -Preset Windows -Run -GameArgs '--autoplay','--no-save'
-pwsh ci/godot/godot-ci.ps1 bench -Json -GameArgs '--stress'
-pwsh ci/godot/godot-ci.ps1 shot -Json -Scene res://ui/Map.tscn -GameArgs '--seed=7'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 export -Json -Quiet -Preset Windows -Run -GameArgs '--autoplay','--no-save'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -GameArgs '--stress'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/Map.tscn -GameArgs '--seed=7'
 ```
 
 ## Flags worth having

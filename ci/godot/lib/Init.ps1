@@ -202,11 +202,10 @@ function Initialize-Project($Info) {
     Add-GitignoreEntries $project $ignore
     Add-ExportExcludes $project $excludes
     New-CiWorkflow $project
-    Write-CiLog 'Done. Next: pwsh ci/godot/godot-ci.ps1 doctor, then pwsh ci/godot/godot-ci.ps1 test'
 }
 
 # init -Agents: AGENTS.md (CLAUDE.md imports it) and the skills, so any coding agent knows the workflow. Adds only.
-function Add-AgentFiles($Info, [string]$SuiteScript) {
+function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
     $root = Get-GitRoot $Info.ProjectDir
     $root = $root ? $root : $Info.ProjectDir
     $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
@@ -226,17 +225,57 @@ function Add-AgentFiles($Info, [string]$SuiteScript) {
     $claude = Join-Path $root 'CLAUDE.md'
     if (Test-Path -LiteralPath $claude) { Write-InitStep skipped 'CLAUDE.md exists (add "@AGENTS.md" to it)' }
     else { Set-Content -LiteralPath $claude -Value '@AGENTS.md' -Encoding utf8; Write-InitStep added 'CLAUDE.md (imports AGENTS.md)' }
+    # With the plugin, skills, the verifier subagent and the Stop hook come from the kit itself and stay up to date;
+    # copies would only duplicate them.
+    if ($Plugin) { Add-PluginSettings $root $suiteRoot; return }
+    # Skills and agents name the kit as ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1, which Claude Code fills in for the
+    # plugin. Copies get this machine's path instead.
+    $placeholder = '${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1'
     foreach ($skill in Get-ChildItem -LiteralPath (Join-Path $suiteRoot '.agents/skills') -Directory) {
         $copied = @(foreach ($base in '.agents/skills', '.claude/skills') {
             $target = Join-Path $root "$base/$($skill.Name)"
             if (Test-Path -LiteralPath $target) { continue }
             New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
             Copy-Item -LiteralPath $skill.FullName -Destination $target -Recurse
+            foreach ($md in Get-ChildItem -LiteralPath $target -Recurse -File -Filter '*.md') {
+                $text = Get-Content -LiteralPath $md.FullName -Raw
+                if ($text.Contains($placeholder)) { Set-Content -LiteralPath $md.FullName -Value $text.Replace($placeholder, $suitePath) -NoNewline -Encoding utf8 }
+            }
             $base
         })
         if ($copied.Count -gt 0) { Write-InitStep added "skill $($skill.Name) ($($copied -join ' and '))" }
         else { Write-InitStep skipped "skill $($skill.Name) is already there" }
     }
+    foreach ($agent in Get-ChildItem -LiteralPath (Join-Path $suiteRoot 'agents') -File -Filter '*.md') {
+        $target = Join-Path $root ".claude/agents/$($agent.Name)"
+        if (Test-Path -LiteralPath $target) { Write-InitStep skipped "agent $($agent.BaseName) is already there"; continue }
+        New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+        Set-Content -LiteralPath $target -Value (Get-Content -LiteralPath $agent.FullName -Raw).Replace($placeholder, $suitePath) -NoNewline -Encoding utf8
+        Write-InitStep added "agent $($agent.BaseName) (.claude/agents)"
+    }
+}
+
+# init -Agents -Plugin: the game's .claude/settings.json registers this kit folder as a plugin marketplace and enables the
+# plugin, so Claude Code loads the skills, the verifier subagent and the Stop hook straight from the kit (a local folder is
+# loaded in place, so a git pull in the kit updates every game). Adds only; an existing file is backed up first.
+function Add-PluginSettings([string]$Root, [string]$SuiteRoot) {
+    $file = Join-Path $Root '.claude/settings.json'
+    $settings = if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable } else { [ordered]@{} }
+    if (-not $settings) { $settings = [ordered]@{} }
+    $marketplaces = if ($settings.Contains('extraKnownMarketplaces')) { $settings['extraKnownMarketplaces'] } else { [ordered]@{} }
+    $enabled = if ($settings.Contains('enabledPlugins')) { $settings['enabledPlugins'] } else { [ordered]@{} }
+    if ($marketplaces.Contains('godot-agent-kit') -and $enabled.Contains('godot-agent-kit@godot-agent-kit')) {
+        Write-InitStep skipped '.claude/settings.json already enables the godot-agent-kit plugin'
+        return
+    }
+    if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file "$file.bak" -Force }
+    $marketplaces['godot-agent-kit'] = [ordered]@{ source = [ordered]@{ source = 'directory'; path = ($SuiteRoot -replace '\\', '/') } }
+    $enabled['godot-agent-kit@godot-agent-kit'] = $true
+    $settings['extraKnownMarketplaces'] = $marketplaces
+    $settings['enabledPlugins'] = $enabled
+    New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+    $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $file -Encoding utf8
+    Write-InitStep updated ".claude/settings.json: godot-agent-kit plugin from $SuiteRoot (Claude Code asks to install it on the next start)"
 }
 
 # init -Mcp / -McpDiagnostics: registers MCP servers for the project in .mcp.json (adds only; a changed file is backed up).
@@ -282,6 +321,6 @@ function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics) {
     }
     if ($wanted.Contains('minimal-godot-mcp')) {
         Write-Console '           minimal-godot-mcp needs Node 22+ and the editor open on this project (its language server is on by default).'
-        Write-Console '           It checks GDScript only; the console tool needs a running scene (F5). C# is checked by: godot-ci.ps1 build'
+        Write-Console '           It checks GDScript only; the console tool needs a running scene (F5). C# is checked by: ' + (Format-KitCommand 'build')
     }
 }
