@@ -22,6 +22,11 @@
           "check": "manual"
         },
         {
+          "id": "concept.decisions",
+          "text": "Decided up front, in docs/decisions/: multiplayer or not, saves, languages, accessibility, target platforms and input devices (bolted on late, these cost the most)",
+          "check": "manual"
+        },
+        {
           "id": "concept.market",
           "text": "Market check: 3 comparable games, what yours does differently, who plays it",
           "check": "manual"
@@ -47,6 +52,11 @@
         {
           "id": "prototype.loop",
           "text": "Core loop is playable from the main scene",
+          "check": "manual"
+        },
+        {
+          "id": "prototype.variants",
+          "text": "Two or three variants of the core action built cheaply and one chosen by playing them, not by argument",
           "check": "manual"
         },
         {
@@ -126,6 +136,11 @@
           "check": "manual"
         },
         {
+          "id": "production.playthrough",
+          "text": "A bot or flow reaches the ending on every CI run, so no build ships that nobody finished",
+          "check": "manual"
+        },
+        {
           "id": "production.regression",
           "text": "Every fixed bug has a regression test",
           "check": "manual"
@@ -190,6 +205,11 @@
           "id": "launch.gold",
           "text": "Gold master: release build exported by CI, launched with export -Run, no engine errors",
           "check": "preset"
+        },
+        {
+          "id": "launch.archive",
+          "text": "The release is exactly the build that was tested: tagged in git, source and build archived together",
+          "check": "manual"
         },
         {
           "id": "launch.legal",

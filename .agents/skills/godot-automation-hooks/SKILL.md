@@ -64,6 +64,19 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
 - Test every level or encounter end to end with the bot at two skill levels and several seeds. In one project this found five
   bugs that unit tests and solvers never showed.
 
+## What studios test
+
+- **The whole game, every build.** Croteam ran a bot that solved all of The Talos Principle on every build; Dragon Quest III
+  nearly shipped with nobody having played it to the end. Keep one flow or bot run that reaches the ending in CI.
+- **Balance in sequence.** Dragon Quest II's fights were each fair alone and too hard back to back: balance runs chain the
+  encounters of a stage or a whole run, not one fight.
+- **Systems, not paths.** Interlinked systems (Animal Crossing's calendar, an A-Life world) are not covered by playing in
+  order: add seeded random-input and long soak runs, and jump the clock.
+- **Why players fail.** Log every death or quit with its cause (`[Death] cause=fall level=3 t=212.4`); a heat map of deaths
+  and movement shows where the design does not work as planned (GSC on S.T.A.L.K.E.R. 2, DayZ).
+- **Which build.** Stamp the commit and build time on screen and in every log, so a report or screenshot names its build.
+- **A feedback key.** One key saves a screenshot, the log and the save file together for the report (Inkbound).
+
 ## One log line per meaningful event
 
 Tagged and grep-able: `[Map] node=3 kind=elite`, `[Fight] won in 142.5s hp=31`, `[Run] act 2 cleared in 1410s`. Balance and

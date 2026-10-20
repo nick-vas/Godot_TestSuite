@@ -21,6 +21,22 @@ function Test-ExportFilterMatch([string]$Path, [string]$Filter) {
     return $false
 }
 
+# Input actions in project.godot's [input] section and which kinds of device each one is bound to. Actions left at Godot's
+# defaults (the ui_* ones) are not written there.
+function Get-InputActionDevices([string]$ProjectGodot) {
+    $actions = [ordered]@{}
+    $section = [regex]::Match($ProjectGodot, '(?ms)^\[input\]\s*$(?<body>.*?)(?=^\[|\z)')
+    if (-not $section.Success) { return $actions }
+    foreach ($m in [regex]::Matches($section.Groups['body'].Value, '(?ms)^(?<name>[^\s=]+)=\{(?<events>.*?)^\}')) {
+        $events = $m.Groups['events'].Value
+        $actions[$m.Groups['name'].Value] = [ordered]@{
+            keyboard = $events -match 'Object\(InputEvent(Key|MouseButton),'
+            gamepad = $events -match 'Object\(InputEventJoypad(Button|Motion),'
+        }
+    }
+    return $actions
+}
+
 function Invoke-Doctor($Info) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
@@ -80,6 +96,29 @@ function Invoke-Doctor($Info) {
             Add-Check FAIL "The .sln is outside the project folder, but project.godot doesn't say where" `
                 "Add solution_directory under [dotnet] in project.godot (or run: $(Format-KitCommand 'init')). Without it, exports ship without your C# code"
         }
+    }
+
+    # A game playable with a keyboard and with a gamepad needs both kinds of binding on every action (Crashlands
+    # postmortem; Xbox Accessibility Guideline 107). Godot 4.7's default ui_accept and ui_cancel have no gamepad button.
+    $actions = Get-InputActionDevices $projectGodot
+    $custom = @($actions.Keys | Where-Object { $_ -notlike 'ui_*' })
+    $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad })
+    $noKeys = @($custom | Where-Object { $actions[$_].gamepad -and -not $actions[$_].keyboard })
+    if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each' }
+    if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each' }
+    $menuPad = @('ui_accept', 'ui_cancel' | Where-Object { -not ($actions.Contains($_) -and $actions[$_].gamepad) })
+    if ($menuPad) {
+        Add-Check WARN "A gamepad can move through menus but not confirm or go back: $($menuPad -join ' and ') $(if ($menuPad.Count -gt 1) { 'have' } else { 'has' }) no gamepad button (Godot's default)" `
+            'Project Settings > Input Map > Show Built-in Actions: add Joypad Button 0 to ui_accept and Button 1 to ui_cancel (godot-ui-accessibility)'
+    }
+    if ($custom -and -not $noPad -and -not $noKeys -and -not $menuPad) { Add-Check OK "Input: $($custom.Count) action(s), each with keyboard and gamepad bindings" }
+
+    # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
+    $gitRoot = Get-GitRoot $project
+    if (-not $gitRoot) {
+        Add-Check WARN 'The project is not in a git repository, so there is no history or backup' 'git init, commit, and push to a private remote'
+    } elseif (-not @(& git -C $gitRoot remote 2>$null)) {
+        Add-Check WARN 'The git repository has no remote, so the only copy is on this disk' 'git remote add origin <url>; git push -u origin HEAD'
     }
 
     # --- Tests ------------------------------------------------------------------------------------
