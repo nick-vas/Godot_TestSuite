@@ -173,5 +173,6 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/case-study-breakout-roguelike.md](docs/case-study-breakout-roguelike.md) | Lessons from a real Godot 4.7 C# game, and what the kit does with each |
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
+| [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |
 | [AGENTS.md](AGENTS.md) | Working on this repository |
 | [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md) | Project |
