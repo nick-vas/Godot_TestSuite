@@ -74,6 +74,35 @@ Set `TRELLO_KEY` and `TRELLO_TOKEN` (from https://trello.com/app-key) in the env
 and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json.
 The API call paths were exercised against a local mock of the Trello API, not against a live board.
 
+## The GDD, `status` and `/game`
+
+`docs/GDD.md` (template: `ci/godot/templates/GDD.md`) is the game's scope. Features are headings of the form
+`### F3 Lives and game over`, each with a `Priority:` line (must, should, could, won't) and `Done when:` bullets. Tests that
+prove a feature carry a `GDD:F3` tag in their name or a comment; `examples/breakout` shows the convention.
+
+`status -Json` reads all of that, plus the plan, the latest runs, git activity and an inventory of the project, without
+judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging:
+1. the first time, it drafts the GDD from the code and confirms it with you section by section;
+2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`;
+3. it adds a plan task (`plan -Do add -Feature F3`) for each feature that is not proven;
+4. through the Trello connector, it creates and moves cards. A card you moved since the last run keeps your column: each task
+   records the list its card was in (`plan -Do link -Column`), so a card that is somewhere else was moved by you;
+5. it ends with the three best next tasks to pick from.
+
+Scope rule: before building anything the GDD does not contain, the agent asks whether to add it as a feature or drop it.
+
+The `weekly-review` skill writes `plan/reviews/<date>.md` (done, health, phase, risks) and proposes next week's tasks.
+Run it every Friday as a **local scheduled task in the Claude desktop app**, which can reach the game folder, the kit and the
+Trello connector at once (a cloud task gets only a fresh clone of a GitHub repository):
+1. Code tab → **Scheduled** → **New task** → **Set up manually**.
+2. Name `weekly-review`; instructions: `Run the weekly review of this game (the weekly-review skill).`
+3. **Advanced settings** → turn on **Only on this computer**; **Local folder**: the game folder.
+4. **Trigger**: Weekly, Friday, the time you want (local time, so Athens time on an Athens PC).
+5. Create it, then **Run now** once and choose "always allow" for the kit's commands, so later runs do not stall on prompts.
+
+It runs only while the app is open and the computer awake; a missed Friday runs once when the PC wakes. The skill is not
+manual-only on purpose: a scheduled prompt can start only skills Claude is allowed to invoke.
+
 ## Not covered (yet)
 
 Budget, team roles and live-ops staffing from the studio template (a solo plan has one role). Platform certification for

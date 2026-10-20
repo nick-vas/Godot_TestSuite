@@ -11,7 +11,7 @@ what to build next. This kit supplies both:
 - **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
 - **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
 - **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
-- **Teach**: `AGENTS.md` and fifteen skills that make the agent work test first and prove it is done before it says so.
+- **Teach**: `AGENTS.md` and seventeen skills that make the agent work test first and prove it is done before it says so.
 - **Stay lean and get better**: a Claude Code plugin with a verifier subagent and a Stop hook, quiet JSON output that keeps
   logs out of the agent's context, and a `retro` that turns a session's mistakes into kit changes, each measured with evals.
 
@@ -79,8 +79,9 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
+| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity; `/game` judges each feature with evidence in `plan/STATUS.md`, keeps Trello in step and asks what next |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, fifteen skills and the `godot-verifier` subagent, copied or as a plugin |
+| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, seventeen skills and the `godot-verifier` subagent, copied or as a plugin |
 | **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last passing `test` run |
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
 
@@ -105,6 +106,8 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
 | `retro` (manual) | end of a session: turn what went wrong into lessons and kit pull requests |
 | `kit-review` (manual) | monthly: which parts of the kit cost the most or help the least |
+| `game` (manual) | where the game stands and what to do next; drafts the GDD the first time, keeps Trello in step |
+| `weekly-review` (manual) | Friday: the week in review and next week's tasks |
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
 images stay out of the main conversation.

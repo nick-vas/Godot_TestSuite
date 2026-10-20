@@ -98,6 +98,10 @@ function Write-PlanMarkdown($Plan, $State, [string]$Path) {
 
 $script:PlanColumns = 'backlog', 'design', 'todo', 'doing', 'verify', 'done'
 
+function Assert-FeatureId([string]$Feature) {
+    if ($Feature -notmatch '^F\d+$') { Stop-GodotCi "-Feature must be a GDD feature id such as F3, not '$Feature'" 'invalid-arguments' }
+}
+
 function Assert-PlanColumn([string]$Column) {
     if ($Column -notin $script:PlanColumns) { Stop-GodotCi "Unknown column '$Column'; use $($script:PlanColumns -join ', ')" 'invalid-arguments' }
 }
@@ -177,7 +181,7 @@ function Sync-PlanTrello([string]$Path, [string]$Dir, $Info, [string]$Board) {
     Set-JsonField sync ([ordered]@{ board = $Board; created = $created; moved = $moved; warnings = $warnings })
 }
 
-function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board) {
+function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Card) {
     $path = Get-PlanPath $Info
     $dir = Split-Path $path
     switch ($Action) {
@@ -221,11 +225,12 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             $numbers = @($plan.tasks | ForEach-Object { [int]($_.id -replace '\D', '') })
             $taskId = 't' + ((($numbers | Measure-Object -Maximum).Maximum ?? 0) + 1)
             $task = [pscustomobject]@{ id = $taskId; title = $Title; phase = ($state.current ? $state.current.id : 'post-launch'); column = $column }
+            if ($Feature) { Assert-FeatureId $Feature; $task | Add-Member -NotePropertyName feature -NotePropertyValue $Feature }
             $plan.tasks = @($plan.tasks) + $task
             Save-Plan $plan $path
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
             Write-CiLog "Added $taskId to ${column}: $Title"
-            Set-JsonField task ([ordered]@{ id = $taskId; title = $Title; column = $column; phase = $task.phase })
+            Set-JsonField task ([ordered]@{ id = $taskId; title = $Title; column = $column; phase = $task.phase; feature = ($Feature ? $Feature : $null) })
         }
         'move' {
             if (-not $Id -or -not $Column) { Stop-GodotCi 'plan -Do move needs -Id <task id> and -Column' 'invalid-arguments' }
@@ -243,6 +248,30 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             Write-CiLog "Moved $Id to $Column"
         }
         'sync' { Sync-PlanTrello $path $dir $Info $Board }
+        'link' {
+            # Ties a task to a GDD feature and/or a Trello card, and records the board's list for that card (-Column), so the
+            # next /game can tell a card the user moved from one it placed itself. -Board alone sets the plan's board.
+            $plan = Read-Plan $path
+            if ($Board) {
+                $plan | Add-Member -NotePropertyName trello -NotePropertyValue ([pscustomobject]@{ board = $Board }) -Force
+                if (-not $Id) {
+                    Save-Plan $plan $path
+                    Write-CiLog "Trello board set to $Board"
+                    break
+                }
+            }
+            if (-not $Id -or (-not $Feature -and -not $Card -and -not $Column)) {
+                Stop-GodotCi 'plan -Do link needs -Board <board>, or -Id <task id> with -Feature <F id>, -Card <card id> and/or -Column <list>' 'invalid-arguments'
+            }
+            $task = @($plan.tasks) | Where-Object { $_.id -eq $Id } | Select-Object -First 1
+            if (-not $task) { Stop-GodotCi "No task '$Id' in $path" 'unknown-task' }
+            if ($Feature) { Assert-FeatureId $Feature; $task | Add-Member -NotePropertyName feature -NotePropertyValue $Feature -Force }
+            if ($Card) { $task | Add-Member -NotePropertyName cardId -NotePropertyValue $Card -Force }
+            if ($Column) { Assert-PlanColumn $Column; $task | Add-Member -NotePropertyName boardColumn -NotePropertyValue $Column -Force }
+            Save-Plan $plan $path
+            Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
+            Write-CiLog "Linked $Id$(if ($Feature) { " to $Feature" })$(if ($Card) { " to card $Card" })$(if ($Column) { " (on the board in $Column)" })"
+        }
         default { }
     }
     if ($Action -eq 'init') { return }
@@ -256,9 +285,14 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
     Set-JsonField phases @($state.phases | ForEach-Object {
         [ordered]@{ id = $_.id; name = $_.name; complete = $_.complete; gatesDone = @($_.gates | Where-Object done).Count; gatesTotal = $_.gates.Count } })
     Set-JsonField board $state.board
+    Set-JsonField tasks @(@($plan.tasks) | Where-Object { $_ } | ForEach-Object {
+        [ordered]@{ id = $_.id; title = $_.title; column = $_.column; phase = $_.phase
+            feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
+            boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
+    Set-JsonField trelloBoard ($plan.PSObject.Properties['trello'] ? $plan.trello.board : $null)
     Set-JsonField warnings $state.warnings
 
-    if ($Action -in 'add', 'move', 'sync') { return }
+    if ($Action -in 'add', 'move', 'sync', 'link') { return }
     Write-Console ''
     foreach ($phase in $state.phases) {
         $label = $phase.complete ? 'done   ' : ($phase.id -eq $state.current.id ? 'CURRENT' : 'later  ')

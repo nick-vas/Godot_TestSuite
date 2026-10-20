@@ -8,6 +8,7 @@ using static GdUnit4.Assertions;
 [RequireGodotRuntime]
 public class MainSceneTest
 {
+    // GDD:F2
     [TestCase]
     public async Task Ball_breaks_bricks_and_scores()
     {
@@ -21,6 +22,7 @@ public class MainSceneTest
         AssertThat(main.Score).IsGreater(0);
     }
 
+    // GDD:F2
     [TestCase]
     public void First_floor_has_three_rows_of_ten()
     {

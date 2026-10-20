@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/godot-ci.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench` and `shot`.
+`doctor`, `init`, `plan`, `bench`, `shot` and `status`.
 
 | Parameter | Default | |
 |---|---|---|
@@ -26,8 +26,9 @@
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `<Results>/godot-ci.log`, not on the console. Use with `-Json` for agents |
-| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync` |
-| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board |
+| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
+| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board; `link -Column` the card's list, `link -Board` the plan's board |
+| `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
 | `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the `godot-verifier` subagent |

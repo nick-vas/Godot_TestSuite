@@ -23,8 +23,9 @@ param(
     # export: build, then export presets. setup: install Godot/.NET only. detect: print what was found.
     # doctor: check tools and project. init: wire the suite in. plan: A-to-Z game plan with gates.
     # bench: measure a scene's frame pacing. shot: save screenshots of scenes at a resolution.
+    # status: GDD features, tagged tests, plan, latest runs, git activity and an inventory, in one read-only pass.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -82,7 +83,7 @@ param(
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
     # plan: init (create plan/plan.json), status (default), done (mark a manual gate done: -Id).
-    [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync')]
+    [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync', 'link')]
     [string]$Do = 'status',
     # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move: the task id.
     [string]$Id,
@@ -94,6 +95,10 @@ param(
     [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
+    # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
+    [string]$Feature,
+    # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
+    [string]$Card,
     # Print one JSON document on stdout (schema godot-ci/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to <Results>/godot-ci.log. Pair it with -Json
@@ -103,7 +108,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -313,7 +318,8 @@ switch ($Command) {
         if ($Mcp -ne 'none' -or $McpDiagnostics) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
-    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }
+    'status' { Invoke-Status $info }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }
