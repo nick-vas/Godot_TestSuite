@@ -148,14 +148,15 @@ why:
 
 | Source | State | What is left |
 |---|---|---|
-| Game Accessibility Guidelines (`gameaccessibilityguidelines.com`) | Still blocked by the network policy | Allow the host; read the full list and the licence; map basic and intermediate items to the table in `docs/wcag-ui.md` |
-| Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`) | Still blocked | Optional: the MDA paper itself was read and `godot-game-design` follows its wording |
-| Tracery licence (`github.com/galaxykate/tracery`) | GitHub refused the repository to this session; no LICENSE file at the raw paths tried | Paste its licence, or allow the repository; then update the `godot-procgen` table |
-| IGDB (`api.igdb.com`) | Reachable, needs a Twitch client id and token | Only if comparable-game research is wanted: a key in the environment's secrets |
-| UW game genre thesaurus | Read: 361 terms in gameplay and narrative facets, but no licence stated | Ask UW before reusing its terms; the kit ships Wikidata's (CC0) instead, in `templates/genres.json` |
-| Steam tag list | Read: 446 tags through Steam's public API, no licence to redistribute | Only the tagging advice is used, not the list |
+| Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`) | Reachable, but the site's own TLS certificate has expired, so it was not read (certificate checks stay on) | Optional: the MDA paper itself was read and `godot-game-design` follows its wording; recheck when the certificate is renewed |
 
-Done in this pass: all 23 Xbox Accessibility Guidelines (in `docs/wcag-ui.md`, with their stricter rules applied to
+Done since: the Game Accessibility Guidelines (111 guidelines; no licence stated for the text, so summarised and linked in
+`docs/wcag-ui.md`, with the 16 menu and settings rules WCAG and XAG miss added to `godot-ui-accessibility`); Tracery (Apache
+2.0, checked in its repository; the minified build cannot be seeded, so `godot-procgen` uses it for authoring and web builds
+only); the University of Washington genre thesaurus (reused with the university's permission, given to the owner) in
+`templates/genres.json`. IGDB was dropped.
+
+Done in the first pass: all 23 Xbox Accessibility Guidelines (in `docs/wcag-ui.md`, with their stricter rules applied to
 `godot-ui-accessibility`, `templates/STYLE.md` and `godot-juice`); W3C's 318 Recommendations and related Notes (WCAG2ICT,
 IMSC, COGA, MAUR, XAUR, SSML); the MDA paper, the 400 Project's master rule list and the gameplay design patterns wiki
 (`godot-game-design` corrected and given real rule and pattern names); Wikidata's genres (`templates/genres.json`); the

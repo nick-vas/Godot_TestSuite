@@ -1,0 +1,644 @@
+{
+  "source": "University of Washington GAMER Group, Gameplay Genre and Narrative Genre controlled vocabularies, version 1.3 (2024-12-12): https://github.com/uwgamergroup/vocabulary-gameplay-genre and https://github.com/uwgamergroup/vocabulary-narrative-genre",
+  "licence": "CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/). Reused with the University of Washington's permission, granted to the kit's owner. This file is a derived work under the same licence: credit the GAMER Group, no commercial use of the vocabulary itself, share changes alike.",
+  "notes": "English preferred terms with the source's own spelling, broader terms and scope notes; useFor lists the source's non-preferred terms. Known source slips kept as published: 'MMPORG' (its USE FOR says MMORPG); 'Humor' and 'Satire' are named as narrower narrative terms but have no entries. Wikidata ids for many of these genres are in genres.json.",
+  "rule": "Describe a game with at most three gameplay terms and three narrative terms, most specific first.",
+  "terms": [
+    {
+      "facet": "gameplay",
+      "term": "Action",
+      "broader": null,
+      "scope": "Games that revolve around a fast-paced experience. These games often emphasize reaction-based challenges in terms of how the player interacts with the game world",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Action-Adventure",
+      "broader": "Action",
+      "scope": "Games which focus more on a sense of adventure than fast-paced conflict, often with a focus on solving riddles or overcoming challenges to progress. Representative games are Myst and The Amazon Trail.",
+      "useFor": [
+        "Adventure"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Arcade",
+      "broader": "Action",
+      "scope": "Games that either were released in a classic arcade setting or have their artistic roots in that aesthetic. These games often have simple graphics and gameplay with a focus on attaining a high score. Representative games are Pac-Man and Space Invaders.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Block Breaking",
+      "broader": "Action",
+      "scope": "Games where the primary mechanic for advancement and scoring is the breaking of blocks, often with a ball controlled by a paddle. Representative games are Brickles and 3-D Brickaway.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Brawler",
+      "broader": "Action",
+      "scope": "Games focusing on physical hand-to-hand combat, sometimes allowing players to use parts of the environment as weapons. Characters often engage with multiple enemies simultaneously to fight through levels. Representative games are Double Dragon and The Bouncer.",
+      "useFor": [
+        "Beat ‘Em Up"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Fighting",
+      "broader": "Action",
+      "scope": "Games where the player controls a character or team of characters engaging in physical combat with others. They employ rounds, with the winner of the majority deciding the match. Often feature diverse characters with unique fighting styles. Representative games are Street Fighter 2 and King of Fighters.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Mascot Fighter",
+      "broader": "Fighting",
+      "scope": "Games featuring mascot characters, often from game or media franchises, engaging in combat in the style of fighting games. Usually involve more than two characters fighting simultaneously in a free-for-all environment. Representative games are Super Smash Brothers and PlayStation All-Stars Battle Royale.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Hack and Slash",
+      "broader": "Action",
+      "scope": "Games focusing on fast-paced gameplay involving melee weapons. Players often fight multiple enemies simultaneously to advance across levels. Representative games are Gauntlet Legends and Golden Axe.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Multiplayer Online Battle Arena",
+      "broader": "Action",
+      "scope": "Games focusing on a third-person perspective where players control a single character in an online environment. Often feature teams competing to achieve goals or domination. Representative games are League of Legends and Defense of the Ancients.",
+      "useFor": [
+        "MOBA"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Music",
+      "broader": "Action",
+      "scope": "Games revolving around music, beats, or rhythm as a core part of their experience. Some feature control of simulated instruments like guitars and drums. Representative games are Hi-Fi Rush and Rock Band.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Dancing",
+      "broader": "Music",
+      "scope": "Games where players interact by moving or dancing on an external peripheral. Representative game is Dance Dance Revolution.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Party",
+      "broader": "Action",
+      "scope": "Games that are collections of smaller “mini-games,” often meant for group play in a casual competitive context. Representative games are Mario Party and Wii Party.",
+      "useFor": [
+        "Minigame Collection"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Platform",
+      "broader": "Action",
+      "scope": "Games focusing on jumping or moving between platforms, navigating terrain and obstacles, emphasizing hand-eye coordination. Representative games are Super Mario Bros. 3 and Sonic the Hedgehog.",
+      "useFor": [
+        "Platformer"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Stealth",
+      "broader": "Action",
+      "scope": "Games emphasizing stealth and avoiding detection. Representative games are Metal Gear Solid and Tenchu: Stealth Assassins.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Survival",
+      "broader": "Action",
+      "scope": "Games focusing on surviving difficult situations, often emphasizing resource management (like health and ammunition) against overwhelming opposition. Representative games are Left 4 Dead and Don’t Starve.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Vehicle Combat",
+      "broader": "Action",
+      "scope": "Games focusing on combat between vehicles as a key mechanic. Representative games are Twisted Metal and Burnout.",
+      "useFor": [
+        "Car Combat"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Puzzle",
+      "broader": null,
+      "scope": "Games that emphasize solving puzzles and/or organizing pieces. Representative games are Lumines and Portal.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Block Fill",
+      "broader": "Puzzle",
+      "scope": "Games where players strategically place or arrange blocks to fill spaces or complete patterns, aiming to clear lines or match shapes. Representative games are Tetris and Puyo Pop Fever.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Hidden Object",
+      "broader": "Puzzle",
+      "scope": "Games where players search for specific items concealed within detailed scenes to progress. Representative game is The Witness.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Match Puzzles",
+      "broader": "Puzzle",
+      "scope": "Games where players align or group identical items (like tiles or gems) in sets, typically of three or more, to clear them and achieve objectives. Representative games are Candy Crush and Bejeweled 3.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Point and Click",
+      "broader": "Puzzle",
+      "scope": "Games where players interact by clicking on objects, collecting items and information to solve puzzles and advance the narrative. Representative games are Deponia and The Secret of Monkey Island.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Word Puzzles",
+      "broader": "Puzzle",
+      "scope": "Puzzle-based games challenging players to form, decipher, or manipulate words or letters, testing vocabulary and language skills. Representative game is WORDLE.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Rhythm",
+      "broader": null,
+      "scope": "These games involve the player inputting commands or completing actions while synchronizing to a rhythm. Representative games are Space Channel 5 and Donkey Conga.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Role-Playing",
+      "broader": null,
+      "scope": "Games related to tabletop role-playing, involving a heavy focus on statistical advancement (like “leveling up”) of characters, combined with exploration.",
+      "useFor": [
+        "RPG"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Japanese RPG",
+      "broader": "Role-Playing",
+      "scope": "RPGs often designed in Japan, placing heavy focus on visual style and story elements, frequently involving romance and dramatic personal histories. Characters often show anime influence. Representative games are Final Fantasy 7 and Dragon Quest.",
+      "useFor": [
+        "JRPG"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Massively Multiplayer Online RPG",
+      "broader": "Role-Playing",
+      "scope": "RPGs played with a massive number of players in an online environment. Representative games are World of Warcraft and Star Wars: Knights of the Old Republic.",
+      "useFor": [
+        "MMORPG",
+        "MMPORG"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Rogue-Like",
+      "broader": "Role-Playing",
+      "scope": "RPGs where players explore usually randomly generated environments, focusing on item discovery and permanent character death. Representative games are Angband and Diablo.",
+      "useFor": [
+        "Rogue RPG"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Western RPG",
+      "broader": "Role-Playing",
+      "scope": "RPGs focusing on character customization and development, often employing realistic visual styles and vast open worlds. Representative games are The Elder Scrolls V: Skyrim and Baldur’s Gate.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Simulation",
+      "broader": null,
+      "scope": "Games designed to simulate actions or situations from either an existing or fictional reality.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Breeding",
+      "broader": "Simulation",
+      "scope": "Games emphasizing the breeding and development or raising of animals or entities. Representative games are Spore and Monster Rancher.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Construction & Management Simulation",
+      "broader": "Simulation",
+      "scope": "Games revolving around creating structures, cities, or other built objects, often emphasizing resource management. Representative games are SimCity 2000 and Dwarf Fortress.",
+      "useFor": [
+        "City Building",
+        "Tycoon"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Flight Simulator",
+      "broader": "Simulation",
+      "scope": "Games designed to simulate flight, usually of aircraft. Some strive for realism, while others are more action-oriented. Representative games are Microsoft Flight Simulator and Ace Combat.",
+      "useFor": [
+        "Aviation Simulator"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "God Game",
+      "broader": "Simulation",
+      "scope": "Games allowing the player to interact with a world as an all-powerful entity. Representative games are Black & White and Viva Piñata.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Interactive Movie",
+      "broader": "Simulation",
+      "scope": "Games involving minimal player action, functioning more as a series of movies controlled through decisions. Representative game is Night Trap.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Programming Game",
+      "broader": "Simulation",
+      "scope": "Games revolving around programming, often computer code, as their core mechanic. Representative game is CodeCombat.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Sandbox",
+      "broader": "Simulation",
+      "scope": "Games involving open environments where players are encouraged to explore, act, and create freely. Can be played in various ways depending on the player’s mood. Representative games are Minecraft and Grand Theft Auto.",
+      "useFor": [
+        "Open World",
+        "Open World (Sandbox)"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Social Simulator",
+      "broader": "Simulation",
+      "scope": "Games revolving around simulating social life, situations, and interaction. Representative game is The Sims.",
+      "useFor": [
+        "Life Simulation Game"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Virtual Life",
+      "broader": "Simulation",
+      "scope": "Games involving the creation of an in-game avatar controlled by the player in a virtual world, living a simulated life, often online with interactions between player avatars. Example game is Second Life.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Visual Novel",
+      "broader": "Simulation",
+      "scope": "Narrative-driven games where players engage with a story primarily through text and visuals, making choices that influence the plot’s direction and outcome. Representative games are Doki Doki Literature Club! and VA-11 Hall-A.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Sports",
+      "broader": null,
+      "scope": "For sports games, assign both the term “sports” as well as the name of the sport being represented. Use information associated with the item (e.g., packaging) to provide the sport name and spelling when possible. If no related information is available, use the most common spelling of that sport for the region the record is being created for (e.g., American English for records in the United States). Representative games are FIFA International Soccer and MLB: The Show 24.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Racing",
+      "broader": "Sports",
+      "scope": "Games revolving around racing as the core mechanic, often involving vehicles racing around a course. Representative games are Gran Turismo and Forza Motorsport.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Shooter",
+      "broader": null,
+      "scope": "Games revolving around a shooting mechanic where players target and shoot objects or enemies to progress.",
+      "useFor": [
+        "Shoot ‘em Up"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "First Person Shooter",
+      "broader": "Shooter",
+      "scope": "Games focusing on shooting mechanics from a first-person perspective. Representative games are Halo: Combat Evolved and Doom.",
+      "useFor": [
+        "FPS"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Massively Multiplayer FPS",
+      "broader": "First Person Shooter",
+      "scope": "First-person shooters played in an online environment with massive numbers of players simultaneously. Representative games are PlanetSide and Firefall.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Light Gun Shooter",
+      "broader": "Shooter",
+      "scope": "Games played using an external gun controller aimed at the screen to shoot objects or enemies. Representative games are Duck Hunt and House of the Dead 2.",
+      "useFor": [
+        "FPS"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Rail Shooter",
+      "broader": "Shooter",
+      "scope": "Shooters where players do not control their movement but are propelled along a set course or “rail.” Representative games are The Lost World: Jurassic Park and Star Fox 64.",
+      "useFor": [
+        "FPS"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Tactical Shooter",
+      "broader": "Shooter",
+      "scope": "Games focusing on simulating tactical or military environments, revolving around shooting mechanics. Representative games are Rainbow Six and Call of Duty: Modern Warfare.",
+      "useFor": [
+        "Combat",
+        "FPS"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Strategy",
+      "broader": null,
+      "scope": "Games revolving around strategic or tactical planning, often involving building, resource management, and exploration components.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "4X",
+      "broader": "Strategy",
+      "scope": "Stands for “explore, expand, exploit, and exterminate.” Games revolve around creating an empire through diplomacy and conquest. Representative games are Master of Orion and Sid Meier’s Civilization V.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Military Simulator",
+      "broader": "Strategy",
+      "scope": "games focusing on simulating realistic militaries or historical military events. Representative games are Combat Mission and Close Combat.",
+      "useFor": [
+        "Wargame"
+      ]
+    },
+    {
+      "facet": "gameplay",
+      "term": "Real-Time",
+      "broader": "Strategy",
+      "scope": "games unfolding in real-time, as opposed to using turns. Example games are StarCraft and Command and Conquer.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Tactics",
+      "broader": "Strategy",
+      "scope": "Games focusing on small-scale conflicts, often involving the player positioning and controlling a predetermined number of units. Representative games are Final Fantasy Tactics and Steel Panthers.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Tower Defense",
+      "broader": "Strategy",
+      "scope": "Games focusing on defending a location against waves of enemies, requiring strategic placement and control of units and weapons. Representative game is Plants vs. Zombies.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Turn-Based Strategy",
+      "broader": "Strategy",
+      "scope": "games utilizing alternating turns as the central mechanic. Representative games are Heroes of Might and Magic and Rome: Total War.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Traditional",
+      "broader": null,
+      "scope": "Games based on mechanics that exist in the real world and can be played in a physical setting.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Board Game",
+      "broader": "Traditional",
+      "scope": "Games originating from tabletop board games, often adaptations of existing ones. Representative games are Settlers of Catan and Chessmaster.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Card Game",
+      "broader": "Traditional",
+      "scope": "Games originating from tabletop card games, often adaptations of existing ones. Representative games are Magic: The Gathering and Full House Poker.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Exercise",
+      "broader": "Traditional",
+      "scope": "Games involving player movement using an external peripheral for physical exercise purposes. Representative game is Wii Fit.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Gambling",
+      "broader": "Traditional",
+      "scope": "Games originating from traditional gambling and casino games, often adaptations. Representative games are Caesar’s Palace and Golden Nugget 64.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Game Show",
+      "broader": "Traditional",
+      "scope": "Games modeled after, and often adaptations of, television game shows. Representative games are Jeopardy! The Video Game and Wheel of Fortune.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Maze",
+      "broader": "Traditional",
+      "scope": "Games revolving around the navigation of a maze. Representative game is Labyrinth.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Pinball",
+      "broader": "Traditional",
+      "scope": "Simulations of pinball machines. Representative games are Full Tilt Pinball and Mario Pinball Land.",
+      "useFor": []
+    },
+    {
+      "facet": "gameplay",
+      "term": "Trivia Game",
+      "broader": "Traditional",
+      "scope": "Games involving answering questions based on obscure knowledge. Representative games are The Guy Game and Scene It? Box Office Smash.",
+      "useFor": [
+        "Quiz Game"
+      ]
+    },
+    {
+      "facet": "narrative",
+      "term": "Action",
+      "broader": null,
+      "scope": "The narrative is focused on characters fighting, racing, and engaging in intense physical activities. Often minimizes plot and character development in favor of faster paced activities on screen. (e.g., Mortal Kombat X)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Comedy",
+      "broader": null,
+      "scope": "The narrative expresses humor or wit to generate amusement for players",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Fantasy",
+      "broader": null,
+      "scope": "The story of these games is set in a world that contains magical elements such as sorcery, and mythological creatures, such as dragons. There are several sub-genres of Fantasy.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Dark Fantasy",
+      "broader": "Fantasy",
+      "scope": "These stories are set in a Fantasy world, but also prominently feature elements of the Horror genre, dark, gritty, and gothic themes and elements. (e.g., Dragon Age: Origins)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Fairy Tale",
+      "broader": "Fantasy",
+      "scope": "The narrative has a basis in traditional folklore and folkloric elements. Generally contains mythological beings such as fairies and other mythical creatures, talking animals, invented creatures, and magic. Often intended for children. (e.g., Spyro’s Adventure)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Folklore",
+      "broader": "Fantasy",
+      "scope": "These stories are based on traditional cultural stories, indigenous tales, and local legends.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "High Fantasy",
+      "broader": "Fantasy",
+      "scope": "The plot of these games features larger than life struggles against colossal foes, set within a fantasy world. There is little to no moral ambiguity in the actions of the characters and plot, good and evil characters and actions are clear, and the story centers on virtuous heroes that set out to deal with the major antagonist. (e.g., Final Fantasy IV)",
+      "useFor": [
+        "Epic Fantasy"
+      ]
+    },
+    {
+      "facet": "narrative",
+      "term": "Low Fantasy",
+      "broader": "Fantasy",
+      "scope": "The fantasy world in which the story takes place features little to no magic use, and relies on other fantastical elements to drive the narrative forward. Fantastical elements in these stories tend to be few and far between.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Historical",
+      "broader": null,
+      "scope": "The story of the game takes place in the past, and the narrative emphasizes representing concepts present in specific historical times and places.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Documentary",
+      "broader": null,
+      "scope": "retelling of events from historical or factual perspectives.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Horror",
+      "broader": null,
+      "scope": "Horror games present a story that makes use of frightening, spooky, and supernatural phenomena as elements central to the plot. (e.g., Silent Hill)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Military",
+      "broader": null,
+      "scope": "The narrative takes place within the context of armed conflict, and emphasizes plot elements that occur within the context of operations by armed forces. (e.g., Call of Duty)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Mystery",
+      "broader": null,
+      "scope": "The plot and narrative primarily center on solving a mystery or puzzle based on exploration, clue seeking, interrogation, and other investigation techniques. (e.g., Professor Layton and the Curious Village)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Crime",
+      "broader": "Mystery",
+      "scope": "A subgenre of mystery where the story centers on solving crimes.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Romance",
+      "broader": null,
+      "scope": "The game story primarily unfolds romantic and intimate relationships, dating, partner seeking, and related interactions. The narrative is preoccupied with devices that develop romantic relationships and themes.",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Science Fiction",
+      "broader": null,
+      "scope": "The story takes place in a world of science and conjecture, typically featuring advanced technology and futuristic elements. The story uses these plot elements to drive the plot forward and develop the speculative world, using devices such as advanced biotechnology and physics, space travel, and aliens. (e.g., Mass Effect)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Cyberpunk",
+      "broader": "Science Fiction",
+      "scope": "The major themes and plot devices of these stories utilize futuristic developments in computers, internet, data transfer, robotics, and human-computer interaction. (e.g., Shadowrun)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Military Science Fiction",
+      "broader": "Science Fiction",
+      "scope": "The world and major plot elements of these games fall within a science fiction setting, while the major emphasis and narrative centers on armed conflict in this world. (e.g., Starcraft II)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Steampunk",
+      "broader": "Science Fiction",
+      "scope": "The major themes and plot devices of these stories utilize engineering concepts and aesthetics present in the Victorian and Edwardian historical periods. The technology in Steampunk worlds is an advanced form of technology extant during these time periods, sometimes featuring complex mechanical objects, steam powered robots, and inventive contraptions. (e.g., Machinarium)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Time Travel",
+      "broader": "Science Fiction",
+      "scope": "The story takes place within multiple time periods, and time travel or time manipulation is a major plot device. (e.g., Braid)",
+      "useFor": []
+    },
+    {
+      "facet": "narrative",
+      "term": "Western",
+      "broader": null,
+      "scope": "Games set in the Western United States in the post-Civil War era with cowboys, horses, and law enforcement. (e.g., Red Dead Redemption)",
+      "useFor": []
+    }
+  ]
+}

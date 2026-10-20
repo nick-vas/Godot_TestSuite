@@ -56,8 +56,16 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
 | Rooms and corridors | binary space partition, or place rooms and join them with a spanning tree | a few dozen lines |
 | Tile maps that follow adjacency rules learned from a sample | Wave Function Collapse | Maxim Gumin's [WaveFunctionCollapse](https://github.com/mxgmn/WaveFunctionCollapse) (C#, MIT); the [Fast WFC](https://godotengine.org/asset-library/asset/4149) add-on (MIT, built for Godot 4.4) wraps a C++ port |
 | Dungeons, mazes, towns from rewrite rules | MarkovJunior | Maxim Gumin's [MarkovJunior](https://github.com/mxgmn/MarkovJunior) (C#, MIT) |
-| Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (licence not yet confirmed: see `docs/roadmap.md`; the npm `tracery-grammar` fork is ISC), or the expander below |
+| Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (Apache 2.0) grammars, expanded by the seeded expander below |
 | Loot, encounters, upgrades | weighted tables | below |
+
+**Tracery.** Write grammars in Tracery's JSON format (`{"origin": ["#name# the #title#"], "name": [...]}`) and try them
+with the minified build its author recommends, `js/tracery.min.js` from the repository (Apache 2.0; it bundles the almond
+loader, MIT or new BSD, whose header must stay). That build picks with `Math.random` and cannot be seeded, so in the game
+read the same JSON with the seeded expander below (plain `#symbol#` references; Tracery's modifiers such as `.capitalize`
+and its `[actions]` need code of their own). In a web export only, where reproducing a run does not matter, the minified file
+can run in the page: add `<script src="tracery.min.js"></script>` to the preset's `html/head_include`, ship the file next to
+the exported page, and call it with `JavaScriptBridge.Eval("tracery.createGrammar(...).flatten('#origin#')")`.
 
 Both of Gumin's projects are C#, so their source can sit in a C# Godot project; keep their MIT licence text with it. Hand-made
 pieces arranged by a generator (rooms, chunks, set pieces) usually play better than everything generated: the generator

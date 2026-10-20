@@ -7,7 +7,7 @@ description: Use when building or reviewing menus, HUD, dialogs or settings scre
 
 W3C's WCAG 2.2 is written for web pages; most of it describes problems game menus have too. These are its level A and AA
 rules for Godot UI, plus the AAA ones that cost little, tightened where Microsoft's game-specific Xbox Accessibility
-Guidelines (XAG) are stricter. Every criterion, with what it means in a game and why, is in
+Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. Every criterion, with what it means in a game and why, is in
 `${CLAUDE_PLUGIN_ROOT}/docs/wcag-ui.md`. Cite the criterion number when you report a problem, so the user can look it up.
 
 ## Gamepad and keyboard (2.1.1, 2.1.2, 2.4.3, 2.4.7, 3.2.1)
@@ -87,6 +87,16 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
 - Errors (a name that is too long, a key already bound) are said in text next to the field, with the fix if known.
 - Each screen shows its title; nested menus show where you are ("Settings: Controls").
 - Drag-and-drop also works by select, then place (2.5.7).
+
+## Settings every game has (Game Accessibility Guidelines)
+
+- Every setting survives a restart (`ConfigFile` under `user://`); the subtitle choice comes before the first sound.
+- A game-speed setting (`Engine.TimeScale`), a display mode that includes Windowed on PC, and a field of view that suits
+  the platform by default.
+- Continue or Play has focus on the title screen; the pause menu has a controls page built from the input map, so it
+  follows remapping; an accessibility page explains each option.
+- Buttons never move while they can be clicked; warnings and short prompts sit near the centre or the action; instructions
+  pair text with an input glyph or icon.
 
 ## Prove it
 
