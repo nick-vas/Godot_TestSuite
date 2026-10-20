@@ -199,6 +199,33 @@ say they are not a compliance checklist.
 | 122 Accessible customer support | Support reachable by more than one accessible channel | (none) |
 | 123 Mental health best practices | Content warnings before purchase and in game, an advisory at launch, options to reduce or skip sensitive content, helplines reachable from anywhere | (none) |
 
+## Game Accessibility Guidelines
+
+The [Game Accessibility Guidelines](https://gameaccessibilityguidelines.com/full-list/), written by studios, specialists and
+academics, list 111 guidelines in three levels (basic, intermediate, advanced) across motor, cognitive, vision, hearing and
+speech. The site states no licence for its text, so this page summarises and links rather than copying it. Most of the basic
+and intermediate guidelines that concern menus, HUD, input and subtitles are already covered by a WCAG or XAG row above. These
+are not, and the kit adds them:
+
+| Guideline (level) | For menus, HUD and settings | Godot 4.7 |
+|---|---|---|
+| [Adjust the game speed](https://gameaccessibilityguidelines.com/include-an-option-to-adjust-the-game-speed/) (basic) | A game-speed setting, for example 50 to 100% | `Engine.TimeScale` |
+| [Settings are saved](https://gameaccessibilityguidelines.com/ensure-that-all-settings-are-saved-remembered/) (basic) | Every setting survives a restart | `ConfigFile` saved under `user://` |
+| [Start without many menus](https://gameaccessibilityguidelines.com/allow-the-game-to-be-started-without-the-need-to-navigate-through-multiple-levels-of-menus/) (basic) | Continue or Play has focus on the title screen and starts the game in one or two presses | `GrabFocus()` |
+| [Accessibility features explained in game](https://gameaccessibilityguidelines.com/provide-details-of-accessibility-features-in-game/) (basic) | An accessibility settings page with a description of each option | |
+| [Field of view default](https://gameaccessibilityguidelines.com/if-the-game-uses-field-of-view-3d-engine-only-set-an-appropriate-default-for-the-expected-viewing-environment/) (basic) | A default that suits the platform (TV or desk) | `Camera3D.Fov` |
+| [Speech input never required](https://gameaccessibilityguidelines.com/ensure-that-speech-input-is-not-required-and-included-only-as-a-supplementary-alternative-input-method/) (basic) | No action bound only to speech | |
+| [Subtitles on before any sound](https://gameaccessibilityguidelines.com/ensure-subtitles-captions-are-or-can-be-turned-on-before-any-sound-is-played/) (intermediate) | The subtitle choice comes before the first sound, logos included; stricter than XAG 104 | |
+| [Reminder of controls](https://gameaccessibilityguidelines.com/indicate-allow-reminder-of-controls-during-gameplay/) (intermediate) | A controls page in the pause menu, built from the input map so it follows remapping | `InputMap.ActionGetEvents` |
+| [Rearrange interfaces](https://gameaccessibilityguidelines.com/allow-interfaces-to-be-rearranged/) (intermediate) | HUD layout presets, or HUD elements the player can move | |
+| [Windowed mode on PC](https://gameaccessibilityguidelines.com/if-producing-a-pc-game-support-windowed-mode-for-compatibility-with-overlaid-virtual-keyboards/) (intermediate) | A display-mode setting that includes Windowed, for on-screen keyboards | `DisplayServer.WindowSetMode` |
+| [Stationary targets](https://gameaccessibilityguidelines.com/make-interactive-elements-that-require-accuracy-eg-cursor-touch-controlled-menu-options-stationary/) (intermediate) | Buttons and menu options do not move or bounce while they can be clicked | |
+| [Essential information near the eye-line](https://gameaccessibilityguidelines.com/avoid-placing-essential-temporary-information-outside-the-players-eye-line/) (intermediate) | Warnings and short-lived prompts near the centre or the action, not in the corners | |
+| [Not text alone](https://gameaccessibilityguidelines.com/ensure-no-essential-information-especially-instructions-is-conveyed-by-text-alone-reinforce-with-visuals-and-or-speech/) (intermediate) | Instructions pair text with an input glyph, an icon or speech | |
+| [Highlight important words](https://gameaccessibilityguidelines.com/highlight-important-words/) (intermediate) | Key terms in tutorials and prompts in bold, not by colour alone | `RichTextLabel` BBCode |
+| [Interactive things look interactive](https://gameaccessibilityguidelines.com/give-a-clear-indication-that-interactive-elements-are-interactive/) (intermediate) | Objects in the world the player can use are highlighted or prompted, like focused controls | |
+| [Distinct sounds](https://gameaccessibilityguidelines.com/ensure-sound-music-choices-for-each-key-objects-events-are-distinct-from-each-other/) (intermediate) | Each key event has its own sound | |
+
 ## Other W3C documents worth knowing
 
 From the full list of W3C Recommendations (318 when checked) and the related Notes; statuses as published by W3C:

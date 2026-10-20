@@ -10,7 +10,7 @@
 
 One sentence: what the player does and why it is fun.
 
-Genre: up to three gameplay and three setting terms from the kit's `genres.json` (see `godot-game-design`).
+Genre: up to three gameplay and three narrative terms from the kit's `genres-uw.json` (see `godot-game-design`).
 
 ## Pillars
 

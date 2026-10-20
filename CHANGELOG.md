@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- Sources completed:
+  - Game Accessibility Guidelines: the 16 basic and intermediate menu, settings and input rules that WCAG and the XAGs miss
+    (game speed, settings remembered, one-press start, controls reminder from the input map, windowed mode, stationary
+    buttons, subtitles before any sound, and more) in `docs/wcag-ui.md` and `godot-ui-accessibility`, summarised and
+    linked, since the site states no licence for its text.
+  - Tracery is Apache 2.0 (its repository's `LICENSE.MD`). `godot-procgen` uses its minified build for writing grammars
+    and in web exports; it cannot be seeded, so games read the same grammar JSON with the seeded expander.
+  - `templates/genres-uw.json`: the University of Washington gameplay and narrative genre vocabularies 1.3 (84 terms with
+    scope notes), reused with the university's permission under CC BY-NC-SA 4.0; the GDD pitch uses them.
+  - IGDB dropped. Marc LeBlanc's site has an expired certificate and stays optional.
+
 - Sources rechecked once the owner allowed more hosts:
   - All 23 Xbox Accessibility Guidelines (v3.2) mapped to WCAG in `docs/wcag-ui.md`. Where they are stricter for games,
     `godot-ui-accessibility`, `templates/STYLE.md` and `godot-juice` follow them: text size as body height (26 px on

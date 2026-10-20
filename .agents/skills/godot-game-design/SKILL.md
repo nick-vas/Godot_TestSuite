@@ -69,10 +69,15 @@ Tension, High Score Lists, Achievements.
 
 ## 4. Genre
 
-`${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/genres.json` lists 48 genre terms from Wikidata (CC0), with their ids, in two facets:
-gameplay (how it plays) and setting (what it is about). Describe a game with at most three of each, most specific first, in
-the GDD pitch. For a store page, Steam asks for at least five tags and shows the first 20; the first five should paint a
-clear picture of the game.
+Two vocabularies ship with the kit, in `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/`:
+
+- `genres-uw.json`: the University of Washington GAMER Group's gameplay and narrative genre vocabularies (84 terms, each
+  with a broader term and a scope note saying what belongs in it; CC BY-NC-SA 4.0, reused with the university's
+  permission). Use these words in the GDD: their scope notes settle what "roguelike" or "sandbox" means.
+- `genres.json`: 48 genre terms with their Wikidata ids (CC0), for linking a game to outside data.
+
+Describe a game with at most three gameplay and three narrative or setting terms, most specific first, in the GDD pitch. For
+a store page, Steam asks for at least five tags and shows the first 20; the first five should paint a clear picture.
 
 ## In a review
 
