@@ -12,6 +12,8 @@ Break every brick on each floor without losing your last ball, picking an upgrad
 2. Combos reward keeping the ball up, not grinding.
 3. A run is short enough to start another one.
 
+Mostly challenge, then sensation (hits that feel good), then discovery (upgrade combinations).
+
 ## Core loop
 
 Aim the ball with the paddle, chain brick hits for a combo multiplier, clear the floor, pick an upgrade, go down a floor.
@@ -20,22 +22,26 @@ Aim the ball with the paddle, chain brick hits for a combo multiplier, clear the
 
 ### F1 Paddle and ball
 Priority: must
+Fun: challenge, sensation
 Done when:
 - A hit at the paddle's edge sends the ball up and sideways; a centre hit sends it straight up.
 
 ### F2 Bricks, score and combo
 Priority: must
+Fun: challenge, sensation
 Done when:
 - The first floor has three rows of ten bricks.
 - Breaking a brick scores, and every fifth brick in a row raises the multiplier; a paddle hit resets it.
 
 ### F3 Lives and game over
 Priority: must
+Fun: challenge
 Done when:
 - A run starts on floor one with three lives and ends when the last ball is lost.
 
 ### F4 Floors and upgrades
 Priority: should
+Fun: discovery, expression
 Done when:
 - Clearing a floor applies the chosen upgrade (extra life, wide paddle or fast ball).
 

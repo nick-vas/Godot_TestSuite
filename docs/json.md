@@ -105,7 +105,7 @@ changes in red).
 
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
-- `features[]`: `id` (F1...), `title`, `priority`, `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
+- `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
   tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest test run passed).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
@@ -115,5 +115,6 @@ changes in red).
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
-- `warnings[]`: a draft GDD, must-have features with no tagged test, features with no plan task, tags or tasks naming
+- `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
+  unknown kind of fun, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, plan overruns.

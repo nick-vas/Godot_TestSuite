@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Game design:
+  - `godot-game-design` skill: the MDA framework and its eight kinds of fun, the 400 Project's design rules of thumb,
+    and Bjork and Holopainen's gameplay design patterns, summarised with links, plus a design review.
+  - GDD features name the kinds of fun they serve on a `Fun:` line. `status -Json` returns `features[].fun` and warns
+    about must and should features without one, or with an unknown kind. The template, Breakout's GDD and `/game`
+    (drafting, cutting, new features) use it.
 - Accessibility for menus and UI:
   - `docs/wcag-ui.md`: all 86 WCAG 2.2 success criteria read as rules for game menus, HUD and settings screens (31 apply as
     written, 49 in game terms, 6 do not apply), each with the Godot 4.7 property or API that meets it, read from the engine.
