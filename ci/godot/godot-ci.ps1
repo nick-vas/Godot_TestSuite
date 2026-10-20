@@ -200,9 +200,10 @@ function Invoke-Build {
     $log = [System.IO.Path]::GetTempFileName()
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
     # Exit codes of 128 and up mean Godot was killed by a signal (observed: 134, an abort, now and then on 4.7.2 when
-    # the import cache is stale, and once again on the retry). That is the engine crashing, not a project error, so
-    # try again, up to twice. An ordinary failure is never retried.
-    for ($attempt = 1; $code -ge 128 -and $attempt -le 2; $attempt++) {
+    # the import cache is stale, and once again on the retry); on Windows a crash is a negative NTSTATUS code (observed:
+    # -1073741819, an access violation, 0xC0000005). That is the engine crashing, not a project error, so try again, up
+    # to twice. An ordinary failure is never retried.
+    for ($attempt = 1; ($code -ge 128 -or $code -lt 0) -and $attempt -le 2; $attempt++) {
         Write-CiLog "Godot crashed during import (exit $code); retry $attempt of 2"
         Set-JsonField importRetried $attempt
         $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log

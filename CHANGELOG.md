@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Fixed: a Godot crash during import on Windows (a negative exit code such as -1073741819) is now retried like a
+  crash on Linux, instead of failing the run with `import-failed`.
 - Game design:
   - `godot-game-design` skill: the MDA framework and its eight kinds of fun, the 400 Project's design rules of thumb,
     and Bjork and Holopainen's gameplay design patterns, summarised with links, plus a design review.
