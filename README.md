@@ -104,6 +104,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-ui-accessibility` | menus and HUD must work with a gamepad alone, a screen reader, low vision or motion sensitivity (WCAG 2.2, read for games) |
 | `godot-architecture` | structuring a game or system so it stays deterministic and testable |
 | `godot-game-design` | deciding what a game or feature is for, whether it is fun, and what to cut: MDA's kinds of fun, design rules of thumb, gameplay patterns |
+| `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |

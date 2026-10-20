@@ -26,8 +26,10 @@ Nodes read state and send intents; they do not own the rules.
 
 ## Reproducible randomness
 
-Derive each decision point's RNG from the run seed and its identity (`seed ^ act ^ floor ^ column`, or `HashCode.Combine`). A
-`--seed` then reproduces the whole run, and changing one level does not reshuffle the rest (`godot-automation-hooks`).
+Derive each decision point's RNG from the run seed and its identity with a fixed mix (`Seeds.Derive(seed, act, floor, column)`
+in `godot-procgen`). Not `HashCode.Combine`, which .NET randomises per process, and not a plain XOR, where act 1 floor 2 and
+act 2 floor 1 collide. A `--seed` then reproduces the whole run, and changing one level does not reshuffle the rest
+(`godot-automation-hooks`).
 
 ## Generated content with rules
 

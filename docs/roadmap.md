@@ -162,4 +162,4 @@ or allow the host in the environment's network settings, then check or extend wh
 | Wikipedia list of video game genres | `en.wikipedia.org` | Cross-check the genre vocabulary |
 | Kenney licence | `kenney.nl` | Confirm CC0 on the source before recommending the assets |
 | OpenGameArt | `opengameart.org` | Per-asset licences, for a `doctor` credits check |
-| Tracery licence | `github.com/galaxykate/tracery` (the LICENSE file was not at the paths tried) | Confirm Apache 2.0 before recommending it in `godot-procgen` |
+| Tracery licence | `github.com/galaxykate/tracery` (the LICENSE file was not at the paths tried) | Confirm the licence (reported as Apache 2.0) and update the `godot-procgen` table |
