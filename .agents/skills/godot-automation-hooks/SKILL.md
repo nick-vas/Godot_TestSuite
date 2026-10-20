@@ -50,8 +50,9 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://
 ## Deterministic randomness
 
 One seeded `RandomNumberGenerator` per decision point, derived from the run seed and the point's identity, so changing one level
-does not reshuffle all the others: `rng.Seed = (ulong)HashCode.Combine(runSeed, act, floor, column);`. Never use the global
-`GD.Randf()` for gameplay.
+does not reshuffle all the others: `rng.Seed = Seeds.Derive(runSeed, act, floor, column);` (`godot-procgen` has the
+ten-line `Seeds` class). Never `HashCode.Combine` or `GetHashCode()` for this: .NET randomises them per process, so the same
+seed gives a different run on every launch. Never use the global `GD.Randf()` for gameplay.
 
 ## Bots for balance
 

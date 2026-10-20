@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Procedural generation:
+  - `godot-procgen` skill: seeds derived per generator with a fixed mix (SplitMix64), the techniques and where each comes
+    from (noise, cellular automata, rooms, Wave Function Collapse and MarkovJunior, both MIT C#, text grammars, weighted
+    tables), checking the data before building the scene, and tests that sweep a thousand seeds. Its C# compiles against
+    Godot 4.7.2.
+  - Fixed in `godot-automation-hooks`: it derived seeds with `HashCode.Combine`, which .NET randomises per process, so
+    `--seed=N` did not reproduce a run (three launches gave three different values). It now points to `Seeds.Derive`, as does `godot-architecture`, which also suggested a plain XOR that
+    collides (act 1 floor 2 equals act 2 floor 1).
 - Fixed: a Godot crash during import on Windows (a negative exit code such as -1073741819) is now retried like a
   crash on Linux, instead of failing the run with `import-failed`.
 - Game design:
