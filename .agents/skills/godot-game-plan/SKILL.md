@@ -35,14 +35,17 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 4. When `warnings` reports an overrun: propose cutting scope from the "could" tier; never cut testing or the gate.
 5. Work items are `tasks` in plan.json, edited with commands, not by hand:
    ```powershell
-   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do add -Title "Paddle feel pass" -Feature F1 -Column todo   # -Feature: the GDD feature it delivers
    pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
    "tests green" (`godot-verify-before-done`), not "a person reviewed it".
-6. Trello is optional and plan.json stays the source of truth. `plan -Do sync -Board <id or short link>` creates a card per new
-   task and pulls back cards the user dragged to another list. It needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment;
-   never write them into a file. List names are matched by prefix: Backlog, Design, To Do, Doing, Testing, Done.
+6. Trello is optional and plan.json stays the source of truth. With the Trello connector, `/game` keeps the board in step
+   (the `game` skill). Without it, `plan -Do sync -Board <id or short link>` creates a card per new task and pulls back cards
+   the user dragged; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
+   prefix: Backlog, Design, To Do, Doing, Testing, Done.
+7. `status -Json` is the whole picture in one call: GDD features with their tagged tests, the plan, latest runs, git
+   activity. The user asks for `/game` to see it judged and written to `plan/STATUS.md`.
 
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every

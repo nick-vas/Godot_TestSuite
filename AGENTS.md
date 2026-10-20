@@ -5,12 +5,12 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Layout
 
-- `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan bench shot`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure.
+- `ci/godot/godot-ci.ps1` entry point: `test build export setup detect doctor init plan bench shot status`, all with `-Json`.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
 - `tests/` the skill-validator self-test and its deliberately broken fixtures.
-- `ci/godot/templates/` files `init` and `plan` copy into a game (`plan.json`, `AGENTS.md`).
+- `ci/godot/templates/` files `init`, `plan` and `/game` copy into a game (`plan.json`, `AGENTS.md`, `GDD.md`).
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` subagent, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.

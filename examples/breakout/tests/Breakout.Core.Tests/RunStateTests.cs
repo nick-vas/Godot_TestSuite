@@ -5,6 +5,7 @@ namespace Breakout.Core.Tests;
 
 public class RunStateTests
 {
+    // GDD:F2
     [Fact]
     public void Combo_raises_multiplier_every_five_bricks()
     {
@@ -13,6 +14,7 @@ public class RunStateTests
         Assert.Equal(20, run.BreakBrick(10));
     }
 
+    // GDD:F2
     [Fact]
     public void Paddle_hit_resets_combo()
     {
@@ -22,6 +24,7 @@ public class RunStateTests
         Assert.Equal(0, run.Combo);
     }
 
+    // GDD:F3
     [Fact]
     public void Run_ends_when_lives_run_out()
     {
@@ -33,6 +36,7 @@ public class RunStateTests
         Assert.Equal(0, run.Lives);
     }
 
+    // GDD:F4
     [Theory]
     [InlineData(Upgrade.ExtraLife, 4)]
     [InlineData(Upgrade.WidePaddle, 3)]
@@ -45,6 +49,7 @@ public class RunStateTests
         Assert.Contains(reward, run.Upgrades);
     }
 
+    // GDD:F1
     [Fact]
     public void Paddle_edge_hit_deflects_sideways_and_up()
     {

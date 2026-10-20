@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `/game` (roadmap phase 2):
+  - `status -Json`: GDD features with the tests tagged `GDD:F<n>`, the plan, the latest run of each command, git activity and an
+    inventory (scenes, autoloads, input actions, TODOs), with warnings. Read-only.
+  - `ci/godot/templates/GDD.md`, a GDD format the kit can read; `examples/breakout` has a GDD and tagged tests.
+  - `plan -Do add -Feature F3` links a task to a feature; `plan -Do link` records a task's feature, Trello card and the card's
+    list, or the plan's board; `plan -Json` returns `tasks[]` and `trelloBoard`.
+  - Skills: `game` (judges each feature with evidence in `plan/STATUS.md`, drafts the GDD the first time, keeps the Trello
+    board in step through the connector with the user's moves winning, proposes next tasks) and `weekly-review`.
+  - The `AGENTS.md` template adds the scope rule (ask before building what the GDD does not contain) and the test tag.
 - Weekly canary (`.github/workflows/canary.yml`, Fridays 18:47 UTC): `ci/godot/tools/Update-Versions.ps1` compares the pinned
   Godot, test-framework packages and GUT with the newest stable releases and rewrites every pin together;
   `ci/godot/tools/Invoke-Canary.ps1` tries the updates on both examples (all together, then one by one). Updates that pass
