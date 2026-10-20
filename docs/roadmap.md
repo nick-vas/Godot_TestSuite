@@ -123,9 +123,9 @@ matches it.
    for every action, readable telegraphs) and a check over the tagged log lines of an `--autoplay` run: every gameplay
    event in a list must have its feedback events within a time window.
 
-## Open questions for the owner
+## Answers to the open questions
 
-- Plugin move: keep the copied skills in existing games until the next `init`, or remove them once the plugin is installed?
-- `/retro`: run automatically at the end of every session (a Stop hook that asks first), or only when you type it?
-- Weekly review: which day and time, and in which time zone?
-- Architecture runner: should any rule fail the build from day one, or all start as warnings?
+- **Copied skills:** existing games keep theirs. The plugin move reuses what is good in them; nothing is deleted.
+- **`/retro`:** on demand only.
+- **Weekly review:** Friday night (time zone to confirm when it is scheduled).
+- **Architecture runner:** every rule starts as a warning.
