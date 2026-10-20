@@ -115,9 +115,10 @@ function Invoke-Doctor($Info) {
 
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project
+    $remotes = if ($gitRoot) { @(& git -C $gitRoot remote 2>$null) } else { @() }
     if (-not $gitRoot) {
         Add-Check WARN 'The project is not in a git repository, so there is no history or backup' 'git init, commit, and push to a private remote'
-    } elseif (-not @(& git -C $gitRoot remote 2>$null)) {
+    } elseif ($remotes.Count -eq 0) {
         Add-Check WARN 'The git repository has no remote, so the only copy is on this disk' 'git remote add origin <url>; git push -u origin HEAD'
     }
 
