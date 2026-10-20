@@ -79,6 +79,27 @@ Two vocabularies ship with the kit, in `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates
 Describe a game with at most three gameplay and three narrative or setting terms, most specific first, in the GDD pitch. For
 a store page, Steam asks for at least five tags and shows the first 20; the first five should paint a clear picture.
 
+## 5. How studios find the fun
+
+What developers repeat across Nintendo's, Japanese, Eastern European and indie accounts (quotes and links in
+`${CLAUDE_PLUGIN_ROOT}/docs/studio-lessons.md`):
+
+- **Prototype the verb with a plain shape.** Mario began as a moving square, Splatoon as tofu blocks shooting ink, Breath of the
+  Wild as a 2D sketch with a river, trees and one goal. Function first; theme and characters after.
+- **Build variants and choose by playing.** Wii Sports chose between bowling and boxing that way; Konami tried about 20
+  movement patterns for Gradius's options. Put two or three variants behind a debug toggle and let the user pick in play.
+- **One exact verb per core action.** Splatoon's squids "dive", not "hide": the camera shake, splashes and muffled music
+  all followed from the word. Name each core action in the GDD; derive its juice from that verb (`godot-juice`).
+- **Rules beat hand-made puzzles.** Consistent systems (fire burns wood, metal conducts) let players invent solutions; write
+  them as a small table of rules with a test per pair. When players find an exploit, add a rule to the GDD before patching.
+- **Feel is found by playing.** Expose speeds, timings and windows as exported values for the user to tune. Physics serves
+  the design: coyote time, snapping and aim assist are deliberate, named rules, and "fixing" them toward realism is a bug.
+- **Be the generous judge.** Forgiving hitboxes and timing windows by default; find what really makes a part hard (often the
+  controls) before lowering difficulty.
+- **Readable opponents.** An enemy that always picks the best move is not fun; give it habits and mistakes. Do not add moves
+  the AI cannot use and tests cannot cover: cut them.
+- **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
+
 ## In a review
 
 1. Say the core loop in one sentence. If it needs two, it is two loops; find which one the game is about.

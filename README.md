@@ -203,6 +203,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/research.md](docs/research.md) | Measured output sizes and the studies behind the plugin, quiet output and evals |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
+| [docs/studio-lessons.md](docs/studio-lessons.md) | What studios say worked and failed: Nintendo, Japanese developers, Eastern European and simulation studios, 20 postmortems, talks; each lesson quoted and linked |
 | [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |
 | [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |
 | [AGENTS.md](AGENTS.md) | Working on this repository |

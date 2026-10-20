@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- Lessons from studios (`docs/studio-lessons.md`): about 110 lessons, each with a checked quote and its link, from Nintendo's
+  Iwata Asks and the Breath of the Wild talks, 15 Shmuplations interviews, an excerpt of *The Untold History of Japanese Game
+  Developers*, GSC, Croteam, Techland, CD Projekt Red, Warhorse, Bohemia, Gaijin and 1C, 20 postmortems counted for what
+  recurs, and two talk transcripts. Folded into `godot-game-design` (how studios find the fun), `godot-game-plan` (what
+  postmortems say goes wrong), `godot-automation-hooks` (what studios test), `godot-architecture` (data, simulation,
+  networking) and `weekly-review` (outside eyes, pace).
+- `plan.json` template: gates `concept.decisions`, `prototype.variants`, `production.playthrough` and `launch.archive`.
+- `doctor` warns about input actions bound only to a keyboard or only to a gamepad, about menus a gamepad cannot confirm or
+  leave (Godot's default `ui_accept` and `ui_cancel`), and about a project with no git repository or no remote.
+  `tests/doctor-fixture`, written by Godot itself, checks it in CI.
+
 - `godot-math` skill, adapted from Denny Burzynski's *Mathematics for Game Developers* (LibreTexts, CC BY 4.0): its
   vectors, matrices and trigonometry mapped to Godot 4's C# API. Godot's conventions measured in 4.7.2 where they differ
   from the book's: y points down, so a positive 2D angle turns clockwise on screen; radians; forward is -Z; `Bounce`, not

@@ -31,6 +31,17 @@ jobs:
       - name: Architecture rules catch their fixtures and stay quiet on clean code
         shell: pwsh
         run: ./tests/Test-ArchitectureFixtures.ps1
+      - name: doctor flags actions missing a keyboard or gamepad binding
+        shell: pwsh
+        run: |
+          # The fixture's project.godot was written by Godot: jump has both, dash only a key, aim only a stick, and only
+          # ui_accept was given a gamepad button.
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project tests/doctor-fixture 2>$null | ConvertFrom-Json
+          $messages = @($d.checks | ForEach-Object message)
+          if (-not ($messages -match 'no gamepad binding: dash$')) { throw "dash: $($messages -join ' | ')" }
+          if (-not ($messages -match 'no keyboard or mouse binding: aim$')) { throw "aim: $($messages -join ' | ')" }
+          if (-not ($messages -match 'ui_cancel has no gamepad button') -or ($messages -match 'ui_accept')) { throw "menus: $($messages -join ' | ')" }
+          if ($messages -match 'jump') { throw "jump has both bindings: $($messages -join ' | ')" }
       - name: The juice check matches events with their feedback
         shell: pwsh
         run: ./tests/Test-JuiceLog.ps1

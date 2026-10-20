@@ -20,6 +20,9 @@ A short, written look back at the week and forward at the next one. Read the fac
 - **Done this week:** features whose mark improved (with evidence), tasks moved to done.
 - **Health:** test runs this week (passed/failed), recurring failures, frame-pacing changes.
 - **Phase:** current phase, open gates, weeks used against its timebox.
+- **Outside eyes:** who outside the project played a build this week, and what they hit. None for two weeks is a risk.
+- **Pace:** hours worked against `weeklyHours`, and complaints that keep coming back; a tired developer stops acting on
+  feedback (TumbleSeed postmortem).
 - **Risks:** at most three, each with one concrete mitigation.
 - **Next week:** three to five proposed tasks, must-have features and phase gates first, within the user's weekly hours
   (`weeklyHours` in `plan/plan.json`) and the work-in-progress limit.

@@ -56,6 +56,19 @@ A full-screen grade shader on a `CanvasLayer` with layer `-1` grades the 3D worl
 crosshatch, paper tint, grain, vignette). Posterize plus soft fog creates banding blobs; fog darkens additive particles (disable fog
 on those materials). Cheerful assets under a stark grade give a distinctive look cheaply.
 
+## Data, simulation and networking (what studios learned)
+
+- Tunable numbers (loot, spawn, damage, balance) live in `Resource` or JSON files, changed without a code change; feature
+  switches likewise, so a feature can be turned off for a test (DayZ). Values tuned around a bug break when it is fixed:
+  retune after fixes, and keep whole-system regression runs (IL-2).
+- Far from the player, run the simulation as plain data at a lower rate, and give actors nodes only near the player
+  (A-Life's offline mode). Let places hand out goals instead of scripting routes, show off-screen events to the player
+  (news, rumours), and give every AI system a debug view, pause and time scale.
+- Multiplayer: one source of truth. The server owns state, clients send inputs, `MultiplayerSynchronizer` sends state back,
+  and the server never trusts a client's claim (DayZ).
+- Mods and long-lived games: gameplay in data and scripts that can be replaced; load mod packs from `user://` with
+  `ProjectSettings.LoadResourcePack`; when rewriting internals, keep the old data contract working.
+
 ## Checklist
 
 - [ ] rules and state live in plain classes with unit tests

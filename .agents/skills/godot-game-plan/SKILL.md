@@ -47,6 +47,13 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 7. `status -Json` is the whole picture in one call: GDD features with their tagged tests, the plan, latest runs, git
    activity. The user asks for `/game` to see it judged and written to `plan/STATUS.md`.
 
+What 20 postmortems say went wrong most (`${CLAUDE_PLUGIN_ROOT}/docs/studio-lessons.md`): testing too thin or too late (9), scope
+creep (8), effort underestimated (8), no vertical slice (7), platform surprises (7). What went right most: outside playtests early
+and often (9), pillars with cuts to protect them (9), custom tools (6). Hence the gates `concept.decisions` (multiplayer, saves,
+localisation and accessibility decided up front, not bolted on), `prototype.variants`, `production.playthrough` (a bot reaches
+the ending on every CI run) and `launch.archive` (ship exactly the build that was tested, with its source tagged). Keep the
+first estimate of each phase, and report how far the actual time has slipped from it.
+
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every
 milestone is a build someone can play. Sources and reasoning: `docs/plan.md`.

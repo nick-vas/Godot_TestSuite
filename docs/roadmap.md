@@ -149,6 +149,10 @@ why:
 | Source | State | What is left |
 |---|---|---|
 | Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`) | Reachable, but the site's own TLS certificate has expired, so it was not read (certificate checks stay on) | Optional: the MDA paper itself was read and `godot-game-design` follows its wording; recheck when the certificate is renewed |
+| Talk transcripts: Croteam's NG16 Talos Principle post-mortem (`D0ErxdacTT8`), Sasko's GDC 2023 quest design talk (`nAkH86__g0o`) | YouTube refuses this cloud server ("confirm you're not a bot"); two other talks' captions came through before it started refusing; the Breath of the Wild GDC talk has no captions at all | Run `yt-dlp --skip-download --write-auto-subs --sub-langs en <id>` on your machine and push the `.vtt` files to a branch, or put exported YouTube cookies in the environment's secrets |
+| Bohemia wiki (`community.bistudio.com`) and forums | Cloudflare challenge (403), not the network policy | Paste "Arma Reforger:Multiplayer Scripting" and "DayZ:Central Economy Configuration" |
+| The rest of *The Untold History of Japanese Game Developers* | Only the first four chapters were in the file, the fourth cut off mid-sentence | The full text, for the Hidaka (tools, maps, music), Game Arts, Koshiro and ZUN chapters |
+| Full Iassenev interview on A-Life (AIGameDev, archived) | web.archive.org rate-limited this server (429) | Retry later, or paste it |
 
 Done since: the Game Accessibility Guidelines (111 guidelines; no licence stated for the text, so summarised and linked in
 `docs/wcag-ui.md`, with the 16 menu and settings rules WCAG and XAG miss added to `godot-ui-accessibility`); Tracery (Apache
