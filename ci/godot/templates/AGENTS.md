@@ -1,42 +1,30 @@
 # AGENTS.md
 
-Godot 4.7.2 / C# game. Works for any genre. Tests and builds go through the Godot test suite
-(`{{SUITE}}`); skills in `.agents/skills/` explain each task.
+Godot 4.7.2 game. Tests, builds and checks go through the Godot test suite (`{{SUITE}}`, PowerShell 7).
 
-## Commands (PowerShell 7; add `-Json` for machine-readable output)
+## Commands
 
 ```powershell
-pwsh {{SUITE}} detect -Json           # what exists: project, Godot version, runners, presets
-pwsh {{SUITE}} doctor -Json           # what is misconfigured, each with a fix
-pwsh {{SUITE}} test -Json             # build + every detected test runner
-pwsh {{SUITE}} test -Json -Runners dotnet -Filter 'FullyQualifiedName~Name'
-pwsh {{SUITE}} export -Json -Preset Windows -Run
+pwsh {{SUITE}} test -Json -Quiet      # build + every test runner; failures carry file, line, message
+pwsh {{SUITE}} test -Json -Quiet -Runners dotnet -Filter 'FullyQualifiedName~Name'
+pwsh {{SUITE}} doctor -Json           # misconfiguration, each with a fix
 pwsh {{SUITE}} plan -Json             # where the project is in the plan, what is next
-pwsh {{SUITE}} shot -Json -Scene res://ui/Menu.tscn -Resolution 1920x1080   # look at a screen (needs a display)
-pwsh {{SUITE}} bench -Json -GameArgs '--stress' -BudgetMs 16.7               # frame pacing of the worst case
+pwsh {{SUITE}} export -Json -Quiet -Preset Windows -Run
+pwsh {{SUITE}} shot -Json -Quiet -Scene res://ui/Menu.tscn -Resolution 1920x1080
+pwsh {{SUITE}} bench -Json -Quiet -GameArgs '--stress' -BudgetMs 16.7
 ```
+
+`-Quiet` keeps Godot's output in the log file the JSON's `log` field names; open it only when the JSON does not explain a failure.
 
 ## Rules
 
-- Test first: write the failing test, watch it fail, make it pass, run the whole suite (`godot-test-loop`).
-- Read `ok` and `error.code` from the JSON; do not scrape logs. Never skip, delete or loosen a test to get green.
-- Keep engine-free logic in plain classes so it can be tested without Godot.
-- Test code and packages stay out of release builds (`godot-pitfalls`). Run `doctor` after touching csproj,
-  `project.godot` or export presets.
-- Before saying anything is done: a fresh `test -Json` with `ok: true` (`godot-verify-before-done`). `plan -Json` shows no new warnings.
-- Scene or UI behaviour gets a flow in `test/flows/*.flow.json` (`godot-ui-flows`). If an editor MCP is connected, save what you changed there, then verify here.
-- After a UI change, take screenshots at the target resolution and look at them (`godot-ui-layout`). After a change in a hot path,
-  run `bench` before and after (`godot-performance`).
-- Debug entry points are flags after `--` (`--seed`, `--autoplay`, `--no-save`), passed with `-GameArgs` (`godot-automation-hooks`).
+- Test first: failing test, make it pass, run the whole suite (`godot-test-loop`).
+- Read `ok` and `error.code` from the JSON. Never skip, delete or loosen a test to get green.
+- Done means a fresh `test -Json -Quiet` with `ok: true` (`godot-verify-before-done`).
+- Engine-free logic lives in plain classes, testable without Godot.
+- Test code and packages stay out of release builds; run `doctor` after touching csproj, `project.godot` or export presets.
+- Scene or UI behaviour gets a flow in `test/flows/*.flow.json` (`godot-ui-flows`).
+- Screenshots, benchmarks and export launches go to the `godot-verifier` subagent, which returns a short verdict.
+- Debug entry points are flags after `--` (`--seed`, `--autoplay`, `--no-save`), passed with `-GameArgs`.
 - Log one tagged line per meaningful event (`[Fight] won in 142.5s`), so checks are a `grep` away.
-- Do not commit `.godot/`, `bin/`, `obj/`, `test-results/`, `build/`, `gdunit4_testadapter*/`.
-
-## Layout
-
-<!-- Describe scenes/, scripts/, test/ and where game logic lives. -->
-
-## Skills
-
-`godot-test-loop`, `godot-verify-before-done`, `godot-diagnose`, `godot-test-frameworks`, `godot-ui-flows`, `godot-editor-bridge`,
-`godot-pitfalls`, `godot-export-release`, `godot-game-plan`, `godot-performance`, `godot-automation-hooks`, `godot-ui-layout`,
-`godot-architecture`.
+- Game-specific lessons are in `docs/lessons.md`; read it before changing a system it mentions.

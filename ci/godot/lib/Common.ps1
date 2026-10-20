@@ -3,6 +3,7 @@
 # All console output goes through here so -Json can send it to stderr and keep stdout for the result.
 function Write-Console {
     param([Parameter(Position = 0)][string]$Text = '', [switch]$NoNewline, [System.ConsoleColor]$ForegroundColor)
+    Write-RunLog $Text -NoNewline:$NoNewline
     if ($script:JsonMode) {
         if ($NoNewline) { [Console]::Error.Write($Text) } else { [Console]::Error.WriteLine($Text) }
         return
@@ -13,6 +14,72 @@ function Write-Console {
 }
 
 function Write-CiLog([string]$Message) { Write-Console "[godot-ci] $Message" }
+
+# Commands the kit suggests in its own output, written so they can be pasted as they are: the kit's real path, and
+# -Project when the project is not the current folder (the kit usually lives outside the game).
+$script:KitScript = $null
+$script:KitProject = $null
+function Format-KitCommand([string]$Arguments) {
+    $path = if ($script:KitScript) { $script:KitScript -replace '\\', '/' } else { 'godot-ci.ps1' }
+    if ($path -match '\s') { $path = "`"$path`"" }
+    $project = ''
+    if ($script:KitProject -and [System.IO.Path]::GetFullPath($script:KitProject).TrimEnd('\', '/') -ne $PWD.Path.TrimEnd('\', '/')) {
+        $project = " -Project `"$($script:KitProject -replace '\\', '/')`""
+    }
+    return "pwsh $path $Arguments$project"
+}
+
+# Every line of a run, the tools' output included, goes to one log file (godot-ci.log in the results folder). With -Quiet
+# the console shows only the kit's own [godot-ci] lines, so an agent reading the output pays for the verdict and not for
+# thousands of lines of engine and compiler output; the details stay one file away.
+$script:QuietMode = $false
+$script:RunLogWriter = $null
+$script:RunLogPath = $null
+
+function Start-RunLog([string]$Path) {
+    New-Item -ItemType Directory -Force (Split-Path $Path) | Out-Null
+    $script:RunLogWriter = [System.IO.StreamWriter]::new($Path, $false, [System.Text.UTF8Encoding]::new($false))
+    $script:RunLogWriter.AutoFlush = $true
+    $script:RunLogPath = $Path
+}
+
+function Write-RunLog([string]$Text, [switch]$NoNewline) {
+    if (-not $script:RunLogWriter) { return }
+    if ($NoNewline) { $script:RunLogWriter.Write($Text) } else { $script:RunLogWriter.WriteLine($Text) }
+}
+
+# One line per test, build, export, bench or shot run, kept in the project's .godot folder (never committed, survives a
+# wiped results folder). The Stop hook reads it to tell whether code changed since the last passing test run, and
+# /retro reads recurring error codes from it.
+$script:HistoryCommand = $null
+$script:HistoryProject = $null
+$script:HistoryStart = $null
+
+function Start-RunHistory([string]$Command, [string]$ProjectDir) {
+    $script:HistoryCommand = $Command
+    $script:HistoryProject = $ProjectDir
+    $script:HistoryStart = Get-Date
+}
+
+function Add-RunHistory([bool]$Ok, [string]$Code) {
+    if (-not $script:HistoryCommand) { return }
+    $file = Join-Path $script:HistoryProject '.godot/godot-ci-history.jsonl'
+    $entry = [ordered]@{
+        time = (Get-Date).ToUniversalTime().ToString('o'); command = $script:HistoryCommand; ok = $Ok; code = $Code
+        seconds = [math]::Round(((Get-Date) - $script:HistoryStart).TotalSeconds, 1)
+    }
+    if ($script:JsonDoc.Contains('runnerResults')) {
+        $entry['failedRunners'] = @($script:JsonDoc['runnerResults'] | Where-Object { -not $_.ok } | ForEach-Object { $_.runner })
+    }
+    try {
+        New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+        Add-Content -LiteralPath $file -Value ($entry | ConvertTo-Json -Compress) -Encoding utf8
+    } catch {
+        # History is a convenience; a read-only project must not fail the run.
+        Write-RunLog "[godot-ci] Could not record the run in ${file}: $_"
+    }
+    $script:HistoryCommand = $null
+}
 
 # -Json: stdout carries exactly one JSON document (schema "godot-ci/1"); every log line goes to stderr.
 # Functions add their part with Set-JsonField; the entry point prints the result at the end.
@@ -25,12 +92,15 @@ function Enable-JsonMode([string]$Command) {
 }
 function Set-JsonField([string]$Name, $Value) { if ($script:JsonMode) { $script:JsonDoc[$Name] = $Value } }
 function Write-JsonResult {
+    if ($script:RunLogPath) { Set-JsonField log $script:RunLogPath }
     if ($script:JsonMode) { [Console]::Out.WriteLine(($script:JsonDoc | ConvertTo-Json -Depth 8)) }
 }
 
 # Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
 function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
     Write-Console "[godot-ci] ERROR: $Message" -ForegroundColor Red
+    if ($script:RunLogPath -and $script:QuietMode) { Write-Console "[godot-ci] Full log: $script:RunLogPath" }
+    Add-RunHistory $false $Code
     if ($script:JsonMode) {
         $script:JsonDoc['ok'] = $false
         $script:JsonDoc['error'] = [ordered]@{ code = $Code; message = $Message }
@@ -41,18 +111,20 @@ function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
 
 # Collapsible log groups on GitHub Actions, plain headers elsewhere.
 function Start-LogGroup([string]$Title) {
-    if ($env:GITHUB_ACTIONS) { Write-Console "::group::$Title" } else { Write-Console "== $Title ==" }
+    if ($script:QuietMode) { Write-RunLog "== $Title ==" }
+    elseif ($env:GITHUB_ACTIONS) { Write-Console "::group::$Title" } else { Write-Console "== $Title ==" }
 }
-function Stop-LogGroup { if ($env:GITHUB_ACTIONS) { Write-Console '::endgroup::' } }
+function Stop-LogGroup { if ($env:GITHUB_ACTIONS -and -not $script:QuietMode) { Write-Console '::endgroup::' } }
 
-# Runs a program, streaming its output (stdout and stderr) to the console and, if given, a log file.
-# Returns the exit code instead of throwing, so callers decide what a failure means.
+# Runs a program, streaming its output (stdout and stderr) to the console (the run log only, with -Quiet) and, if given,
+# a log file. Returns the exit code instead of throwing, so callers decide what a failure means.
 function Invoke-Logged {
     param([string]$FilePath, [string[]]$ArgumentList = @(), [string]$LogFile)
+    $show = if ($script:QuietMode) { { Write-RunLog $_ } } else { { Write-Console $_ } }
     if ($LogFile) {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | ForEach-Object { Write-Console $_ }
+        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | ForEach-Object $show
     } else {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { Write-Console "$_" }
+        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | ForEach-Object $show
     }
     return $LASTEXITCODE
 }
@@ -163,23 +235,35 @@ function ConvertTo-GodotVersion([string]$Version) {
 function Get-DotnetDiagnostics([string]$LogFile) {
     $seen = @{}
     foreach ($line in Get-Content -LiteralPath $LogFile) {
-        $m = [regex]::Match($line, '^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\): error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$')
+        # Compiler errors name a file, line and column; restore and project errors (NU1605, MSB...) only the project.
+        $m = [regex]::Match($line, '^\s*(?<file>.+?)(?:\((?<line>\d+),(?<col>\d+)\))? : error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$')
+        if (-not $m.Success) { $m = [regex]::Match($line, '^\s*(?<file>.+?)\((?<line>\d+),(?<col>\d+)\): error (?<code>\w+): (?<msg>.*?)(?: \[[^\]]+\])?$') }
         if ($m.Success -and -not $seen.ContainsKey($m.Value)) {
             $seen[$m.Value] = $true
-            [ordered]@{ file = $m.Groups['file'].Value; line = [int]$m.Groups['line'].Value; column = [int]$m.Groups['col'].Value
-                code = $m.Groups['code'].Value; message = $m.Groups['msg'].Value }
+            [ordered]@{ file = $m.Groups['file'].Value
+                line = $m.Groups['line'].Success ? [int]$m.Groups['line'].Value : $null
+                column = $m.Groups['col'].Success ? [int]$m.Groups['col'].Value : $null
+                code = $m.Groups['code'].Value; message = $m.Groups['msg'].Value.Trim() }
         }
     }
 }
 
-# Where a failure happened: the first absolute .cs/.gd path with a line number in the text.
+# Where a failure happened: the first .cs/.gd location with a line number in the text, as an absolute path (C# stack
+# traces) or a res:// path (Godot backtraces). Frames inside addons/ (GUT, gdUnit4) are the framework, not the failure.
 function Get-FailureLocation([string]$Text) {
-    $m = [regex]::Match($Text, '(?:in |at )?(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)')
-    if (-not $m.Success) { return $null }
-    $file = $m.Groups['file'].Value
-    if ($env:GITHUB_WORKSPACE) {
-        $relative = [System.IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $file)
-        if (-not $relative.StartsWith('..')) { $file = $relative -replace '\\', '/' }
+    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
+    foreach ($m in [regex]::Matches($Text, $pattern)) {
+        if ($m.Groups['res'].Success) {
+            if ($m.Groups['res'].Value -like 'addons/*') { continue }
+            return [pscustomobject]@{ File = $m.Groups['res'].Value; Line = [int]$m.Groups['rline'].Value }
+        }
+        $file = $m.Groups['file'].Value
+        if ($file -match '[\\/]addons[\\/]') { continue }
+        if ($env:GITHUB_WORKSPACE) {
+            $relative = [System.IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $file)
+            if (-not $relative.StartsWith('..')) { $file = $relative -replace '\\', '/' }
+        }
+        return [pscustomobject]@{ File = $file; Line = [int]$m.Groups['line'].Value }
     }
-    return [pscustomobject]@{ File = $file; Line = [int]$m.Groups['line'].Value }
+    return $null
 }

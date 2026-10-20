@@ -10,7 +10,7 @@ Three cheap commands tell you almost everything before you change code. All acce
 ## `detect` - what the suite found (changes nothing)
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 detect -Json
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 detect -Json
 ```
 Returns `project`, `name`, `csharp`, `solution`, `godotVersion`, `runners[]`, `goDotTestScene`,
 `presets[]` (`name`, `platform`). If `runners` lacks what you expect, the framework is not wired: the C#
@@ -19,7 +19,7 @@ test packages, `extends GutTest` scripts or main scene it keys off are missing.
 ## `doctor` - what is misconfigured
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 doctor -Json
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 doctor -Json
 ```
 `checks[]` has `status` (`OK`, `INFO`, `WARN`, `FAIL`), `message`, and `fix`. Exit 1 only on `FAIL`. Act on every
 `FAIL` and `WARN`; the usual ones are:
@@ -39,11 +39,21 @@ one test case per file. It finds parse errors, bad `res://` paths and missing no
 test touches. Run it alone while editing scenes:
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 test -Json -Runners validate
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners validate
 ```
 Failures name the file (`res://scenes/Hud.tscn`). Open that file; the message is Godot's own.
 
 ## When the JSON is not enough
 
-`test-results/summary.json`, `summary.md` and per-runner JUnit/TRX files stay on disk. Coverage is in
-`test-results/coverage/index.html`. Full Godot output is on stderr of the run.
+Each failure in `runnerResults[].failures[]` carries `message`, `file`, `line` and a few lines of `details`; read
+those first. The full output of the run is in the file the JSON's `log` field names (`test-results/godot-ci.log`):
+search it for the test or file name instead of reading it whole. `summary.json`, `summary.md` and per-runner
+JUnit/TRX files stay in `test-results/`; coverage is in `test-results/coverage/index.html`.
+
+## Keeping the session cheap
+
+- Screenshots, benchmarks and launching an export produce long logs and images: hand them to the `godot-verifier`
+  subagent, which returns a short verdict.
+- Do not switch model or effort level in the middle of a task, and do not enable or disable MCP servers or plugins
+  mid-task: each reprocesses the whole conversation once.
+- To abandon an approach, `/rewind` to before it rather than compacting; compact (`/compact`) at a break between tasks.

@@ -1,0 +1,11 @@
+{
+  "name": "godot-agent-kit",
+  "displayName": "Godot Agent Kit",
+  "version": "0.4.0",
+  "description": "Build, test, measure and plan Godot 4.7 games with an agent: skills, a verifier subagent and a Stop hook that keeps 'done' honest.",
+  "author": { "name": "nick-vas" },
+  "repository": "https://github.com/nick-vas/Godot_TestSuite",
+  "keywords": ["godot", "gamedev", "testing", "csharp", "gdscript"],
+  "skills": ["./.agents/skills/"],
+  "agents": ["./agents/godot-verifier.md"]
+}

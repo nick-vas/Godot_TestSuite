@@ -12,16 +12,17 @@ NO "DONE", "FIXED" OR "PASSING" WITHOUT A FRESH test -Json THAT SHOWS ok: true
 ```
 
 Evidence before claims. If you have not run it in this message, you cannot say it passes. Violating the letter of this rule
-is violating its spirit.
+is violating its spirit. With the kit's plugin enabled, a Stop hook enforces it: a turn cannot end while Godot files changed
+after the last passing `test` run, unless you say why the tests could not run.
 
 ## The gate
 
-1. **Run** the full suite, not the one test you were iterating on: `pwsh ci/godot/godot-ci.ps1 test -Json`
+1. **Run** the full suite, not the one test you were iterating on: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet`
 2. **Read** `ok`, `error.code` and every `runnerResults[]` entry. `ok: false` is not done, whatever else is true.
 3. **Check what ran.** `detect -Json` lists `runners`; the runner that covers your change must be in `runnerResults` with `total > 0`.
    A UI or scene change needs `validate` and `flows`/`smoke`, not only unit tests.
 4. **Check the release path** when you touched csproj, `project.godot`, export presets or autoloads:
-   `doctor -Json` has no `FAIL`, and `export -Json -Run` passes for each shipped preset.
+   `doctor -Json` has no `FAIL`, and `export -Json -Quiet -Run` passes for each shipped preset (the `godot-verifier` subagent can run it).
 5. **Only then** say what you ran and what it showed, in numbers: "test -Json: ok, dotnet 8/8, gut 2/2, flows 1/1".
 
 ## Rationalizations

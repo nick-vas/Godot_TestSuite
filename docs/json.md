@@ -7,6 +7,9 @@ raw log.
 ```powershell
 pwsh -NoProfile -File ci/godot/godot-ci.ps1 test -Json 2>$null | ConvertFrom-Json
 ```
+Add `-Quiet` when an agent reads the output: Godot's and dotnet's output then goes only to the run log (see `log`
+below) and stderr carries just the kit's own lines, about 1 KB instead of 7 to 16 KB per test run on the examples.
+
 Run it as a child process, as an agent does. The document is written to the process's standard output, so dot-sourcing or calling the script
 in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 
@@ -18,6 +21,7 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -51,17 +55,24 @@ Branch on `error.code`; `message` can change.
 
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`.
 
-**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`), `message`;
+**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line`.
 
 **test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
 
 ```json
 { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1, "skipped": 0,
-  "failures": [ { "name": "test/test_score.gd.test_x", "message": "failed", "file": "test/test_score.gd", "line": null } ] }
+  "failures": [ { "name": "test/test_score.gd.test_x", "message": "[20] expected to equal [25]:", "file": "test/test_score.gd",
+                  "line": 7, "details": "[20] expected to equal [25]:" } ] }
 ```
-`file`/`line` come from the stack trace when the framework gives one (C# runners do); GUT gives only the script.
+`message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
+and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;
+`details` holds up to six meaningful lines. When the report itself is vague, the runner's log is searched for the test.
 The same data is in `test-results/summary.json`.
+
+Each `build`, `test`, `export`, `bench` and `shot` run also appends one line to `.godot/godot-ci-history.jsonl` in the
+project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. The plugin's Stop hook and the
+`retro` skill read it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`.
 

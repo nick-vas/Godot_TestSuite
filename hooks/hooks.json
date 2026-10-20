@@ -1,0 +1,17 @@
+{
+  "description": "Keeps 'done' honest: Claude cannot end a turn while Godot code changed since the last passing test run.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh",
+            "args": ["-NoProfile", "-File", "${CLAUDE_PLUGIN_ROOT}/hooks/stop-gate.ps1"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

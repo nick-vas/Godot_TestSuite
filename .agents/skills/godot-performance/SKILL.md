@@ -11,13 +11,14 @@ per-frame times, the slowest frames, and when they happen.
 ## Measure
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 bench -Json -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -Warmup 5 -Uncapped -Label "uncapped 1080p" -Resolution 1920x1080
-pwsh ci/godot/godot-ci.ps1 bench -Json -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -MaxFps 60 -BudgetMs 16.7 -Label "60 cap"
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -Warmup 5 -Uncapped -Label "uncapped 1080p" -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -MaxFps 60 -BudgetMs 16.7 -Label "60 cap"
 ```
 
 `bench` records the wall-clock time of every frame after a warm-up and returns `fps.low1`/`fps.low01` (1% and 0.1% lows),
 `frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a timestamped `hitches[]` log, draw calls, and every custom monitor's delta.
-Each run appends a labelled row to `bench-results/bench.csv`, so runs stay comparable. `-BudgetMs` fails the run
+Each run appends a labelled row to `bench-results/bench.csv`, so runs stay comparable. Several benchmark runs are a good job
+for the `godot-verifier` subagent, which returns the numbers without the logs. `-BudgetMs` fails the run
 (`bench-over-budget`) when p99 is above the budget.
 
 - **Benchmark the worst case**, not the menu: the heaviest scene with the most on screen. Give the game a flag for it

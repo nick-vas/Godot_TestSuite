@@ -9,9 +9,9 @@ description: Use when starting a Godot game, choosing what to work on next, or a
 and warns on timebox overruns. Genre-independent.
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 plan -Do init -Game "My Game"     # once; never overwrites
-pwsh ci/godot/godot-ci.ps1 plan -Json                        # where am I, what is next
-pwsh ci/godot/godot-ci.ps1 plan -Do done -Id concept.scope   # mark a manual gate (you or the user decides, not the agent)
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do init -Game "My Game"     # once; never overwrites
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Json                        # where am I, what is next
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do done -Id concept.scope   # mark a manual gate (you or the user decides, not the agent)
 ```
 
 | Phase | Weeks | Exit gate in one line |
@@ -35,8 +35,8 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 4. When `warnings` reports an overrun: propose cutting scope from the "could" tier; never cut testing or the gate.
 5. Work items are `tasks` in plan.json, edited with commands, not by hand:
    ```powershell
-   pwsh ci/godot/godot-ci.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
-   pwsh ci/godot/godot-ci.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
    "tests green" (`godot-verify-before-done`), not "a person reviewed it".

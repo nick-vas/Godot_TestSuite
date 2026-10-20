@@ -1,6 +1,29 @@
 # Changelog
 
 ## Unreleased
+- Weekly canary (`.github/workflows/canary.yml`, Fridays 18:47 UTC): `ci/godot/tools/Update-Versions.ps1` compares the pinned
+  Godot, test-framework packages and GUT with the newest stable releases and rewrites every pin together;
+  `ci/godot/tools/Invoke-Canary.ps1` tries the updates on both examples (all together, then one by one). Updates that pass
+  become a pull request, failures an issue each, and a Godot minor without a GUT release is reported as blocked.
+  First run on real releases: Microsoft.NET.Test.Sdk 18.11.0, Chickensoft.GoDotTest 2.0.48, xunit 2.9.3 and
+  xunit.runner.visualstudio 4.0.1 pass; gdUnit4.test.adapter 3.1.1 fails (it needs the pre-release gdUnit4.api 5.1.0-rc5).
+- Build diagnostics now include restore and project errors (`NU1605` and the like, with no line or column), not only compiler errors.
+- Agent efficiency, each item measured or sourced in [docs/research.md](docs/research.md):
+  - `-Quiet`: Godot and dotnet output goes only to `<Results>/godot-ci.log` (named by the new `log` JSON field); stderr drops
+    from 7-16 KB to about 1 KB per test run on the examples.
+  - Test failures now carry the specific `message`, `file` and `line` (GUT's bare "failed", Godot backtraces, `at line N`,
+    C# stack traces) and a few lines of `details`, so the log rarely needs reading.
+  - Run history in `.godot/godot-ci-history.jsonl` for `build`, `test`, `export`, `bench` and `shot`.
+  - The kit is a Claude Code plugin (`.claude-plugin/`): the skills, a `godot-verifier` subagent for screenshots, benchmarks and
+    export launches, and a Stop hook that keeps a turn from ending while Godot files changed after the last passing test run.
+    `init -Plugin` enables it for a game; `init -Agents` also copies the subagent and fills in the kit path.
+  - `retro` and `kit-review` skills (manual): lessons with evidence become kit pull requests, gated by the validators and evals.
+  - `evals/`: `claude plugin eval` cases that compare the kit with no plugin, and a manual `Evals` workflow.
+  - Skill validator: a skill may not set `model` outside a forked subagent (it loses the prompt cache); the `AGENTS.md`
+    template is capped at 4 KB; subagents' kit commands are checked too. The template lost its skill list and layout section.
+- `doctor` reports `GODOT_BIN`: missing file, wrong version, a non-.NET build for C#, a non-console build on Windows. `export`
+  uses `GODOT_BIN` when matching export templates are installed. Hints printed by `init`, `doctor` and `plan` show the kit's real
+  path and `-Project`, and `init` prints its "Next" line last.
 - The kit no longer ships inside games: `.gdignore` files at the repository root and in `ci/godot/` keep Godot from importing and
   exporting the kit's `.gd` tools when it sits inside a project (a 4.7.2 export test found all four in the pack), and detection now
   skips folders with a `.gdignore`, as Godot does, so the kit's own examples no longer add GUT and flow runners to the game.

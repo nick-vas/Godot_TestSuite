@@ -1,0 +1,63 @@
+# Runs the kit's Claude Code plugin evals (evals/): every case with the plugin and without it, so a change to a skill,
+# the verifier or the Stop hook shows whether it helps and what it costs. Manual only: each run calls the model and costs
+# money. Needs the repository secret ANTHROPIC_API_KEY.
+name: Evals
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs per case and arm
+        default: '3'
+      case:
+        description: Case name glob (empty for all)
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # The eval sandbox cannot read the home directory, so Godot is installed outside it.
+      GODOT_TOOLS_DIR: /opt/godot-ci
+    steps:
+      - uses: actions/checkout@v7
+      - name: Eval sandbox, Claude Code and Godot
+        shell: pwsh
+        run: |
+          if (-not $env:ANTHROPIC_API_KEY) { throw 'Add the ANTHROPIC_API_KEY repository secret to run evals' }
+          sudo apt-get update -q; sudo apt-get install -y -q bubblewrap socat
+          npm install -g @anthropic-ai/claude-code
+          sudo mkdir -p $env:GODOT_TOOLS_DIR; sudo chown $env:USER $env:GODOT_TOOLS_DIR
+          # Installs Godot and GUT into the example the cases copy, so runs need no download.
+          ./ci/godot/godot-ci.ps1 build -Project examples/gdscript
+          $godot = Get-ChildItem $env:GODOT_TOOLS_DIR -Recurse -File -Filter 'Godot_v*_linux.x86_64' | Select-Object -First 1
+          "EVAL_GODOT_BIN=$($godot.FullName)" >> $env:GITHUB_ENV
+      - name: Run evals
+        shell: pwsh
+        env:
+          RUNS: ${{ inputs.runs }}
+          CASE: ${{ inputs.case }}
+        run: |
+          $caseArgs = if ($env:CASE) { @('--case', $env:CASE) } else { @() }
+          New-Item -ItemType Directory -Force evals/results | Out-Null
+          claude plugin eval . --runs $env:RUNS @caseArgs --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish --json evals/results/result.json
+          $result = Get-Content evals/results/result.json -Raw | ConvertFrom-Json
+          $lines = @('| Case | With | Without | Delta |', '|---|---:|---:|---:|')
+          foreach ($case in $result.cases) {
+            $a = $case.aggregates
+            $lines += '| {0} | {1:N2} | {2:N2} | {3:N2} |' -f $case.name, $a.score, $a.scoreWithout, $a.delta
+          }
+          $lines += '', ('Mean delta {0:N2}; total cost ${1:N2}' -f $result.aggregates.meanDelta, $result.costUsd)
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit 0
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: eval-results
+          path: evals/results/
+          retention-days: 30

@@ -6,7 +6,7 @@ description: Use when exporting, launching an exported build, or releasing a God
 # Export and release
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 export -Json -Preset Windows -Run   # export, then launch it headless and fail on errors
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 export -Json -Quiet -Preset Windows -Run   # export, then launch it headless and fail on errors
 ```
 `export` builds first (so it fails on a broken project), downloads export templates once (about 1 GB), exports each
 preset to `build/<preset>/`, and with `-Run` launches the result for `-Frames` frames on a machine that can run

@@ -19,7 +19,8 @@ jobs:
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |
-          $issues = Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1
+          $issues = @(Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
+            @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
       - name: Skills pass their own validator, and the validator catches broken fixtures
@@ -27,6 +28,21 @@ jobs:
         run: |
           ./ci/godot/tools/Test-Skills.ps1
           ./tests/Test-SkillFixtures.ps1
+      - name: Version updates rewrite every pin and keep the skills valid
+        shell: pwsh
+        run: |
+          # On a copy, with made-up releases: a new Godot minor with its GUT release, and a package update.
+          $copy = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'versions')
+          git archive HEAD | tar -x -C $copy
+          $latest = Join-Path $env:RUNNER_TEMP 'latest.json'
+          '{"godot":"4.99.0","gut":"v9.99.0","gdUnit4.api":"9.9.9"}' | Set-Content $latest
+          $r = pwsh -NoProfile -File ./ci/godot/tools/Update-Versions.ps1 -Root $copy -LatestFile $latest -Apply -Json | ConvertFrom-Json
+          if ($r.updates.Count -ne 3 -or $r.changed.Count -lt 10) { throw "unexpected result: $($r | ConvertTo-Json -Depth 5)" }
+          $csproj = Get-Content (Join-Path $copy 'examples/breakout/game/Breakout.csproj') -Raw
+          if ($csproj -notmatch 'Godot\.NET\.Sdk/4\.99\.0' -or $csproj -notmatch '"gdUnit4.api" Version="9\.9\.9"') { throw 'csproj pins were not updated' }
+          if ((Get-Content (Join-Path $copy 'ci/godot/lib/Setup.ps1') -Raw) -notmatch "'\^4\\\.99' \{ 'v9\.99\.0' \} '\^4\\\.7'") { throw 'the GUT mapping for the new minor is missing' }
+          pwsh -NoProfile -File ./ci/godot/tools/Test-Skills.ps1 -Root $copy
+          if ($LASTEXITCODE) { throw 'the skills no longer validate after the update' }
       - name: Parse action manifests
         # actionlint covers workflows only; make sure every composite action is valid YAML.
         run: |
@@ -98,6 +114,46 @@ jobs:
           if (($d.runners -join ',') -ne 'validate,smoke') { throw "the kit's own examples leaked into detection: $($d.runners -join ',')" }
           $d = pwsh -NoProfile -File $kit test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.runnerResults[0].total -ne 3) { throw "validate should load only the game's 3 files: $($d | ConvertTo-Json -Depth 6)" }
+      - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
+        shell: pwsh
+        run: |
+          $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'quiet-game')
+          Copy-Item -Recurse examples/gdscript/* $game
+          git -C $game init -q
+          git -C $game -c user.name=ci -c user.email=ci@example.com add -A
+          git -C $game -c user.name=ci -c user.email=ci@example.com commit -qm base
+          $test = Join-Path $game 'test/test_score.gd'
+          (Get-Content $test -Raw).Replace('assert_eq(score.hit(10), 20)', 'assert_eq(score.hit(10), 25)') | Set-Content $test -NoNewline
+          $results = Join-Path $game 'test-results'
+          $errFile = Join-Path $env:RUNNER_TEMP 'quiet.err'
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$errFile | ConvertFrom-Json
+          $errBytes = (Get-Item $errFile).Length
+          if ($errBytes -gt 3000) { throw "-Quiet still wrote $errBytes bytes to stderr" }
+          $f = $d.runnerResults[0].failures[0]
+          if ($d.ok -or $f.file -ne 'test/test_score.gd' -or $f.line -ne 7 -or $f.message -notmatch 'expected to equal \[25\]') { throw "failure detail: $($d | ConvertTo-Json -Depth 6)" }
+          if (-not (Test-Path $d.log) -or (Get-Item $d.log).Length -lt 2000) { throw "the full log should be in $($d.log)" }
+          $history = @(Get-Content (Join-Path $game '.godot/godot-ci-history.jsonl') | ConvertFrom-Json)
+          if ($history[-1].ok -or $history[-1].code -ne 'tests-failed') { throw "history: $($history | ConvertTo-Json)" }
+          # The Stop hook blocks once while changed code has no passing run, lets a second stop through, and is quiet after a green run.
+          $hook = { param($active) "{""cwd"":""$($game -replace '\\', '/')"",""stop_hook_active"":$active}" | pwsh -NoProfile -File ./hooks/stop-gate.ps1 }
+          $first = & $hook 'false'
+          if (($first | ConvertFrom-Json).decision -ne 'block') { throw "the Stop hook should block: $first" }
+          if (& $hook 'true') { throw 'the Stop hook should let the same changes through the second time' }
+          (Get-Content $test -Raw).Replace('25)', '20)') | Set-Content $test -NoNewline
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$null | ConvertFrom-Json
+          if (-not $d.ok) { throw "the fixed test should pass: $($d | ConvertTo-Json -Depth 6)" }
+          if (& $hook 'false') { throw 'the Stop hook should allow stopping after a passing run' }
+          # init -Agents copies the verifier with this machine's kit path; init -Plugin enables the plugin instead of copying.
+          ./ci/godot/godot-ci.ps1 init -Agents -Project $game | Out-Null
+          $agent = Get-Content (Join-Path $game '.claude/agents/godot-verifier.md') -Raw
+          if ($agent.Contains('${CLAUDE_PLUGIN_ROOT}') -or -not $agent.Contains('ci/godot/godot-ci.ps1')) { throw 'the copied agent should name the kit path' }
+          $plugged = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'plugin-game')
+          Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $plugged
+          ./ci/godot/godot-ci.ps1 init -Plugin -Project $plugged | Out-Null
+          $settings = Get-Content (Join-Path $plugged '.claude/settings.json') -Raw | ConvertFrom-Json -AsHashtable
+          if (-not $settings.enabledPlugins['godot-agent-kit@godot-agent-kit'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
+          # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
+          exit 0
 
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.

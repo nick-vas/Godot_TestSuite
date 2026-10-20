@@ -9,7 +9,7 @@ function Get-PlanPath($Info) {
 }
 
 function Read-Plan([string]$Path) {
-    if (-not (Test-Path -LiteralPath $Path)) { Stop-GodotCi "No plan at $Path. Run: godot-ci.ps1 plan -Do init" 'no-plan' }
+    if (-not (Test-Path -LiteralPath $Path)) { Stop-GodotCi "No plan at $Path. Run: $(Format-KitCommand 'plan -Do init')" 'no-plan' }
     try { return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -Depth 10 }
     catch { Stop-GodotCi "$Path is not valid JSON: $($_.Exception.Message)" 'invalid-plan' }
 }
@@ -189,7 +189,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             $plan.phases[0] | Add-Member -NotePropertyName startedAt -NotePropertyValue ([datetime]::UtcNow.ToString('o'))
             Save-Plan $plan $path
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
-            Write-CiLog "Created $path and PLAN.md. Next: godot-ci.ps1 plan"
+            Write-CiLog "Created $path and PLAN.md. Next: $(Format-KitCommand 'plan')"
             Set-JsonField plan $path
         }
         'done' {

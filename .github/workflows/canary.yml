@@ -1,0 +1,81 @@
+# Weekly check against new releases: Godot (through Godot.NET.Sdk), the test-framework packages and GUT. Each update is
+# tried on both example projects; the ones that pass become one pull request, the ones that fail an issue each, so the
+# pinned versions on main never break because something upstream moved.
+#
+# Fridays 18:47 UTC (21:47 in Athens in summer, 20:47 in winter), ready for the weekly review.
+# Pull requests opened with the default GITHUB_TOKEN do not start other workflows; add a CANARY_TOKEN secret (a token
+# with contents and pull-requests write) to have Self-test run on them too. Settings > Actions > General must allow
+# GitHub Actions to create pull requests.
+name: Canary
+
+on:
+  schedule:
+    - cron: '47 18 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ secrets.CANARY_TOKEN || github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.CANARY_TOKEN || github.token }}
+      - name: Try the newest releases on both examples
+        shell: pwsh
+        run: |
+          ./ci/godot/tools/Invoke-Canary.ps1 | Set-Content (Join-Path $env:RUNNER_TEMP 'canary.json')
+          Get-Content (Join-Path $env:RUNNER_TEMP 'canary.json')
+      - name: Pull request for what passed, issues for what did not
+        shell: pwsh
+        run: |
+          $c = Get-Content (Join-Path $env:RUNNER_TEMP 'canary.json') -Raw | ConvertFrom-Json
+          $run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $summary = @('### Canary', '', '| Update | Result |', '|---|---|')
+          $summary += @($c.passing | ForEach-Object { "| $($_.name) $($_.current) -> $($_.latest) | passes both examples |" })
+          $summary += @($c.failing | ForEach-Object { "| $($_.name) $($_.current) -> $($_.latest) | fails |" })
+          $summary += @($c.blocked | ForEach-Object { "| $_ | blocked |" })
+          if (-not ($c.passing -or $c.failing -or $c.blocked)) { $summary += '| everything | already on the newest stable release |' }
+          $summary += @($c.notes | ForEach-Object { '', "Note: $_" })
+          $summary | Add-Content $env:GITHUB_STEP_SUMMARY
+
+          if ($c.passing) {
+            $title = 'Canary: ' + (@($c.passing | ForEach-Object { "$($_.name) $($_.latest)" }) -join ', ')
+            $open = @(gh pr list --state open --search 'Canary: in:title' --json title | ConvertFrom-Json | Where-Object title -eq $title)
+            if ($open) {
+              Write-Host "An open pull request already proposes: $title"
+            } else {
+              $branch = "feature/canary-$env:GITHUB_RUN_ID"
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git switch -c $branch
+              git add -A
+              git commit -m $title
+              git push -u origin $branch
+              $body = @('Newer releases that pass both example projects (`examples/gdscript`, `examples/breakout/game`) and the skill validator:', '')
+              $body += @($c.passing | ForEach-Object { "- $($_.name): $($_.current) -> $($_.latest)" })
+              $body += '', "Files: $(@($c.changed) -join ', ')", '', "Canary run: $run"
+              if ($c.failing) { $body += '', 'Not included (see the canary issues):'; $body += @($c.failing | ForEach-Object { "- $($_.name) $($_.latest)" }) }
+              gh pr create --base main --head $branch --title $title --body ($body -join "`n")
+            }
+          }
+
+          foreach ($f in @($c.failing) + @($c.blocked | ForEach-Object { [pscustomobject]@{ name = $_; latest = ''; current = ''; problem = $_ } })) {
+            $title = if ($f.latest) { "Canary: $($f.name) $($f.latest) does not pass" } else { "Canary: $($f.name)" }
+            $existing = @(gh issue list --state open --search "$title in:title" --json number,title | ConvertFrom-Json | Where-Object title -eq $title)
+            $text = "$(if ($f.current) { "$($f.name) $($f.current) -> $($f.latest)`n`n" })``````text`n$($f.problem)`n```````n`nCanary run: $run"
+            if ($existing) { gh issue comment $existing[0].number --body "Still failing.`n`n$text" }
+            else { gh issue create --title $title --body $text }
+          }

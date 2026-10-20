@@ -77,8 +77,10 @@ param(
     [string]$Mcp = 'none',
     # init: also register minimal-godot-mcp (GDScript diagnostics and the running game's console).
     [switch]$McpDiagnostics,
-    # init: also add AGENTS.md, CLAUDE.md and the agent skills.
+    # init: also add AGENTS.md, CLAUDE.md, the agent skills and the verifier subagent.
     [switch]$Agents,
+    # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
+    [switch]$Plugin,
     # plan: init (create plan/plan.json), status (default), done (mark a manual gate done: -Id).
     [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync')]
     [string]$Do = 'status',
@@ -93,7 +95,10 @@ param(
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
     # Print one JSON document on stdout (schema godot-ci/1) and send all logs to stderr. For agents and scripts.
-    [switch]$Json
+    [switch]$Json,
+    # Keep tool output (Godot, dotnet) off the console; it still goes to <Results>/godot-ci.log. Pair it with -Json
+    # so an agent reads the verdict, with failure messages, files and lines, instead of the whole log.
+    [switch]$Quiet
 )
 
 $ErrorActionPreference = 'Stop'
@@ -102,11 +107,14 @@ foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'In
 if ($Json) {
     Enable-JsonMode $Command
 }
+$script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
 
 $GameArgs = @(Split-GameArgs $GameArgs)
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
+$script:KitScript = $PSCommandPath
+$script:KitProject = $info.ProjectDir
 $presets = @(if ($Preset) { $Preset | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { $info.Presets })
 
 if ($Command -eq 'detect') {
@@ -144,12 +152,17 @@ if ($Command -eq 'detect') {
 }
 
 function Invoke-Setup([switch]$WithTemplates) {
-    # A Godot you point at yourself (GODOT_BIN) is used as-is.
-    if ($env:GODOT_BIN -and -not $env:GODOT_CI_INSTALLED -and -not $WithTemplates) {
+    # claude plugin eval passes only EVAL_* variables into its runs, so the kit's evals name Godot there.
+    if (-not $env:GODOT_BIN -and $env:EVAL_GODOT_BIN) { $env:GODOT_BIN = $env:EVAL_GODOT_BIN }
+    $version, $release = $info.GodotVersion -split '-', 2
+    # A Godot you point at yourself (GODOT_BIN) is used as-is. Exports also need matching export templates; when they
+    # are already installed (Godot's editor installs them into the same folder), your Godot is used for exports too.
+    $templatesReady = Test-Path -LiteralPath (Join-Path (Get-GodotPaths $version ($release ? $release : 'stable') $info.IsCSharp).TemplatesDir 'version.txt')
+    if ($env:GODOT_BIN -and -not $env:GODOT_CI_INSTALLED -and (-not $WithTemplates -or $templatesReady)) {
         Write-CiLog "Using GODOT_BIN=$env:GODOT_BIN"
         return
     }
-    $version, $release = $info.GodotVersion -split '-', 2
+    if ($env:GODOT_BIN -and $WithTemplates) { Write-CiLog "No export templates for $($info.GodotVersion) yet; installing the kit's own Godot and its templates" }
     Install-GodotTools -Version $version -Release ($release ? $release : 'stable') -Templates:$WithTemplates -Mono $info.IsCSharp
     $env:GODOT_CI_INSTALLED = '1'
 }
@@ -188,7 +201,10 @@ function Invoke-Build {
         $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
     }
     Stop-LogGroup
-    if ($code -ne 0) { Stop-GodotCi "Godot import exited with $code" 'import-failed' }
+    if ($code -ne 0) {
+        Set-JsonField engineErrors @(Get-GodotLogErrors $log | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_.Trim() } })
+        Stop-GodotCi "Godot import exited with $code" 'import-failed'
+    }
     Assert-GodotLogClean $log 'Import'
     Write-CiLog 'Build OK'
 }
@@ -209,7 +225,10 @@ function Invoke-Tests {
     if ($info.Runners.Count -eq 0) { Write-CiLog 'No test runners detected or selected; build only'; return }
     $collect = $Coverage -or $MinCoverage -gt 0
     $resultsDir = [System.IO.Path]::GetFullPath($Results)
-    if (Test-Path -LiteralPath $resultsDir) { Remove-Item -Recurse -Force $resultsDir }
+    # Everything but the log this run is writing.
+    if (Test-Path -LiteralPath $resultsDir) {
+        Get-ChildItem -LiteralPath $resultsDir -Force | Where-Object { $_.Name -ne 'godot-ci.log' } | Remove-Item -Recurse -Force
+    }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
             -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows') -Frames $Frames -GameArgs $GameArgs
@@ -220,7 +239,7 @@ function Invoke-Tests {
     Set-JsonField coverage ([ordered]@{ linePercent = $percent; minimum = $MinCoverage })
     Set-JsonField runnerResults @($runs | ForEach-Object {
         [ordered]@{ runner = $_.Runner; ok = $_.Ok; total = $_.Total; passed = $_.Passed; failed = $_.Failed
-            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line } }) } })
+            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line; details = $_.Details } }) } })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }
@@ -248,7 +267,10 @@ function Invoke-Export {
         $log = [System.IO.Path]::GetTempFileName()
         $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-release', $name, $file) $log
         Stop-LogGroup
-        if ($code -ne 0) { Stop-GodotCi "Export '$name' exited with $code" 'export-failed' }
+        if ($code -ne 0) {
+            Set-JsonField engineErrors @(Get-GodotLogErrors $log | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_.Trim() } })
+            Stop-GodotCi "Export '$name' exited with $code" 'export-failed'
+        }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" }
         Assert-GodotLogClean $log "Export '$name'"
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
@@ -279,9 +301,18 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot') {
+    Start-RunLog (Join-Path ([System.IO.Path]::GetFullPath($Results)) 'godot-ci.log')
+    if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
+}
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
-    'init' { Initialize-Project $info; if ($Agents) { Add-AgentFiles $info $PSCommandPath }; if ($Mcp -ne 'none' -or $McpDiagnostics) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) } }
+    'init' {
+        Initialize-Project $info
+        if ($Agents -or $Plugin) { Add-AgentFiles $info $PSCommandPath ([bool]$Plugin) }
+        if ($Mcp -ne 'none' -or $McpDiagnostics) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) }
+        Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
+    }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
@@ -299,4 +330,5 @@ switch ($Command) {
             -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
     }
 }
+Add-RunHistory $true ''
 Write-JsonResult

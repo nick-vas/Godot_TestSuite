@@ -97,14 +97,59 @@ function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode)
         }
         Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $out -Encoding utf8
     }
+    $logLines = @(Get-ChildItem -LiteralPath $ResultsDir -File -Filter '*.log' | ForEach-Object { Get-Content -LiteralPath $_.FullName })
     return [pscustomobject]@{
         Runner = $Runner; Ok = $ok; Total = $totals.Total; Passed = $totals.Passed
         Failed = $totals.Failed; Skipped = $totals.Skipped
-        Failures = @($totals.Failures | Select-Object -First 10 | ForEach-Object {
-            $at = Get-FailureLocation "$($_.Details)`n$($_.Message)"
-            [pscustomobject]@{ Name = $_.Name; Message = ($_.Message.Trim() -split "`n")[0]
-                File = $at ? $at.File : ($_.Name -match 'res://(?<f>\S+?\.(?:gd|cs|tscn|tres|json))' ? $Matches.f : ($_.Name -match '^(?<f>.+?\.(?:gd|cs))[.:]' ? $Matches.f : $null)); Line = $at ? $at.Line : $null } })
+        Failures = @($totals.Failures | Select-Object -First 10 | ForEach-Object { Resolve-FailureDetail $_ $logLines })
     }
+}
+
+# Lines of a failure text that say something: no framework banners, no "at line -1", no numbering.
+function Get-MeaningfulLines([string]$Text) {
+    @($Text -split "`r?`n" | ForEach-Object { ($_ -replace "`e\[[0-9;]*m", '').Trim() } |
+        Where-Object { $_ -notmatch '^\[\d+\] \S+ \((res://|/|[A-Za-z]:)' } |
+        ForEach-Object { $_ -replace '^\[\d+\]\s*<engine-\d+>', '' -replace '^\[Failed\]:\s*', '' -replace '^(SCRIPT ERROR|USER ERROR|ERROR):\s*', '' } |
+        Where-Object { $_ -and $_ -notmatch '^(Unexpected Errors:|at line -?\d+$|at: |GDScript backtrace|Test failed$|fail(ed)?$)' })
+}
+
+# Turns a parsed failure into what an agent needs without opening a log: a specific message, the file and line in the
+# project, and a few lines of detail. Frameworks often report only "failed" (GUT on a script error, for example), so when
+# the report is vague the runner's own log is searched for the test's block and its first project frame.
+function Resolve-FailureDetail($Failure, [string[]]$LogLines) {
+    $text = "$($Failure.Details)`n$($Failure.Message)"
+    $message = $Failure.Message.Trim()
+    $at = Get-FailureLocation $text
+    $block = @()
+    if ((-not $at -or $message -match '^(|fail|failed|error|test failed)$') -and $LogLines.Count -gt 0) {
+        $short = ($Failure.Name -split '[.:/]')[-1]
+        for ($i = 0; $i -lt $LogLines.Count; $i++) {
+            if ($short -and $LogLines[$i] -match "(^|\W)$([regex]::Escape($short))(\W|$)") {
+                for ($j = $i + 1; $j -lt [math]::Min($LogLines.Count, $i + 40); $j++) {
+                    if ($LogLines[$j] -match '^\* ' -or $LogLines[$j] -match '^\S.*\[Test\] > Test (passed|failed)') { break }
+                    $block += $LogLines[$j]
+                }
+                if (@($block | Where-Object { $_ -match 'ERROR|Expected|expected|res://' }).Count -gt 0) { break }
+                $block = @()
+            }
+        }
+        if (-not $at -and $block) { $at = Get-FailureLocation ($block -join "`n") }
+    }
+    $lines = @(Get-MeaningfulLines $text) + @(Get-MeaningfulLines ($block -join "`n"))
+    if ($message -match '^(|fail|failed|error|test failed)$' -or $message -eq $Failure.Name) {
+        $specific = @($lines | Select-Object -First 1)
+        if ($specific) { $message = $specific[0] }
+    }
+    if (-not $message) { $message = 'failed' }
+    $detail = (@($lines | Select-Object -Unique | Select-Object -First 6) -join "`n")
+    if ($detail.Length -gt 600) { $detail = $detail.Substring(0, 600) }
+    $file = if ($at) { $at.File } elseif ($Failure.Name -match 'res://(?<f>\S+?\.(?:gd|cs|tscn|tres|json))') { $Matches.f }
+        elseif ($Failure.Name -match '^(?<f>.+?\.(?:gd|cs))[.:]') { $Matches.f } else { $null }
+    $line = if ($at) { $at.Line } elseif ($file -and $text -match 'at line (?<l>[1-9]\d*)') { [int]$Matches.l } else { $null }   # GUT: "at line 7"
+    # "Expecting be equal:" says nothing without the line after it.
+    $parts = @(Get-MeaningfulLines $message)
+    $message = if ($parts.Count -gt 1 -and $parts[0].EndsWith(':')) { "$($parts[0]) $($parts[1])" } elseif ($parts) { $parts[0] } else { $message }
+    return [pscustomobject]@{ Name = $Failure.Name; Message = $message; File = $file; Line = $line; Details = $detail }
 }
 
 # JUnit for runners without their own report. Each case: @{ Name = ...; Failure = '' or the reason }.
