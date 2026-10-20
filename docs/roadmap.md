@@ -139,3 +139,27 @@ matches it.
 - **`/retro`:** on demand only.
 - **Weekly review:** Friday night, Athens time (Europe/Athens). The canary runs before it, at 18:47 UTC.
 - **Architecture runner:** every rule starts as a warning.
+
+## To do: sources not yet read
+
+The cloud session that built the accessibility and game-design work could reach only GitHub and package registries;
+the sites below were blocked by its network policy (or need credentials). Read each one from a machine that can reach it,
+or allow the host in the environment's network settings, then check or extend what the kit says.
+
+| Source | Host | What to do with it |
+|---|---|---|
+| W3C standards list | `www.w3.org` | Done another way (the `browser-specs` and `wcag-guidelines-mcp` npm packages); recheck the full list of Recommendations for anything outside browsers |
+| Xbox Accessibility Guidelines (XAG 101 to 123) | `learn.microsoft.com`, `devdocs.xbox.com` | Read the 23 guideline titles and add XAG numbers next to WCAG ones in `docs/wcag-ui.md` and `godot-ui-accessibility` |
+| Game Accessibility Guidelines | `gameaccessibilityguidelines.com` | Read the full list and the licence; map basic and intermediate items to the WCAG table |
+| MDA paper | `users.cs.northwestern.edu` | Check the exact wording of the eight aesthetics in `godot-game-design` |
+| Marc LeBlanc's eight kinds of fun | `www.8kindsoffun.com` | Same check, from the author's own site |
+| The 400 Project rule list | `cs.kent.ac.uk`, `www.gamedeveloper.com` | Read the rules; replace the rules of thumb written in our own words with real entries, cited |
+| Gameplay design patterns wiki | `gameplaydesignpatterns.org` | Pick the patterns that matter for small games and name them in `godot-game-design` |
+| Game genre thesaurus (361 terms) | `gamer.ischool.uw.edu` | Use as the genre vocabulary for `/game` pitches |
+| Wikidata genres (Q659563) | `query.wikidata.org` | Genre and "games like X" queries |
+| IGDB | `api.igdb.com` (needs a Twitch client id and token) | Genres, themes, modes and keywords of comparable games |
+| Steam tags and SteamSpy | `partner.steamgames.com`, `steamspy.com` | The tag list for positioning a game in `/game` |
+| Wikipedia list of video game genres | `en.wikipedia.org` | Cross-check the genre vocabulary |
+| Kenney licence | `kenney.nl` | Confirm CC0 on the source before recommending the assets |
+| OpenGameArt | `opengameart.org` | Per-asset licences, for a `doctor` credits check |
+| Tracery licence | `github.com/galaxykate/tracery` (the LICENSE file was not at the paths tried) | Confirm Apache 2.0 before recommending it in `godot-procgen` |
