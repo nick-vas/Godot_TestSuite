@@ -35,6 +35,26 @@ function Read-Gdd([string]$Path) {
     }
 }
 
+# Architecture decisions (docs/decisions/NNNN-title.md, templates/ADR.md), wherever the GDD would be.
+function Get-Decisions($Info) {
+    $dirs = @((Join-Path $Info.ProjectDir 'docs/decisions'))
+    $root = Get-GitRoot $Info.ProjectDir
+    if ($root -and -not (Test-Path -LiteralPath (Join-Path $root '.gdignore'))) { $dirs += Join-Path $root 'docs/decisions' }
+    $dir = $dirs | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $dir) { return @() }
+    return @(Get-ChildItem -LiteralPath $dir -File -Filter '*.md' | Sort-Object Name | ForEach-Object {
+        $text = Get-Content -LiteralPath $_.FullName -Raw
+        $heading = [regex]::Match($text, '(?m)^#\s+(?<n>\d+)\.\s+(?<t>.+?)\s*$')
+        [ordered]@{
+            number = $heading.Success ? $heading.Groups['n'].Value : $null
+            title = $heading.Success ? $heading.Groups['t'].Value : $_.BaseName
+            status = [regex]::Match($text, '(?m)^Status:\s*(?<s>.+?)\s*$').Groups['s'].Value
+            feature = [regex]::Match($text, '(?m)^Feature:\s*(?<f>F\d+)').Groups['f'].Value
+            path = $_.FullName
+        }
+    })
+}
+
 # Tests, flows and code that name a feature with a GDD:F<n> tag.
 function Find-FeatureTags($Info) {
     $root = if ($Info.Solution) { Split-Path $Info.Solution } else { $Info.ProjectDir }
@@ -171,12 +191,16 @@ function Invoke-Status($Info) {
     if ($lastTest -and -not $lastTest.ok) { $warnings.Add("The latest test run failed ($($lastTest.code), $(Format-RunTime $lastTest.time))") }
     if (-not $lastTest) { $warnings.Add('No test run is recorded yet; run test -Json -Quiet') }
 
+    $decisions = @(Get-Decisions $Info)
+    foreach ($d in $decisions | Where-Object { $_.status -match '^Proposed' }) { $warnings.Add("Decision $($d.number) $($d.title) awaits the user's answer") }
+
     $git = Get-GitActivity $Info.ProjectDir
     $inventory = Get-ProjectInventory $Info
 
     Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count } : $null)
     Set-JsonField features $features
     Set-JsonField plan $plan
+    Set-JsonField decisions $decisions
     Set-JsonField runs $runs
     Set-JsonField git $git
     Set-JsonField inventory $inventory
@@ -195,6 +219,7 @@ function Invoke-Status($Info) {
         else { Write-Console "Plan: none ($(Format-KitCommand 'plan -Do init'))" }
         if ($lastTest) { Write-Console "Last test run: $(Format-RunTime $lastTest.time) $(if ($lastTest.ok) { 'passed' } else { "failed ($($lastTest.code))" })" }
         if ($git) { Write-Console "Git: $($git.commits7Days) commit(s) this week, $($git.uncommitted) uncommitted change(s), last commit $($git.lastCommit)" }
+        if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }
         Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }
     }

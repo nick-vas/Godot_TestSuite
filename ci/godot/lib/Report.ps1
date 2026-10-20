@@ -257,6 +257,13 @@ function Write-RunSummary([string]$ResultsDir, $Info, [object[]]$Results, $Cover
     }
     $failures = @($Results | ForEach-Object { $runner = $_.Runner; $_.Failures | ForEach-Object { "- ``$runner`` **$($_.Name)**: $($_.Message)" } })
     if ($failures) { $md.Add(''); $md.Add('**Failures**'); $failures | Select-Object -First 15 | ForEach-Object { $md.Add($_) } }
+    # Warnings fail nothing, so this list is the only place a pull request shows them.
+    $warnings = @($Results | Where-Object { $_.PSObject.Properties['Warnings'] } | ForEach-Object { $_.Warnings } | Where-Object { $_ })
+    if ($warnings) {
+        $md.Add(''); $md.Add("**Architecture warnings** ($($warnings.Count))")
+        $warnings | Select-Object -First 10 | ForEach-Object { $md.Add("- ``$($_.rule)`` $($_.file)$(if ($_.line) { ":$($_.line)" })") }
+        if ($warnings.Count -gt 10) { $md.Add("- and $($warnings.Count - 10) more in the run's JSON") }
+    }
     Set-Content -LiteralPath (Join-Path $ResultsDir 'summary.md') -Value $md -Encoding utf8
 }
 

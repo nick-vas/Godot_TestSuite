@@ -6,7 +6,8 @@ description: Use when structuring a new Godot game or system, separating gamepla
 # Architecture patterns that pay off
 
 Patterns from a shipped-quality Godot 4.7 C# project. They exist to keep gameplay deterministic, testable without a renderer, and
-easy for an agent to verify.
+easy for an agent to verify. For the general catalogue (state machines, pools, event queues, components and what Godot already
+provides) see `godot-patterns`; for a new system, autoload or cross-scene dependency, ask the `godot-architect` subagent first.
 
 ## Simulate simple, present rich
 

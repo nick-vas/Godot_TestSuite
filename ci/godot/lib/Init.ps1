@@ -231,6 +231,10 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
     # Skills and agents name the kit as ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1, which Claude Code fills in for the
     # plugin. Copies get this machine's path instead.
     $placeholder = '${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1'
+    # Other kit files (templates) are named from the kit's folder.
+    $rootPlaceholder = '${CLAUDE_PLUGIN_ROOT}'
+    $kitRoot = $suiteRoot -replace '\\', '/'
+    $fill = { param([string]$Text) $Text.Replace($placeholder, $suitePath).Replace($rootPlaceholder, $kitRoot) }
     foreach ($skill in Get-ChildItem -LiteralPath (Join-Path $suiteRoot '.agents/skills') -Directory) {
         $copied = @(foreach ($base in '.agents/skills', '.claude/skills') {
             $target = Join-Path $root "$base/$($skill.Name)"
@@ -239,7 +243,7 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
             Copy-Item -LiteralPath $skill.FullName -Destination $target -Recurse
             foreach ($md in Get-ChildItem -LiteralPath $target -Recurse -File -Filter '*.md') {
                 $text = Get-Content -LiteralPath $md.FullName -Raw
-                if ($text.Contains($placeholder)) { Set-Content -LiteralPath $md.FullName -Value $text.Replace($placeholder, $suitePath) -NoNewline -Encoding utf8 }
+                if ($text.Contains($rootPlaceholder)) { Set-Content -LiteralPath $md.FullName -Value (& $fill $text) -NoNewline -Encoding utf8 }
             }
             $base
         })
@@ -250,7 +254,7 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
         $target = Join-Path $root ".claude/agents/$($agent.Name)"
         if (Test-Path -LiteralPath $target) { Write-InitStep skipped "agent $($agent.BaseName) is already there"; continue }
         New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-        Set-Content -LiteralPath $target -Value (Get-Content -LiteralPath $agent.FullName -Raw).Replace($placeholder, $suitePath) -NoNewline -Encoding utf8
+        Set-Content -LiteralPath $target -Value (& $fill (Get-Content -LiteralPath $agent.FullName -Raw)) -NoNewline -Encoding utf8
         Write-InitStep added "agent $($agent.BaseName) (.claude/agents)"
     }
 }

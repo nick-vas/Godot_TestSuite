@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Architecture (roadmap phase 3):
+  - `architecture` runner, detected for every project: a static scan for fragile node paths, UI scripts writing game state,
+    per-frame node lookups and allocations, autoload events never unsubscribed, and too many autoloads. Every rule is a
+    warning by default (`runnerResults[].warnings`); `architecture.json` in the project sets rules to `error` or `off`.
+    `tests/architecture-fixtures` holds one triggering project per rule and a clean one, checked in CI.
+  - `godot-patterns` skill: Game Programming Patterns mapped to Godot 4, with what the engine already provides.
+  - `godot-architect` subagent: compares designs before code and records a decision (`templates/ADR.md`) in
+    `docs/decisions/` for the user to accept. `status -Json` lists `decisions[]` and warns about proposed ones; `/game`
+    shows them and sends new systems through the architect first.
 - `/game` (roadmap phase 2):
   - `status -Json`: GDD features with the tests tagged `GDD:F<n>`, the plan, the latest run of each command, git activity and an
     inventory (scenes, autoloads, input actions, TODOs), with warnings. Read-only.

@@ -65,6 +65,9 @@ or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line
   "failures": [ { "name": "test/test_score.gd.test_x", "message": "[20] expected to equal [25]:", "file": "test/test_score.gd",
                   "line": 7, "details": "[20] expected to equal [25]:" } ] }
 ```
+The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`, `message`): findings that do not fail the
+run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
+
 `message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
 and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;
 `details` holds up to six meaningful lines. When the report itself is vague, the runner's log is searched for the test.
@@ -100,6 +103,7 @@ picture is the game area without the black bars, so it can be smaller than `-Res
 - `features[]`: `id` (F1...), `title`, `priority`, `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
   tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest test run passed).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
+- `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/godot-ci-history.jsonl`.
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,

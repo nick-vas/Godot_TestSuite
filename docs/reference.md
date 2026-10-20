@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
@@ -69,3 +69,21 @@ mkdir -p /opt/pwsh && curl -fsSL https://github.com/PowerShell/PowerShell/releas
 
 More on each framework, the five most popular Godot test projects, and how to set each one up:
 [godot-pipelines.md](godot-pipelines.md).
+
+**`architecture.json`** (optional, in the Godot project folder) configures the `architecture` runner:
+
+```json
+{ "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6 }
+```
+
+| Rule | Warns when |
+|---|---|
+| `parent-path` | a node path climbs two or more levels (`../..`, `GetParent().GetParent()`) |
+| `ui-mutates-state` | a UI script (extends a Control type, or lives under `ui/`, `hud/`, `menu/`) assigns to an autoload's field |
+| `per-frame-lookup` | `_Process`/`_PhysicsProcess` looks up nodes (`GetNode`, `$Node`, `FindChild`, groups) |
+| `per-frame-alloc` | C# `_Process`/`_PhysicsProcess` allocates (collections, `StringName`/`NodePath`, interpolated strings, LINQ), even in a rare branch |
+| `event-not-unsubscribed` | a script subscribes to an autoload's C# event without `-=`, or connects a GDScript lambda to an autoload's signal without `disconnect` |
+| `too-many-autoloads` | the project has more autoloads than `maxAutoloads` (default 8) |
+
+Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
+not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.

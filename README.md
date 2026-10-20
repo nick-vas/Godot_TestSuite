@@ -11,7 +11,7 @@ what to build next. This kit supplies both:
 - **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
 - **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
 - **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
-- **Teach**: `AGENTS.md` and seventeen skills that make the agent work test first and prove it is done before it says so.
+- **Teach**: `AGENTS.md` and eighteen skills that make the agent work test first and prove it is done before it says so.
 - **Stay lean and get better**: a Claude Code plugin with a verifier subagent and a Stop hook, quiet JSON output that keeps
   logs out of the agent's context, and a `retro` that turns a session's mistakes into kit changes, each measured with evals.
 
@@ -71,6 +71,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Test first** | `test -Json -Quiet [-Runners x -Filter y]` | per-runner pass/fail with the failure's `message`, `file`, `line`; fails on zero tests and on any engine `ERROR:`; Godot's output stays in a log file |
 | **Play the UI** | `flows` runner | `*.flow.json` files: press buttons, send input actions, wait, assert on node properties, headless in the real engine |
 | **Catch what tests miss** | `validate` and `smoke` runners | loads every script, scene and resource; plays the main scene |
+| **Keep the structure sound** | `architecture` runner, `godot-architect` subagent | warns on fragile node paths, UI writing game state, per-frame lookups and allocations, events never unsubscribed, too many autoloads; design reviews recorded in `docs/decisions/` |
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
@@ -81,7 +82,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity; `/game` judges each feature with evidence in `plan/STATUS.md`, keeps Trello in step and asks what next |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, seventeen skills and the `godot-verifier` subagent, copied or as a plugin |
+| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, eighteen skills and the `godot-verifier` subagent, copied or as a plugin |
 | **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last passing `test` run |
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
 
@@ -100,6 +101,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-automation-hooks` | the game must be played, measured or balanced without a person; runs must be reproducible |
 | `godot-ui-layout` | menus, HUD or text must look right at several resolutions |
 | `godot-architecture` | structuring a game or system so it stays deterministic and testable |
+| `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
 | `godot-export-release` | exporting, smoke-launching, tagged releases |
@@ -110,7 +112,8 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `weekly-review` (manual) | Friday: the week in review and next week's tasks |
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
-images stay out of the main conversation.
+images stay out of the main conversation. The `godot-architect` subagent compares designs for a new system before code is
+written and records the decision in `docs/decisions/` for you to accept.
 
 The skills are checked like code. `ci/godot/tools/Test-Skills.ps1` enforces structure and a 16 KB budget, requires descriptions to say only
 *when* to use a skill, and verifies that every command, flag, error code and package version a skill quotes exists in the script, the JSON

@@ -44,7 +44,8 @@ Ask once whether to tag existing tests: a `GDD:F<n>` comment on each test that c
 | proven | tagged tests or flows cover every "Done when" line, and the latest test run passed | test names (`file:line`), run time |
 
 Write `plan/STATUS.md` (replace it each run): the date and current phase with its open gates; a table Feature | Priority |
-Mark | Evidence | Next step; the `warnings` worth acting on; and a "Board changes" section (step 5).
+Mark | Evidence | Next step; the `warnings` worth acting on; the `decisions` still `Proposed`, which wait for the user; and a
+"Board changes" section (step 5).
 
 ## 4. Plan tasks
 
@@ -82,6 +83,8 @@ one, move it to `doing` in the plan and on the board, and start it with `godot-t
 
 - **Not in the GDD:** before building anything the GDD does not contain, ask: add it as a new feature (with priority
   and "Done when"), or drop it. Never build it silently.
+- **New structure:** a next task that adds a system, an autoload or a dependency between scenes starts with the
+  `godot-architect` subagent, and its decision is accepted before code is written.
 - **Too much in progress:** respect the work-in-progress limit; suggest finishing a task instead of starting one.
 - **Over the timebox:** when the phase is past its timebox, propose which `could` and `should` features to cut. Never
   propose cutting tests.

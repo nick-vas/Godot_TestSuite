@@ -10,7 +10,7 @@ ones) and starts only after the previous one is merged. This page is the plan; t
 | 0. Loose ends | Done |
 | 1. Self-improvement | Plugin packaging, `retro`, run history and `kit-review` done, plus the ten agent-efficiency items in [research.md](research.md) (`-Quiet`, failure details, verifier subagent, Stop hook, evals). The weekly canary runs Fridays 18:47 UTC. Open: scheduling the monthly review, and the first eval numbers from a machine where the eval sandbox can run Godot |
 | 2. `/game` | Built: `status`, the GDD format and feature tags, plan links to features and cards, the `game` and `weekly-review` skills. Open: scheduling the Friday review on your machine, and a first real run on Breakout Roguelike |
-| 3. Architecture | Not started |
+| 3. Architecture | Built: the `architecture` runner (warnings by default), `godot-patterns`, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
 | 4. Look and feel | Not started |
 
 ## What was decided

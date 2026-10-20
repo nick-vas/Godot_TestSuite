@@ -106,8 +106,8 @@ function Get-ProjectInfo {
 
     $selected = @($Runners | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     if ($selected.Count -eq 0) {
-        # Every project gets the load check; it needs no tests.
-        $selected += 'validate'
+        # Every project gets the load check and the architecture scan; neither needs tests.
+        $selected += 'validate', 'architecture'
         # dotnet test on the solution covers xUnit/NUnit/MSTest and gdUnit4Net suites alike.
         if ($sln) {
             $csprojs = @(Find-ProjectFiles -Root (Split-Path $sln) -Filter '*.csproj')
@@ -121,7 +121,7 @@ function Get-ProjectInfo {
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 

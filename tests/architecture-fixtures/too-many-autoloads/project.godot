@@ -1,0 +1,11 @@
+config_version=5
+
+[application]
+
+config/name="too-many-autoloads"
+
+[autoload]
+
+A1="*res://a1.gd"
+A2="*res://a2.gd"
+A3="*res://a3.gd"
