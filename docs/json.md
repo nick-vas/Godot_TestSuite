@@ -55,7 +55,7 @@ Branch on `error.code`; `message` can change.
 
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`.
 
-**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
+**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line`.
 
 **test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
@@ -105,7 +105,7 @@ changes in red).
 
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
-- `features[]`: `id` (F1...), `title`, `priority`, `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
+- `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
   tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest test run passed).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
@@ -115,5 +115,6 @@ changes in red).
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
-- `warnings[]`: a draft GDD, must-have features with no tagged test, features with no plan task, tags or tasks naming
+- `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
+  unknown kind of fun, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, plan overruns.

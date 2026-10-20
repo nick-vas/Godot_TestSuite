@@ -26,19 +26,26 @@ function Get-LookSetup($Info) {
     return [ordered]@{ styleGuide = $style; resolutions = $resolutions; juiceRules = $juice ? @($juice.rules).Count : 0 }
 }
 
-# Features are "### F<n> <name>" headings with a "Priority:" line and "Done when:" bullets (templates/GDD.md).
+# The eight kinds of fun of the MDA framework (Hunicke, LeBlanc and Zubek); a feature's "Fun:" line names the ones it serves.
+$script:FunKinds = @('sensation', 'fantasy', 'narrative', 'challenge', 'fellowship', 'discovery', 'expression', 'submission')
+
+# Features are "### F<n> <name>" headings with a "Priority:" line, a "Fun:" line and "Done when:" bullets (templates/GDD.md).
 function Read-Gdd([string]$Path) {
     $text = Get-Content -LiteralPath $Path -Raw
     $features = [System.Collections.Generic.List[object]]::new()
     $current = $null; $inDoneWhen = $false
     foreach ($line in $text -split "`r?`n") {
         if ($line -match '^###\s+(?<id>F\d+)\s+(?<title>.+?)\s*$') {
-            $current = [ordered]@{ id = $Matches.id; title = $Matches.title; priority = $null; doneWhen = [System.Collections.Generic.List[string]]::new() }
+            $current = [ordered]@{ id = $Matches.id; title = $Matches.title; priority = $null; fun = @(); doneWhen = [System.Collections.Generic.List[string]]::new() }
             $features.Add($current); $inDoneWhen = $false
         } elseif ($line -match '^#{1,3}\s') {
             $current = $null; $inDoneWhen = $false
         } elseif ($current) {
             if ($line -match '^Priority:\s*(?<p>\w+)') { $current.priority = $Matches.p.ToLowerInvariant(); $inDoneWhen = $false }
+            elseif ($line -match '^Fun:\s*(?<f>.*)$') {
+                $current.fun = @($Matches.f -split '[,;/]' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
+                $inDoneWhen = $false
+            }
             elseif ($line -match '^Done when:') { $inDoneWhen = $true }
             elseif ($inDoneWhen -and $line -match '^\s*[-*]\s+(?<c>.+)$') { $current.doneWhen.Add($Matches.c.Trim()) }
         }
@@ -195,7 +202,11 @@ function Invoke-Status($Info) {
             $passing = $tagged.Count -gt 0 -and $lastTest -and $lastTest.ok
             if ($plan -and $linked.Count -eq 0 -and $f.priority -ne "won't" -and -not $passing) { $warnings.Add("$($f.id) $($f.title) has no plan task") }
             if ($f.priority -eq 'must' -and $tagged.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) is a must but no test is tagged GDD:$($f.id)") }
-            [ordered]@{ id = $f.id; title = $f.title; priority = $f.priority; doneWhen = $f.doneWhen
+            if ($f.priority -in 'must', 'should' -and $f.fun.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) does not say which kind of fun it serves (a ""Fun:"" line)") }
+            foreach ($kind in @($f.fun | Where-Object { $_ -notin $script:FunKinds })) {
+                $warnings.Add("$($f.id) $($f.title): '$kind' is not a kind of fun ($($script:FunKinds -join ', '))")
+            }
+            [ordered]@{ id = $f.id; title = $f.title; priority = $f.priority; fun = @($f.fun); doneWhen = $f.doneWhen
                 taggedTests = $tagged; tasks = @($linked | ForEach-Object { [ordered]@{ id = $_.id; column = $_.column } })
                 # Evidence only: tagged tests exist and the latest full test run passed. Whether that proves the feature is /game's call.
                 testedAndPassing = [bool]$passing }

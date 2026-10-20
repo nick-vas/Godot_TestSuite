@@ -24,8 +24,8 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 status -Json      # add -Projec
 
 If `gdd` is null, draft `docs/GDD.md` from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD.md`. Base it on what exists:
 `inventory` (scenes, main scene, autoloads, input actions), the scripts behind them, and any notes in the repository.
-Each feature gets an id (F1, F2...), a guessed priority and "Done when" lines describing behaviour you can see in the
-code. Keep `Status: draft` in it.
+Each feature gets an id (F1, F2...), a guessed priority, the kinds of fun it serves (`Fun:`, from `godot-game-design`) and
+"Done when" lines describing behaviour you can see in the code. Keep `Status: draft` in it.
 
 Then confirm it with the user, section by section, with multiple-choice questions: pitch and pillars, core loop, then
 features in groups of at most four (Keep, Change, Drop, Later), then out of scope. Write each answer in before the next
@@ -86,5 +86,7 @@ one, move it to `doing` in the plan and on the board, and start it with `godot-t
 - **New structure:** a next task that adds a system, an autoload or a dependency between scenes starts with the
   `godot-architect` subagent, and its decision is accepted before code is written.
 - **Too much in progress:** respect the work-in-progress limit; suggest finishing a task instead of starting one.
-- **Over the timebox:** when the phase is past its timebox, propose which `could` and `should` features to cut. Never
-  propose cutting tests.
+- **Over the timebox:** when the phase is past its timebox, propose which `could` and `should` features to cut, starting
+  with those that serve none of the game's main kinds of fun. Never propose cutting tests.
+- **Is it fun:** a new feature names the kind of fun it serves before it is built; if it serves none of the game's main
+  kinds, say so when you ask whether to add it (`godot-game-design`).

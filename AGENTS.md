@@ -41,6 +41,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   Commands, flags, error codes and versions quoted in a skill are checked against the real script, `docs/json.md` and `examples/breakout`.
 - Commit as the repository owner. Do not add AI attribution trailers to commits or PR descriptions.
 - Do not rewrite pushed history.
+- Blocked access (a site, tool, credential or permission out of reach) is never a reason to drop a good idea: ask the
+  owner for help, do what does not depend on it, and write down what could not be done and why in `docs/roadmap.md`.
 
 ## Targets
 

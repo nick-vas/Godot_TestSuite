@@ -55,6 +55,7 @@ jobs:
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 status -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
           $f2 = $d.features | Where-Object id -eq 'F2'
           if (-not $d.ok -or $d.gdd.featureCount -ne 5 -or $f2.taggedTests.Count -ne 4 -or $f2.priority -ne 'must') { throw "status: $($d | ConvertTo-Json -Depth 6)" }
+          if (($f2.fun -join ',') -ne 'challenge,sensation' -or ($d.warnings -match 'kind of fun')) { throw "Fun lines: $($f2.fun) / $($d.warnings)" }
           if ($d.inventory.mainScene -ne 'res://Main.tscn' -or $null -ne $d.plan) { throw "status inventory or plan: $($d | ConvertTo-Json -Depth 6)" }
           # In a game of its own: a plan task linked to a feature and a card, and the warnings that follow.
           $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'status-game')
@@ -72,6 +73,11 @@ jobs:
           $d = pwsh -NoProfile -File $ci status -Json -Project $project 2>$null | ConvertFrom-Json
           if (($d.features | Where-Object id -eq 'F5').tasks[0].id -ne 't1') { throw "the task should show under F5: $($d | ConvertTo-Json -Depth 6)" }
           if (-not ($d.warnings -match 'F1 Paddle and ball has no plan task')) { throw "expected a missing-task warning: $($d.warnings)" }
+          # A must feature that names no kind of fun, and one that names an unknown kind, are both warned about.
+          $gdd = Join-Path $project 'docs/GDD.md'
+          (Get-Content $gdd -Raw).Replace('Fun: challenge, sensation', 'Fun: greed').Replace("Fun: challenge`n", '') | Set-Content $gdd -NoNewline
+          $d = pwsh -NoProfile -File $ci status -Json -Project $project 2>$null | ConvertFrom-Json
+          if (-not ($d.warnings -match "F3 Lives and game over does not say which kind of fun") -or -not ($d.warnings -match "'greed' is not a kind of fun")) { throw "expected Fun warnings: $($d.warnings)" }
           # The deliberately invalid -Feature above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
       - name: Parse action manifests
