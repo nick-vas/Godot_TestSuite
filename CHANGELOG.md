@@ -1,6 +1,20 @@
 # Changelog
 
 ## Unreleased
+- Sources rechecked once the owner allowed more hosts:
+  - All 23 Xbox Accessibility Guidelines (v3.2) mapped to WCAG in `docs/wcag-ui.md`. Where they are stricter for games,
+    `godot-ui-accessibility`, `templates/STYLE.md` and `godot-juice` follow them: text size as body height (26 px on
+    console, 18 px on PC at 1080p), large text only from 36 or 52 px, flash area and red flashes, menu looping, focus kept
+    in dialogs, touch targets in millimetres, no hold-to-confirm.
+  - Other W3C documents for games (WCAG2ICT, IMSC subtitles, COGA, MAUR, XAUR, SSML) listed in `docs/wcag-ui.md`.
+  - `godot-game-design` corrected against the MDA paper (its own labels; the list is not complete), the 400 Project's
+    master list (around 110 rules, with real rule names) and the gameplay design patterns wiki (real pattern names; the
+    2003 paper had three authors). New genre section.
+  - `templates/genres.json`: 48 genre terms from Wikidata (CC0) with their ids, in gameplay and setting facets, and the
+    query that refreshes them. The GDD template's pitch names its genres.
+  - Licences confirmed for Kenney (CC0), OpenGameArt (per asset), the Fast WFC add-on (MIT), WaveFunctionCollapse and
+    MarkovJunior (MIT). Tracery's is still unconfirmed.
+
 - Procedural generation:
   - `godot-procgen` skill: seeds derived per generator with a fixed mix (SplitMix64), the techniques and where each comes
     from (noise, cellular automata, rooms, Wave Function Collapse and MarkovJunior, both MIT C#, text grammars, weighted

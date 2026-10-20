@@ -10,7 +10,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd` (run inside Godot), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
 - `tests/` self-tests with deliberately broken fixtures: the skill validator's, the architecture rules' and the juice runner's (`juice-fixture`).
-- `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `AGENTS.md`, `GDD.md`, `ADR.md`, `STYLE.md`).
+- `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `AGENTS.md`, `GDD.md`, `ADR.md`, `STYLE.md`), and `genres.json`, the genre vocabulary.
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` and `godot-architect` subagents, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
