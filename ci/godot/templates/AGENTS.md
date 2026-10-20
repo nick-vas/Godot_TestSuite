@@ -28,6 +28,7 @@ pwsh {{SUITE}} bench -Json -Quiet -GameArgs '--stress' -BudgetMs 16.7
 - Screenshots, benchmarks and export launches go to the `godot-verifier` subagent, which returns a short verdict.
 - Debug entry points are flags after `--` (`--seed`, `--autoplay`, `--no-save`), passed with `-GameArgs`.
 - Log one tagged line per meaningful event (`[Fight] won in 142.5s`), so checks are a `grep` away.
+- Every player action gets feedback within 100 ms, logged as `[juice]` lines and checked by `juice.json` (`godot-juice`).
 - `docs/GDD.md` is the scope. Before building anything it does not contain, ask: add it as a feature, or drop it.
 - Tag each test that proves a GDD feature with `GDD:F<n>` in its name or a comment on it.
 - A change that adds a system, an autoload or a dependency between scenes goes to the `godot-architect` subagent first; its

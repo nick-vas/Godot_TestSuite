@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Look and feel (roadmap phase 4):
+  - `shot -Baseline <folder>` compares each screenshot with the earlier one of the same name, inside Godot: `compare`
+    (`changedPercent`, `sizeChanged`) and a `<name>.compare.png` with before, after and the changes in red.
+  - `juice` runner, detected when the project has `juice.json`: plays the game headless at a fixed 60 fps with the bot's
+    flags and checks the game's `[juice] event`/`feedback` lines: every event must get each listed feedback within its window.
+    `tests/juice-fixture` and `tests/Test-JuiceLog.ps1` check it in CI.
+  - `ci/godot/templates/STYLE.md`: a style guide with a `Resolutions:` line tools read; `status -Json` reports `look`.
+  - Skills: `look` (writes the style guide with the user, critiques screens through `godot-verifier`, offers before and
+    after as a multiple-choice question and records the choice) and `godot-juice` (the feedback checklist and how to log it).
 - Architecture (roadmap phase 3):
   - `architecture` runner, detected for every project: a static scan for fragile node paths, UI scripts writing game state,
     per-frame node lookups and allocations, autoload events never unsubscribed, and too many autoloads. Every rule is a

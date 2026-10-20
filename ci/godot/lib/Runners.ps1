@@ -8,6 +8,7 @@
 #   smoke      plays the main scene for N frames and fails on any engine or script error
 #   validate   loads every script, scene and resource and instantiates every scene (tools/validate.gd)
 #   architecture  a static scan of the scripts for structural problems (lib/Architecture.ps1); warnings unless configured
+#   juice      a bot run that checks each gameplay event got its feedback in time (lib/Juice.ps1, juice.json)
 #
 # -Filter means: dotnet/gdunit4 `dotnet test --filter`; godottest suite name; gut test name.
 
@@ -153,6 +154,9 @@ function Invoke-TestRunner {
             $cases = @(ConvertFrom-ValidateLog $log 'flow')
             if ($code -ne 0) { $cases += @{ Name = 'flows'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'flows.junit.xml') 'flows' $cases
+        }
+        'juice' {
+            $code = Invoke-JuiceRunner $Info $ResultsDir $GameArgs
         }
         'architecture' {
             $code = Invoke-ArchitectureRunner $project $ResultsDir

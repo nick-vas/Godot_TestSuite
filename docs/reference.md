@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
@@ -22,6 +22,7 @@
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
 | `-Label` | | `bench`: the run's name in `bench.csv` |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
+| `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
@@ -87,3 +88,16 @@ More on each framework, the five most popular Godot test projects, and how to se
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
+
+**`juice.json`** (optional, in the Godot project folder) turns on the `juice` runner: Godot plays the game headless at a fixed
+60 fps for `frames` frames (default 1800) with `args` (plus `-GameArgs`), and each rule checks that every `event` was followed
+by each `feedback` within `withinMs` (default 100) of game time:
+
+```json
+{ "frames": 1800, "args": ["--autoplay", "--seed=1"],
+  "rules": [ { "event": "brick_hit", "feedback": ["flash", "sfx"], "withinMs": 100 } ] }
+```
+
+The game prints `[juice] event <name> <ms>` and `[juice] feedback <name> <ms>`, with `<ms>` its game time in milliseconds. A
+rule fails when an event went unanswered, or never happened (the bot did not reach it). Events too close to the end of the run
+to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).

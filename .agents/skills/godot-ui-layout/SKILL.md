@@ -19,7 +19,8 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://
 subagent to take and judge them and return only the problems. Otherwise open them and check every screen, at the target resolution and at least one other aspect ratio,
 after every UI change. `shot` needs a display: on Windows it just works; on a Linux machine without one, start a virtual display
 (`Xvfb :99 &` and `DISPLAY=:99`). With the editor bridge open, `godot_editor_read` can capture the running game too
-(`godot-editor-bridge`).
+(`godot-editor-bridge`). To compare a change, shoot the same scenes again with `-Baseline <folder of the earlier shots>`:
+each shot gains `compare.changedPercent` and a before | after | diff image (`/look` builds its choices on it).
 
 ## Project settings
 

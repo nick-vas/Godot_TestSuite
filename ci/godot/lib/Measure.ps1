@@ -81,15 +81,21 @@ function Add-BenchCsvRow([string]$Path, $Result) {
 }
 
 function Invoke-Shot {
-    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs)
+    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline)
     Assert-Display 'shot'
     $tool = (Join-Path $PSScriptRoot '../tools/shot.gd' | Resolve-Path).Path -replace '\\', '/'
     $dir = [System.IO.Path]::GetFullPath($OutputDir)
+    $baselineDir = $null
+    if ($Baseline) {
+        $baselineDir = [System.IO.Path]::GetFullPath($Baseline)
+        if (-not (Test-Path -LiteralPath $baselineDir)) { Stop-GodotCi "-Baseline $Baseline does not exist; take the 'before' screenshots there first" 'invalid-arguments' }
+        if ($baselineDir.TrimEnd('\', '/') -eq $dir.TrimEnd('\', '/')) { Stop-GodotCi '-Baseline must differ from -Output, or the new screenshots would replace the ones they are compared with' 'invalid-arguments' }
+    }
     New-Item -ItemType Directory -Force $dir | Out-Null
     $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution)
     $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $user = @("--shot-frames=$Frames", "--shot-dir=$($dir -replace '\\', '/')") + $(if ($scenes) { "--shot-scenes=$($scenes -join ',')" }) +
-        @(Split-GameArgs $GameArgs)
+        $(if ($baselineDir) { "--shot-baseline=$($baselineDir -replace '\\', '/')" }) + @(Split-GameArgs $GameArgs)
 
     $log = Join-Path $dir 'shot.log'
     Start-LogGroup "Screenshots after $Frames frames$(if ($Resolution) { " at $Resolution" })"
@@ -100,12 +106,29 @@ function Invoke-Shot {
     foreach ($line in Get-Content -LiteralPath $log) {
         if ($line -match '^@@shot ok (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<w>\d+)\|(?<h>\d+)$') {
             $shots += [ordered]@{ scene = $Matches.scene; file = [System.IO.Path]::GetFullPath($Matches.file); width = [int]$Matches.w; height = [int]$Matches.h }
+        } elseif ($line -match '^@@shot compare (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<pct>-?[\d.]+)\|(?<size>[01])$') {
+            $shot = $shots | Where-Object { $_.scene -eq $Matches.scene } | Select-Object -Last 1
+            if ($shot) {
+                $found = $Matches.file -ne '-'
+                $shot['compare'] = [ordered]@{
+                    baseline = $found ? (Join-Path $baselineDir (Split-Path $shot.file -Leaf)) : $null
+                    changedPercent = $found ? [double]::Parse($Matches.pct, [cultureinfo]::InvariantCulture) : $null
+                    sizeChanged = $Matches.size -eq '1'
+                    image = $found ? [System.IO.Path]::GetFullPath($Matches.file) : $null
+                }
+            }
         } elseif ($line -match '^@@shot error (?<msg>.+)$') {
             $problems += $Matches.msg
         }
     }
     Set-JsonField shots $shots
-    foreach ($shot in $shots) { Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))" }
+    foreach ($shot in $shots) {
+        Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))"
+        if ($shot.Contains('compare')) {
+            if ($shot.compare.image) { Write-CiLog "  $($shot.compare.changedPercent)% changed$(if ($shot.compare.sizeChanged) { ', size changed' }) -> $($shot.compare.image)" }
+            else { Write-CiLog '  no baseline picture to compare with' }
+        }
+    }
     if ($problems.Count -gt 0 -or $shots.Count -eq 0) {
         Stop-GodotCi "Screenshots failed: $(if ($problems) { $problems -join '; ' } else { 'no scene produced an image' })" 'shot-failed'
     }

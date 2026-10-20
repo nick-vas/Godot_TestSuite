@@ -1,0 +1,6 @@
+{
+  "frames": 300,
+  "rules": [
+    { "event": "hit", "feedback": ["flash"], "withinMs": 100 }
+  ]
+}

@@ -16,7 +16,8 @@ What you are asked to check decides the command:
 - Tests: `test -Json -Quiet` (add `-Runners` or `-Filter` only when asked).
 - Screens: `shot -Json -Quiet -Scene <res:// paths> -Resolution <WxH>`, then open each PNG it lists and judge it against
   `docs/STYLE.md` if the project has one: unreadable or clipped text, overlaps, elements outside the safe area,
-  contrast, inconsistency between screens.
+  contrast, inconsistency between screens. With `-Baseline <folder of earlier shots>` each shot also gets
+  `compare.changedPercent` and `compare.image` (before | after | changes in red); open the comparison image.
 - Frame pacing: `bench -Json -Quiet` with the scene, `-GameArgs` and budget you were given. Report avg FPS, 1% and
   0.1% lows, p99 and max frame time, frames over 33 ms, the first hitches, and custom-monitor deltas (GC counts).
 - Exported build: `export -Json -Quiet -Preset <name> -Run`.

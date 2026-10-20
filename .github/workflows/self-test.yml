@@ -31,6 +31,9 @@ jobs:
       - name: Architecture rules catch their fixtures and stay quiet on clean code
         shell: pwsh
         run: ./tests/Test-ArchitectureFixtures.ps1
+      - name: The juice check matches events with their feedback
+        shell: pwsh
+        run: ./tests/Test-JuiceLog.ps1
       - name: Version updates rewrite every pin and keep the skills valid
         shell: pwsh
         run: |
@@ -182,6 +185,18 @@ jobs:
           if (-not $settings.enabledPlugins['godot-agent-kit@godot-agent-kit'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
           # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
+      - name: The juice runner passes timely feedback and fails late feedback
+        shell: pwsh
+        run: |
+          $game = 'tests/juice-fixture'
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 detect -Json -Project $game 2>$null | ConvertFrom-Json
+          if ('juice' -notin $d.runners) { throw "juice.json should enable the juice runner: $($d.runners -join ',')" }
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners juice -Results (Join-Path $env:RUNNER_TEMP 'juice-ok') 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or $d.runnerResults[0].total -ne 2) { throw "feedback in time: $($d | ConvertTo-Json -Depth 6)" }
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners juice -GameArgs '--late' -Results (Join-Path $env:RUNNER_TEMP 'juice-late') 2>$null | ConvertFrom-Json
+          $f = @($d.runnerResults[0].failures)
+          if ($d.ok -or $d.error.code -ne 'tests-failed' -or $f.Count -ne 1 -or $f[0].message -notmatch "had no 'flash' within 100 ms") { throw "late feedback: $($d | ConvertTo-Json -Depth 6)" }
+          exit 0   # the last run failed on purpose; see the step above
 
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.
@@ -216,6 +231,15 @@ jobs:
           if (-not $d.ok -or $d.shots.Count -ne 1 -or -not (Test-Path $d.shots[0].file)) { throw "shot: $($d | ConvertTo-Json -Depth 5)" }
           # The example keeps its 4:3 arena (aspect "keep"), so a 1920x1080 window gives a 1440x1080 picture.
           if ($d.shots[0].width -ne 1440 -or $d.shots[0].height -ne 1080) { throw "unexpected size $($d.shots[0].width)x$($d.shots[0].height)" }
+          # The same scene again barely changes; at another size the comparison says so; the baseline cannot be the output.
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Resolution 1920x1080 -Frames 30 -Output screenshots/after -Baseline screenshots 2>$null | ConvertFrom-Json
+          $c = $d.shots[0].compare
+          if (-not $d.ok -or $c.changedPercent -gt 5 -or $c.sizeChanged -or -not (Test-Path $c.image)) { throw "compare: $($d | ConvertTo-Json -Depth 5)" }
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Resolution 1280x720 -Frames 30 -Output screenshots/small -Baseline screenshots 2>$null | ConvertFrom-Json
+          if (-not $d.ok -or -not $d.shots[0].compare.sizeChanged) { throw "size change: $($d | ConvertTo-Json -Depth 5)" }
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Output screenshots -Baseline screenshots 2>$null | ConvertFrom-Json
+          if ($d.ok -or $d.error.code -ne 'invalid-arguments') { throw "-Baseline equal to -Output should be refused: $($d | ConvertTo-Json -Depth 5)" }
+          exit 0
       - name: -GameArgs reach the game
         shell: pwsh
         run: |
