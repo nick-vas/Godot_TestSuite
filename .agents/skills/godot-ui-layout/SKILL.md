@@ -44,6 +44,7 @@ a screenshot at 1920x1080 showed it.
 - Readability over a busy 3D backdrop: dim it, or put text on an opaque panel. Semi-transparent panels let titles behind them show
   through.
 - Text and icons need contrast that survives a post-process grade (posterize, tint, vignette); check with `shot`, not in the editor.
+- Gamepad and keyboard navigation, focus, contrast numbers, target sizes and screen readers: `godot-ui-accessibility`.
 
 ## Test what you can
 
