@@ -1,7 +1,12 @@
 # Changelog
 
 ## Unreleased
-- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
+- The TRIBES networking model (Frohnmayer and Gift, GDC 2000) in Breakout.Core (`Net/Replication.cs`): a connection
+  layer that reports every packet delivered or dropped, in order, and never resends; a ghost replicator per client with
+  scope, priority, a byte budget and per-object state masks, where lost state is resent only if no newer value was sent;
+  creations and deletions resent until they arrive. Tested against the paper's four loss cases and a lossy run (5% of the
+  bytes of full snapshots, no older value ever applied). `godot-multiplayer` gains the delivery classes and how they map
+  to Godot 4.7 (`OnChange` replication is reliable: wrong for state that changes all the time).- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
   - Skills: `godot-data`, `godot-determinism`, `godot-modding`, `godot-anti-cheat`, `godot-console-cert` and
     `godot-debug-tools`; `godot-performance` gains C# profiling (`dotnet-trace`, `dotnet-gcdump`, starting the counters
     `dotnet-counters` needs) and measured GC settings, `godot-export-release` versions, signing and store uploads.
