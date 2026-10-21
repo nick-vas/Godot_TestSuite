@@ -95,6 +95,29 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Bake at run time from collision shapes or outlines; `AddMesh` reads meshes back from the GPU and stalls. Free the RIDs
   you create (`NavigationServer2D.FreeRid`) or they leak at exit.
 
+### Decisions that must agree
+
+Two checks that should give one answer (navigation's "arrived" and combat's "in range"; each squad member's "am I the
+closest?") stop agreeing once rounding enters: the agent twitches in place or the whole squad waits. Tested in
+`Ai/Agreement.cs`; the talk behind it: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/a-house-built-on-sand.md`.
+
+- Decide once per squad, not in each member. `SquadTurns.PickAttacker(target, members)` measures every distance from
+  the target the same way and gives exact ties to the lowest ID. Members deciding alone, each in its own frame, left
+  zero or two attackers in 3,384 of 10,000 near-tie squads at (100000, 100000); a tolerance band plus an ID tiebreak
+  still failed 1,761 times (`ExactlyOneSquadMemberAttacks`).
+- Arriving must mean in range. Aim the `NavigationAgent2D`/`3D` at the target itself with `TargetDesiredDistance`
+  below the attack range (`AttackReach.ArriveWithin`), and let combat check the same distance against the range. The
+  agent stops up to `TargetDesiredDistance` from `TargetPosition` (defaults 10 px in 2D, 1 m in 3D; 8 px short in a
+  4.7.2 run), so aimed at a stand point on the range circle it stops outside it. `NavigationFinished` with
+  `IsTargetReached()` false means the path ended short (the target is off the mesh): do not re-request the same path.
+- Test AI at the largest coordinates the game uses, not only in a small level at the origin. Floats are 0.0078 apart at
+  100000: a stand point one unit from the target came out 1.0033 away, and `Steering.Arrive` froze 0.15 short of it,
+  its last steps rounding to nothing. Tolerances that passed all 100 approaches at the origin failed all 100 there
+  (`ArrivalAndAttackRangeAgreeFarFromOrigin`). `float.Epsilon` (1.4e-45 in C#) is never a tolerance.
+- A check tests what it means. Keep cut-scene actors out of targeting with a flag that says so, not "is playing a
+  scripted animation": in the talk, sheathing a sword later became one and made the player untargetable. Write down
+  what `IsAlive` returns during the death animation, and assert it.
+
 ## 7. Addons
 
 LimboAI (MIT; behaviour trees and a hierarchical state machine, with an editor and debugger) supports C# only in its
@@ -113,3 +136,4 @@ Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness.
 - [ ] every random choice comes from an injected `Random(seed)`; the same seed gives the same run
 - [ ] decisions are recorded (frame, agent, choice, top scores) to a ring buffer the game can show when debugging
 - [ ] `bench` with the most agents the design allows stays inside the frame budget (`godot-performance`)
+- [ ] squad choices are made once per squad; arrival and range tests also run at the game's largest coordinates
