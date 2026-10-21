@@ -32,6 +32,7 @@ and inspected here; nothing ran on a phone (no device, and no KVM for an emulato
 | `user://` on the web | `/userfs`, IndexedDB; a counter survived a reload; the sync starts on the next frame after the file closes |
 | Touch in Chromium (Playwright, 412x915 at 2.625x) | `InputEventScreenTouch` plus an emulated mouse button; positions in device pixels; `ScreenGetDpi()` 252 |
 | Safe area on the web | the whole window; no cutouts |
+| Headless Firefox on a GitHub Linux runner (no GPU) | the engine never starts: "missing features: WebGL2", also with `webgl.force-enabled`; Chromium (SwiftShader) and the runner's Edge start it. `GODOT_CI_WEB_HEADED=1` opens a window instead, for a try under Xvfb |
 | Audio unlock | could not be reproduced: headless and headed Chromium started the AudioContext without a gesture |
 | Android APK (GDScript) | 26.4 MB, 14 s; minSdk 24, targetSdk 36, arm64-v8a; `zipalign -c -P 16` passed; every `.so` aligned to 16 KB |
 | Android export without `import_etc2_astc` | refused: "ETC2/ASTC texture compression is required for Android export" |

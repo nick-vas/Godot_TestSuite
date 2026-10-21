@@ -294,6 +294,7 @@ From this pass (`docs/mobile-web.md`):
 | Launching Android builds (`export -Run` on an emulator) | No KVM in the cloud session; GitHub's Linux runners have it, so an emulator job is possible |
 | Android checks after export (`aapt2` target API, `zipalign -P 16`, signature, `.a` and `.pdb` files in a release APK) | Needs the Android SDK on the runner; worked by hand here |
 | iOS exports | Need macOS and Xcode |
+| Firefox in CI | Headless Firefox on GitHub's runners has no WebGL 2 (seen in CI, even with `webgl.force-enabled`); the self-test tries it with a window under Xvfb as an informational step |
 | Audio unlock, Safari and WebKit | Automated Chromium did not block audio; WebKit was not installed (Playwright can install it) |
 | itch.io's SharedArrayBuffer checkbox | Only secondary sources; the headers it sends were not confirmed |
 | Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
