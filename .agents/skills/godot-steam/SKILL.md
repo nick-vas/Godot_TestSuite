@@ -14,18 +14,19 @@ in. Everything here was tested on Godot 4.7.2 mono without a Steam client (Octob
 | Binding | Works in 4.7.2 mono | Natives in the export | Notes |
 |---|---|---|---|
 | GodotSteam add-on (GDExtension, MIT) | yes, from C# with `Engine.GetSingleton("Steam").Call(...)` or the community C# wrapper | next to the executable | GDScript-first; string calls; 4.23.2's `.gdextension` names macOS files the zip lacks (`doctor` fails on it) |
-| `Steamworks.NET.AnyCPU` (NuGet, MIT) | **2026.164.4 yes; 2026.165.0 to .2 fail on Linux** (`DllNotFoundException`) | `data_<name>_<platform>/` | typed, one-to-one Steamworks API; `doctor` flags the broken versions |
+| `Steamworks.NET.AnyCPU` (NuGet, MIT) | **2026.164.4 yes; 2026.165.0 and .2 fail on Linux** (`DllNotFoundException`) | `data_<name>_<platform>/` | typed, one-to-one Steamworks API; `doctor` flags the broken versions |
 | `Facepunch.Steamworks` (MIT) | exported builds yes; a project run needs a native resolver | per-OS assembly wiring | NuGet 2.3.3 is Windows only |
 
 - Not `Steamworks.NET` from NuGet (a third party's, SDK 1.60, no native libraries), not GodotSteam's pre-compiled editor
   (no C# builds), never a Steam emulator (the SDK agreement forbids replacing its functionality).
 - In C#, set Steam's variables with Godot's `OS.SetEnvironment("SteamAppId", "480")`. .NET's
-  `Environment.SetEnvironmentVariable` never reaches the native library on Linux and macOS (`steam-env-dotnet` rule).
+  `Environment.SetEnvironmentVariable` never reached the native library on Linux (.NET keeps its own copy of the
+  environment on Unix, so macOS behaves the same) (`steam-env-dotnet` rule).
 
 ## 2. Start-up
 
 ```csharp
-// An autoload. Steam calls happen only after a successful init, and only from the main thread.
+// An autoload: Steam calls only after a successful init; callbacks run in _Process, on the main thread.
 public override void _Ready()
 {
     if (SteamAPI.RestartAppIfNecessary(new AppId_t(AppId))) { GetTree().Quit(); return; }   // relaunch through Steam
@@ -68,12 +69,13 @@ manual runs (Spacewar or your App ID) touch the real client: overlay, popups, cl
 
 - Auto-Cloud needs no code: in App Admin give a root per OS where Godot's `user://` lives (`WinAppDataRoaming`,
   `LinuxXdgDataHome`, `MacAppSupport`, plus the project's `config/custom_user_dir_name`) and a pattern matching the save
-  files only, not temporary or backup files. Set a per-user quota.
-- Steam's own conflict dialog shows dates and the game never learns what the player chose. Keep the lineage inside the
+  files only, not temporary or backup files. Set a per-user quota. Check the paths with `testappcloudpaths <AppId>` in
+  the Steam console before release (the mapping was not tested end to end).
+- Steam's own conflict dialog shows dates, and no documented API tells the game which side the player chose. Keep the lineage inside the
   save and a local record of the last save this device wrote; after Steam's sync, decide with
   `CloudSync.Decide(local, cloud)` (`godot-saves`), and after the player resolves a conflict, save with
   `SaveStore.SaveResolved`, so the next sync goes one way on both devices without asking again.
-- Offline play and an "unable to sync" launch both lead to conflicts: test two devices editing the same save.
+- Offline play and an "unable to sync" launch make conflicts likely (Valve): test two devices editing the same save.
 
 ## 6. DLC, demos, servers, branches
 

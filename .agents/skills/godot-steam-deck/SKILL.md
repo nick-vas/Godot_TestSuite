@@ -39,7 +39,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners text
 
 ## 3. Detecting the Deck, and defaults
 
-- `IsSteamRunningOnSteamDeck` was removed in Steamworks SDK 1.65 (`steam-removed-api` rule). Choose default settings
+- `IsSteamRunningOnSteamDeck` is deprecated since Steamworks SDK 1.65 and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 (`steam-removed-api` rule). Choose default settings
   with `GetSteamHardwareDefaultConfig()` (Low, Medium, High, Max, SteamDeck, SteamMachine...), configured per device on
   the partner site; `IsRunningOnSteamHardware()` is for analytics only.
 - Do not lock settings to the hardware; Valve recommends against it. Do not sync graphics settings through Steam Cloud
@@ -52,16 +52,17 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners text
 Godot's virtual keyboard works only on Android, iOS and the Web; on a Deck it does nothing. Use Steam's:
 `ShowFloatingGamepadTextInput(mode, x, y, width, height)` sends ordinary key presses to the focused `LineEdit`. The
 rectangle is in window pixels: convert with `GetViewport().GetFinalTransform() * lineEdit.GetGlobalRect()`, since the
-control's own rectangle is in the base canvas's units. It returns false outside Big Picture and the Deck.
+control's own rectangle is in the base canvas's units (the conversion was checked; where Steam then draws the keyboard was
+not). It returns false outside Big Picture and the Deck.
 
 ## 5. Sleep and resume
 
 - A Deck suspends the game without warning. In a test, a stopped and resumed Godot received no notification at all,
   and its next frame advanced by only 0.134 s (8 physics steps) after 3 s away. Steam sends `AppResumingFromSuspend_t`
   after resume only.
-- So: save often (checkpoints, settings when changed), never "on suspend"; on resume (Steam's callback, or the system
-  clock jumping against `Time.GetTicksMsec()`), pause the game, re-check the network and controllers, and let the player
-  continue.
+- So: save often (checkpoints, settings when changed), never "on suspend"; on Steam's resume callback, pause the game,
+  re-check the network and controllers, and let the player continue. `Time.GetTicksMsec()` kept counting through the
+  stop in the test, so a clock jump is not a reliable sign of sleep.
 
 ## 6. Before the review
 
