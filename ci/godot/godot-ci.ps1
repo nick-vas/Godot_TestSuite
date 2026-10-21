@@ -70,6 +70,9 @@ param(
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
     [double]$BudgetMs = 0,
+    # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
+    # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D.
+    [double]$HotspotCell = 0,
     # bench: a name for this run in bench.csv, e.g. 'vsync-off 1080p'.
     [string]$Label = '',
     # bench, shot: window size, e.g. 1920x1080.
@@ -404,7 +407,7 @@ switch ($Command) {
     'bench' {
         Invoke-Setup; Invoke-Build
         Invoke-Bench -Info $info -Scene @($Scene)[0] -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
-            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs `
+            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell `
             -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'bench-results' })))
     }
     'shot' {
