@@ -56,6 +56,9 @@ jobs:
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
+      - name: doctor's GDExtension and Steam package checks, and Steam detection
+        shell: pwsh
+        run: ./tests/Test-Steam.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |
@@ -291,6 +294,9 @@ jobs:
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Output screenshots -Baseline screenshots 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'invalid-arguments') { throw "-Baseline equal to -Output should be refused: $($d | ConvertTo-Json -Depth 5)" }
           exit 0
+      - name: The textsize runner fails text under 9 px at 1280x800, and integer scaling that cuts off
+        shell: pwsh
+        run: ./tests/Test-TextSize.ps1
       - name: soak runs a server and clients, and catches a leak and a crash
         shell: pwsh
         run: ./tests/Test-Soak.ps1

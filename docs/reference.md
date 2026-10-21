@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
@@ -146,6 +146,16 @@ to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameAr
 twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs, counted for
 15 common languages; others are not counted) and `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
 and `TranslationServer.Translate` calls that no table has; test folders are skipped). `tests/l10n-fixture` has one of each.
+
+**`textsize.json`** (optional, in the Godot project folder) turns on the `textsize` runner, which measures every visible text
+on the listed scenes (the main scene by default) at each resolution (1280x800 by default, the Steam Deck), headless: the stretch
+scale comes from the project settings and the letters' height from the font. A font size under `minPx` (9) fails; capitals under
+`minPx` or a size under `wantPx` (12) are warnings. Integer scaling with a base bigger than the window fails (drawn 1:1, cut off).
+`-Runners textsize` runs it without the file, with the defaults.
+
+```json
+{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12 }
+```
 
 **`data.json`** (optional, in the Godot project folder) turns on the `data` runner, which checks the game's data tables without
 Godot. Each table names its file (JSON: an array of objects or an object keyed by id; or CSV), its `id` column and its fields:

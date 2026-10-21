@@ -43,9 +43,10 @@ indicator, or over 3 minutes with one.
 
 ## 3. Requirements a game must design for
 
-- **Suspend and resume.** Save state on suspend, re-establish the user and controller on resume (XR-112), handle network
-  loss during suspend (074-03/04). On desktop Godot sends `NotificationApplicationFocusOut`/`In`; `NotificationApplicationPaused`
-  is Android and iOS only; consoles deliver suspend through the port.
+- **Suspend and resume.** Save often, never "on suspend": a Deck or a desktop can stop the game without warning, and
+  Godot then gets no notification. Re-establish the user and controller on resume (XR-112), handle network loss during
+  suspend (074-03/04). Godot sends `NotificationApplicationFocusOut`/`In` only when the window loses focus;
+  `NotificationApplicationPaused` is Android and iOS only; consoles deliver suspend through the port.
 - **Controller removed during play:** pause and offer "Press A to continue" with whichever controller (XR-115).
 - **Users:** progress belongs to the signed-in user; never save for a user who has signed out; a user change during
   suspend is a different player (XR-052). Show the platform's display name, not your own account name.
@@ -60,15 +61,10 @@ indicator, or over 3 minutes with one.
 - **Accessibility** is guidance, not a certification requirement (Xbox Accessibility Guidelines: body text at least 26 px
   at 1080p on console, 18 px on PC). Meet it anyway (`godot-ui-accessibility`).
 
-## 4. Steam Deck Verified
+## 4. Steam Deck
 
-- The default controller configuration reaches all content, with no setting to change first; prompts match the device
-  in use, no keyboard prompts while a controller is used; text entry works with the controller (Steam's on-screen
-  keyboard, or your own).
-- 30 frames a second at 800p in the default settings; 1280×800 (or 1280×720) supported.
-- Text at least 9 px tall at 1280×800, 12 px recommended.
-- No "unsupported hardware" warning, launchers navigable by controller. A Linux build is tested if you ship one, else
-  Proton. Anti-cheat that does not support Proton makes a game Unsupported.
+Valve publishes its criteria; one review covers Steam Deck, Steam Machine and other SteamOS devices. See
+`godot-steam-deck` (and the `textsize` runner for its 9 px text rule).
 
 ## 5. Test before submission
 
