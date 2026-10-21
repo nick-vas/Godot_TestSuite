@@ -1,6 +1,23 @@
 # Changelog
 
 ## Unreleased
+- Game AI, multiplayer, crash reports and telemetry:
+  - Skills: `godot-game-ai` (choosing a decision structure, behaviour trees that interrupt, utility with momentum,
+    GOAP, steering, Godot 4.7 navigation readiness), `godot-multiplayer` (choosing a model, prediction, reconciliation,
+    interpolation, lag compensation, rollback, Godot 4.7 specifics) and `godot-telemetry` (consent, no free text,
+    catching C# errors through a `Logger`, Sentry's defaults, export and erasure). Sources and measurements:
+    `docs/game-ai.md`, `docs/multiplayer.md`, `docs/telemetry.md`.
+  - Breakout.Core: utility scoring, a reactive behaviour tree, a backward-searching GOAP planner and Reynolds steering;
+    a netcode model (lossy link, server input queue, prediction, interpolation, lag compensation) tested at 50, 100 and
+    250 ms; a telemetry client with consent per purpose, a schema without free text, persistence, sampling, export and
+    erasure; crash fingerprints and a session marker. 73 unit tests.
+  - Breakout: crash reports through a Godot `Logger`, with consent, installed only by the running game.
+  - `soak` command: one headless server and `-Clients` clients run together for `-Seconds`; fails on a crash, an engine
+    error, a process that never got ready (`soak-failed`) or memory that keeps growing (`soak-leak`, `-MaxGrowthMbPerHour`).
+  - The `architecture` runner warns when ENet's `create_server` gets a channel count (`enet-server-channels`): Godot 4.7.2
+    uses it as the server's incoming bandwidth limit.
+  - `doctor` warns when the Sentry addon starts before the player is asked, attaches the whole log, or sends personal data.
+  - Release exports of Breakout map source paths to `/_/`, so stack traces do not carry the developer's paths.
 - Saves, localization and input:
   - Skills: `godot-saves` (where and how to write so a crash or power cut loses nothing, plain-data formats, migrations
     and golden saves, cloud conflicts decided by lineage, saving without a freeze), `godot-localization` (keys, CSV or

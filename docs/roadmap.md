@@ -221,3 +221,17 @@ From this pass (`docs/saves.md`, `docs/localization.md`, `docs/input.md`):
 | Controller names per OS, `steam_input_index` on a Steam Deck, SDL3's pad limit on Windows | No controller or Deck was available |
 | Kenney's PlayStation shoulder and right-stick picture names | The pack listing was cut off; `PromptGlyphs` returns text for them |
 | GodotSteam's licence file | Its repository could not be read from this session |
+
+## To do: game AI, multiplayer and telemetry
+
+From this pass (`docs/game-ai.md`, `docs/multiplayer.md`, `docs/telemetry.md`):
+
+| Item | Why it is open |
+|---|---|
+| Why a process that registered a C# `Logger` hangs at exit under coverlet (Godot 4.7.2 mono) | The release engine has no symbols for gdb; Breakout avoids it by installing the logger only in the running game. Worth a minimal reproduction for an upstream report |
+| An 8-hour `soak` on a schedule | A GitHub job runs at most 6 hours; needs splitting or a self-hosted runner, and a decision on how many clients |
+| Latency in `soak` | `tc ... netem` is missing from this container's kernel; GitHub's runners may have it. A lag-simulating `MultiplayerPeerExtension` for games to include was prototyped but not shipped |
+| Sentry's addon end to end | Its release binaries could not be downloaded here; the settings `doctor` checks were read from its source |
+| Valve's networking articles, the Overwatch and Sea of Thieves GDC talks, EUR-Lex, gdpr-info.eu, cnil.fr | Behind a proof-of-work wall, a login, or unreachable from this session |
+| Whether crash reports may rest on legitimate interest, and access requests with random ids | Legal questions for the owner's lawyer |
+| Steering: obstacle avoidance, path following, alignment and cohesion | Not in Breakout's `Steering.cs` yet |
