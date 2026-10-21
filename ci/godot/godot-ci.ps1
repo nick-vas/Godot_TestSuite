@@ -18,6 +18,8 @@
     ./ci/godot/godot-ci.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
 .EXAMPLE
     ./ci/godot/godot-ci.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 soak -Clients 10 -Seconds 600 -MaxGrowthMbPerHour 50   # a headless server and 10 clients for 10 minutes
 #>
 [CmdletBinding()]
 param(
@@ -27,8 +29,9 @@ param(
     # bench: measure a scene's frame pacing. shot: save screenshots of scenes at a resolution.
     # status: GDD features, tagged tests, plan, latest runs, git activity and an inventory, in one read-only pass.
     # audio: loudness of the sound files and, with -Mix, of the game's recorded mix (needs ffmpeg).
+    # soak: one headless server and -Clients headless clients of the game, run together; fails on crashes, errors and leaks.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -73,6 +76,10 @@ param(
     # that is cut off, off screen or missing glyphs. -Pseudo adds a pseudolocalized pass: accented, 40% longer, in [brackets].
     [string[]]$Locale,
     [switch]$Pseudo,
+    # soak: how many headless clients to start next to the one server.
+    [int]$Clients = 4,
+    # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
+    [double]$MaxGrowthMbPerHour = 0,
     # bench: V-Sync off, to see the headroom. -MaxFps caps the frame rate instead.
     [switch]$Uncapped,
     [int]$MaxFps = 0,
@@ -121,7 +128,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -328,7 +335,7 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak') {
     Start-RunLog (Join-Path ([System.IO.Path]::GetFullPath($Results)) 'godot-ci.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
@@ -356,6 +363,11 @@ switch ($Command) {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -Locale $Locale -Pseudo:$Pseudo `
             -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
+    }
+    'soak' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour `
+            -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'soak-results' })))
     }
     'audio' {
         if ($Mix) { Invoke-Setup; Invoke-Build }

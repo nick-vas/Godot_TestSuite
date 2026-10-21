@@ -116,6 +116,9 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-saves` | saves that survive crashes, damaged disks, new versions and a second device: atomic writes, migrations, golden saves, cloud conflicts |
 | `godot-localization` | translations, plurals, right-to-left, fonts for every script, and screens that still fit in every language |
 | `godot-input` | rebinding, keyboard and controller at once, button prompts that follow the device, Steam Input, accessibility |
+| `godot-game-ai` | enemies and companions that decide and move: state machines, behaviour trees, utility, GOAP, steering, navigation that is ready |
+| `godot-multiplayer` | online play: prediction, reconciliation, interpolation, lag compensation, rollback, dedicated servers, soak tests |
+| `godot-telemetry` | crash reports and analytics with consent and without personal data: Sentry, catching C# errors, export and erasure |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |

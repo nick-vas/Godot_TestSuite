@@ -11,6 +11,7 @@ $script:ArchitectureRules = [ordered]@{
     'event-not-unsubscribed' = 'Subscribes to an autoload''s event without unsubscribing; the autoload outlives this node and keeps calling it'
     'too-many-autoloads'     = 'Many autoloads become hidden global state; group state in one autoload or pass dependencies in (godot-patterns: Singleton)'
     'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
+    'enet-server-channels'   = 'Passes a channel count to ENet''s create_server: Godot 4.7.x uses it as the server''s incoming bandwidth limit in bytes per second, so every client stalls; pass only the port and the client limit (godot-multiplayer)'
 }
 
 # Godot's Control family, for spotting UI scripts by what they extend.
@@ -100,6 +101,10 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
 
             if ($line -match 'GetNode(<[^>]*>)?\s*\(\s*"\.\./\.\.|get_node\s*\(\s*"\.\./\.\.|\$"?\.\./\.\.|GetParent\(\)\s*\.\s*GetParent\(\)|get_parent\(\)\s*\.\s*get_parent\(\)') {
                 & $add 'parent-path' $relative $n $line.Trim()
+            }
+            # create_server(port, max_clients, max_channels, ...): a third argument that is not 0 (a fixed engine bug in 4.7.2).
+            if ($line -match '\b(create_server|CreateServer)\s*\(\s*[^,()]+,\s*[^,()]+,\s*(?!0\s*[,)])[^,()\s]') {
+                & $add 'enet-server-channels' $relative $n $line.Trim()
             }
             # Assignments only: "Events.Instance.Changed += OnChanged" subscribes a handler, which is how UI should listen.
             $subscribes = $line -match '[-+]=\s*(On[A-Z]\w*|_on_\w+|\([^)]*\)\s*=>|\w+\s*=>)'

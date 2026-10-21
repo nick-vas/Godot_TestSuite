@@ -37,6 +37,15 @@ function Get-InputActionDevices([string]$ProjectGodot) {
     return $actions
 }
 
+# One setting from project.godot ("sentry/options/auto_init" is "options/auto_init=" under [sentry]), or $null if unset.
+function Get-GodotProjectSetting([string]$ProjectGodot, [string]$Name) {
+    $section = $Name.Split('/')[0]; $key = $Name.Substring($section.Length + 1)
+    $m = [regex]::Match($ProjectGodot, '(?ms)^\[' + [regex]::Escape($section) + '\]\s*$(?<body>.*?)(?=^\[|\z)')
+    if (-not $m.Success) { return $null }
+    $line = [regex]::Match($m.Groups['body'].Value, '(?m)^' + [regex]::Escape($key) + '=(?<v>.*)$')
+    return $line.Success ? $line.Groups['v'].Value.Trim() : $null
+}
+
 function Invoke-Doctor($Info) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
@@ -127,6 +136,18 @@ function Invoke-Doctor($Info) {
                     'Add a bus for each in the Audio panel and give each its own volume setting; skip a kind the game will never have (godot-audio)'
             } else { Add-Check OK "Audio: $($soundFiles.Count) sound file(s), buses $($buses -join ', ')" }
         }
+    }
+
+    # Crash reporting: the Sentry addon starts before game code and attaches the Godot log unless told otherwise
+    # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (godot-telemetry).
+    if ((Test-Path -LiteralPath (Join-Path $project 'addons/sentry')) -or $projectGodot -match '(?m)^\[sentry\]') {
+        $sentry = @()
+        if ((Get-GodotProjectSetting $projectGodot 'sentry/options/auto_init') -ne 'false') { $sentry += 'starts before the player is asked (auto_init)' }
+        if ((Get-GodotProjectSetting $projectGodot 'sentry/options/attach_log') -ne 'false') { $sentry += 'attaches the whole Godot log to every report (attach_log)' }
+        if ((Get-GodotProjectSetting $projectGodot 'sentry/options/send_default_pii') -eq 'true') { $sentry += 'sends personal data such as the IP address (send_default_pii)' }
+        if ($sentry) {
+            Add-Check WARN "Sentry $($sentry -join '; ')" 'Project Settings > Sentry > Options: auto_init off and SentrySdk.Init after the player agrees; attach_log off; send_default_pii off (godot-telemetry)'
+        } else { Add-Check OK 'Sentry: started by the game after consent, no log attached' }
     }
 
     # Assets: every image, sound, model, font and shader has a source and a licence in assets.json (godot-asset-pipeline).

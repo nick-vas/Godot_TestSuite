@@ -1,5 +1,6 @@
 using Breakout.Controls;
 using Breakout.Core;
+using Breakout.Diagnostics;
 using Godot;
 using System.Collections.Generic;
 
@@ -30,6 +31,7 @@ public partial class Main : Node2D
     public int Floor => _run.Floor;
     public float PaddleX => _paddleX;
     public InputDevices Devices { get; } = new();
+    public Diagnostics Diagnostics { get; private set; } = null!;
 
     private float PaddleWidth => PaddleBaseWidth + _run.PaddleWidthBonus;
     private Rect2 PaddleRect => new(_paddleX - PaddleWidth / 2, Arena.Y - 32, PaddleWidth, 12);
@@ -38,6 +40,9 @@ public partial class Main : Node2D
     {
         InputBindings.Load();
         AddChild(Devices);
+        // Errors are captured for the running game, not for copies of this scene that tests create.
+        Diagnostics = new Diagnostics { CaptureEngineErrors = GetTree().CurrentScene == this };
+        AddChild(Diagnostics);
         BuildFloor();
         ResetBall();
     }
@@ -75,6 +80,7 @@ public partial class Main : Node2D
         {
             _run.ClearFloor((Upgrade)(_run.Floor % 4));
             GD.Print($"Floor {_run.Floor} reached, score {_run.Score}");
+            OnFloorReached();
             BuildFloor();
         }
 
@@ -93,6 +99,10 @@ public partial class Main : Node2D
         DrawRect(PaddleRect, Colors.White);
         DrawCircle(_ball, 6, Colors.Gold);
     }
+
+    // Once a floor, not every frame: the event's dictionary is allocated here, outside the physics step.
+    private void OnFloorReached() =>
+        Diagnostics.Client.Track("floor_reached", new Dictionary<string, object> { ["floor"] = _run.Floor, ["score"] = _run.Score });
 
     private void BuildFloor()
     {
