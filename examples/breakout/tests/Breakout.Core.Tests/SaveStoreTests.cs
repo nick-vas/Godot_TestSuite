@@ -247,4 +247,29 @@ public sealed class SaveStoreTests : IDisposable
         var d = deck.Save(Current(151), 15, b.SavedAtUtc);
         Assert.Equal(SyncDecision.Conflict, CloudSync.Decide(b, d));
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AResolvedConflictSyncsOneWayOnBothDevices(bool keepThisDevice)
+    {
+        // Both devices start from the same save, then each plays offline.
+        var pc = BreakoutSave.Open(Path.Combine(_dir, "pc.json"));
+        pc.Save(Current(100), 10);
+        File.Copy(Path.Combine(_dir, "pc.json"), Path.Combine(_dir, "deck.json"));
+        var deck = BreakoutSave.Open(Path.Combine(_dir, "deck.json"));
+        deck.Load();
+        var onPc = pc.Save(Current(200), 20);
+        var onDeck = deck.Save(Current(150), 15);   // the Deck synced first: the cloud holds this one
+        Assert.Equal(SyncDecision.Conflict, CloudSync.Decide(onPc, onDeck));
+
+        // The player chooses on the PC.
+        var resolved = keepThisDevice ? pc.SaveResolved(Current(200), 20, onDeck) : pc.SaveResolved(Current(150), 15, onDeck);
+
+        // Keeping the PC's: the PC uploads and the Deck downloads. Keeping the Deck's: the PC now holds what the cloud holds.
+        Assert.Equal(keepThisDevice ? SyncDecision.UploadLocal : SyncDecision.InSync, CloudSync.Decide(resolved, onDeck));
+        Assert.Equal(keepThisDevice ? SyncDecision.DownloadCloud : SyncDecision.InSync, CloudSync.Decide(onDeck, resolved));
+        Assert.Equal(keepThisDevice ? 200 : 150, (int)pc.Load().Data!["best"]!["score"]!);
+        Assert.True(resolved.Generation > onDeck.Generation);
+    }
 }

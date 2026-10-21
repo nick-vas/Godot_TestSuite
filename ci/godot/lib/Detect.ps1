@@ -85,6 +85,15 @@ function Get-ExportPresetDetails([string]$ProjectDir) {
     return $details
 }
 
+# Whether the game talks to Steam: GodotSteam's add-on, or a Steamworks binding in the C# project.
+function Test-UsesSteam([string]$ProjectDir) {
+    if (Test-Path -LiteralPath (Join-Path $ProjectDir 'addons/godotsteam')) { return $true }
+    foreach ($csproj in @(Get-ChildItem -LiteralPath $ProjectDir -File -Filter '*.csproj')) {
+        if ((Get-Content -LiteralPath $csproj.FullName -Raw) -match 'Include="(Steamworks\.NET[^"]*|Facepunch\.Steamworks[^"]*|GodotSteam[^"]*)"') { return $true }
+    }
+    return $false
+}
+
 # Whether this machine can launch a build for the given export platform.
 function Test-CanRunPlatform([string]$Platform) {
     return ($IsWindows -and $Platform -eq 'Windows Desktop') -or ($IsLinux -and $Platform -match '^Linux')
@@ -125,10 +134,12 @@ function Get-ProjectInfo {
         if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0) { $selected += 'l10n' }
         # Data tables are checked against data.json: ids, fields, types, ranges and references.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'data.json')) { $selected += 'data' }
+        # Text sizes are measured on small screens (the Steam Deck's 1280x800) when textsize.json asks for it.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'textsize.json')) { $selected += 'textsize' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 

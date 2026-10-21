@@ -19,6 +19,19 @@
   creations and deletions resent until they arrive. Tested against the paper's four loss cases and a lossy run (5% of the
   bytes of full snapshots, no older value ever applied). `godot-multiplayer` gains the delivery classes and how they map
   to Godot 4.7 (`OnChange` replication is reliable: wrong for state that changes all the time).
+- Steam and Steam Deck:
+  - Skills: `godot-steam` (which C# binding works in Godot 4.7.2 and which does not, start-up without Steam, achievements,
+    stats, leaderboards, rich presence, Cloud conflicts, DLC, demos, dedicated servers, branches) and `godot-steam-deck`
+    (Verified criteria, text size, defaults per device, text entry, sleep and resume). Sources: `docs/steam.md`.
+  - `textsize` runner: every visible text measured in real pixels at 1280x800 (or the sizes `textsize.json` lists),
+    headless; under 9 px fails, capitals under 9 px or text under 12 px warn, integer scaling that cuts the game off fails.
+  - Architecture rules `steam-removed-api` and `steam-env-dotnet`. `doctor` fails when a `.gdextension` names a library
+    missing for an exported platform, and flags Steam packages that cannot work (Steamworks.NET.AnyCPU 2026.165.0 to .2
+    on Linux, the stale Steamworks.NET, Facepunch.Steamworks for Windows only). Runs of a game that uses Steam set
+    `SteamAppId=480`, so `RestartAppIfNecessary` cannot end a smoke run early.
+  - Breakout.Core: platform services (achievements, stats, a leaderboard, rich presence) with a local backend that
+    behaves like Steam, and `SaveStore.SaveResolved`, which ends a cloud conflict so the next sync goes one way.
+  - `godot-console-cert`: PlayStation and Nintendo details are out of scope (NDA); "save on suspend" is now "save often".
 - Token benchmark (`benchmark/`, `docs/token-benchmark.md`): tasks from this repository run as read-only `claude -p`
   sessions under three profiles (baseline, scoped, plan then answer), repeated, with tokens counted including cache
   reads and writes, Claude Code's own cost, turns, time and answer checks; medians and 90th percentiles per profile and

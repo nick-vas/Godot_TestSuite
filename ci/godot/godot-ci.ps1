@@ -41,7 +41,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data, textsize (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -132,7 +132,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'Credits', 'Store') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Credits', 'Store') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -144,6 +144,13 @@ $GameArgs = @(Split-GameArgs $GameArgs)
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
 $script:KitScript = $PSCommandPath
 $script:KitProject = $info.ProjectDir
+# A game following Valve's pattern calls SteamAPI_RestartAppIfNecessary, which (without steam_appid.txt or SteamAppId in
+# the environment) relaunches through Steam and tells the game to quit: smoke runs and export -Run would "pass" without
+# running anything. 480 is Valve's public test app (Spacewar); a real Steam session is not needed for this to work.
+if (-not $env:SteamAppId -and (Test-UsesSteam $info.ProjectDir)) {
+    $env:SteamAppId = '480'
+    Write-CiLog 'The game uses Steam: SteamAppId=480 for this run, so a relaunch through Steam does not end it early'
+}
 $presets = @(if ($Preset) { $Preset | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { $info.Presets })
 
 if ($Command -eq 'detect') {

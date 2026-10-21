@@ -13,7 +13,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 function New-Png([string]$Path, [int]$Width, [int]$Height, [bool]$Alpha = $false) {
     $b = [byte[]]::new(33)
-    [byte[]](0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52) | ForEach-Object -Begin { $i = 0 } -Process { $b[$i++] = $_ }
+    [Array]::Copy([byte[]](0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52), $b, 16)
     for ($k = 0; $k -lt 4; $k++) { $b[16 + $k] = ($Width -shr (24 - 8 * $k)) -band 0xFF; $b[20 + $k] = ($Height -shr (24 - 8 * $k)) -band 0xFF }
     $b[24] = 8; $b[25] = $(if ($Alpha) { 6 } else { 2 })
     [IO.File]::WriteAllBytes($Path, $b)

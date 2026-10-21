@@ -220,7 +220,6 @@ From this pass (`docs/saves.md`, `docs/localization.md`, `docs/input.md`):
 | `force_right_to_left_layout_direction` in an exported game | Needs export templates; the source says it works outside editor builds |
 | Controller names per OS, `steam_input_index` on a Steam Deck, SDL3's pad limit on Windows | No controller or Deck was available |
 | Kenney's PlayStation shoulder and right-stick picture names | The pack listing was cut off; `PromptGlyphs` returns text for them |
-| GodotSteam's licence file | Its repository could not be read from this session |
 
 ## To do: game AI, multiplayer and telemetry
 
@@ -254,6 +253,20 @@ From this pass (`docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/
 | GPU profiling (`--gpu-profile`, the Visual Profiler) | No GPU in this container |
 | The C# forms of the suspend and controller-loss tests | They compile; only the GDScript forms were run |
 | How much the import cache saves on a large project | Breakout is too small to measure |
+
+## To do: Steam and Steam Deck
+
+From this pass (`docs/steam.md`):
+
+| Item | Why it is open |
+|---|---|
+| Achievements, Cloud conflicts, overlay, glyphs, keyboards, DLC and relaunch on the real Steam client | No Steam client or account here; the owner has no App ID yet. Breakout's `LocalPlatform` covers the logic |
+| Branch deployment (`app_info_print`, `app_update -beta`) and anonymous dedicated-server downloads | steamcmd cannot reach Steam through this sandbox's proxy, and both need a partner account |
+| A Steam backend for Breakout behind `IPlatformServices` | Needs a binding in the example; GodotSteam's add-on or Steamworks.NET.AnyCPU 2026.164.4 both load in 4.7.2 |
+| GodotSteam 4.23.2 on macOS (its `.gdextension` names files the zip lacks) | No macOS; `doctor` reports the missing files |
+| Whether Valve's 9 px means the font size or the letters' height | Valve does not say; `textsize` fails the first and warns on the second |
+| `SteamDeck=1`, `OS.GetDistributionName()` on a Deck, focus events in gamescope, real sleep | No Deck |
+| Rich presence token file and achievement-name lint, build VDF lint | Proposed checks, not built yet |
 
 ## To do: store pages, legal basics and credits
 

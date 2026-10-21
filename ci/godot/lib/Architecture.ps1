@@ -13,6 +13,8 @@ $script:ArchitectureRules = [ordered]@{
     'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
     'enet-server-channels'   = 'Passes a channel count to ENet''s create_server: Godot 4.7.x uses it as the server''s incoming bandwidth limit in bytes per second, so every client stalls; pass only the port and the client limit (godot-multiplayer)'
     'untrusted-load'         = 'Loads a Godot resource from user://, where players, mods and downloads put files: a .tres or .tscn there runs any script embedded in it; read saves and mod data as JSON or plain files instead (godot-saves, godot-modding)'
+    'steam-removed-api'      = 'Calls a Steamworks function that SDK 1.65 removed or deprecated: IsSteamRunningOnSteamDeck (choose defaults with GetSteamHardwareDefaultConfig) or RequestCurrentStats (Steam loads stats before launch) (godot-steam)'
+    'steam-env-dotnet'       = 'Sets a Steam variable with .NET''s Environment.SetEnvironmentVariable, which the native Steam API never sees on Linux and macOS; use Godot''s OS.SetEnvironment (godot-steam)'
     'culture-parse'          = 'Parses a number without CultureInfo.InvariantCulture: on a German or French system "0.5" reads as 5 or throws, and CI machines never show it (godot-data)'
 }
 
@@ -111,6 +113,12 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
             # load("user://..."), GD.Load($"user://{x}"), ResourceLoader.Load<T>("user://" + name): files players can replace.
             if ($line -match '\b(load|GD\.Load|ResourceLoader\.(Load|load)(Threaded(Request)?)?|ResourceLoader\.LoadThreadedRequest|ResourceLoader\.load_threaded_request)\s*(<[^>]*>)?\s*\(\s*\$?["'']user://') {
                 & $add 'untrusted-load' $relative $n $line.Trim()
+            }
+            if ($line -match '\b(IsSteamRunningOnSteamDeck|isSteamRunningOnSteamDeck|RequestCurrentStats|requestCurrentStats)\b') {
+                & $add 'steam-removed-api' $relative $n $line.Trim()
+            }
+            if ($isCSharp -and $line -match 'Environment\.SetEnvironmentVariable\s*\(\s*"Steam(AppId|GameId)"') {
+                & $add 'steam-env-dotnet' $relative $n $line.Trim()
             }
             # float.Parse("0.5") follows the player's locale; pass CultureInfo.InvariantCulture (or any IFormatProvider).
             if ($isCSharp -and $line -match '\b(float|double|decimal|Single|Double|Decimal)\.(Try)?Parse\s*\(' -and $line -notmatch 'CultureInfo|NumberFormatInfo|FormatProvider|Invariant') {
