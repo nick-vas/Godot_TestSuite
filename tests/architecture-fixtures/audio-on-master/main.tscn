@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[node name="Main" type="Node" unique_id=433054844]
+
+[node name="Footsteps" type="AudioStreamPlayer3D" parent="." unique_id=1428652602]
+max_polyphony = 4
+
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=2111574145]
+bus = &"Music"

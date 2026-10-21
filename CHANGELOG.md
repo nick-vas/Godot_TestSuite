@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Audio:
+  - `godot-audio` skill: a bus per kind of sound with the player's sliders kept apart from the mix, adaptive music
+    (`AudioStreamInteractive`, `AudioStreamSynchronized`, `AudioStreamPlaylist`), variation and voice limits, 3D sound,
+    reverb and occlusion, ducking and pause, and loudness targets. Its sources, from FMOD, Wwise and Unreal to the Godot
+    source and the loudness recommendations, are in `docs/audio.md`.
+  - `audio` command: every sound file's integrated loudness, true peak and range (ffmpeg), by category, with warnings
+    for files over -1 dBTP and voice or music files out of step. `-Mix` records the game's own mix with Movie Maker and
+    fails it as `audio-off-target` (more than 2 LU from `-TargetLufs`, default -24), `audio-clipping` (over -1 dBTP) or
+    `audio-silent`.
+  - `doctor` names the kinds of sound with no bus of their own. The `architecture` runner warns about sound players
+    left on Master (`audio-on-master`).
+  - Godot 4.7.2's "resources still in use at exit" line, printed when a windowed run quits while a sound plays, is ignored.
+    Before this, `bench` and `shot` failed on any game whose music played at the end of the run.
 - Every program the kit runs has a time limit (30 minutes; `GODOT_CI_TIMEOUT` in seconds, `0` for none). A hung Godot is
   stopped with its child processes and fails with exit code 124, instead of stalling the run and the agent waiting on it.
 - Lessons from studios, second pass: the captions of Croteam's Talos Principle post-mortem and Sasko's quest design talk

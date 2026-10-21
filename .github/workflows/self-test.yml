@@ -45,6 +45,11 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: audio measures sound files, and doctor names missing buses
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
+          ./tests/Test-Audio.ps1
       - name: The juice check matches events with their feedback
         shell: pwsh
         run: ./tests/Test-JuiceLog.ps1
@@ -260,6 +265,11 @@ jobs:
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Output screenshots -Baseline screenshots 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'invalid-arguments') { throw "-Baseline equal to -Output should be refused: $($d | ConvertTo-Json -Depth 5)" }
           exit 0
+      - name: audio -Mix records the game's mix and judges its loudness
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
+          ./tests/Test-Audio.ps1 -Mix
       - name: -GameArgs reach the game
         shell: pwsh
         run: |

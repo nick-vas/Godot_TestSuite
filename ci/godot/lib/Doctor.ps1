@@ -113,6 +113,22 @@ function Invoke-Doctor($Info) {
     }
     if ($custom -and -not $noPad -and -not $noKeys -and -not $menuPad) { Add-Check OK "Input: $($custom.Count) action(s), each with keyboard and gamepad bindings" }
 
+    # Sound: players expect a volume per kind of sound (Xbox Accessibility Guideline 105), which needs a bus per kind.
+    $soundFiles = @(Get-AudioFiles $project)
+    if ($soundFiles.Count -gt 0) {
+        $buses = Get-AudioBusNames $project $projectGodot
+        if ($null -eq $buses) {
+            Add-Check WARN "$($soundFiles.Count) sound file(s) but no audio bus layout: everything plays on Master, so music, voices and effects cannot be set apart" `
+                'Audio panel at the bottom of the editor: add Music, Voice, SFX, Ambience and UI buses (saved as default_bus_layout.tres; godot-audio)'
+        } else {
+            $missing = @(Get-MissingAudioBuses $buses)
+            if ($missing) {
+                Add-Check WARN "Kinds of sound with no bus of their own: $($missing -join ', ') (buses: $($buses -join ', '))" `
+                    'Add a bus for each in the Audio panel and give each its own volume setting; skip a kind the game will never have (godot-audio)'
+            } else { Add-Check OK "Audio: $($soundFiles.Count) sound file(s), buses $($buses -join ', ')" }
+        }
+    }
+
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project
     $remotes = @(if ($gitRoot) { & git -C $gitRoot remote 2>$null })

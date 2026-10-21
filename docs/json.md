@@ -18,10 +18,10 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `godot-ci/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
-| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -44,7 +44,12 @@ Branch on `error.code`; `message` can change.
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, or no result was printed | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
-| `no-display` | `bench` (without `-Headless`) or `shot` on Linux with no display server; use a virtual display | - |
+| `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
+| `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
+| `audio-failed` | `audio`: ffmpeg could not read a sound file, or Godot exited non-zero while recording the mix | `error.message` |
+| `audio-silent` | `audio -Mix`: the recording is silent (nothing played) | `audio.mix` |
+| `audio-clipping` | `audio -Mix`: the mix's true peak is above -1 dBTP | `audio.mix` |
+| `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
 | `failed` | Generic failure without a specific code | `error.message` |
 
@@ -75,7 +80,7 @@ and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames i
 `details` holds up to six meaningful lines. When the report itself is vague, the runner's log is searched for the test.
 The same data is in `test-results/summary.json`.
 
-Each `build`, `test`, `export`, `bench` and `shot` run also appends one line to `.godot/godot-ci-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one line to `.godot/godot-ci-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. The plugin's Stop hook and the
 `retro` skill read it.
 
@@ -93,6 +98,13 @@ picture is the game area without the black bars, so it can be smaller than `-Res
 also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
 differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the
 changes in red).
+
+**audio**: `audio` with `targetLufs`, `toleranceLu` (2), `truePeakMaxDbtp` (-1), `files[]` (`file`, `category`: music, voice,
+ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `truePeakDbtp`, `rangeLu`; `integratedLufs` is
+`null` for silence), `warnings[]` (`file`, `message`: a file whose true peak is over -1 dBTP, or a voice or music file more than
+3 LU from its category's median; warnings never fail the run), `mix` (`null` without `-Mix`; else `file` (the recorded
+`mix.wav`), `scene`, `gameArgs`, and the same four measurements), `csv`. Written to `audio-results/audio.json` and
+`audio-results/loudness.csv`.
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 

@@ -181,3 +181,15 @@ pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contr
 | `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
 | Test duration in `status` | Croteam steered by submit-to-verdict time; the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
+
+## To do: audio
+
+From the audio pass (`docs/audio.md`):
+
+| Item | Why it is open |
+|---|---|
+| Learn FMOD's Skill Tree (adaptive music lessons) | Needs a sign-in; the landing page and course list were read |
+| A mono option | Xbox Accessibility Guideline 105 asks for one. Godot has no mono switch, and no bus effect that folds stereo to mono was confirmed |
+| A voice budget helper (categories, priorities, oldest-first stealing across players) | Godot has only per-player `MaxPolyphony`; the skill describes the pattern, but a tested C# helper would make it reusable |
+| `audio -Mix` on Windows | Tested on Linux under Xvfb; Movie Maker should work the same on Windows with a desktop session |
+

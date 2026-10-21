@@ -205,7 +205,10 @@ $script:KnownNoise = @(
     # The Android export plugin can read editor settings during headless shutdown (timing-dependent).
     'EditorSettings not instantiated yet when getting setting',
     # Seen once on a cold 4.7.2 import: a C++ engine singleton read during editor shutdown. No script or file is named.
-    '^\s*ERROR: Parameter "singleton" is null\.$'
+    '^\s*ERROR: Parameter "singleton" is null\.$',
+    # 4.7.2, with a window and the Dummy audio driver (bench, shot) or Movie Maker (audio -Mix): quitting while a sound
+    # plays leaves its stream (an AudioStreamWAV) referenced at shutdown. Any game with music hits it; headless runs do not.
+    '^\s*ERROR: \d+ resources? still in use at exit'
 )
 
 # Godot often exits 0 after printing errors, so builds, exports and smoke runs also scan the log.
