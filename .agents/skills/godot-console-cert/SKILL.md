@@ -19,8 +19,8 @@ and figures: `${CLAUDE_PLUGIN_ROOT}/docs/console-cert.md`.
 - Ports lag the engine: in October 2026 W4 supports Godot 4.4 to 4.6, not 4.7. Do not depend on APIs new in 4.7 in code that
   must reach consoles.
 - C#: consoles forbid JIT, so .NET runs ahead-of-time compiled. W4's C# is beta on Switch and Xbox only (PS5 on request).
-  Reflection-heavy code, runtime assembly loading and `System.Reflection.Emit` will not work; prefer source generators
-  (System.Text.Json's, as `godot-saves` describes).
+  Loading assemblies at run time and generating code (`System.Reflection.Emit`) cannot work without a JIT; prefer
+  source generators to reflection (System.Text.Json's, as `godot-saves` describes).
 - Ratings: digital stores accept IARC ratings; Xbox validates the age rating at submission.
 
 ## 2. What fails (Xbox's own statistics, console share)
@@ -79,5 +79,5 @@ roaming) need the dev kit and SDK.
 - [ ] a long soak with memory and object counts flat (`bench`, `soak`); load screens timed against 2 and 3 minutes
 - [ ] offline start and network loss mid-session: a message, no hang
 - [ ] damaged, truncated, old-version and missing saves (`godot-saves` tests)
-- [ ] text sizes at 1280×800 and 1080p checked on screenshots (`shot`); text cut off in every language (`godot-localization`)
+- [ ] text sizes at 1280×800 and 1080p checked on screenshots (`shot`); text cut off in long languages (`shot -Pseudo`, `godot-localization`)
 - [ ] no other platform's names or button pictures in the build's strings and images

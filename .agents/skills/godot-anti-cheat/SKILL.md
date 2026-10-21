@@ -38,7 +38,7 @@ server deciding everything that matters; client-side software is a later, costly
 - Steam: set a leaderboard's writes to "Trusted" so only the Web API (your server) sets scores, and stats and
   achievements to "GS" so only a game server sets them. Client-set values are trivial to fake.
 - Verify a score by replaying it: the client sends the seed and the inputs, the server re-simulates and accepts only a
-  matching score. That needs a deterministic simulation; Godot's physics is not deterministic across machines
+  matching score. That needs a deterministic simulation; nothing promises Godot's physics is deterministic across machines
   (`godot-determinism`, Breakout's `DeterminismCheck.Verify`).
 - Cheaper: plausibility bounds (score per second, items per minute), and a person looking at the top of the board.
 
@@ -55,7 +55,7 @@ server deciding everything that matters; client-side software is a later, costly
 
 ## 5. What does not work
 
-- Value obfuscation (XOR-ing health in memory) stops casual memory scanners for a day; server authority makes it moot.
+- Value obfuscation (XOR-ing health in memory) stops only casual memory scanners; server authority makes it moot.
 - PCK encryption needs a custom-built export template, and the key ships inside the game: tools recover encrypted
   projects. It is not anti-cheat. C# assemblies decompile readily.
 - Signing requests with a key in the client stops casual tampering only.

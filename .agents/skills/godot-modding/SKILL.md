@@ -28,7 +28,7 @@ desktop only). Everything below was tested on an exported Godot 4.7.2 mono game;
 bool ok = ProjectSettings.LoadResourcePack(modPath, replaceFiles: true);
 ```
 
-- Export a mod with any Godot editor: `godot --headless --path mod_project --export-pack "Linux" coolmod.pck` (no export
+- Export a mod with the Godot editor: `godot --headless --path mod_project --export-pack "Linux" coolmod.pck` (no export
   templates needed). ZIP and PCK behave the same.
 - A mod file at a game path replaces it, but only for loads that happen after mounting: a resource already loaded or
   preloaded stays the old one. Mount mods first, or reload with `ResourceLoader.Load(path, "", ResourceLoader.CacheMode.Replace)`,
@@ -37,7 +37,7 @@ bool ok = ProjectSettings.LoadResourcePack(modPath, replaceFiles: true);
   game's class list is replaced by the mod's (`GetGlobalClassList()` then lists only the mod's classes); with
   `false`, the mod's UIDs and class names do not resolve. So mods refer to their files by path, under their own folder,
   `res://mods/<id>/...`, never by class name or UID.
-- Load order is override order: make it explicit, show it, and let the player change it. Decide which game paths mods may
+- Load order is override order: make it explicit and fixed (sorted, not the order files happen to be found), and show it. Decide which game paths mods may
   replace; any file at the same path silently wins.
 - Official patches and DLC are packs too; sign them (`Crypto` with an asymmetric key) if they come from a launcher.
   Godot cannot stop a PCK being copied.
@@ -65,7 +65,7 @@ Godot.Bridge.ScriptManagerBridge.LookupScriptsInAssembly(mod);                  
 
 ## 4. Distribution
 
-- **Steam Workshop** (through GodotSteam or Steamworks.NET): upload with `CreateItem`, then `SetItemContent` (a folder)
+- **Steam Workshop** (through a Steamworks binding): upload with `CreateItem`, then `SetItemContent` (a folder)
   and `SubmitItemUpdate`, sending players to the Workshop agreement when `UserNeedsToAcceptWorkshopLegalAgreement`;
   install with `GetSubscribedItems` and `GetItemInstallInfo`, and read a download only after `DownloadItemResult_t`.
 - **mod.io:** REST API or its C++ SDK (no official Godot plugin); moderation tools built in; consoles on paid tiers.

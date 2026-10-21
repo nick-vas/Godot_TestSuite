@@ -26,7 +26,7 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
 - Across machines, three things change results:
   - **`Vector<T>` and SIMD reductions**: its width is 8 floats with AVX2 and 4 without, so a sum differs. Any change in
     summation order does (`Parallel.For`, a different loop shape).
-  - **`Math.Sin`, `Cos`, `Tan`, `Atan2`, `Pow`, `Exp`, `Log`** (and `MathF`) come from each OS's C library and can differ
+  - **`Math.Sin`, `Cos`, `Tan`, `Atan2`, `Pow`, `Exp`** (and the `MathF` versions) come from each OS's C library and can differ
     in the last bit between Windows, Linux and macOS. `Sqrt` and `+ - * /` are exact everywhere.
   - **Text**: `float.Parse("0.5")` returns 5 on a German system and throws on a French one, inside Godot too. Use
     `CultureInfo.InvariantCulture` everywhere, or never let numbers pass through text.
@@ -37,7 +37,7 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
   cannot be saved, which rules out rollback. Use a generator whose state lives in the simulation state:
   Breakout's `DeterministicRandom` (xorshift64*, `State` is a `ulong`) or Godot's `RandomNumberGenerator` (`Seed`, `State`).
 - Never in the simulation: `DateTime.Now`, `Time.GetTicksMsec()`, `GD.Randf()`, `GD.Randi()`, `delta` from `_Process`,
-  static mutable fields, threads, `async`.
+  static mutable fields, threads and `Parallel` (their order varies), `async` continuations.
 
 ## 3. Godot's physics
 
@@ -46,7 +46,8 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
 - Adding the same bodies in a different order changed the result in both engines. In GodotPhysics one unrelated body far
   away also changed it; Jolt was unaffected.
 - Godot builds Jolt without its cross-platform determinism option, and nothing promises GodotPhysics across machines.
-- Physics state (contacts, sleep, solver caches) cannot be saved and restored, so neither engine can roll back.
+- Godot has no API to save and restore physics state (contacts, sleep, solver caches), so setting positions and
+  velocities back does not repeat a step: neither engine can roll back.
 - So: gameplay that must be deterministic runs in your own C# (integer positions, circles and boxes, a fixed tick), and
   Godot draws it; Godot physics only for effects that do not matter (debris, ragdolls). Spawn in a fixed order.
 
