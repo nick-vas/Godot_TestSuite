@@ -80,6 +80,8 @@ param(
     # that is cut off, off screen or missing glyphs. -Pseudo adds a pseudolocalized pass: accented, 40% longer, in [brackets].
     [string[]]$Locale,
     [switch]$Pseudo,
+    # shot: also save each picture as people with colour blindness see it: protan, deutan, tritan (scene.<kind>.png).
+    [string[]]$ColorVision,
     # soak: how many headless clients to start next to the one server.
     [int]$Clients = 4,
     # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
@@ -409,7 +411,7 @@ switch ($Command) {
     }
     'shot' {
         Invoke-Setup; Invoke-Build
-        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -Locale $Locale -Pseudo:$Pseudo `
+        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
             -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
     }
     'soak' {
