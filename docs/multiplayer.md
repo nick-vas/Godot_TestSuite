@@ -25,6 +25,12 @@ The research behind the `godot-multiplayer` skill, Breakout's `Net/` model, the 
 | Headless Godot with no frame cap | About 144 frames a second; `Engine.MaxFps = 60` used 30 to 40% less CPU |
 | `tc qdisc ... netem` in this container | Not available (the kernel lacks `sch_netem`); bandwidth shaping only |
 | A lag-simulating `MultiplayerPeerExtension` around ENet, server and 4 clients, 15 s | RTT 0.25, 76, 132 and 297 ms at the four settings; 0 corrections with inputs repeated three times, 144 (up to two steps) with one copy at 5% loss; 0 checksum mismatches |
+| A server and 50 clients as 50 processes (60 Hz inputs, 30 Hz snapshots, about 2 minutes) | About 95% of one core in all with `Engine.MaxFps = 60` (155% without); about 163 MB per process, 8 GB in all; 24 KB/s down and 2 KB/s up per client |
+| The same 50 clients in one process (a `SceneMultiplayer` per branch) | 16% of one core, 184 MB |
+| 250 players, full-world snapshots | Breaks: 4 KB snapshots fragment, reliable round trips reach 18 s. Full-world snapshots grow with the square of the players; past about 80 to 100, send only what each player needs (interest management) and deltas |
+| The first seconds after 50 clients connect at once | 385 inputs lost in one 30-second run, round trips up to 2 s: keep the warm-up out of any assertion |
+| One process, a server and 50 clients, 25 ± 10 ms each way and 1% loss, 5 minutes | Memory 179 to 180 MB, about 47% of one core, 0 corrections, 0 checksum mismatches |
+| Godot 4.7.2 mono quitting | 2 of about 60 processes crashed on exit (signal 11) and lost buffered output: write results to a file before quitting |
 | Breakout's netcode model at 50, 100 and 250 ms with jitter and 2% loss (`NetcodeTests`) | Clients end exactly on the server's state; no input lost; interpolated steps of one tick; every rewound hit registers, none without rewinding |
 | `soak` on `tests/soak-fixture`, a server and 4 clients for 30 s (standard 4.7.2) | Each process about 95 MB, flat; under 2% CPU each; round trip about 7 ms |
 | `soak` with `--leak` (16 KB a tick never freed) and `--crash-after=5` | `soak-leak` at about 1700 MB/h; `soak-failed` naming the server's exit code 3 |
