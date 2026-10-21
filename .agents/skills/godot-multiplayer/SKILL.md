@@ -1,0 +1,93 @@
+---
+name: godot-multiplayer
+description: Use when a Godot game is played online or over a network, when adding a dedicated server, client prediction, interpolation, lag compensation, rollback or lockstep, or when movement feels laggy, players rubber-band, hits do not register, or clients drift apart.
+---
+
+# Networked games in Godot 4 (C#)
+
+The server owns the truth; each client shows its own player at once and everyone else a little in the past; and every
+claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and loss. The tested model is in
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Net/` (`Netcode.cs`, `Link.cs`) with
+`examples/breakout/tests/Breakout.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
+`tests/soak-fixture`. Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/multiplayer.md`.
+
+## 1. Pick the model
+
+| Model | Use for | Costs |
+|---|---|---|
+| Client-server with prediction, reconciliation, interpolation, lag compensation | Shooters, action, more than 4 players, players you cannot trust | A server to run; others are seen about 100 ms in the past; "shot behind cover" |
+| Snapshot interpolation only | Co-op, slow games, physics-heavy scenes, spectators | Your own input takes a round trip plus the delay to show |
+| Rollback (GGPO) | 1 v 1 and small fighting or action games | A fully deterministic simulation that saves, loads and re-runs several frames per frame; Godot's physics cannot be stepped by hand, so not with RigidBodies |
+| Deterministic lockstep | RTS with many units, 2 to 8 players | Same results on every machine (fixed-point, not floats), the slowest player sets the pace, joining mid-game is hard |
+
+## 2. Client-server, step by step (Gambetta; Valve's Source networking)
+
+- **Fixed tick.** Server and clients simulate in fixed steps with the same code (`Sim.Move`); rendering interpolates
+  between steps. Valve uses 66 ticks a second, Valorant 128; 30 to 60 suits most games.
+- **Inputs, not positions.** Each client sends numbered inputs, every packet repeating the last 3 unconfirmed ones: at
+  5% loss nothing is lost; with one copy, every lost packet is a correction the player sees.
+- **Server queue.** The server applies each client's inputs one per tick, in order, waits a few ticks for a missing
+  one, and works a backlog down two a tick. Applying them as they arrive loses inputs to reordering and moves other
+  players unevenly (both happened in Breakout's tests before the queue).
+- **Prediction and reconciliation.** The client applies its input at once; a snapshot says the last input the server
+  applied; the client takes the server's state, drops confirmed inputs and replays the rest. With the same code on
+  both sides, the correction is exactly 0.
+- **Interpolation.** Other players are drawn between the two snapshots around "now minus 100 ms" (Valve's default, two
+  snapshot intervals at 20 a second; three times the send interval under 2 to 5% loss). The client's estimate of server
+  time is eased towards each snapshot, never jumped: jitter would make everyone jump with it.
+- **Lag compensation.** The server keeps a second of history, and a shot carries the shooter's view time (server time
+  minus interpolation delay); the server rewinds the target to that moment. Cap the rewind (Valorant does), or a
+  player on 500 ms kills people half a second after they reached cover.
+- **Checksums.** Server and clients hash the state they agree on every so often; a mismatch is a desync found early.
+
+## 3. Godot 4.7 specifics
+
+- `ENetMultiplayerPeer.CreateServer(port, maxClients)`: the client limit defaults to **32**. Do not pass a channel
+  count on 4.7.x: it lands in the incoming-bandwidth slot and the server throttles every client to a few bytes a
+  second (the `architecture` runner warns: `enet-server-channels`). Use transfer channels 1..N on RPCs anyway.
+- RPCs: `[Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered, TransferChannel = 1)]`
+  for inputs, reliable for events that must arrive (chat, a goal scored). Call `RpcId(1, MethodName.SendInput, ...)`
+  only after `ConnectedToServer`. Check `Multiplayer.GetRemoteSenderId()` on the server: never trust what a client says
+  it is.
+- `MultiplayerSynchronizer` replicates properties (`ReplicationInterval`, `DeltaInterval`, visibility per peer) but
+  does no prediction, interpolation or input acknowledgement: build those on top, or use netfox (MIT; GDScript,
+  Netfox Sharp for C# is experimental). Resources and other objects cannot be synchronised.
+- `SceneMultiplayer.AllowObjectDecoding` stays false: decoded objects can run code.
+- Headless Godot runs at about 144 frames a second unless capped: set `Engine.MaxFps` on a server to its tick rate
+  (about a third less CPU). A dedicated-server export adds the `dedicated_server` feature tag
+  (`OS.HasFeature("dedicated_server")`).
+- Several peers in one process: `GetTree().SetMultiplayer(new SceneMultiplayer(), branch.GetPath())` per branch, handy for
+  a test with a server and many clients in one Godot.
+- ENet has no simulated lag. For tests: a `MultiplayerPeerExtension` that wraps ENet and delays, reorders and drops
+  unreliable packets (in C#, override `_PutPacketScript` and `_GetPacketScript`), or Linux `tc qdisc ... netem` where
+  the kernel has it (GitHub's Ubuntu runners, with sudo; not every container). Keep game logic testable without Godot,
+  like Breakout's `SimulatedLink`.
+
+## 4. Rollback and lockstep
+
+- Determinism first: integer or fixed-point state, seeded random numbers kept in the state, no wall-clock time, no
+  `Dictionary` iteration order. .NET floats can differ between machines; on one machine and build they repeat.
+- GGPO's test: every frame, roll back one frame, re-simulate and compare checksums (SyncTest). Run it in CI.
+- Prediction depth is limited (GGPO: 8 frames); beyond it the game waits. Choose an input delay of 1 to 3 frames to
+  keep rollbacks short.
+
+## 5. Prove it
+
+Logic tests run without Godot over a simulated link (fast, seeded); `soak` runs the real game:
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50 -Json -Quiet
+```
+
+The game takes part through flags and printed lines: it is started with `--soak-role=server|client`, `--soak-port`
+and `--soak-id`, prints `[soak] ready`, `[soak] metric <name> <number>` and, when it detects a problem itself (a
+checksum mismatch, a lost connection), `[soak] fail <reason>`. `soak` fails on a crash, an engine error, a process that
+never got ready, or memory that keeps growing (`soak-failed`, `engine-errors`, `soak-leak`).
+
+- [ ] at 50, 100 and 250 ms round trip with jitter and 2% loss: the predicted player matches the server exactly, no
+      input is lost, other players move one tick at a time, rewound hits register
+- [ ] a checksum compares server and client state; a deliberate desync is caught
+- [ ] bandwidth per client is measured (`ENetConnection.PopStatistic`) and under a budget
+- [ ] `soak` with the expected number of players for 10 minutes on each change, and for hours on a schedule
+      (a GitHub job runs at most 6 hours: split longer soaks, or use your own runner)
+- [ ] a 2 to 3 second blackout: clients recover without the server dropping them
