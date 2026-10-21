@@ -206,6 +206,9 @@ jobs:
       - name: Shaders quoted in skills compile
         shell: pwsh
         run: ./tests/Test-SkillShaders.ps1
+      - name: The placement checker finds an AI point off the navmesh, a torch out of reach and a blocked zip line
+        shell: pwsh
+        run: ./tests/Test-Placement.ps1
       - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
         shell: pwsh
         run: |

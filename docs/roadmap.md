@@ -253,6 +253,7 @@ From this pass (`docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/
 | GPU profiling (`--gpu-profile`, the Visual Profiler) | No GPU in this container |
 | The C# forms of the suspend and controller-loss tests | They compile; only the GDScript forms were run |
 | How much the import cache saves on a large project | Breakout is too small to measure |
+| Placement checks in C#, or as a `placement` runner | `ci/godot/templates/placement_check.gd` is GDScript, run from a GUT test; neither example is a 3D level with navmesh to try a C# twin on. A runner could read each limit from a script constant named in a `placement.json` |
 
 ## To do: Steam and Steam Deck
 
