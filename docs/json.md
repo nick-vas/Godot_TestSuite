@@ -88,7 +88,8 @@ project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` f
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`; a hitch is a frame longer than twice the median and
-over 8.33 ms), `hitchThresholdMs`, `drawCalls` (`avg`, `max`), `objects` and `staticMemoryMB` (`start`, `end`), `customMonitors`
+over 8.33 ms), `hitchThresholdMs`, `drawCalls` (`avg`, `max`), `primitives` (`avg`, `max`: triangles, lines and points drawn per
+frame), `gpuMs` (`avg`, `max`: GPU time per frame; 0 when nothing is drawn), `textureMemoryMB` and `videoMemoryMB` (at the end), `objects` and `staticMemoryMB` (`start`, `end`), `customMonitors`
 (each custom monitor the game registered: `start`, `end`, `delta`), `display` (`headless` means CPU timings only), `renderer`,
 `driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
 row is appended to `bench-results/bench.csv`.

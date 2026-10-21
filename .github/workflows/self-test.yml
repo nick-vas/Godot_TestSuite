@@ -45,6 +45,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: doctor checks every asset has a source and a licence
+        shell: pwsh
+        run: ./tests/Test-AssetManifest.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |

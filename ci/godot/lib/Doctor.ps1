@@ -129,6 +129,28 @@ function Invoke-Doctor($Info) {
         }
     }
 
+    # Assets: every image, sound, model, font and shader has a source and a licence in assets.json (godot-asset-pipeline).
+    $assets = Get-AssetManifestReport $project
+    if ($assets.files -gt 0) {
+        $fix = 'assets.json in the project: one entry per file or folder with path, source and licence (an SPDX id); godot-asset-pipeline'
+        $list = { param([string[]]$Files) "$(($Files | Select-Object -First 5) -join ', ')$(if ($Files.Count -gt 5) { " and $($Files.Count - 5) more" })" }
+        if (-not $assets.manifest) {
+            Add-Check WARN "$($assets.files) asset file(s) and no assets.json saying where they came from and under which licence" $fix
+        } else {
+            foreach ($problem in $assets.invalid) { Add-Check WARN "assets.json: $problem" $fix }
+            if ($assets.uncovered) { Add-Check WARN "Asset files with no entry in assets.json: $(& $list $assets.uncovered)" $fix }
+            $kinds = $assets.byKind
+            if ($kinds.Contains('nonCommercial')) { Add-Check WARN "Non-commercial licence, so these cannot ship in a game that is sold: $(& $list $kinds.nonCommercial)" 'Replace them, or get the author''s permission in writing' }
+            if ($kinds.Contains('copyleft')) { Add-Check WARN "GPL-family licence: the work that includes these may have to be released under the same licence: $(& $list $kinds.copyleft)" 'Replace them, or keep them in a part of the game you will publish under that licence' }
+            if ($kinds.Contains('unknown')) { Add-Check WARN "Licence not recognised: $(& $list $kinds.unknown)" 'Use an SPDX identifier (CC0-1.0, CC-BY-4.0, MIT...), or LicenseRef-<name> for custom terms' }
+            if ($kinds.Contains('noDerivs')) { Add-Check INFO "No-derivatives licence, so use these unchanged: $(& $list $kinds.noDerivs)" }
+            if ($kinds.Contains('shareAlike')) { Add-Check INFO "Share-alike licence, so changed versions of these keep it: $(& $list $kinds.shareAlike)" }
+            if ($kinds.Contains('custom')) { Add-Check INFO "Custom licence terms to read before release: $(& $list $kinds.custom)" }
+            if ($kinds.Contains('attribution')) { Add-Check INFO "$($kinds.attribution.Count) file(s) need a credit in the game (CC-BY, MIT and similar); build the credits screen from assets.json" }
+            if (-not $assets.uncovered -and -not $assets.invalid) { Add-Check OK "Assets: $($assets.files) file(s), each with a source and licence in assets.json" }
+        }
+    }
+
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project
     $remotes = @(if ($gitRoot) { & git -C $gitRoot remote 2>$null })
