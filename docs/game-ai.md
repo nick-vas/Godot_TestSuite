@@ -17,6 +17,7 @@ and .NET 8.
 | Craig Reynolds, ["Steering Behaviors For Autonomous Characters"](https://www.red3d.com/cwr/steer/gdc99/) (GDC 1999) | Seek, flee, arrive, pursuit, evasion, wander, separation, cohesion, alignment; combining behaviours |
 | Andrew Fray, ["Context Steering"](https://www.gameaipro.com/GameAIPro2/GameAIPro2_Chapter18_Context_Steering_Behavior-Driven_Steering_at_the_Macro_Scale.pdf) | Where summed steering fails when players watch closely |
 | Malte Skarupke, ["Automated AI Testing"](https://www.gameaipro.com/GameAIProOnlineEdition2021/GameAIProOnlineEdition2021_Chapter01_Automated_AI_Testing_Simple_tests_will_save_you_time.pdf); David Young, ["Debugging AI with Instant In-Game Scrubbing"](https://www.gameaipro.com/GameAIPro3/GameAIPro3_Chapter06_Debugging_AI_with_Instant_In-Game_Scrubbing.pdf) | Unit tests under 10 ms; scenario tests that wait on conditions with a time-out; recording decisions to a ring buffer |
+| Eric Martel, "Can You See Me Now? Building Robust AI Sensory Systems" (GDC; [notes](gdc/can-you-see-me-now.md)) | Shape and range before any ray; several sample points per target; modifiers as a stack that only reduces; Breakout's `Ai/Perception.cs` |
 | Godot 4.7.2 navigation documentation and source | The API, project settings and defaults below |
 | [LimboAI](https://github.com/limbonaut/limboai) v1.8.1, [Beehave](https://github.com/bitbrain/beehave) v2.9.3 (both MIT) | LimboAI's C# support needs its engine-module build; Beehave is GDScript only |
 
