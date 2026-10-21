@@ -37,6 +37,7 @@ sources disagree. Everything else was read in the source named.
 | [Creative Commons: recommended practices for attribution](https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution) | TASL (title, author, source, licence); title required in 3.0 and earlier |
 | [Godot: complying with licenses](https://docs.godotengine.org/en/stable/about/complying_with_licenses.html) | Include the MIT text somewhere; ship COPYRIGHT.txt for third-party components |
 | [IGDA Game Crediting Guide 10.1](https://igda.org/wp-content/uploads/2021/11/IGDA-Game-Crediting-Guidelines-10.1-March-2023.pdf) (March 2023) | Who is credited, the order, names as people want them; "Credits must not be hidden or locked" |
+| Tim Rippon-Davies, [Contract Killers: What Developers Should Eliminate From Their Publishing Agreement](https://www.youtube.com/watch?v=yfrwQnqwPps) (GDC, about 2021, not stated; a London lawyer, common-law contracts; notes in [gdc/contract-killers.md](gdc/contract-killers.md)) | `godot-legal` section 6: licence term and what it counts from, auto-renewal, review windows with deemed approval, payment lag, recoup source, third-party marketing costs, first refusal instead of rights, tool carve-outs, cure periods, "time is of the essence", statements and audit. One lawyer's opinion, not rules |
 
 ## Tested here
 
