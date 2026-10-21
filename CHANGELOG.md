@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Art and technical art:
+  - Skills: `godot-asset-pipeline` (texture compression and pixel art, presets, atlases, Blender to glTF, naming, LODs,
+    palettes, free libraries and their licences), `godot-shaders-vfx` (four tested shaders, shader cost, particles,
+    post-processing per renderer, Low to Ultra tiers) and `godot-animation` (state machines with interruption rules, blend
+    spaces, root motion versus in place, the twelve principles). Sources and what was tested: `docs/art.md`.
+  - `assets.json`: `doctor` warns about images, sounds, models, fonts and shaders with no source or licence, and about
+    non-commercial, GPL-family and unrecognised licences. It also counts the credits owed.
+  - `doctor` also warns, in a pixel art project (Nearest filter), about textures with mipmaps, Lossy or VRAM compression, and
+    stretch settings that are not integer.
+  - `validate` compiles every `.gdshader`, used or not. Godot exits 0 on a broken shader, and headless loading does not
+    compile one. The log scan now also captures `SHADER ERROR` lines, which name the file and line.
+  - `bench` reports GPU time per frame, primitives drawn, and texture and video memory.
+  - CI compiles every shader quoted in a skill (`tests/Test-SkillShaders.ps1`).
 - Audio:
   - `godot-audio` skill: a bus per kind of sound with the player's sliders kept apart from the mix, adaptive music
     (`AudioStreamInteractive`, `AudioStreamSynchronized`, `AudioStreamPlaylist`), variation and voice limits, 3D sound,

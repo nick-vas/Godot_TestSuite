@@ -214,7 +214,7 @@ $script:KnownNoise = @(
 # Godot often exits 0 after printing errors, so builds, exports and smoke runs also scan the log.
 # Returns the offending lines (empty when clean).
 function Select-GodotErrors([string[]]$Lines) {
-    $pattern = '^\s*(SCRIPT ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
+    $pattern = '^\s*(SCRIPT ERROR|SHADER ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
     $ignore = @($script:KnownNoise)
     if ($env:GODOT_CI_IGNORE_ERRORS) {
         try { [void][regex]::new($env:GODOT_CI_IGNORE_ERRORS) }

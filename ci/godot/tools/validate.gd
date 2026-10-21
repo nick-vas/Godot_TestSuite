@@ -1,10 +1,10 @@
-# Loads every script, scene and resource in the project, and instantiates every scene, so that broken
+# Loads every script, scene, resource and shader in the project, and instantiates every scene, so that broken
 # references and parse errors fail CI even in files no test touches. Run by the "validate" runner:
 #   godot --headless --path <project> -s <this file>
 # Each file is wrapped in marker lines; the runner attributes any ERROR printed in between to that file.
 extends SceneTree
 
-const EXTENSIONS := ["gd", "tscn", "scn", "tres", "res"]
+const EXTENSIONS := ["gd", "tscn", "scn", "tres", "res", "gdshader"]
 const SKIP_DIRS := ["res://addons", "res://.godot"]
 
 
@@ -46,4 +46,7 @@ func _check(path: String) -> String:
 		if node == null:
 			return "scene does not instantiate"
 		node.free()
+	elif resource is Shader:
+		# Loading does not compile a shader headless; asking for its uniforms does, and prints SHADER ERROR if it is broken.
+		(resource as Shader).get_shader_uniform_list()
 	return ""

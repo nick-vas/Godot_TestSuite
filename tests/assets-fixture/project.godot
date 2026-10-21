@@ -3,3 +3,7 @@ config_version=5
 [application]
 
 config/name="Assets fixture"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

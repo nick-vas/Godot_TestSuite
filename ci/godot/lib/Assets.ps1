@@ -14,7 +14,7 @@ $script:AssetPatterns = @('*.png', '*.jpg', '*.jpeg', '*.webp', '*.svg', '*.tga'
 # is a custom licence whose terms someone has to read.
 $script:LicenceKinds = [ordered]@{
     free        = @('CC0-1.0', 'Unlicense', '0BSD', 'proprietary', 'own')
-    attribution = @('CC-BY-3.0', 'CC-BY-4.0', 'OGA-BY-3.0', 'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', 'Zlib', 'ISC', 'OFL-1.1')
+    attribution = @('CC-BY-3.0', 'CC-BY-4.0', 'OGA-BY-3.0', 'OGA-BY-4.0', 'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', 'Zlib', 'ISC', 'OFL-1.1')
     shareAlike  = @('CC-BY-SA-3.0', 'CC-BY-SA-4.0')
     copyleft    = @('GPL-2.0-only', 'GPL-2.0-or-later', 'GPL-3.0-only', 'GPL-3.0-or-later', 'LGPL-2.1-only', 'LGPL-3.0-only', 'AGPL-3.0-only')
     noDerivs    = @('CC-BY-ND-3.0', 'CC-BY-ND-4.0')
@@ -70,5 +70,26 @@ function Get-AssetManifestReport([string]$ProjectDir) {
         if (-not $report.byKind.Contains($kind)) { $report.byKind[$kind] = [System.Collections.Generic.List[string]]::new() }
         $report.byKind[$kind].Add($file)
     }
+    return $report
+}
+
+# Pixel art (the project's default canvas filter is Nearest): texture imports that blur or smear it. A sprite once used on a
+# 3D material is switched to VRAM compression with mipmaps for good by "Detect 3D", which writes into its .import file.
+function Get-PixelArtImportReport([string]$ProjectDir, [string]$ProjectGodot) {
+    $report = [ordered]@{ pixelArt = $false; textures = 0; mipmaps = @(); lossy = @(); vram = @(); stretch = @() }
+    if ($ProjectGodot -notmatch '(?m)^textures/canvas_textures/default_texture_filter=0\s*$') { return $report }
+    $report.pixelArt = $true
+    $imports = @(foreach ($pattern in '*.png.import', '*.webp.import', '*.jpg.import', '*.svg.import') { Find-ProjectFiles -Root $ProjectDir -Filter $pattern })
+    foreach ($file in $imports) {
+        $text = Get-Content -LiteralPath $file.FullName -Raw
+        if ($text -notmatch '(?m)^importer="texture"') { continue }
+        $report.textures++
+        $name = ([System.IO.Path]::GetRelativePath($ProjectDir, $file.FullName) -replace '\\', '/') -replace '\.import$', ''
+        if ($text -match '(?m)^mipmaps/generate=true') { $report.mipmaps += $name }
+        if ($text -match '(?m)^compress/mode=1\s*$') { $report.lossy += $name }
+        if ($text -match '(?m)^compress/mode=[24]\s*$') { $report.vram += $name }
+    }
+    if ($ProjectGodot -notmatch '(?m)^window/stretch/mode="(viewport|canvas_items)"') { $report.stretch += 'window/stretch/mode is neither viewport nor canvas_items' }
+    if ($ProjectGodot -notmatch '(?m)^window/stretch/scale_mode="integer"') { $report.stretch += 'window/stretch/scale_mode is not integer' }
     return $report
 }

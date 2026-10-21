@@ -151,6 +151,17 @@ function Invoke-Doctor($Info) {
         }
     }
 
+    # Pixel art: Nearest filtering declared, so check the imports that would blur or smear it (godot-asset-pipeline).
+    $pixel = Get-PixelArtImportReport $project $projectGodot
+    if ($pixel.pixelArt) {
+        $list = { param([string[]]$Files) "$(($Files | Select-Object -First 5) -join ', ')$(if ($Files.Count -gt 5) { " and $($Files.Count - 5) more" })" }
+        if ($pixel.mipmaps) { Add-Check WARN "Pixel art textures with mipmaps (blurred when scaled down, a third more memory): $(& $list $pixel.mipmaps)" 'Import dock: Mipmaps > Generate off, then Reimport; or a PixelArt import preset' }
+        if ($pixel.lossy) { Add-Check WARN "Pixel art textures with Lossy compression (artefacts around hard edges): $(& $list $pixel.lossy)" 'Import dock: Compress > Mode Lossless' }
+        if ($pixel.vram) { Add-Check WARN "Pixel art textures with VRAM or Basis compression (smeared colours; often set by Detect 3D): $(& $list $pixel.vram)" 'Import dock: Compress > Mode Lossless, and Detect 3D > Compress To Disabled' }
+        foreach ($setting in $pixel.stretch) { Add-Check INFO "Pixel art: $setting, so pixels can end up uneven sizes" 'Project Settings > Display > Window > Stretch: Mode viewport (or canvas_items), Scale Mode integer' }
+        if (-not ($pixel.mipmaps -or $pixel.lossy -or $pixel.vram)) { Add-Check OK "Pixel art: $($pixel.textures) texture(s) imported without mipmaps, lossy or VRAM compression" }
+    }
+
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project
     $remotes = @(if ($gitRoot) { & git -C $gitRoot remote 2>$null })
