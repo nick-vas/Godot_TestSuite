@@ -25,8 +25,8 @@ function Invoke-Layout([string]$Project) {
     Remove-Item -Recurse -Force $results -ErrorAction SilentlyContinue
     return [pscustomobject]@{ Ok = $json.ok; Code = $(if ($json.PSObject.Properties['error']) { $json.error.code } else { '' }); Failures = $cases; Reported = @(if ($runner.Count) { $runner[0].failures }) }
 }
-function Get-Messages($Result, [string]$Profile) {
-    return (@($Result.Failures | Where-Object { $_.name -like "layout.$Profile *" }) | ForEach-Object { "$($_.name): $($_.message)" }) -join "`n"
+function Get-Messages($Result, [string]$ProfileName) {
+    return (@($Result.Failures | Where-Object { $_.name -like "layout.$ProfileName *" }) | ForEach-Object { "$($_.name): $($_.message)" }) -join "`n"
 }
 
 $fixture = Join-Path $PSScriptRoot 'layout-fixture'

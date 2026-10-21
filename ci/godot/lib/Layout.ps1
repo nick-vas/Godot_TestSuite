@@ -30,7 +30,7 @@ function Get-LayoutConfig([string]$ProjectDir) {
 # ("phone_portrait res://ui/menu.tscn TopBar/Pause") with every problem found for it, so each reaches the summary.
 function ConvertFrom-LayoutLog([string[]]$Lines, $Config) {
     $byProfile = [ordered]@{}
-    foreach ($profile in @($Config.profiles)) { $byProfile[("$profile" -split ':')[0]] = [ordered]@{} }
+    foreach ($profileText in @($Config.profiles)) { $byProfile[("$profileText" -split ':')[0]] = [ordered]@{} }
     $errors = [System.Collections.Generic.List[string]]::new()
     $checked = 0
     foreach ($line in $Lines) {
