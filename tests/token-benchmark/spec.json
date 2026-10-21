@@ -1,0 +1,23 @@
+{
+  "name": "Self-test spec for the token benchmark (runs against fake-claude.ps1)",
+  "model": "fake",
+  "timeoutSeconds": 2,
+  "repeat": 2,
+  "retries": 1,
+  "maxCalls": 50,
+  "profiles": [
+    { "id": "P1-plain" },
+    { "id": "P2-scoped", "listContext": true, "maxTurns": 4, "appendSystemPrompt": "Be brief." },
+    { "id": "P3-steps", "listContext": true, "steps": ["Plan first.", "Now answer."] }
+  ],
+  "tasks": [
+    { "id": "T-GOOD", "category": "comprehension", "title": "Good", "prompt": "ANSWER-GOOD please",
+      "expected": { "mustInclude": ["alpha", "beta"], "maxWords": 20 }, "context": ["README.md"] },
+    { "id": "T-MISS", "category": "comprehension", "title": "Miss", "prompt": "Say something.",
+      "expected": { "mustInclude": ["beta"], "forbid": ["gamma"] }, "context": ["AGENTS.md"] },
+    { "id": "T-FLAKY", "category": "debugging", "title": "Flaky", "prompt": "GARBAGE first, then fine.",
+      "expected": { "mustInclude": ["alpha"] } },
+    { "id": "T-SLOW", "category": "debugging", "title": "Slow", "prompt": "SLOW to answer.",
+      "expected": { "mustInclude": ["alpha"] } }
+  ]
+}

@@ -6,7 +6,12 @@
   scope, priority, a byte budget and per-object state masks, where lost state is resent only if no newer value was sent;
   creations and deletions resent until they arrive. Tested against the paper's four loss cases and a lossy run (5% of the
   bytes of full snapshots, no older value ever applied). `godot-multiplayer` gains the delivery classes and how they map
-  to Godot 4.7 (`OnChange` replication is reliable: wrong for state that changes all the time).- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
+  to Godot 4.7 (`OnChange` replication is reliable: wrong for state that changes all the time).
+- Token benchmark (`benchmark/`, `docs/token-benchmark.md`): tasks from this repository run as read-only `claude -p`
+  sessions under three profiles (baseline, scoped, plan then answer), repeated, with tokens counted including cache
+  reads and writes, Claude Code's own cost, turns, time and answer checks; medians and 90th percentiles per profile and
+  task. A manual workflow (`Token benchmark`) and a self-test against a stand-in CLI.
+- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
   - Skills: `godot-data`, `godot-determinism`, `godot-modding`, `godot-anti-cheat`, `godot-console-cert` and
     `godot-debug-tools`; `godot-performance` gains C# profiling (`dotnet-trace`, `dotnet-gcdump`, starting the counters
     `dotnet-counters` needs) and measured GC settings, `godot-export-release` versions, signing and store uploads.

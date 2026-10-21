@@ -10,6 +10,7 @@ screenshots/
 /.vs/VSWorkspaceState.json
 
 evals/results/
+benchmark/results/
 .godot/
 
 # Made from translation CSVs by the import; CI checks a fresh checkout copes without them.
