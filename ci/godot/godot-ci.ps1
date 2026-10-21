@@ -93,6 +93,8 @@ param(
     [switch]$Mix,
     # audio -Mix: integrated loudness the mix must reach, within 2 LU. -24 for console and PC, -18 for phones and handhelds (ASWG-R001).
     [double]$TargetLufs = -24,
+    # audio: warn when an sfx or ui file takes longer than this many ms to reach its level (leading silence, a slow fade-in).
+    [double]$MaxOnsetMs = 20,
     # setup: also install export templates.
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT.
@@ -423,7 +425,7 @@ switch ($Command) {
     }
     'audio' {
         if ($Mix) { Invoke-Setup; Invoke-Build }
-        Invoke-Audio -Info $info -TargetLufs $TargetLufs -Mix:$Mix -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 60 }) `
+        Invoke-Audio -Info $info -TargetLufs $TargetLufs -MaxOnsetMs $MaxOnsetMs -Mix:$Mix -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 60 }) `
             -Scene @($Scene)[0] -GameArgs $GameArgs `
             -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'audio-results' })))
     }
