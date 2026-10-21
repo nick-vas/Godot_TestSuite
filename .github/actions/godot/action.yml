@@ -28,6 +28,9 @@ inputs:
   run-exports:
     description: "export: also launch the exported build when this runner's OS can run it, and fail on errors"
     default: "false"
+  game-version:
+    description: "export: the game's version, e.g. the tag v1.2.3 (its numbers become config/version for the export, all of it the C# InformationalVersion)"
+    default: ""
   retention-days:
     description: Days to keep uploaded artifacts
     default: "14"
@@ -88,6 +91,17 @@ runs:
         key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', '**/packages.lock.json') }}
         restore-keys: nuget-${{ runner.os }}-
 
+    # Godot's import cache: reused safely after a checkout to a new path with new file times (tested on 4.7.2, zero
+    # reimports). Not .godot/mono, which holds build output.
+    - uses: actions/cache@v6
+      with:
+        path: |
+          ${{ steps.detect.outputs.project }}/.godot/imported
+          ${{ steps.detect.outputs.project }}/.godot/uid_cache.bin
+          ${{ steps.detect.outputs.project }}/.godot/editor/filesystem_cache*
+        key: godot-import-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-${{ hashFiles('**/*.import', '**/project.godot') }}
+        restore-keys: godot-import-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-
+
     - id: run
       shell: pwsh
       env:
@@ -102,6 +116,7 @@ runs:
         MIN_COVERAGE: ${{ inputs.min-coverage }}
         PRESET: ${{ inputs.preset }}
         RUN_EXPORTS: ${{ inputs.run-exports }}
+        GAME_VERSION: ${{ inputs.game-version }}
       run: |
         $results = Join-Path $env:RUNNER_TEMP 'godot-test-results'
         $output = Join-Path $env:RUNNER_TEMP 'godot-build'
@@ -121,6 +136,7 @@ runs:
         if ($env:PRESET) { $params.Preset = $env:PRESET }
         if ([double]$env:MIN_COVERAGE -gt 0) { $params.MinCoverage = [double]$env:MIN_COVERAGE }
         if ($env:RUN_EXPORTS -eq 'true') { $params.Run = $true }
+        if ($env:GAME_VERSION) { $params.GameVersion = $env:GAME_VERSION }
         & $env:CLI $env:COMMAND @params
         exit $LASTEXITCODE
 

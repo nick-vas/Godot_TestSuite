@@ -6,7 +6,8 @@ description: Use when a Godot game stutters, hitches, drops frames, runs hot, or
 # Frame pacing and performance (Godot 4.7, C#)
 
 Measure first, change one thing, measure again. Average FPS hides what players feel; the numbers that matter are
-per-frame times, the slowest frames, and when they happen.
+per-frame times, the slowest frames, and when they happen. Sources for the C# measurements:
+`${CLAUDE_PLUGIN_ROOT}/docs/profiling-and-builds.md`.
 
 ## Measure
 
@@ -48,6 +49,47 @@ public override void _ExitTree() => Performance.RemoveCustomMonitor("game/gc_gen
 | `new StandardMaterial3D()` per hit flash | create the overlay once per object, re-attach it |
 | a node or tween per particle or damage number | pool `CpuParticles3D` (`Restart()`) and `Label3D`; animate them in one loop |
 | LINQ, string interpolation, closures in `_Process` | plain loops, cached strings |
+
+Watch pause time, not only counts: `Performance.AddCustomMonitor("game/gc_pause_ms", Callable.From(() =>
+GC.GetTotalPauseDuration().TotalMilliseconds))`. Custom monitors work in release exports; there `TimeProcess` and
+`TimePhysicsProcess` are in seconds and `MemoryStatic` is always 0.
+
+**GC settings do not cure hitches; pooling does.** Measured on 4.7.2 (3000 frames, about 80 MB kept alive, garbage
+that lives a while):
+
+| Setting | Frames over 8 ms | Worst frame |
+|---|---|---|
+| Default | 58 | 34 to 56 ms |
+| `DOTNET_gcConcurrent=0` | 17 | 128 to 153 ms |
+| `DOTNET_gcServer=1` | 1 | 162 to 172 ms (and a heap per core) |
+| The same work, pooled | 0 | 2.1 ms |
+
+Settings trade many medium pauses for fewer huge ones; SustainedLowLatency, TieredPGO and ReadyToRun changed nothing.
+If you still test one: run from the editor, Godot reads its own runtimeconfig, so only `DOTNET_*` environment
+variables apply; exported games read the game's, so csproj settings apply there. `<ServerGarbageCollector>` is ignored
+in both; `<RuntimeHostConfigurationOption Include="System.GC.Server" Value="true" />` works.
+
+## Find the cause
+
+- **The editor's Profiler does not see C#** ("does not currently support C# scripts"); it shows engine time only. The
+  Visual Profiler times rendering only.
+- **`dotnet-trace`** attaches to a running game (editor run or exported release), with the game's own process id:
+  `dotnet-trace collect -p <pid> --profile dotnet-sampled-thread-time --duration 00:00:00:10` for where C# time goes,
+  `--profile gc-verbose` for which methods allocate; `dotnet-trace convert x.nettrace --format speedscope` to read it.
+  `dotnet-gcdump collect -p <pid>` lists what fills the heap. `DOTNET_EnableDiagnostics=0` blocks them.
+- **`dotnet-counters` shows nothing** for a Godot game: Godot starts .NET without a `Main`, so the runtime's counters
+  never start. In a debug build, start them yourself (`using System.Reflection;`), then `dotnet-counters collect -p <pid> --counters System.Runtime`:
+
+  ```csharp
+  #if DEBUG
+  typeof(System.Diagnostics.Tracing.EventSource).Assembly.GetType("System.Diagnostics.Tracing.RuntimeEventSource")
+      ?.GetMethod("Initialize", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)?.Invoke(null, null);
+  #endif
+  ```
+- **Engine (C++) time**: Tracy, Perfetto and Instruments need a custom engine build (`scons profiler=tracy
+  profiler_path=...`); official 4.7.2 builds include Perfetto for Android only, and no desktop debug symbols.
+- `--benchmark` and `--benchmark-file` time startup and shutdown only (editor builds), not frames: use them for load-time
+  regressions. `--debug-stringnames` prints every `StringName` allocated, which finds per-frame ones from C#.
 
 ## First-use hitches are pipeline compiles
 

@@ -95,6 +95,20 @@ function Invoke-Doctor($Info) {
     if ($projectGodot -notmatch '(?m)^run/main_scene=') {
         Add-Check WARN 'No main scene set, so the smoke run is skipped' 'Project Settings > Application > Run > Main Scene'
     }
+    # Exports turn config/version into the Windows file version and the macOS and Android versions; anything but
+    # numbers and dots only warns, and Windows silently gets 1.0.0.0 (tested on 4.7.2). Full semver goes in the assembly's
+    # InformationalVersion instead (godot-export-release).
+    $configVersion = [regex]::Match($projectGodot, '(?m)^config/version="([^"]*)"')
+    if ($configVersion.Success -and $configVersion.Groups[1].Value -notmatch '^\d+(\.\d+){0,3}$') {
+        Add-Check WARN "application/config/version is '$($configVersion.Groups[1].Value)': exports accept only numbers and dots, so Windows builds get version 1.0.0.0" `
+            'Use x.y.z there; put pre-release and build labels in the InformationalVersion of the C# assembly (godot-export-release)'
+    }
+    # Without modify_resources, a Windows exe keeps the export template's version and icon (Godot's own 4.7.2).
+    $presetsFile = Join-Path $project 'export_presets.cfg'
+    if ((Test-Path -LiteralPath $presetsFile) -and (Get-Content -LiteralPath $presetsFile -Raw) -match '(?m)^application/modify_resources=false') {
+        Add-Check WARN "A Windows preset has application/modify_resources=false, so the exe shows Godot's version and icon, not the game's" `
+            'Set Modify Resources on in the Windows preset (export_presets.cfg: application/modify_resources=true)'
+    }
     if ($isCSharp) {
         if ($gameCsproj -notmatch 'Godot\.NET\.Sdk/') {
             Add-Check FAIL "$($csprojs[0].Name) does not use Godot.NET.Sdk" 'Recreate it from Godot: Project > Tools > C# > Create C# solution'

@@ -14,6 +14,7 @@
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
 | `-Run` | off | `export`: launch builds this machine can run |
+| `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
@@ -49,7 +50,7 @@
 | `pr-comment` | `true` | Results comment on pull requests (needs `pull-requests: write`) |
 | `exports` | none | `all`, or a comma list of preset names |
 | `run-exports` | `false` | Launch each export on a runner of its own OS |
-| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`) |
+| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`); exports of a tag carry its version (`-GameVersion`) |
 | `runs-on` | `ubuntu-latest` | `windows-latest` also works |
 | `lfs`, `submodules`, `retention-days` | | Checkout options and artifact retention |
 

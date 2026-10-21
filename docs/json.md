@@ -91,7 +91,7 @@ Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. The plugin's Stop hook and the
 `retro` skill read it.
 
-**export**: `exports[]`: `preset`, `platform`, `file`.
+**export**: `exports[]`: `preset`, `platform`, `file`; with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`; a hitch is a frame longer than twice the median and

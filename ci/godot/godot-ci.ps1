@@ -52,6 +52,9 @@ param(
     [string[]]$Preset,
     # export: also launch each build this machine can run (e.g. Windows builds on Windows) and fail on errors.
     [switch]$Run,
+    # export: the game's version, e.g. a tag such as v1.2.3-rc.1. Its numbers (1.2.3) become config/version for this export
+    # only (the Windows file version, macOS and Android versions); all of it becomes the C# assembly's InformationalVersion.
+    [string]$GameVersion,
     [string]$Results = 'test-results',
     [string]$Output = 'build',
     # Frames the smoke runner plays, launched exports play, and shot waits before each screenshot.
@@ -287,6 +290,34 @@ function Invoke-Tests {
 
 function Invoke-Export {
     if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
+    $projectFile = Join-Path $info.ProjectDir 'project.godot'
+    $originalProject = $null
+    if ($GameVersion) {
+        $match = [regex]::Match($GameVersion, '^v?(?<numbers>\d+(\.\d+){0,3})(?<label>[-+].*)?$')
+        if (-not $match.Success) { Stop-GodotCi "-GameVersion '$GameVersion' does not start with a version number such as 1.2.3" 'invalid-arguments' }
+        $numbers = $match.Groups['numbers'].Value
+        $full = $GameVersion -replace '^v', ''
+        # Godot exports only numbers and dots (anything else: a warning and 1.0.0.0 on Windows), and ignores override.cfg,
+        # so project.godot itself is changed for the export and put back afterwards. Godot's dotnet publish reads the
+        # assembly versions from the environment (a <Version> in the csproj would win); in a git checkout the .NET SDK
+        # appends +<commit> to the InformationalVersion by itself.
+        $originalProject = [System.IO.File]::ReadAllText($projectFile)
+        $line = "config/version=`"$numbers`""
+        $patched = if ($originalProject -match '(?m)^config/version=') { $originalProject -replace '(?m)^config/version=[^\r\n]*', $line }
+            else { $originalProject -replace '(?m)^\[application\]\s*$', "[application]`n`n$line" }
+        [System.IO.File]::WriteAllText($projectFile, $patched)
+        $env:Version = $numbers; $env:InformationalVersion = $full
+        Write-CiLog "Version $numbers ($full)"
+        Set-JsonField gameVersion ([ordered]@{ numbers = $numbers; full = $full })
+    }
+    try { Invoke-ExportPresets }
+    finally {
+        if ($null -ne $originalProject) { [System.IO.File]::WriteAllText($projectFile, $originalProject) }
+        Remove-Item Env:Version, Env:InformationalVersion -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-ExportPresets {
     $exports = @()
     $details = Get-ExportPresetDetails $info.ProjectDir
     foreach ($name in $presets) {
@@ -307,6 +338,12 @@ function Invoke-Export {
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" }
         Assert-GodotLogClean $log "Export '$name'"
+        # A C# export that could not build its code still exits 0 (Godot 4.7.2 with no .sln: "completed with
+        # warnings"), and the game ships without its C#. On desktop the code sits in data_<Name>_<platform>_<arch>/.
+        if ($info.IsCSharp -and $preset.Platform -in 'Windows Desktop', 'Linux', 'Linux/X11' -and
+            -not @(Get-ChildItem -LiteralPath $dir -Directory -Filter 'data_*' | Where-Object { @(Get-ChildItem -LiteralPath $_.FullName -Filter '*.dll').Count -gt 0 }).Count) {
+            Stop-GodotCi "Export '$name' has no data_* folder with the game's C# assembly: the build would run without its code" 'export-failed'
+        }
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
 
         $exports += [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
