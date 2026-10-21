@@ -97,6 +97,18 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   follows remapping; an accessibility page explains each option.
 - Buttons never move while they can be clicked; warnings and short prompts sit near the centre or the action; instructions
   pair text with an input glyph or icon.
+- Many options need presets by need (vision, hearing, motion, motor), each changing several settings in one choice:
+  God of War Ragnarok's 65 to 70 options overwhelmed players without them. Offer the presets, with language, subtitles and
+  text size, on a first-launch screen that asks first: skip, or a guided setup.
+- Mark every setting that differs from its default, whether the player or a preset changed it, with colour and a symbol
+  (Ragnarok used blue text; colour alone fails 1.4.1). Setting it back to the default clears the mark; offer a reset
+  per setting and for all.
+- A setting playtesters cannot find goes in every category they look in (Ragnarok lists auto pickup under gameplay and
+  accessibility): one setting with one value shown on both pages, never two copies that drift apart.
+- Text size belongs on that first screen: nearly 60% of Ragnarok's players moved it to large, one step above the default.
+  Design at the default size, then check the largest for clipping and scrolling (`godot-ui-layout`).
+- A tested model (defaults, presets, `IsChanged`, reset; it saves only changed values, so a default improved in a patch
+  reaches players who never touched it): `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Settings/GameSettings.cs`.
 
 ## Prove it
 
