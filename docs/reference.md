@@ -89,6 +89,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `event-not-unsubscribed` | a script subscribes to an autoload's C# event without `-=`, or connects a GDScript lambda to an autoload's signal without `disconnect` |
 | `too-many-autoloads` | the project has more autoloads than `maxAutoloads` (default 8) |
 | `audio-on-master` | a scene saves an `AudioStreamPlayer`, `AudioStreamPlayer2D` or `AudioStreamPlayer3D` with no bus, so it plays on Master and no volume setting but the master one reaches it |
+| `enet-server-channels` | `create_server`/`CreateServer` is given a channel count: Godot 4.7.x passes it as the server's incoming bandwidth limit in bytes per second, so every client's input stalls |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
