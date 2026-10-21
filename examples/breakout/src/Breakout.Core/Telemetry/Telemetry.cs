@@ -249,6 +249,8 @@ public sealed class TelemetryClient
     void Save()
     {
         if (_stateFile == null) return;
+        // Nothing asked, nothing held: write nothing to the player's device (and no folder for it).
+        if (_consent.Values.All(c => c == Consent.NotAsked) && _queue.Count == 0 && _sessionsSent.Count == 0 && !File.Exists(_stateFile)) return;
         var state = new JsonObject
         {
             ["policy"] = _policyVersion,

@@ -207,4 +207,17 @@ public sealed class TelemetryTests
         var seqs = sink.Batches.SelectMany(b => JsonNode.Parse(b)!["events"]!.AsArray().Select(e => e!["seq"]!.GetValue<long>())).ToList();
         Assert.Equal(seqs.Count, seqs.Distinct().Count());   // none sent twice
     }
+
+    [Fact]
+    public void NothingIsWrittenToTheDeviceBeforeThePlayerIsAsked()
+    {
+        string state = Path.Combine(Path.GetTempPath(), $"unasked-{Guid.NewGuid():N}", "telemetry.json");
+        var client = new TelemetryClient(Schema, "1.0.0", stateFile: state);
+        client.Track("level_end", LevelEnd());
+        client.Persist();
+        Assert.False(Directory.Exists(Path.GetDirectoryName(state)));
+
+        client.SetConsent(Purpose.Analytics, Consent.Refused);   // an answer is kept, so the player is not asked every launch
+        Assert.True(File.Exists(state));
+    }
 }

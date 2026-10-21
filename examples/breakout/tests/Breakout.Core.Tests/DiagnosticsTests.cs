@@ -52,4 +52,13 @@ public sealed class DiagnosticsTests
         Assert.False(marker.Begin());   // the last one quit cleanly
         Assert.True(new SessionMarker(path).Begin());   // never reached End: crashed, killed or lost power
     }
+
+    // A player who never agreed: no marker was written and its folder does not exist. Quitting must not throw.
+    [Fact]
+    public void EndingASessionThatWasNeverMarkedDoesNothing()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"never-{Guid.NewGuid():N}", "telemetry", "session.running");
+        new SessionMarker(path).End();
+        Assert.False(Directory.Exists(Path.GetDirectoryName(path)));
+    }
 }

@@ -45,6 +45,9 @@ public sealed class SessionMarker(string path)
         return unclean;
     }
 
-    /// <summary>Call on a clean quit.</summary>
-    public void End() => File.Delete(path);
+    /// <summary>Call on a clean quit. Nothing to do when no session was marked (no consent, so no folder either).</summary>
+    public void End()
+    {
+        if (File.Exists(path)) File.Delete(path);
+    }
 }
