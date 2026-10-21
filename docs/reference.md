@@ -92,6 +92,33 @@ More on each framework, the five most popular Godot test projects, and how to se
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
 
+**`assets.json`** (in the Godot project folder) says where each image, sound, model, font and shader came from. `doctor`
+reads it when the project has such files, and warns about:
+
+- files with no entry
+- entries with no `source`
+- non-commercial licences (`CC-BY-NC-*`)
+- GPL-family licences
+- licences it does not recognise
+
+It also reports how many files need a credit (attribution licences such as `CC-BY-4.0` and `MIT`):
+
+```json
+{ "assets": [
+  { "path": "art/kenney_ui/**", "source": "https://kenney.nl/assets/ui-pack", "author": "Kenney", "licence": "CC0-1.0" },
+  { "path": "shaders/dissolve.gdshader", "source": "https://godotshaders.com/shader/...", "author": "...", "licence": "MIT" },
+  { "path": "art/player/**", "source": "own", "licence": "proprietary" }
+] }
+```
+
+The `path` patterns work like this:
+
+- They are relative to the project.
+- `**` crosses folders; `*` and `?` stay within one.
+- The first entry that matches a file wins.
+
+The `licence` field takes an SPDX identifier, or `LicenseRef-<name>` for custom terms such as the Sonniss bundles.
+
 **`juice.json`** (optional, in the Godot project folder) turns on the `juice` runner: Godot plays the game headless at a fixed
 60 fps for `frames` frames (default 1800) with `args` (plus `-GameArgs`), and each rule checks that every `event` was followed
 by each `feedback` within `withinMs` (default 100) of game time:

@@ -117,7 +117,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }

@@ -47,6 +47,10 @@ func _initialize() -> void:
 	var times := PackedFloat64Array()
 	var stamps := PackedFloat64Array()
 	var draw_calls := PackedFloat64Array()
+	var primitives := PackedFloat64Array()
+	var gpu_ms := PackedFloat64Array()
+	# GPU time per frame: what shaders, particles and post-processing cost (0 when nothing is drawn).
+	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 	var start := Time.get_ticks_usec()
 	var last := start
 	while last - start < seconds * 1000000.0:
@@ -55,6 +59,8 @@ func _initialize() -> void:
 		times.append((now - last) / 1000.0)
 		stamps.append((now - start) / 1000000.0)
 		draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		primitives.append(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+		gpu_ms.append(RenderingServer.viewport_get_measured_render_time_gpu(root.get_viewport_rid()))
 		last = now
 
 	for monitor_name in monitors:
@@ -102,6 +108,10 @@ func _initialize() -> void:
 		"hitchThresholdMs": snappedf(hitch_ms, 0.01),
 		"hitches": hitches,
 		"drawCalls": {"avg": snappedf(draw_total / maxi(count, 1), 0.1), "max": draw_max},
+		"primitives": _avg_max(primitives, 1.0),
+		"gpuMs": _avg_max(gpu_ms, 0.001),
+		"textureMemoryMB": snappedf(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0, 0.01),
+		"videoMemoryMB": snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.01),
 		"objects": {"start": objects_start, "end": Performance.get_monitor(Performance.OBJECT_COUNT)},
 		"staticMemoryMB": {
 			"start": snappedf(memory_start / 1048576.0, 0.01),
@@ -115,6 +125,16 @@ func _initialize() -> void:
 		"maxFps": Engine.max_fps,
 		"resolution": "%dx%d" % [root.size.x, root.size.y],
 	})
+
+
+# Average and maximum of a per-frame series, rounded to step.
+func _avg_max(values: PackedFloat64Array, step: float) -> Dictionary:
+	var total := 0.0
+	var most := 0.0
+	for v in values:
+		total += v
+		most = maxf(most, v)
+	return {"avg": snappedf(total / maxi(values.size(), 1), step), "max": snappedf(most, step)}
 
 
 func _finish(result: Dictionary) -> void:

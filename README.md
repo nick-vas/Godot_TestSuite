@@ -109,6 +109,9 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-math` | vectors, angles, rotations, bounces and oscillation in Godot, and where textbook formulas and the engine disagree |
 | `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
+| `godot-asset-pipeline` | importing textures, pixel art and 3D models, Blender to glTF, LODs, palettes, free libraries and where each asset came from |
+| `godot-shaders-vfx` | shaders, particles, post-processing and graphics quality tiers, and what they cost |
+| `godot-animation` | animation state machines that do not cut attacks short, blending, root motion, the twelve principles |
 | `godot-audio` | buses and volume settings, adaptive music, sound variation and voice limits, 3D sound, ducking, loudness targets |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
@@ -206,6 +209,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/research.md](docs/research.md) | Measured output sizes and the studies behind the plugin, quiet output and evals |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
+| [docs/art.md](docs/art.md) | Art and technical art: texture compression and pixel art, Blender to glTF, LODs, shaders, particles, post-processing tiers, animation state machines and root motion, free libraries' licences; what was tested in 4.7.2 |
 | [docs/audio.md](docs/audio.md) | Game audio: what FMOD, Wwise and Unreal teach about buses, adaptive music, variation, 3D sound and ducking, mapped to Godot; Godot facts checked in the source; ASWG and IESD loudness targets |
 | [docs/studio-lessons.md](docs/studio-lessons.md) | What studios say worked and failed: Nintendo, Japanese developers, Eastern European and simulation studios, 20 postmortems, talks; each lesson quoted and linked |
 | [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |

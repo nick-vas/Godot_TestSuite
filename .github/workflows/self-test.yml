@@ -45,6 +45,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: doctor checks every asset has a source and a licence
+        shell: pwsh
+        run: ./tests/Test-AssetManifest.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |
@@ -170,6 +173,21 @@ jobs:
           if (($d.runners -join ',') -ne 'validate,architecture,smoke') { throw "the kit's own examples leaked into detection: $($d.runners -join ',')" }
           $d = pwsh -NoProfile -File $kit test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.runnerResults[0].total -ne 3) { throw "validate should load only the game's 3 files: $($d | ConvertTo-Json -Depth 6)" }
+      - name: validate compiles every shader, used or not
+        shell: pwsh
+        run: |
+          $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'shader-game')
+          Set-Content (Join-Path $game 'project.godot') "config_version=5`n[application]`nconfig/name=`"Shaders`""
+          Set-Content (Join-Path $game 'good.gdshader') "shader_type canvas_item;`nvoid fragment() {`n`tCOLOR.rgb = vec3(1.0);`n}"
+          Set-Content (Join-Path $game 'bad.gdshader') "shader_type canvas_item;`nvoid fragment() {`n`tCOLOR = vec4(undefined_thing, 1.0);`n}"
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
+          $failed = @($d.runnerResults[0].failures | ForEach-Object name)
+          # Godot may also report the broken shader once at startup; the good one must never be named.
+          if ($d.ok -or 'validate.res://bad.gdshader' -notin $failed -or ($failed -match 'good')) { throw "bad.gdshader, and only it, should fail: $($d | ConvertTo-Json -Depth 6)" }
+          exit 0   # the run failed on purpose
+      - name: Shaders quoted in skills compile
+        shell: pwsh
+        run: ./tests/Test-SkillShaders.ps1
       - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
         shell: pwsh
         run: |

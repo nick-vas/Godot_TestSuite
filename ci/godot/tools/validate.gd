@@ -1,22 +1,34 @@
-# Loads every script, scene and resource in the project, and instantiates every scene, so that broken
+# Loads every script, scene, resource and shader in the project, and instantiates every scene, so that broken
 # references and parse errors fail CI even in files no test touches. Run by the "validate" runner:
 #   godot --headless --path <project> -s <this file>
 # Each file is wrapped in marker lines; the runner attributes any ERROR printed in between to that file.
 extends SceneTree
 
-const EXTENSIONS := ["gd", "tscn", "scn", "tres", "res"]
+const EXTENSIONS := ["gd", "tscn", "scn", "tres", "res", "gdshader"]
 const SKIP_DIRS := ["res://addons", "res://.godot"]
 
 
 func _initialize() -> void:
+	# Godot 4.5+: collect each file's errors in-process, so they are reported with its end marker on stdout.
+	var capture: Object = null
+	if ClassDB.class_exists("Logger"):
+		capture = load(get_script().resource_path.get_base_dir().path_join("validate_logger.gd")).new()
+		OS.call("add_logger", capture)
 	var files: Array[String] = []
 	_collect("res://", files)
 	files.sort()
 	for path in files:
+		if capture:
+			capture.take()  # drop anything logged before this file
 		print("@@validate begin %s" % path)
 		var problem := _check(path)
+		if capture:
+			for line in capture.take():
+				print("@@validate error %s" % line)  # filtered by the runner like any engine error
 		print("@@validate end %s %s" % [path, problem if problem else "ok"])
 	print("@@validate done %d" % files.size())
+	if capture:
+		OS.call("remove_logger", capture)
 	quit(0)
 
 
@@ -46,4 +58,11 @@ func _check(path: String) -> String:
 		if node == null:
 			return "scene does not instantiate"
 		node.free()
+	elif resource is Shader:
+		# Loading does not compile a shader headless; asking for its uniforms does, and prints SHADER ERROR if it is broken.
+		# A fresh Shader with the same code compiles here, between this file's markers, even if Godot already compiled (and
+		# reported) the loaded one at startup.
+		var fresh := Shader.new()
+		fresh.code = (resource as Shader).code + "\n// validate\n"  # different text, so no compile cache can skip it
+		fresh.get_shader_uniform_list()
 	return ""
