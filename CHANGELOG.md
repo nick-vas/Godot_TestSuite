@@ -1,6 +1,25 @@
 # Changelog
 
 ## Unreleased
+- Saves, localization and input:
+  - Skills: `godot-saves` (where and how to write so a crash or power cut loses nothing, plain-data formats, migrations
+    and golden saves, cloud conflicts decided by lineage, saving without a freeze), `godot-localization` (keys, CSV or
+    gettext, plurals, fonts for every script, right-to-left, pseudolocalization) and `godot-input` (actions, rebinding
+    and saving bindings, keyboard and controller at once, prompts that follow the device, Steam Input, accessibility).
+    Sources and what was measured: `docs/saves.md`, `docs/localization.md`, `docs/input.md`.
+  - Breakout saves through a versioned, checksummed `SaveStore`: written to a temporary file, flushed and swapped in
+    with a backup; loads recover from an interrupted write or the backup, chosen by a generation counter, and put the
+    good copy back. Golden saves from versions 1 to 3 load in CI, and tests truncate and flip a bit at every byte.
+  - Breakout's paddle takes keyboard and controller input at once (it still plays itself otherwise), with rebinding,
+    bindings saved as JSON, and prompts that follow the device; gdUnit4 tests cover each.
+  - `l10n` runner: fails on duplicate keys, untranslated entries (empty, fuzzy, short of plural forms) and keys the code
+    uses that no table has. It reads Godot 4.6+ `?context` and `?plural` columns.
+  - `shot -Locale fr,ar,ja` and `-Pseudo` take each scene in each language and pseudolocalized, and fail (`shot-text`) on
+    text that is cut off, off screen, or has characters none of its fonts can draw.
+  - A fresh checkout of a localized game no longer fails its first import: Godot logs "Cannot open file" for the
+    `.translation` files it is about to make.
+  - The `architecture` runner's `per-frame-alloc` also catches action names passed as string literals in C#
+    (`Input.IsActionPressed("jump")` allocates a `StringName` on every call).
 - Art and technical art:
   - Skills: `godot-asset-pipeline` (texture compression and pixel art, presets, atlases, Blender to glTF, naming, LODs,
     palettes, free libraries and their licences), `godot-shaders-vfx` (four tested shaders, shader cost, particles,

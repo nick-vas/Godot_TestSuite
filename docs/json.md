@@ -75,6 +75,8 @@ The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`,
 run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
 `<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder.
+The `l10n` runner has three cases, `duplicate keys`, `untranslated` and `missing keys`; a failure's message lists up to
+50 entries, one per line, as `res://file: 'KEY' reason`.
 
 `message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
 and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;

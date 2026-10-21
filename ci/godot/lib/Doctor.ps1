@@ -104,8 +104,8 @@ function Invoke-Doctor($Info) {
     $custom = @($actions.Keys | Where-Object { $_ -notlike 'ui_*' })
     $noPad = @($custom | Where-Object { $actions[$_].keyboard -and -not $actions[$_].gamepad })
     $noKeys = @($custom | Where-Object { $actions[$_].gamepad -and -not $actions[$_].keyboard })
-    if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each' }
-    if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each' }
+    if ($noPad) { Add-Check WARN "Input actions with no gamepad binding: $($noPad -join ', ')" 'Project Settings > Input Map: add a joypad button or axis to each (godot-input)' }
+    if ($noKeys) { Add-Check WARN "Input actions with no keyboard or mouse binding: $($noKeys -join ', ')" 'Project Settings > Input Map: add a key to each (godot-input)' }
     $menuPad = @('ui_accept', 'ui_cancel' | Where-Object { -not ($actions.Contains($_) -and $actions[$_].gamepad) })
     if ($menuPad) {
         Add-Check WARN "A gamepad can move through menus but not confirm or go back: $($menuPad -join ' and ') $(if ($menuPad.Count -gt 1) { 'have' } else { 'has' }) no gamepad button (Godot's default)" `
