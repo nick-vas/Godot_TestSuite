@@ -66,7 +66,7 @@ used by the game, tests and CI, reports every problem at once instead of stoppin
   and keeps the last of duplicate keys. Parse tables in C# with `System.Text.Json` into records; set
   `UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow` so a misspelt field fails.
 - Parse numbers with `CultureInfo.InvariantCulture`: `float.Parse("0.5")` gives 5 on a German system, inside Godot too,
-  and CI machines never show it.
+  and CI machines never show it; the `architecture` runner warns (`culture-parse`).
 
 ### The `data` runner
 

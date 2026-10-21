@@ -93,6 +93,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `audio-on-master` | a scene saves an `AudioStreamPlayer`, `AudioStreamPlayer2D` or `AudioStreamPlayer3D` with no bus, so it plays on Master and no volume setting but the master one reaches it |
 | `enet-server-channels` | `create_server`/`CreateServer` is given a channel count: Godot 4.7.x passes it as the server's incoming bandwidth limit in bytes per second, so every client's input stalls |
 | `untrusted-load` | `load`, `GD.Load` or `ResourceLoader.Load` (or a threaded load) is given a path that starts with `user://`: a `.tres` or `.tscn` that a player, a mod or a download put there runs any script embedded in it |
+| `culture-parse` | C# `float.Parse`, `double.Parse`, `decimal.Parse` (or `TryParse`) without `CultureInfo`, `NumberFormatInfo` or another format provider on the line: on a German system `"0.5"` parses as 5, on a French one it throws |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.

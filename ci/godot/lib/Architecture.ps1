@@ -13,6 +13,7 @@ $script:ArchitectureRules = [ordered]@{
     'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
     'enet-server-channels'   = 'Passes a channel count to ENet''s create_server: Godot 4.7.x uses it as the server''s incoming bandwidth limit in bytes per second, so every client stalls; pass only the port and the client limit (godot-multiplayer)'
     'untrusted-load'         = 'Loads a Godot resource from user://, where players, mods and downloads put files: a .tres or .tscn there runs any script embedded in it; read saves and mod data as JSON or plain files instead (godot-saves, godot-modding)'
+    'culture-parse'          = 'Parses a number without CultureInfo.InvariantCulture: on a German or French system "0.5" reads as 5 or throws, and CI machines never show it (godot-data)'
 }
 
 # Godot's Control family, for spotting UI scripts by what they extend.
@@ -110,6 +111,10 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
             # load("user://..."), GD.Load($"user://{x}"), ResourceLoader.Load<T>("user://" + name): files players can replace.
             if ($line -match '\b(load|GD\.Load|ResourceLoader\.(Load|load)(Threaded(Request)?)?|ResourceLoader\.LoadThreadedRequest|ResourceLoader\.load_threaded_request)\s*(<[^>]*>)?\s*\(\s*\$?["'']user://') {
                 & $add 'untrusted-load' $relative $n $line.Trim()
+            }
+            # float.Parse("0.5") follows the player's locale; pass CultureInfo.InvariantCulture (or any IFormatProvider).
+            if ($isCSharp -and $line -match '\b(float|double|decimal|Single|Double|Decimal)\.(Try)?Parse\s*\(' -and $line -notmatch 'CultureInfo|NumberFormatInfo|FormatProvider|Invariant') {
+                & $add 'culture-parse' $relative $n $line.Trim()
             }
             # Assignments only: "Events.Instance.Changed += OnChanged" subscribes a handler, which is how UI should listen.
             $subscribes = $line -match '[-+]=\s*(On[A-Z]\w*|_on_\w+|\([^)]*\)\s*=>|\w+\s*=>)'

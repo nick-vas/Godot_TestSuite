@@ -8,5 +8,6 @@
   "too-many-autoloads": "too-many-autoloads",
   "audio-on-master": "audio-on-master",
   "enet-server-channels": "enet-server-channels",
-  "untrusted-load": "untrusted-load"
+  "untrusted-load": "untrusted-load",
+  "culture-parse": "culture-parse"
 }
