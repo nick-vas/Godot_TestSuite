@@ -100,7 +100,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-ui-flows` | a change affects menus, HUD, scene flow or input |
 | `godot-editor-bridge` | using an editor MCP server alongside this kit |
 | `godot-diagnose` | starting work or when something fails mysteriously: detect, doctor, validate |
-| `godot-performance` | stutter, hitches, frame drops, or a milestone where frame rate matters |
+| `godot-performance` | stutter, hitches, frame drops, or a milestone where frame rate matters; profiling C# with dotnet-trace, GC settings measured |
 | `godot-automation-hooks` | the game must be played, measured or balanced without a person; runs must be reproducible |
 | `godot-ui-layout` | menus, HUD or text must look right at several resolutions |
 | `godot-ui-accessibility` | menus and HUD must work with a gamepad alone, a screen reader, low vision or motion sensitivity (WCAG 2.2, read for games) |
@@ -119,10 +119,16 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-game-ai` | enemies and companions that decide and move: state machines, behaviour trees, utility, GOAP, steering, navigation that is ready |
 | `godot-multiplayer` | online play: prediction, reconciliation, interpolation, lag compensation, rollback, dedicated servers, soak tests |
 | `godot-telemetry` | crash reports and analytics with consent and without personal data: Sentry, catching C# errors, export and erasure |
+| `godot-data` | items, enemies and balance as data: the traps of custom Resources, JSON and CSV that survive export, the `data` runner |
+| `godot-determinism` | replays, rollback, lockstep and replay-checked scores: what .NET and Godot's physics really repeat, fixed-point cost |
+| `godot-modding` | player-made mods: PCK and ZIP packs, C# mods that load in an export, Steam Workshop, mod.io, safety |
+| `godot-anti-cheat` | online play, leaderboards and economies: server authority, trusted scores, replay checks, client anti-cheat costs |
+| `godot-console-cert` | Xbox, PlayStation, Switch and Steam Deck: the public certification list, what fails most, tests to run first |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
-| `godot-export-release` | exporting, smoke-launching, tagged releases |
+| `godot-export-release` | exporting, smoke-launching, tagged releases, versions, signing, Steam, itch.io, Epic and GOG uploads |
+| `godot-debug-tools` | cheats, consoles, overlays, debug drawing and logging that never reach the shipped build |
 | `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
 | `retro` (manual) | end of a session: turn what went wrong into lessons and kit pull requests |
 | `kit-review` (manual) | monthly: which parts of the kit cost the most or help the least |

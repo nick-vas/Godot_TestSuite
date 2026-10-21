@@ -1,7 +1,24 @@
 # Changelog
 
 ## Unreleased
-- Game AI, multiplayer, crash reports and telemetry:
+- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
+  - Skills: `godot-data`, `godot-determinism`, `godot-modding`, `godot-anti-cheat`, `godot-console-cert` and
+    `godot-debug-tools`; `godot-performance` gains C# profiling (`dotnet-trace`, `dotnet-gcdump`, starting the counters
+    `dotnet-counters` needs) and measured GC settings, `godot-export-release` versions, signing and store uploads.
+    Sources and measurements: `docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/anti-cheat.md`,
+    `docs/console-cert.md`, `docs/debug-tools.md`, `docs/profiling-and-builds.md`.
+  - `data` runner: tables in JSON or CSV checked against `data.json` (types, ranges, enums, patterns, references between
+    tables, unknown columns, duplicate ids), and a CSV still imported as a translation, which the export would drop.
+  - Breakout.Core: a determinism toolkit (`IDeterministic`, `DeterminismCheck.Record`, `Verify` and GGPO's `SyncTest`,
+    FNV-1a checksums, a saveable random generator); the server now grants one input per tick of real time, so a client
+    that sends extra inputs no longer moves faster (`InputsRejected`). Breakout.Core has 83 unit tests.
+  - `export -GameVersion` (and the action's `game-version`, passed on tags by the release workflow): the numbers go into
+    `config/version` for that export only, the whole version into the C# assembly. `export` fails when a desktop C#
+    build has no `data_*` folder with the game's assembly. The action caches Godot's import cache.
+  - Architecture rules: `untrusted-load` (a Godot resource loaded from `user://` runs any script embedded in it) and
+    `culture-parse` (number parsing without an invariant culture reads "0.5" as 5 on a German system).
+  - `doctor` warns when `config/version` is not numbers and dots, and when a Windows preset does not write the game's
+    version and icon into the exe (Breakout's now does).- Game AI, multiplayer, crash reports and telemetry:
   - Skills: `godot-game-ai` (choosing a decision structure, behaviour trees that interrupt, utility with momentum,
     GOAP, steering, Godot 4.7 navigation readiness), `godot-multiplayer` (choosing a model, prediction, reconciliation,
     interpolation, lag compensation, rollback, Godot 4.7 specifics) and `godot-telemetry` (consent, no free text,
