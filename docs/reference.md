@@ -167,10 +167,14 @@ and `TranslationServer.Translate` calls that no table has; test folders are skip
 on the listed scenes (the main scene by default) at each resolution (1280x800 by default, the Steam Deck), headless: the stretch
 scale comes from the project settings and the letters' height from the font. A font size under `minPx` (9) fails; capitals under
 `minPx` or a size under `wantPx` (12) are warnings. Integer scaling with a base bigger than the window fails (drawn 1:1, cut off).
+Subtitles are text in the `subtitleGroup` node group (`subtitles`), or inside a node in it, hidden or not; their sizes are
+given at 1080p and scaled with each window's height: a font size under `subtitleMinPx` (28) fails, under `subtitleWantPx` (46)
+warns (`subtitle-below-recommended`). The numbers come from two GDC talks ([docs/gdc/subtitles-are-changing.md](gdc/subtitles-are-changing.md)).
 `-Runners textsize` runs it without the file, with the defaults.
 
 ```json
-{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12 }
+{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12,
+  "subtitleGroup": "subtitles", "subtitleMinPx": 28, "subtitleWantPx": 46 }
 ```
 
 **`data.json`** (optional, in the Godot project folder) turns on the `data` runner, which checks the game's data tables without
