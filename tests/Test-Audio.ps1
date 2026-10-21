@@ -66,3 +66,5 @@ if ($failures) {
     exit 1
 }
 Write-Host "audio: categories, clipping and loudness outliers reported; doctor names the missing buses$(if ($Mix) { '; the mix is recorded, measured and judged' })"
+# The last kit run failed on purpose; GitHub's pwsh wrapper would exit with its code.
+exit 0
