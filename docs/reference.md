@@ -109,6 +109,7 @@ reads it when the project has such files, and warns about:
 - non-commercial licences (`CC-BY-NC-*`)
 - GPL-family licences
 - licences it does not recognise
+- commissioned work with no `agreement`, with `rights` other than `assigned` or `licensed`, or licensed with no `uses`
 
 It also reports how many files need a credit (attribution licences such as `CC-BY-4.0` and `MIT`):
 
@@ -116,7 +117,11 @@ It also reports how many files need a credit (attribution licences such as `CC-B
 { "assets": [
   { "path": "art/kenney_ui/**", "source": "https://kenney.nl/assets/ui-pack", "author": "Kenney", "licence": "CC0-1.0" },
   { "path": "shaders/dissolve.gdshader", "source": "https://godotshaders.com/shader/...", "author": "...", "licence": "MIT" },
-  { "path": "art/player/**", "source": "own", "licence": "proprietary" }
+  { "path": "art/player/**", "source": "own", "licence": "proprietary" },
+  { "path": "art/boss/**", "source": "commissioned", "author": "Jane Doe", "licence": "proprietary",
+    "agreement": "WFH-2026-03", "rights": "assigned" },
+  { "path": "music/**", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music",
+    "agreement": "MM-2026-01", "rights": "licensed", "uses": ["game", "trailer", "store"] }
 ] }
 ```
 
@@ -127,6 +132,19 @@ The `path` patterns work like this:
 - The first entry that matches a file wins.
 
 The `licence` field takes an SPDX identifier, or `LicenseRef-<name>` for custom terms such as the Sonniss bundles.
+
+`"source": "commissioned"` marks work made for the game by anyone else: a contractor, a freelancer, a co-founder. Under US
+copyright the maker owns it unless a signed agreement says otherwise, so besides `licence` (`proprietary` when assigned,
+`LicenseRef-<name>` for a licence's own terms) such an entry has:
+
+- `agreement`: a reference to the signed document (an id, or a path kept outside the shipped project); never the contract
+  itself in a public repository
+- `rights`: `assigned` (the studio owns it: work for hire or an IP assignment) or `licensed` (the maker keeps it)
+- `uses` (licensed only): what the licence covers, as the agreement words it, such as `game`, `trailer`, `store`,
+  `soundtrack`, `merchandise`
+
+`doctor` lists licensed entries with their uses. `credits` treats commissioned work as the game's own (no third-party credit)
+unless its `licence` asks for one. The rules: `godot-legal` section 4 and [gdc/contract-law-201.md](gdc/contract-law-201.md).
 
 **`credits`** builds the game's credits from `assets.json`: `CREDITS.md`, `credits.json` (for a credits screen) and
 `THIRD-PARTY-NOTICES.txt` (each asset's copyright line and licence text, Godot's MIT text and its third-party components read
