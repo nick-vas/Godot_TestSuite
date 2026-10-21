@@ -6,8 +6,8 @@ description: Use when adding cheats, a debug console, debug overlays, debug draw
 # Runtime debug tools in Godot 4 (C#)
 
 Debug tools pay for themselves on day one (skip to a level, spawn the boss, show the AI's target), and an agent can
-drive them from the command line. The rule: build them freely, and make sure none of them ships. Everything here was
-tested on Godot 4.7.2 mono; sources: `${CLAUDE_PLUGIN_ROOT}/docs/debug-tools.md`.
+drive them from the command line. The rule: build them freely, and make sure none of them ships. What ships, remote
+debugging and loggers were tested on Godot 4.7.2 mono; the add-ons were read from their documentation. Sources: `${CLAUDE_PLUGIN_ROOT}/docs/debug-tools.md`.
 
 ## 1. What ships and what does not
 
@@ -20,7 +20,7 @@ tested on Godot 4.7.2 mono; sources: `${CLAUDE_PLUGIN_ROOT}/docs/debug-tools.md`
 - Cheats, consoles and debug commands go under `#if DEBUG`; calls to `[Conditional("DEBUG")]` methods are removed from
   release builds too. `#if TOOLS` is for code that only runs in the editor.
 - `OS.IsDebugBuild()` and feature tags only switch at run time: that code, and every string in it, still ships and
-  can be found and re-enabled. Use them for behaviour that may ship (a debug-build banner), not to hide cheats.
+  can be found in the DLL. Use them for behaviour that may ship (a debug-build banner), not to hide cheats.
 - Godot also defines `GODOT_WINDOWS`, `GODOT_LINUXBSD`, `GODOT_MACOS`, `GODOT_ANDROID`, `GODOT_IOS`, `GODOT_WEB` and
   version symbols such as `GODOT4_7_OR_GREATER`.
 - Test: export release and check that a debug command's name is not in the DLL (`godot-export-release`).

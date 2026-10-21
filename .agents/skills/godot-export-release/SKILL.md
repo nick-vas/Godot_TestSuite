@@ -34,7 +34,7 @@ holding the game's assembly.
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 export -Json -Quiet -Preset Windows -GameVersion v1.2.3-rc.1
 ```
 - `-GameVersion` puts the numbers (`1.2.3`) in `application/config/version` for that export only, which becomes the
-  Windows file version and the macOS and Android versions, and all of it in the C# assembly's InformationalVersion
+  Windows file version and the macOS and Android versions (where the preset leaves its own version fields empty), and all of it in the C# assembly's InformationalVersion
   (the SDK appends `+<commit>`). The release workflow passes the tag by itself (`game-version` input of the action).
 - Why not by hand: `config/version` takes numbers and dots only (`1.2.3-rc.1` only warns, and Windows gets 1.0.0.0;
   `doctor` warns); `override.cfg` is ignored by export; a `<Version>` in the csproj wins over the environment, so leave
@@ -49,7 +49,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 export -Json -Quiet -Preset Win
   still ships. Cheats and debug consoles go under `#if DEBUG` (`godot-debug-tools`).
 - `dotnet/include_debug_symbols=true` ships `<Name>.pdb`, which gives line numbers in C# stack traces. Upload it to the
   crash service (`sentry-cli debug-files upload`) even if the store build leaves it out.
-- Reproducible: two exports from the same path are byte-identical; from another path only the DLL and PDB differ.
+- Reproducible: two exports from the same path are byte-identical; from another path the `.pck` stays identical but the DLL and PDB differ.
   `PathMap=<project dir>/=/_/` in the environment makes those identical too.
 
 ## In GitHub Actions

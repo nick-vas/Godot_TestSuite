@@ -64,7 +64,8 @@ that lives a while):
 | `DOTNET_gcServer=1` | 1 | 162 to 172 ms (and a heap per core) |
 | The same work, pooled | 0 | 2.1 ms |
 
-Settings trade many medium pauses for fewer huge ones; SustainedLowLatency, TieredPGO and ReadyToRun changed nothing.
+Settings trade many medium pauses for fewer huge ones; SustainedLowLatency left the slow frames as they were, and
+TieredPGO, tiered compilation and ReadyToRun made no measurable difference under light garbage.
 If you still test one: run from the editor, Godot reads its own runtimeconfig, so only `DOTNET_*` environment
 variables apply; exported games read the game's, so csproj settings apply there. `<ServerGarbageCollector>` is ignored
 in both; `<RuntimeHostConfigurationOption Include="System.GC.Server" Value="true" />` works.
