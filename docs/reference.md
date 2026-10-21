@@ -95,6 +95,8 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `enet-server-channels` | `create_server`/`CreateServer` is given a channel count: Godot 4.7.x passes it as the server's incoming bandwidth limit in bytes per second, so every client's input stalls |
 | `untrusted-load` | `load`, `GD.Load` or `ResourceLoader.Load` (or a threaded load) is given a path that starts with `user://`: a `.tres` or `.tscn` that a player, a mod or a download put there runs any script embedded in it |
 | `culture-parse` | C# `float.Parse`, `double.Parse`, `decimal.Parse` (or `TryParse`) without `CultureInfo`, `NumberFormatInfo` or another format provider on the line: on a German system `"0.5"` parses as 5, on a French one it throws |
+| `steam-removed-api` | a call to `IsSteamRunningOnSteamDeck` or `RequestCurrentStats` (either casing): removed or deprecated in Steamworks SDK 1.65, and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 |
+| `steam-env-dotnet` | C# `Environment.SetEnvironmentVariable("SteamAppId"` or `SteamGameId`: on Linux and macOS .NET keeps its own copy of the environment, so the native Steam API never sees it; `OS.SetEnvironment` works |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.

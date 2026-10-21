@@ -46,6 +46,52 @@ function Get-GodotProjectSetting([string]$ProjectGodot, [string]$Name) {
     return $line.Success ? $line.Groups['v'].Value.Trim() : $null
 }
 
+# Export platforms as the first word of a .gdextension library key (windows.release.x86_64, macos.debug, ...).
+$script:GdextensionPlatforms = @{ 'Windows Desktop' = 'windows'; 'Linux' = 'linux'; 'Linux/X11' = 'linux'; 'macOS' = 'macos'
+    'Android' = 'android'; 'iOS' = 'ios'; 'Web' = 'web' }
+
+# Libraries a GDExtension names for an exported platform but does not ship: the extension then fails to load in that
+# build only. GodotSteam 4.23.2's .gdextension names macOS files its zip does not contain.
+function Get-GdextensionProblems([string]$ProjectDir, [string[]]$Platforms) {
+    $wanted = @($Platforms | ForEach-Object { $script:GdextensionPlatforms[$_] } | Where-Object { $_ } | Select-Object -Unique)
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $files = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.gdextension' -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/]\.godot[\\/]' })
+    foreach ($file in $files) {
+        $section = ''
+        foreach ($line in Get-Content -LiteralPath $file.FullName) {
+            if ($line -match '^\s*\[(\w+)\]') { $section = $Matches[1]; continue }
+            if ($section -notin 'libraries', 'dependencies' -or $line -notmatch '^\s*(?<key>[\w.]+)\s*=(?<value>.*)$') { continue }
+            $platform = ($Matches.key -split '\.')[0]
+            if ($platform -notin $wanted) { continue }
+            foreach ($path in [regex]::Matches($Matches.value, '"(res://[^"]+)"') | ForEach-Object { $_.Groups[1].Value }) {
+                $local = Join-Path $ProjectDir ($path -replace '^res://', '')
+                if (-not (Test-Path -LiteralPath $local)) { $problems.Add("$(ConvertTo-ResPath $ProjectDir $file.FullName) [$section] $($Matches.key): $path does not exist") }
+            }
+        }
+    }
+    return , $problems.ToArray()
+}
+
+# Steam bindings in the C# project that cannot work as installed (measured on Godot 4.7.2, October 2026).
+function Get-SteamPackageProblems([string]$Csproj, [string[]]$Platforms) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $anyCpu = [regex]::Match($Csproj, 'Include="Steamworks\.NET\.AnyCPU"\s+Version="(?<v>[^"]+)"')
+    if ($anyCpu.Success -and $anyCpu.Groups['v'].Value -match '^2026\.165\.[0-2]$') {
+        $problems.Add(@('FAIL', "Steamworks.NET.AnyCPU $($anyCpu.Groups['v'].Value) cannot load its native library on Linux or macOS (DllNotFoundException: libAnyCPU``steam_api)",
+            'Pin 2026.164.4 (SDK 1.64) until a later release, or add a native library resolver (godot-steam)'))
+    }
+    if ($Csproj -match 'Include="Steamworks\.NET"') {
+        $problems.Add(@('WARN', 'The NuGet package Steamworks.NET is a third party''s, built against SDK 1.60, and has no native libraries',
+            'Use Steamworks.NET.AnyCPU, or GodotSteam''s add-on (godot-steam)'))
+    }
+    if ($Csproj -match 'Include="Facepunch\.Steamworks"' -and @($Platforms | Where-Object { $_ -ne 'Windows Desktop' })) {
+        $problems.Add(@('WARN', 'The NuGet package Facepunch.Steamworks is for 64-bit Windows only, and this project exports to other platforms',
+            'Build Facepunch.Steamworks.Posix from source per platform, or use Steamworks.NET.AnyCPU or GodotSteam (godot-steam)'))
+    }
+    return , $problems.ToArray()
+}
+
 function Invoke-Doctor($Info) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
@@ -120,6 +166,14 @@ function Invoke-Doctor($Info) {
                 "Add solution_directory under [dotnet] in project.godot (or run: $(Format-KitCommand 'init')). Without it, exports ship without your C# code"
         }
     }
+
+    $exportPlatforms = @((Get-ExportPresetDetails $project).Values | ForEach-Object Platform)
+    $extensionProblems = Get-GdextensionProblems $project $exportPlatforms
+    foreach ($problem in $extensionProblems) {
+        Add-Check FAIL "A GDExtension names a library that is missing for an exported platform: $problem" 'Copy that platform''s files from the add-on''s release, or correct the path in the .gdextension'
+    }
+    $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
+    foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # A game playable with a keyboard and with a gamepad needs both kinds of binding on every action (Crashlands
     # postmortem; Xbox Accessibility Guideline 107). Godot 4.7's default ui_accept and ui_cancel have no gamepad button.
