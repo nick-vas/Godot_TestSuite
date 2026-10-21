@@ -1,0 +1,6 @@
+[
+  { "id": "sword", "price": 100, "rarity": "rare" },
+  { "id": "potion", "price": -5, "rarity": "common" },
+  { "id": "sword", "price": 3, "rarity": "epic" },
+  { "id": "shield", "prise": 10, "rarity": "common" }
+]

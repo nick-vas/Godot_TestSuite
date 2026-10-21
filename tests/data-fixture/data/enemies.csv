@@ -1,0 +1,4 @@
+id,hp,drops,speed
+slime,10,potion;sword,1.5
+bat,0,potion,fast
+ghost,5,amulet,2

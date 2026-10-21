@@ -235,3 +235,22 @@ From this pass (`docs/game-ai.md`, `docs/multiplayer.md`, `docs/telemetry.md`):
 | Valve's networking articles, the Overwatch and Sea of Thieves GDC talks, EUR-Lex, gdpr-info.eu, cnil.fr | Behind a proof-of-work wall, a login, or unreachable from this session |
 | Whether crash reports may rest on legitimate interest, and access requests with random ids | Legal questions for the owner's lawyer |
 | Steering: obstacle avoidance, path following, alignment and cohesion | Not in Breakout's `Steering.cs` yet |
+
+## To do: data, determinism, modding, anti-cheat, consoles, debug tools and builds
+
+From this pass (`docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/anti-cheat.md`, `docs/console-cert.md`,
+`docs/debug-tools.md`, `docs/profiling-and-builds.md`):
+
+| Item | Why it is open |
+|---|---|
+| PlayStation TRC and Nintendo Lotcheck requirements | Under NDA; the skill uses Xbox's public list as a stand-in. The owner would need developer access to compare |
+| W4 Games and Godot 4.7 | W4 listed 4.4 to 4.6 in October 2026; check again before a console port |
+| A check that every key in a `.tres` is a stored property of its class | Renamed `[Export]` properties lose data silently; needs a GDScript tool run inside Godot. A kit feature for the `data` runner |
+| Static determinism checks (`Math.Sin`, `System.Random`, `DateTime.Now`, `Dictionary` iteration in simulation folders) | Candidate `architecture` rules; needs a way to mark which folders are simulation |
+| Floats on Arm64 and across operating systems, and Godot physics across machines | No Arm64 hardware or second OS here; a GitHub matrix job printing a replay checksum on Windows, Linux and macOS would answer it |
+| Unloading C# mods from a collectible load context | Untested; the skill tells games to restart instead |
+| Steam Workshop, mod.io, Easy Anti-Cheat and BattlEye in a Godot game | Need accounts and keys; only documentation was read |
+| GOG's build tool, Google Play App Signing, Azure Artifact Signing eligibility | docs.gog.com returned HTTP 500; Google's page was not fetched; eligibility needs the owner's account |
+| GPU profiling (`--gpu-profile`, the Visual Profiler) | No GPU in this container |
+| The C# forms of the suspend and controller-loss tests | They compile; only the GDScript forms were run |
+| How much the import cache saves on a large project | Breakout is too small to measure |

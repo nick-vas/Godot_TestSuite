@@ -123,10 +123,12 @@ function Get-ProjectInfo {
         # Translation tables are checked for duplicate, untranslated and missing keys.
         $translations = Get-TranslationSources $projectDir
         if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0) { $selected += 'l10n' }
+        # Data tables are checked against data.json: ids, fields, types, ranges and references.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'data.json')) { $selected += 'data' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 

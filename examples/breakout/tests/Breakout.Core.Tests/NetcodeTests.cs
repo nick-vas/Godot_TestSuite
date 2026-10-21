@@ -173,4 +173,42 @@ public sealed class NetcodeTests
         Assert.All(world.Shots, s => Assert.True(s.Rewound, $"missed with rewind at {rtt} ms: view {s.Shot.ViewTimeMs}"));
         Assert.True(world.Shots.Count(s => s.Now) == 0, $"{world.Shots.Count(s => s.Now)} hits without rewind at {rtt} ms");
     }
+
+    // A speed hack: a client that sends two inputs every tick. The server must not let it move faster than real time.
+    [Fact]
+    public void AClientSendingExtraInputsDoesNotMoveFaster()
+    {
+        var server = new Server();
+        server.AddPlayer(1, Vector2.Zero);
+        var cheater = new Client(1, Vector2.Zero, redundancy: 4);
+        for (int tick = 0; tick < 600; tick++)
+        {
+            server.Receive(cheater.Input(new Vector2(1, 0)));
+            server.Receive(cheater.Input(new Vector2(1, 0)));   // twice the inputs real time allows
+            server.Advance();
+        }
+        float honestDistance = 600 * Sim.Speed * Sim.TickSeconds;
+        Assert.True(server.PositionOf(1).X <= honestDistance * 1.02f, $"moved {server.PositionOf(1).X}, real time allows {honestDistance}");
+        Assert.True(server.InputsRejected > 0, "the extra inputs should be refused and counted");
+    }
+
+    // The same server still lets an honest client catch up after its packets were held up.
+    [Fact]
+    public void AnHonestClientCatchesUpAfterAStall()
+    {
+        var server = new Server();
+        server.AddPlayer(1, Vector2.Zero);
+        var client = new Client(1, Vector2.Zero);
+        var held = new List<InputPacket>();
+        for (int tick = 0; tick < 300; tick++)
+        {
+            var packet = client.Input(new Vector2(1, 0));
+            if (tick >= 100 && tick < 130) held.Add(packet);   // half a second of packets arrive late, all at once
+            else { foreach (var late in held) server.Receive(late); held.Clear(); server.Receive(packet); }
+            server.Advance();
+        }
+        for (int tick = 0; tick < 60; tick++) server.Advance();   // time to work the backlog down
+        Assert.Equal(300 * Sim.Speed * Sim.TickSeconds, server.PositionOf(1).X, 0.01f);
+        Assert.Equal(0, server.InputsRejected);
+    }
 }

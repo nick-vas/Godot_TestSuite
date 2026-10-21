@@ -43,6 +43,7 @@ jobs:
           if (-not ($messages -match 'ui_cancel has no gamepad button') -or ($messages -match 'ui_accept')) { throw "menus: $($messages -join ' | ')" }
           if ($messages -match 'jump') { throw "jump has both bindings: $($messages -join ' | ')" }
           if (-not ($messages -match '^Sentry starts before the player is asked \(auto_init\); attaches the whole Godot log')) { throw "sentry defaults: $($messages -join ' | ')" }
+          if (-not ($messages -match "^application/config/version is '1\.2\.3-rc\.1\+g1a2b3c'")) { throw "version: $($messages -join ' | ')" }
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
@@ -52,6 +53,9 @@ jobs:
       - name: The l10n runner fails on duplicate, untranslated and missing keys
         shell: pwsh
         run: ./tests/Test-Localization.ps1
+      - name: The data runner checks tables against data.json
+        shell: pwsh
+        run: ./tests/Test-Data.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |

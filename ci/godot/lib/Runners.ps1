@@ -10,6 +10,7 @@
 #   architecture  a static scan of the scripts for structural problems (lib/Architecture.ps1); warnings unless configured
 #   juice      a bot run that checks each gameplay event got its feedback in time (lib/Juice.ps1, juice.json)
 #   l10n       translation tables: duplicate, untranslated and missing keys (lib/Localization.ps1); no Godot needed
+#   data       data tables against data.json: ids, fields, types, ranges, references (lib/Data.ps1); no Godot needed
 #
 # -Filter means: dotnet/gdunit4 `dotnet test --filter`; godottest suite name; gut test name.
 
@@ -166,6 +167,9 @@ function Invoke-TestRunner {
         }
         'l10n' {
             $code = Invoke-LocalizationRunner $project $ResultsDir
+        }
+        'data' {
+            $code = Invoke-DataRunner $project $ResultsDir
         }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'

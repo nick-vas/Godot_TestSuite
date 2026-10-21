@@ -49,6 +49,8 @@ public sealed class Server
         public int LastProcessed;
         public readonly SortedDictionary<int, Vector2> Queue = new();
         public long GapSince = -1;
+        /// <summary>Inputs real time has granted and not yet used: one per tick, spent one per input applied.</summary>
+        public int Credit;
         public readonly SortedList<long, Vector2> History = new();
     }
 
@@ -57,6 +59,12 @@ public sealed class Server
 
     public long Tick { get; private set; }
     public int InputsSkipped { get; private set; }
+    /// <summary>Inputs refused because a client sent more than real time allows (a speed hack, or a broken client).</summary>
+    public int InputsRejected { get; private set; }
+    /// <summary>How many ticks of inputs a client may catch up at once after its packets were held up (one second).</summary>
+    public int MaxCredit { get; init; } = 60;
+    /// <summary>Queued inputs beyond this are refused: an honest client is never this far ahead of the server.</summary>
+    public int MaxQueue { get; init; } = 60;
     /// <summary>How long a missing input is waited for before it is given up: packets overtake each other under jitter.</summary>
     public int MaxWaitTicks { get; init; } = 6;
     /// <summary>A queue longer than this is worked down two inputs a tick: every queued input is delay the player feels.</summary>
@@ -71,7 +79,11 @@ public sealed class Server
     {
         var player = _players[packet.ClientId];
         foreach (var input in packet.Inputs)
-            if (input.Sequence > player.LastProcessed) player.Queue[input.Sequence] = input.Direction;
+        {
+            if (input.Sequence <= player.LastProcessed || player.Queue.ContainsKey(input.Sequence)) continue;
+            if (player.Queue.Count >= MaxQueue) { InputsRejected++; continue; }
+            player.Queue[input.Sequence] = input.Direction;
+        }
     }
 
     public void Advance()
@@ -79,8 +91,11 @@ public sealed class Server
         Tick++;
         foreach (var player in _players.Values)
         {
+            // Real time grants one input per tick. Catching up (two a tick) spends what was granted while packets were
+            // late, so a client that sends more inputs than ticks pass gets no faster: the queue fills and is refused.
+            player.Credit = Math.Min(player.Credit + 1, MaxCredit);
             int steps = player.Queue.Count > CatchUpAbove ? 2 : 1;
-            for (int s = 0; s < steps && player.Queue.Count > 0; s++)
+            for (int s = 0; s < steps && player.Queue.Count > 0 && player.Credit > 0; s++)
             {
                 int next = player.LastProcessed + 1;
                 if (!player.Queue.ContainsKey(next))
@@ -96,6 +111,7 @@ public sealed class Server
                 player.Position = Sim.Move(player.Position, player.Queue[next]);
                 player.Queue.Remove(next);
                 player.LastProcessed = next;
+                player.Credit--;
             }
             player.History[Tick] = player.Position;
             while (player.History.Count > 0 && Sim.TickToMs(Tick - player.History.Keys[0]) > HistoryMs) player.History.RemoveAt(0);

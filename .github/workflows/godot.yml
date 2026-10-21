@@ -188,6 +188,7 @@ jobs:
           runners: none
           preset: ${{ matrix.target.preset }}
           run-exports: ${{ inputs.run-exports }}
+          game-version: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
           retention-days: ${{ inputs.retention-days }}
 
   release:

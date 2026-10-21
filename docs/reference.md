@@ -8,12 +8,13 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
 | `-Run` | off | `export`: launch builds this machine can run |
+| `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
@@ -49,7 +50,7 @@
 | `pr-comment` | `true` | Results comment on pull requests (needs `pull-requests: write`) |
 | `exports` | none | `all`, or a comma list of preset names |
 | `run-exports` | `false` | Launch each export on a runner of its own OS |
-| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`) |
+| `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`); exports of a tag carry its version (`-GameVersion`) |
 | `runs-on` | `ubuntu-latest` | `windows-latest` also works |
 | `lfs`, `submodules`, `retention-days` | | Checkout options and artifact retention |
 
@@ -92,6 +93,8 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `too-many-autoloads` | the project has more autoloads than `maxAutoloads` (default 8) |
 | `audio-on-master` | a scene saves an `AudioStreamPlayer`, `AudioStreamPlayer2D` or `AudioStreamPlayer3D` with no bus, so it plays on Master and no volume setting but the master one reaches it |
 | `enet-server-channels` | `create_server`/`CreateServer` is given a channel count: Godot 4.7.x passes it as the server's incoming bandwidth limit in bytes per second, so every client's input stalls |
+| `untrusted-load` | `load`, `GD.Load` or `ResourceLoader.Load` (or a threaded load) is given a path that starts with `user://`: a `.tres` or `.tscn` that a player, a mod or a download put there runs any script embedded in it |
+| `culture-parse` | C# `float.Parse`, `double.Parse`, `decimal.Parse` (or `TryParse`) without `CultureInfo`, `NumberFormatInfo` or another format provider on the line: on a German system `"0.5"` parses as 5, on a French one it throws |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
@@ -141,3 +144,16 @@ to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameAr
 twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs, counted for
 15 common languages; others are not counted) and `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
 and `TranslationServer.Translate` calls that no table has; test folders are skipped). `tests/l10n-fixture` has one of each.
+
+**`data.json`** (optional, in the Godot project folder) turns on the `data` runner, which checks the game's data tables without
+Godot. Each table names its file (JSON: an array of objects or an object keyed by id; or CSV), its `id` column and its fields:
+`type` (`string`, `int`, `number`, `bool`), `min`/`max`, `enum`, `pattern`, `ref` (another table whose ids the value must name),
+`list` (a JSON array, or `;` between values in a CSV cell) and `optional`. Columns that data.json does not list fail (`"extra": "allow"`
+to permit them), and so does a CSV table without a committed `.import` saying `importer="keep"`: Godot imports every `.csv` as a
+translation otherwise, and the exported game cannot read the file.
+
+```json
+{ "tables": {
+    "items":   { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 }, "rarity": { "enum": ["common", "rare"] } } },
+    "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true } } } } }
+```
