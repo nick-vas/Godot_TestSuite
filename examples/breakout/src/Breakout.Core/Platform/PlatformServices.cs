@@ -61,12 +61,12 @@ public sealed partial class PlatformCatalog
 /// <summary>
 /// The platform without a platform: achievements, stats and best scores kept in one JSON file, written (atomically) only
 /// by <see cref="StoreStats"/>. Unknown ids throw, so a misspelt achievement fails a test instead of silently never
-/// unlocking. Rich presence follows Steam's limits: keys up to 64 characters, values up to 256, at most 30 keys, and
+/// unlocking. Rich presence follows Steam's limits: keys up to 64 characters, values up to 256, at most 20 keys, and
 /// steam_display must name a localization token ("#Status_Floor").
 /// </summary>
 public sealed class LocalPlatform : IPlatformServices
 {
-    public const int MaxRichPresenceKeys = 30, MaxRichPresenceKeyLength = 64, MaxRichPresenceValueLength = 256;
+    public const int MaxRichPresenceKeys = 20, MaxRichPresenceKeyLength = 64, MaxRichPresenceValueLength = 256;
 
     readonly string _path;
     readonly PlatformCatalog _catalog;
