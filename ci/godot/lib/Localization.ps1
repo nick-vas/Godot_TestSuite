@@ -39,7 +39,7 @@ function ConvertFrom-PoFile([string]$Text) {
     foreach ($line in ($Text -split "`r?`n")) {
         if ($line -match '^\s*$') { & $flush; $current = $null; $field = $null; continue }
         if (-not $current) { $current = [ordered]@{ Context = $null; Id = $null; Plural = $null; Strings = @{}; Fuzzy = $false; Line = 0 } }
-        if ($line -match '^#,.*\bfuzzy\b') { $current.Fuzzy = $true; continue }
+        if ($line -match '^#.*fuzzy') { $current.Fuzzy = $true; continue }
         if ($line.StartsWith('#')) { continue }
         if ($line -match '^msgctxt\s+(?<s>".*")$') { $current.Context = & $unquote $Matches.s; $field = 'Context' }
         elseif ($line -match '^msgid\s+(?<s>".*")$') { $current.Id = & $unquote $Matches.s; $field = 'Id' }
@@ -57,12 +57,21 @@ function ConvertFrom-PoFile([string]$Text) {
     return , $entries.ToArray()
 }
 
+# Plural forms a language needs, as gettext and Godot's built-in rules count them (CLDR's decimal-only categories aside).
+# $null for a language not listed here: its forms are not counted.
+function Get-PluralCount([string]$Locale) {
+    $language = ($Locale -split '[_-]')[0].ToLowerInvariant()
+    $counts = @{ ja = 1; zh = 1; ko = 1; en = 2; de = 2; nl = 2; es = 2; it = 2; pt = 2; fr = 2; ru = 3; uk = 3; pl = 3; cs = 3; ar = 6 }
+    if ($counts.ContainsKey($language)) { return $counts[$language] }
+    return $null
+}
+
 function Get-TranslationSources([string]$ProjectDir) {
     $csv = @(foreach ($file in Find-ProjectFiles -Root $ProjectDir -Filter '*.csv') {
         $import = "$($file.FullName).import"
         $imported = (Test-Path -LiteralPath $import) -and ((Get-Content -LiteralPath $import -Raw) -match '(?m)^importer="csv_translation"')
         $firstCell = ((Get-Content -LiteralPath $file.FullName -TotalCount 1) -split '[,;\t]')[0].Trim('"', ' ')
-        if ($imported -or $firstCell -eq 'keys') { $file }
+        if ($imported -or $firstCell -in 'keys', 'key') { $file }
     })
     $po = @(Find-ProjectFiles -Root $ProjectDir -Filter '*.po')
     return [pscustomobject]@{ Csv = $csv; Po = $po }
@@ -70,7 +79,8 @@ function Get-TranslationSources([string]$ProjectDir) {
 
 # Literal keys passed to the translation functions in GDScript and C#.
 function Get-UsedTranslationKeys([string]$ProjectDir) {
-    $pattern = '\b(?:tr|Tr|tr_n|TrN|atr|Atr|atr_n|AtrN|TranslationServer\.[Tt]ranslate(?:_plural|Plural)?)\(\s*"(?<key>(?:[^"\\]|\\.)+)"'
+    # "key", 'key' and &"key" in GDScript, "key" and @"key" in C#. Keys built at runtime (Tr($"LEVEL_{i}")) cannot be checked.
+    $pattern = '(?<!\w)(?:tr|Tr|tr_n|TrN|atr|Atr|atr_n|AtrN|TranslationServer\.[Tt]ranslate(?:_plural|Plural)?)\(\s*[&@]?(?<q>["''])(?<key>(?:\\.|(?!\k<q>).)+)\k<q>'
     $files = @(@(Find-ProjectFiles -Root $ProjectDir -Filter '*.gd') + @(Find-ProjectFiles -Root $ProjectDir -Filter '*.cs') |
         Where-Object { [System.IO.Path]::GetRelativePath($ProjectDir, $_.FullName) -notmatch '^(tests?)[\\/]|[\\/](tests?)[\\/]' })
     $used = [ordered]@{}
@@ -103,16 +113,35 @@ function Get-TranslationCases([string]$ProjectDir) {
         $rows = ConvertFrom-TranslationCsv (Get-Content -LiteralPath $file.FullName -Raw) $delimiter   # already an array of rows
         if ($rows.Count -eq 0) { continue }
         $header = @($rows[0])
-        # Columns whose header starts with "_" are comments for translators, not locales.
-        $locales = @(for ($c = 1; $c -lt $header.Count; $c++) { if ($header[$c] -and -not $header[$c].StartsWith('_')) { $c } })
-        $seen = @{}
+        # Columns whose header starts with "_" are comments for translators; "?context" and "?plural" (Godot 4.6+) are not
+        # locales either. A "?pluralrule" row sets plural rules; the rows after a plural entry with an empty key hold its
+        # other forms.
+        $locales = @(for ($c = 1; $c -lt $header.Count; $c++) { if ($header[$c] -and $header[$c][0] -notin '_', '?') { $c } })
+        $contextColumn = [array]::IndexOf($header, '?context')
+        $pluralColumn = [array]::IndexOf($header, '?plural')
+        $cell = { param($row, $c) if ($c -ge 0 -and $c -lt $row.Count) { $row[$c] } else { '' } }
+        $entries = [System.Collections.Generic.List[object]]::new()
         for ($r = 1; $r -lt $rows.Count; $r++) {
             $row = @($rows[$r]); $key = $row[0]
-            if (-not $key) { continue }
-            if ($seen.ContainsKey($key)) { $duplicates.Add("$res`: '$key' (rows $($seen[$key]) and $($r + 1))") } else { $seen[$key] = $r + 1 }
-            [void]$known.Add($key)
-            $missing = @(foreach ($c in $locales) { if ($c -ge $row.Count -or -not $row[$c]) { $header[$c] } })
-            if ($missing) { $untranslated.Add("$res`: '$key' has no $($missing -join ', ')") }
+            if ($key -eq '?pluralrule') { continue }
+            if (-not $key) {
+                if ($entries.Count -and $entries[-1].Plural) { $entries[-1].Forms += , $row }
+                continue
+            }
+            $entries.Add([pscustomobject]@{ Key = $key; Context = & $cell $row $contextColumn; Plural = & $cell $row $pluralColumn; Row = $r + 1; Forms = @(, $row) })
+        }
+        $seen = @{}
+        foreach ($entry in $entries) {
+            $id = "$($entry.Context)|$($entry.Key)"
+            $named = "'$($entry.Key)'$(if ($entry.Context) { " (context $($entry.Context))" })"
+            if ($seen.ContainsKey($id)) { $duplicates.Add("$res`: $named (rows $($seen[$id]) and $($entry.Row))") } else { $seen[$id] = $entry.Row }
+            [void]$known.Add($entry.Key)
+            $missing = @(foreach ($c in $locales) {
+                $forms = @(foreach ($form in $entry.Forms) { if (& $cell $form $c) { 1 } }).Count
+                $needed = if ($entry.Plural) { Get-PluralCount $header[$c] } else { 1 }
+                if ($forms -eq 0) { $header[$c] } elseif ($needed -and $forms -lt $needed) { "$($header[$c]) ($forms of $needed plural forms)" }
+            })
+            if ($missing) { $untranslated.Add("$res`: $named has no $($missing -join ', ')") }
         }
     }
 

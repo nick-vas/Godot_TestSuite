@@ -163,7 +163,7 @@ func _check_text(node: Node) -> void:
 		var missing := ""
 		for i in shown.length():
 			var code := shown.unicode_at(i)
-			if code > 32 and not font.has_char(code) and not missing.contains(char(code)):
+			if code > 32 and not _is_format_char(code) and not font.has_char(code) and not missing.contains(char(code)):
 				missing += char(code)
 		if missing != "":
 			problems.append("missing glyphs|%s in %s" % [_quote(missing), _quote(shown)])
@@ -175,3 +175,9 @@ func _check_text(node: Node) -> void:
 func _quote(text: String) -> String:
 	var flat := text.replace("\n", " ").replace("|", "/")
 	return "\"%s\"" % (flat.left(60) + "..." if flat.length() > 60 else flat)
+
+
+# Zero-width and direction marks, variation selectors and the BOM: invisible, so no font needs a glyph for them.
+func _is_format_char(code: int) -> bool:
+	return (code >= 0x200B and code <= 0x200F) or (code >= 0x202A and code <= 0x202E) or (code >= 0x2066 and code <= 0x2069) \
+		or (code >= 0xFE00 and code <= 0xFE0F) or code == 0xFEFF

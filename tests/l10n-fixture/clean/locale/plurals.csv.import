@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://t2sxoey03mta"
+
+[deps]
+
+files=["res://locale/plurals.en.translation", "res://locale/plurals.pl.translation"]
+
+source_file="res://locale/plurals.csv"
+dest_files=["res://locale/plurals.en.translation", "res://locale/plurals.pl.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -24,3 +24,7 @@ msgstr "Öffnen"
 msgctxt "adjective"
 msgid "Open"
 msgstr "Offen"
+
+# Translator note: fuzzy match from the old menu
+msgid "Settings"
+msgstr "Einstellungen"
