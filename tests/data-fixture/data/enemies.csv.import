@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cuex434mia6d1"
+
+[deps]
+
+files=["res://data/enemies.hp.translation", "res://data/enemies.drops.translation", "res://data/enemies.speed.translation"]
+
+source_file="res://data/enemies.csv"
+dest_files=["res://data/enemies.hp.translation", "res://data/enemies.drops.translation", "res://data/enemies.speed.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

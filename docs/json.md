@@ -77,6 +77,8 @@ The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`,
 run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
 `<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder.
+The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
+case `table <name>` per table, each listing up to 50 problems, one per line.
 The `l10n` runner has three cases, `duplicate keys`, `untranslated` and `missing keys`; a failure's message lists up to
 50 entries, one per line, as `res://file: 'KEY' reason`.
 

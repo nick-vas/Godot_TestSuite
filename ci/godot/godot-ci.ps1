@@ -40,7 +40,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -128,7 +128,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -264,7 +264,7 @@ function Invoke-Tests {
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'l10n') -Frames $Frames -GameArgs $GameArgs
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'l10n', 'data') -Frames $Frames -GameArgs $GameArgs
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage

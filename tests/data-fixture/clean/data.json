@@ -1,0 +1,6 @@
+{
+  "tables": {
+    "items": { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 } } },
+    "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true, "optional": true } } }
+  }
+}

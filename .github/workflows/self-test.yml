@@ -52,6 +52,9 @@ jobs:
       - name: The l10n runner fails on duplicate, untranslated and missing keys
         shell: pwsh
         run: ./tests/Test-Localization.ps1
+      - name: The data runner checks tables against data.json
+        shell: pwsh
+        run: ./tests/Test-Data.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |

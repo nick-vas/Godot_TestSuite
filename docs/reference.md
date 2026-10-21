@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
@@ -141,3 +141,16 @@ to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameAr
 twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs, counted for
 15 common languages; others are not counted) and `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
 and `TranslationServer.Translate` calls that no table has; test folders are skipped). `tests/l10n-fixture` has one of each.
+
+**`data.json`** (optional, in the Godot project folder) turns on the `data` runner, which checks the game's data tables without
+Godot. Each table names its file (JSON: an array of objects or an object keyed by id; or CSV), its `id` column and its fields:
+`type` (`string`, `int`, `number`, `bool`), `min`/`max`, `enum`, `pattern`, `ref` (another table whose ids the value must name),
+`list` (a JSON array, or `;` between values in a CSV cell) and `optional`. Columns that data.json does not list fail (`"extra": "allow"`
+to permit them), and so does a CSV table without a committed `.import` saying `importer="keep"`: Godot imports every `.csv` as a
+translation otherwise, and the exported game cannot read the file.
+
+```json
+{ "tables": {
+    "items":   { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 }, "rarity": { "enum": ["common", "rare"] } } },
+    "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true } } } } }
+```

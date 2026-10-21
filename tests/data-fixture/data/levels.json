@@ -1,0 +1,4 @@
+{
+  "forest": { "enemies": ["slime", "bat"], "boss": false, "music": "res://music/forest.ogg" },
+  "cave": { "enemies": ["dragon"], "boss": "yes" }
+}
