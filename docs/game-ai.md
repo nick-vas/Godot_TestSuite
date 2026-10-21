@@ -13,6 +13,7 @@ and .NET 8.
 | Champandard and Dunstan, ["The Behavior Tree Starter Kit"](https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter06_The_Behavior_Tree_Starter_Kit.pdf) | The active selector that re-checks and aborts the running child; abort side effects |
 | Rez Graham, ["An Introduction to Utility Theory"](https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter09_An_Introduction_to_Utility_Theory.pdf); Kevin Dill, ["Dual-Utility Reasoning"](https://www.gameaipro.com/GameAIPro2/GameAIPro2_Chapter03_Dual-Utility_Reasoning.pdf); Mike Lewis, ["Choosing Effective Utility-Based Considerations"](https://www.gameaipro.com/GameAIPro3/GameAIPro3_Chapter13_Choosing_Effective_Utility-Based_Considerations.pdf) | Response curves, inertia against frantic switching, ranks and weights, multiplied considerations, cooldowns |
 | Jeff Orkin, ["Three States and a Plan: The AI of F.E.A.R."](https://www.gamedevs.org/uploads/three-states-plan-ai-of-fear.pdf) (GDC 2006) and ["Agent Architecture Considerations for Real-Time Planning in Games"](https://www.cs.uky.edu/~sgware/reading/papers/orkin2005agent.pdf) (AIIDE 2005) | Three states plus a planner; action costs and A*; procedural preconditions; 4 to 8 enemies; one active goal; replanning on events |
+| Higley, Conway and Jacopin, "Goal-Oriented Action Planning: Ten Years of AI Programming" (GDC panel, about 2015): [notes](gdc/goap-ten-years.md) | Situational costs (melee 1 + walk 20 loses to ranged 10 + walk 1); plans of one or two actions in F.E.A.R., Shadow of Mordor and Rise of the Tomb Raider; about 40 exclusive flags folded into one enum; up to 50 plans per frame; roles handed out by a separate system |
 | Troy Humphreys, ["Exploring HTN Planners through Example"](https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf) | Method traversal records; replanning on the plan's own effects cancels deliberate steps |
 | Craig Reynolds, ["Steering Behaviors For Autonomous Characters"](https://www.red3d.com/cwr/steer/gdc99/) (GDC 1999) | Seek, flee, arrive, pursuit, evasion, wander, separation, cohesion, alignment; combining behaviours |
 | Andrew Fray, ["Context Steering"](https://www.gameaipro.com/GameAIPro2/GameAIPro2_Chapter18_Context_Steering_Behavior-Driven_Steering_at_the_Macro_Scale.pdf) | Where summed steering fails when players watch closely |
@@ -38,5 +39,5 @@ and .NET 8.
 
 - The utility compensation formula (`score += (1 - score) × (1 - 1/n) × score`) is widely used but was not found in a
   primary source here.
-- Typical F.E.A.R. plan lengths and replanning rates: neither of Orkin's papers gives numbers.
+- Replanning rates for F.E.A.R.: neither of Orkin's papers gives numbers. Plan lengths come from Jacopin's logs in the GOAP panel above.
 - The Overwatch, Sea of Thieves and Mark and Dill GDC talks: only their listings were read.
