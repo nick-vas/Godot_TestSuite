@@ -44,6 +44,7 @@ Branch on `error.code`; `message` can change.
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, or no result was printed | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
+| `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
 | `audio-failed` | `audio`: ffmpeg could not read a sound file, or Godot exited non-zero while recording the mix | `error.message` |
@@ -94,7 +95,9 @@ frame), `gpuMs` (`avg`, `max`: GPU time per frame; 0 when nothing is drawn), `te
 `driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
 row is appended to `bench-results/bench.csv`.
 
-**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG), `width`, `height`. With a fixed aspect ratio (`keep`), the
+**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG), `width`, `height`, `locale` (`null` for the project's own,
+else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene root), `problem` (`cut off`, `off screen`,
+`missing glyphs`) and `detail`. With a fixed aspect ratio (`keep`), the
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
 also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
 differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the

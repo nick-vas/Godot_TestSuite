@@ -81,7 +81,7 @@ function Add-BenchCsvRow([string]$Path, $Result) {
 }
 
 function Invoke-Shot {
-    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline)
+    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo)
     Assert-Display 'shot'
     $tool = (Join-Path $PSScriptRoot '../tools/shot.gd' | Resolve-Path).Path -replace '\\', '/'
     $dir = [System.IO.Path]::GetFullPath($OutputDir)
@@ -96,6 +96,8 @@ function Invoke-Shot {
     $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $user = @("--shot-frames=$Frames", "--shot-dir=$($dir -replace '\\', '/')") + $(if ($scenes) { "--shot-scenes=$($scenes -join ',')" }) +
         $(if ($baselineDir) { "--shot-baseline=$($baselineDir -replace '\\', '/')" }) + @(Split-GameArgs $GameArgs)
+    $locales = @(@($Locale | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) + @(if ($Pseudo) { 'pseudo' }))
+    if ($locales) { $user = @("--shot-locales=$($locales -join ',')") + @($user) }
 
     $log = Join-Path $dir 'shot.log'
     Start-LogGroup "Screenshots after $Frames frames$(if ($Resolution) { " at $Resolution" })"
@@ -104,8 +106,12 @@ function Invoke-Shot {
     if ($code -ne 0) { Stop-GodotCi "Godot exited with $code while taking screenshots" 'shot-failed' }
     $shots = @(); $problems = @()
     foreach ($line in Get-Content -LiteralPath $log) {
-        if ($line -match '^@@shot ok (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<w>\d+)\|(?<h>\d+)$') {
-            $shots += [ordered]@{ scene = $Matches.scene; file = [System.IO.Path]::GetFullPath($Matches.file); width = [int]$Matches.w; height = [int]$Matches.h }
+        if ($line -match '^@@shot ok (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<w>\d+)\|(?<h>\d+)\|(?<locale>[^|]*)$') {
+            $shots += [ordered]@{ scene = $Matches.scene; file = [System.IO.Path]::GetFullPath($Matches.file); width = [int]$Matches.w; height = [int]$Matches.h
+                locale = $Matches.locale ? $Matches.locale : $null; text = @() }
+        } elseif ($line -match '^@@shot text (?<node>[^|]+)\|(?<kind>[^|]+)\|(?<detail>.*)$' -and $shots) {
+            # Printed right after the picture it belongs to.
+            $shots[-1].text += [ordered]@{ node = $Matches.node; problem = $Matches.kind; detail = $Matches.detail }
         } elseif ($line -match '^@@shot compare (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<pct>-?[\d.]+)\|(?<size>[01])$') {
             $shot = $shots | Where-Object { $_.scene -eq $Matches.scene } | Select-Object -Last 1
             if ($shot) {
@@ -123,7 +129,8 @@ function Invoke-Shot {
     }
     Set-JsonField shots $shots
     foreach ($shot in $shots) {
-        Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))"
+        Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))$(if ($shot.locale) { " in $($shot.locale)" })"
+        foreach ($problem in $shot.text) { Write-CiLog "  text $($problem.problem): $($problem.node): $($problem.detail)" }
         if ($shot.Contains('compare')) {
             if ($shot.compare.image) { Write-CiLog "  $($shot.compare.changedPercent)% changed$(if ($shot.compare.sizeChanged) { ', size changed' }) -> $($shot.compare.image)" }
             else { Write-CiLog '  no baseline picture to compare with' }
@@ -131,6 +138,10 @@ function Invoke-Shot {
     }
     if ($problems.Count -gt 0 -or $shots.Count -eq 0) {
         Stop-GodotCi "Screenshots failed: $(if ($problems) { $problems -join '; ' } else { 'no scene produced an image' })" 'shot-failed'
+    }
+    $textProblems = @(foreach ($shot in $shots) { foreach ($problem in $shot.text) { $problem } })
+    if ($locales -and $textProblems) {
+        Stop-GodotCi "$($textProblems.Count) text problem(s) in the screenshots: cut off, off screen or missing glyphs (see shots[].text)" 'shot-text'
     }
     # After reporting the pictures: a scene that printed errors while it ran still fails the run.
     Assert-GodotLogClean $log 'The screenshot run'
