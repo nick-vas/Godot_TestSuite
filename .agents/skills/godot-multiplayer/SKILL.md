@@ -104,9 +104,29 @@ values were not resent because newer ones were already sent.
 
 - Determinism first: integer or fixed-point state, seeded random numbers kept in the state, no wall-clock time, no
   `Dictionary` iteration order. .NET floats can differ between machines; on one machine and build they repeat.
-- GGPO's test: every frame, roll back one frame, re-simulate and compare checksums (SyncTest). Run it in CI.
-- Prediction depth is limited (GGPO: 8 frames); beyond it the game waits. Choose an input delay of 1 to 3 frames to
-  keep rollbacks short.
+- GGPO's test (SyncTest): every frame, roll back, re-simulate and compare checksums. Run it at the full rollback depth,
+  `DeterminismCheck.SyncTest(sim, inputs, depth: 7)`, in CI and as everyone's debug mode (NetherRealm's main tool from
+  day one: correct code looks unchanged). Depth 1 misses state that goes stale over several frames.
+- A fixed input delay plus a rollback window. NetherRealm (Mortal Kombat X, Injustice 2) shipped 3 frames of delay and
+  7 of rollback: 10 frames, 333 ms of round trip at 60 Hz, over 99% of their matches; beyond it the game pauses. Keep
+  the delay constant: their lockstep's 5 to 20 frames of varying delay broke combo timing. GGPO predicts at most 8.
+- Tested session: `Net/Rollback.cs` (`RollbackSession`, `RollbackSettings`, `SavePolicy`) with `RollbackTests.cs`;
+  it predicts the last remote input received, so it rolls back only where the other player changed input.
+- **Time sync.** Nothing pulls two peers' clocks together: the one ahead rolls back the most, every frame (NetherRealm's
+  beta: most matches had one player at 7 frames every frame). Slow the peer ahead by more than about 1.5 frames, at
+  most about 2 ms a frame; a net pause felt far worse. Measured at 190 ms, 4 frames ahead: mean depth 7.0 without,
+  3.0 with.
+- **Saves.** Every frame (GGPO), or only the confirmed frame, the last with everyone's input (NetherRealm): one save a
+  tick instead of up to 8, but each rollback goes back to it, and when it is about to leave the window the game rolls
+  back with nothing wrong. At 250 ms: 2.40 re-simulated frames a tick against 0.41, worst tick 9 steps and saves
+  against 14; at 150 ms the worst tick is heavier. Extra saves between the confirmed frame and now cut their rollbacks
+  by 30%.
+- **Boundaries.** Never roll back across a camera cut, a cinematic or a finishing move. Act on anything that cannot be
+  rolled back (pause menu, cinematics) only once it is older than the window, when both machines have it.
+- **Visuals.** Gameplay drives visual state and never reads it back (IK joint positions desynced once IK stopped running
+  in re-simulated frames). Particles, cloth and IK run on the rendered frame only; reuse an effect whose spawn
+  situation matches instead of re-spawning it, or a non-deterministic effect pops. Snap to the corrected state:
+  blending caused foot sliding.
 
 ## 6. Prove it
 
