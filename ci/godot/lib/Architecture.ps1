@@ -12,6 +12,7 @@ $script:ArchitectureRules = [ordered]@{
     'too-many-autoloads'     = 'Many autoloads become hidden global state; group state in one autoload or pass dependencies in (godot-patterns: Singleton)'
     'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
     'enet-server-channels'   = 'Passes a channel count to ENet''s create_server: Godot 4.7.x uses it as the server''s incoming bandwidth limit in bytes per second, so every client stalls; pass only the port and the client limit (godot-multiplayer)'
+    'untrusted-load'         = 'Loads a Godot resource from user://, where players, mods and downloads put files: a .tres or .tscn there runs any script embedded in it; read saves and mod data as JSON or plain files instead (godot-saves, godot-modding)'
 }
 
 # Godot's Control family, for spotting UI scripts by what they extend.
@@ -105,6 +106,10 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
             # create_server(port, max_clients, max_channels, ...): a third argument that is not 0 (a fixed engine bug in 4.7.2).
             if ($line -match '\b(create_server|CreateServer)\s*\(\s*[^,()]+,\s*[^,()]+,\s*(?!0\s*[,)])[^,()\s]') {
                 & $add 'enet-server-channels' $relative $n $line.Trim()
+            }
+            # load("user://..."), GD.Load($"user://{x}"), ResourceLoader.Load<T>("user://" + name): files players can replace.
+            if ($line -match '\b(load|GD\.Load|ResourceLoader\.(Load|load)(Threaded(Request)?)?|ResourceLoader\.LoadThreadedRequest|ResourceLoader\.load_threaded_request)\s*(<[^>]*>)?\s*\(\s*\$?["'']user://') {
+                & $add 'untrusted-load' $relative $n $line.Trim()
             }
             # Assignments only: "Events.Instance.Changed += OnChanged" subscribes a handler, which is how UI should listen.
             $subscribes = $line -match '[-+]=\s*(On[A-Z]\w*|_on_\w+|\([^)]*\)\s*=>|\w+\s*=>)'
