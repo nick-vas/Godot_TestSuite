@@ -1,0 +1,4 @@
+{ "version": "4.7.2-stable (fixture)", "licenseText": "Copyright (c) 2014-present Godot Engine contributors (see AUTHORS.md).\nPermission is hereby granted, free of charge...",
+  "copyright": [ { "name": "Godot Engine", "parts": [ { "copyright": ["Godot Engine contributors"], "license": "Expat" } ] },
+                 { "name": "The FreeType Project", "parts": [ { "copyright": ["The FreeType Project"], "license": "FTL" } ] } ],
+  "licenses": { "Expat": "Permission is hereby granted...", "FTL": "The FreeType Project LICENSE ... based in part on the work of the FreeType Team" } }

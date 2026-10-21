@@ -1,0 +1,5 @@
+{ "assets": [
+  { "path": "art/knight.png", "title": "Knight Sprite", "author": "Jane Doe", "source": "https://opengameart.org/content/knight", "licence": "CC-BY-4.0" },
+  { "path": "addons/tween_kit/**", "title": "Tween Kit", "author": "Sam Roe", "copyright": "2021 Sam Roe", "source": "https://github.com/example/tween-kit", "licence": "MIT" },
+  { "path": "art/player/**", "source": "own", "licence": "own" }
+] }
