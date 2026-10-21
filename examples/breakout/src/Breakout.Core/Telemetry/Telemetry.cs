@@ -95,37 +95,58 @@ public interface ITelemetrySink
 /// carry the consent they were recorded under. No device or account id: a random session id, new every launch, that the
 /// player can see, export and ask to have deleted. Withdrawing consent deletes what is still held. Queued events older
 /// than <see cref="MaxQueueAge"/> are dropped unsent.
+/// With a state file, consent, the sessions already sent and unsent events survive a restart (written beside, then
+/// renamed over); a new <c>policyVersion</c> asks for consent again. Safe to call from any thread: Godot reports errors
+/// to a Logger on the thread they happen on.
 /// </summary>
 public sealed class TelemetryClient
 {
+    sealed record Entry(long Seq, DateTime At, Purpose Purpose, JsonObject Event);
+
+    readonly object _gate = new();
     readonly TelemetrySchema _schema;
     readonly Func<DateTime> _clock;
-    readonly List<(DateTime At, Purpose Purpose, JsonObject Event)> _queue = new();
+    readonly string? _stateFile;
+    readonly int _policyVersion;
+    readonly List<Entry> _queue = new();
     readonly Dictionary<Purpose, Consent> _consent = new() { [Purpose.Diagnostics] = Consent.NotAsked, [Purpose.Analytics] = Consent.NotAsked };
     readonly List<string> _sessionsSent = new();
-    int _sequence;
+    long _sequence;
 
-    public TelemetryClient(TelemetrySchema schema, string buildVersion, Func<DateTime>? clock = null)
+    /// <param name="stateFile">Where consent, sent session ids and unsent events are kept; null keeps them in memory only.</param>
+    /// <param name="policyVersion">Raise it when the privacy notice changes: consent given to an older one is asked for again.</param>
+    /// <param name="analyticsSampleRate">Share of sessions that record analytics at all (whole sessions, so funnels stay whole). Diagnostics are never sampled.</param>
+    public TelemetryClient(TelemetrySchema schema, string buildVersion, Func<DateTime>? clock = null, string? stateFile = null,
+        int policyVersion = 1, double analyticsSampleRate = 1, Random? random = null)
     {
         _schema = schema;
         _clock = clock ?? (() => DateTime.UtcNow);
+        _stateFile = stateFile;
+        _policyVersion = policyVersion;
         BuildVersion = buildVersion;
         SessionId = Guid.NewGuid().ToString("N");
+        InAnalyticsSample = (random ?? Random.Shared).NextDouble() < analyticsSampleRate;
+        Load();
     }
 
     public string SessionId { get; }
     public string BuildVersion { get; }
-    public int Queued => _queue.Count;
+    public bool InAnalyticsSample { get; }
+    public int Queued { get { lock (_gate) return _queue.Count; } }
     public TimeSpan MaxQueueAge { get; init; } = TimeSpan.FromDays(7);
     public int MaxQueue { get; init; } = 1000;
     public int MaxBatch { get; init; } = 100;
 
-    public Consent ConsentFor(Purpose purpose) => _consent[purpose];
+    public Consent ConsentFor(Purpose purpose) { lock (_gate) return _consent[purpose]; }
 
     public void SetConsent(Purpose purpose, Consent consent)
     {
-        _consent[purpose] = consent;
-        if (consent != Consent.Granted) _queue.RemoveAll(e => e.Purpose == purpose);   // withdrawing is as easy as giving
+        lock (_gate)
+        {
+            _consent[purpose] = consent;
+            if (consent != Consent.Granted) _queue.RemoveAll(e => e.Purpose == purpose);   // withdrawing is as easy as giving
+            Save();
+        }
     }
 
     /// <summary>Records an event if its purpose is consented to; a schema mistake throws, in development and in tests.</summary>
@@ -133,62 +154,129 @@ public sealed class TelemetryClient
     {
         var definition = _schema[name];
         var fields = _schema.Build(name, values ?? new Dictionary<string, object>());
-        if (_consent[definition.Purpose] != Consent.Granted) return false;
-        if (_queue.Count >= MaxQueue) _queue.RemoveAt(0);
-        _queue.Add((_clock(), definition.Purpose, new JsonObject
+        lock (_gate)
         {
-            ["event"] = name,
-            ["v"] = definition.Version,
-            ["seq"] = ++_sequence,
-            ["t"] = _clock().ToString("O"),
-            ["fields"] = fields,
-        }));
-        return true;
+            if (_consent[definition.Purpose] != Consent.Granted) return false;
+            if (definition.Purpose == Purpose.Analytics && !InAnalyticsSample) return false;
+            if (_queue.Count >= MaxQueue) _queue.RemoveAt(0);
+            var now = _clock();
+            _queue.Add(new Entry(++_sequence, now, definition.Purpose, new JsonObject
+            {
+                ["event"] = name,
+                ["v"] = definition.Version,
+                ["seq"] = _sequence,
+                ["t"] = now.ToString("O"),
+                ["fields"] = fields,
+            }));
+            return true;
+        }
     }
 
-    /// <summary>Sends what is queued, a batch at a time. A failed send keeps the events for the next try.</summary>
+    /// <summary>
+    /// Sends what is queued, a batch at a time, never holding the lock while the network works. A failed send keeps the
+    /// events for the next try. Call it from a background task, never on the frame.
+    /// </summary>
     public async Task<int> FlushAsync(ITelemetrySink sink, CancellationToken cancel = default)
     {
-        _queue.RemoveAll(e => _clock() - e.At > MaxQueueAge);
         int sent = 0;
-        while (_queue.Count > 0)
+        while (true)
         {
-            var batch = _queue.Take(MaxBatch).ToList();
-            if (batch.Any(e => _consent[e.Purpose] != Consent.Granted)) throw new InvalidOperationException("an event outlived its consent");
-            var json = new JsonObject
+            List<Entry> batch;
+            string json;
+            lock (_gate)
             {
-                ["schema"] = 1,
-                ["session"] = SessionId,
-                ["build"] = BuildVersion,
-                ["consent"] = new JsonObject
+                _queue.RemoveAll(e => _clock() - e.At > MaxQueueAge);
+                batch = _queue.Where(e => _consent[e.Purpose] == Consent.Granted).Take(MaxBatch).ToList();
+                if (batch.Count == 0) { Save(); return sent; }
+                json = new JsonObject
                 {
-                    ["diagnostics"] = _consent[Purpose.Diagnostics].ToString(),
-                    ["analytics"] = _consent[Purpose.Analytics].ToString(),
-                },
-                ["events"] = new JsonArray(batch.Select(e => (JsonNode)e.Event.DeepClone()).ToArray()),
-            };
-            await sink.SendAsync(json.ToJsonString(), cancel);
-            _queue.RemoveRange(0, batch.Count);
-            if (!_sessionsSent.Contains(SessionId)) _sessionsSent.Add(SessionId);
-            sent += batch.Count;
+                    ["schema"] = 1,
+                    ["session"] = SessionId,
+                    ["build"] = BuildVersion,
+                    ["consent"] = ConsentJson(),
+                    ["events"] = new JsonArray(batch.Select(e => (JsonNode)e.Event.DeepClone()).ToArray()),
+                }.ToJsonString();
+            }
+            await sink.SendAsync(json, cancel);
+            lock (_gate)
+            {
+                var done = batch.Select(e => e.Seq).ToHashSet();
+                _queue.RemoveAll(e => done.Contains(e.Seq));
+                if (!_sessionsSent.Contains(SessionId)) _sessionsSent.Add(SessionId);
+                sent += batch.Count;
+            }
         }
-        return sent;
     }
 
     /// <summary>Everything this device holds about the player, readable (GDPR Art. 15 and 20), and the ids to ask the server about.</summary>
-    public string Export() => new JsonObject
+    public string Export()
     {
-        ["sessions"] = new JsonArray(_sessionsSent.Append(SessionId).Distinct().Select(s => (JsonNode)s).ToArray()),
-        ["consent"] = new JsonObject { ["diagnostics"] = _consent[Purpose.Diagnostics].ToString(), ["analytics"] = _consent[Purpose.Analytics].ToString() },
-        ["queued"] = new JsonArray(_queue.Select(e => (JsonNode)e.Event.DeepClone()).ToArray()),
-    }.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+        lock (_gate)
+            return new JsonObject
+            {
+                ["sessions"] = new JsonArray(_sessionsSent.Append(SessionId).Distinct().Select(s => (JsonNode)s).ToArray()),
+                ["consent"] = ConsentJson(),
+                ["queued"] = new JsonArray(_queue.Select(e => (JsonNode)e.Event.DeepClone()).ToArray()),
+            }.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
 
     /// <summary>Erasure (Art. 17): drops everything held here and returns the session ids the server must delete.</summary>
     public IReadOnlyList<string> Erase()
     {
-        var ids = _sessionsSent.Append(SessionId).Distinct().ToList();
-        _queue.Clear();
-        _sessionsSent.Clear();
-        return ids;
+        lock (_gate)
+        {
+            var ids = _sessionsSent.Append(SessionId).Distinct().ToList();
+            _queue.Clear();
+            _sessionsSent.Clear();
+            Save();
+            return ids;
+        }
+    }
+
+    /// <summary>Writes unsent events and consent to the state file now (on quit, after a batch of tracking).</summary>
+    public void Persist() { lock (_gate) Save(); }
+
+    JsonObject ConsentJson() => new()
+    {
+        ["policy"] = _policyVersion,
+        ["diagnostics"] = _consent[Purpose.Diagnostics].ToString(),
+        ["analytics"] = _consent[Purpose.Analytics].ToString(),
+    };
+
+    void Save()
+    {
+        if (_stateFile == null) return;
+        var state = new JsonObject
+        {
+            ["policy"] = _policyVersion,
+            ["consent"] = ConsentJson(),
+            ["sessionsSent"] = new JsonArray(_sessionsSent.Select(s => (JsonNode)s).ToArray()),
+            ["queue"] = new JsonArray(_queue.Select(e => (JsonNode)new JsonObject
+            {
+                ["at"] = e.At.ToString("O"), ["purpose"] = e.Purpose.ToString(), ["event"] = e.Event.DeepClone(),
+            }).ToArray()),
+        };
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_stateFile))!);
+        File.WriteAllText(_stateFile + ".tmp", state.ToJsonString());
+        File.Move(_stateFile + ".tmp", _stateFile, overwrite: true);
+    }
+
+    void Load()
+    {
+        if (_stateFile == null || !File.Exists(_stateFile)) return;
+        JsonObject state;
+        try { state = JsonNode.Parse(File.ReadAllText(_stateFile))!.AsObject(); }
+        catch (Exception e) when (e is JsonException or IOException or InvalidOperationException) { return; }   // start over, asking again
+        if (state["policy"]?.GetValue<int>() != _policyVersion) return;   // a new privacy notice: ask again, keep nothing
+        foreach (var purpose in Enum.GetValues<Purpose>())
+            if (Enum.TryParse(state["consent"]?[purpose.ToString().ToLowerInvariant()]?.GetValue<string>(), out Consent c)) _consent[purpose] = c;
+        foreach (var s in state["sessionsSent"]?.AsArray() ?? new JsonArray()) _sessionsSent.Add(s!.GetValue<string>());
+        foreach (var q in state["queue"]?.AsArray() ?? new JsonArray())
+        {
+            var purpose = Enum.Parse<Purpose>(q!["purpose"]!.GetValue<string>());
+            if (_consent[purpose] != Consent.Granted) continue;
+            _queue.Add(new Entry(++_sequence, DateTime.Parse(q["at"]!.GetValue<string>(), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                purpose, q["event"]!.DeepClone().AsObject()));
+        }
     }
 }

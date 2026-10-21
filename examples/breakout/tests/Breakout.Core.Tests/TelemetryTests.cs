@@ -140,4 +140,71 @@ public sealed class TelemetryTests
         Assert.Equal(new[] { client.SessionId }, toDelete);   // what the server must delete
         Assert.Equal(0, client.Queued);
     }
+
+    static string StateFile() => Path.Combine(Directory.CreateTempSubdirectory("telemetry-").FullName, "telemetry.json");
+
+    [Fact]
+    public async Task ConsentSentSessionsAndUnsentEventsSurviveARestart()
+    {
+        string state = StateFile();
+        var first = new TelemetryClient(Schema, "1.0.0", stateFile: state);
+        first.SetConsent(Purpose.Analytics, Consent.Granted);
+        first.Track("level_end", LevelEnd(1));
+        await first.FlushAsync(new ListSink());
+        first.Track("level_end", LevelEnd(2));   // recorded offline, never sent
+        first.Persist();
+
+        var second = new TelemetryClient(Schema, "1.0.0", stateFile: state);
+        Assert.Equal(Consent.Granted, second.ConsentFor(Purpose.Analytics));   // not asked again
+        Assert.Equal(1, second.Queued);
+        var sink = new ListSink();
+        await second.FlushAsync(sink);
+        Assert.Contains("\"floor\":2", sink.Batches.Single());
+        Assert.Equal(new[] { first.SessionId, second.SessionId }, second.Erase());   // every session the server holds
+    }
+
+    [Fact]
+    public void ANewPrivacyNoticeAsksForConsentAgainAndKeepsNothing()
+    {
+        string state = StateFile();
+        var before = new TelemetryClient(Schema, "1.0.0", stateFile: state, policyVersion: 1);
+        before.SetConsent(Purpose.Analytics, Consent.Granted);
+        before.Track("level_end", LevelEnd());
+        before.Persist();
+
+        var after = new TelemetryClient(Schema, "1.1.0", stateFile: state, policyVersion: 2);
+        Assert.Equal(Consent.NotAsked, after.ConsentFor(Purpose.Analytics));
+        Assert.Equal(0, after.Queued);
+    }
+
+    [Fact]
+    public void SamplingDropsWholeSessionsOfAnalyticsButNeverDiagnostics()
+    {
+        var outOfSample = new TelemetryClient(Schema, "1.0.0", analyticsSampleRate: 0);
+        outOfSample.SetConsent(Purpose.Analytics, Consent.Granted);
+        outOfSample.SetConsent(Purpose.Diagnostics, Consent.Granted);
+        Assert.False(outOfSample.Track("level_end", LevelEnd()));
+        Assert.True(outOfSample.Track("crash", new Dictionary<string, object> { ["kind"] = "native", ["in_menu"] = false }));
+
+        var random = new Random(4);
+        int sampled = Enumerable.Range(0, 1000).Count(_ => new TelemetryClient(Schema, "1.0.0", analyticsSampleRate: 0.1, random: random).InAnalyticsSample);
+        Assert.InRange(sampled, 70, 130);
+    }
+
+    // Godot reports errors on the thread they happen on; the game thread and a sender run at once.
+    [Fact]
+    public async Task TrackingFromManyThreadsWhileSendingLosesNothing()
+    {
+        var client = new TelemetryClient(Schema, "1.0.0") { MaxQueue = 100_000, MaxBatch = 50 };
+        client.SetConsent(Purpose.Analytics, Consent.Granted);
+        var sink = new ListSink();
+        var sending = Task.Run(async () => { for (int i = 0; i < 50; i++) { await client.FlushAsync(sink); await Task.Yield(); } });
+        Parallel.For(0, 8, _ => { for (int i = 0; i < 1000; i++) client.Track("level_end", LevelEnd(1 + i % 900)); });
+        await sending;
+        await client.FlushAsync(sink);
+        int delivered = sink.Batches.Sum(b => JsonNode.Parse(b)!["events"]!.AsArray().Count);
+        Assert.Equal(8000, delivered);
+        var seqs = sink.Batches.SelectMany(b => JsonNode.Parse(b)!["events"]!.AsArray().Select(e => e!["seq"]!.GetValue<long>())).ToList();
+        Assert.Equal(seqs.Count, seqs.Distinct().Count());   // none sent twice
+    }
 }

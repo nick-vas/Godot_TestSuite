@@ -4,4 +4,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <!-- Stack traces in crash reports name source files; this maps them to /_/ instead of this machine's paths (often a user name). -->
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
 </Project>
