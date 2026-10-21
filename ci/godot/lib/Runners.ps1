@@ -63,13 +63,15 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
             $cases += @{ Name = $current; Failure = ($problems -join "`n") }
             $current = $null
         } elseif ($current) {
-            $buffer += $line
+            $buffer += ($line -replace "^@@$Marker error ", '')
         } else {
             $outside += $line
         }
     }
-    # Errors before the first file (autoloads, project settings) belong to the project as a whole.
-    $startup = @(Select-GodotErrors $outside)
+    # Errors before the first file (autoloads, project settings) belong to the project as a whole, unless a file already
+    # reported the same error (stderr can reach the log ahead of that file's markers).
+    $reported = ($cases | ForEach-Object { $_.Failure }) -join "`n"
+    $startup = @(Select-GodotErrors $outside | Where-Object { -not $reported.Contains(($_ -replace '^\s*(SHADER ERROR|SCRIPT ERROR|ERROR):\s*', '').Trim()) })
     if ($startup.Count -gt 0) { $cases += @{ Name = 'project startup'; Failure = ($startup -join "`n") } }
     return $cases
 }

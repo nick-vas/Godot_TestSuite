@@ -9,14 +9,26 @@ const SKIP_DIRS := ["res://addons", "res://.godot"]
 
 
 func _initialize() -> void:
+	# Godot 4.5+: collect each file's errors in-process, so they are reported with its end marker on stdout.
+	var capture: Object = null
+	if ClassDB.class_exists("Logger"):
+		capture = load(get_script().resource_path.get_base_dir().path_join("validate_logger.gd")).new()
+		OS.call("add_logger", capture)
 	var files: Array[String] = []
 	_collect("res://", files)
 	files.sort()
 	for path in files:
+		if capture:
+			capture.take()  # drop anything logged before this file
 		print("@@validate begin %s" % path)
 		var problem := _check(path)
+		if capture:
+			for line in capture.take():
+				print("@@validate error %s" % line)  # filtered by the runner like any engine error
 		print("@@validate end %s %s" % [path, problem if problem else "ok"])
 	print("@@validate done %d" % files.size())
+	if capture:
+		OS.call("remove_logger", capture)
 	quit(0)
 
 
