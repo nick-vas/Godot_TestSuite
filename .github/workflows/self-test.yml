@@ -42,6 +42,7 @@ jobs:
           if (-not ($messages -match 'no keyboard or mouse binding: aim$')) { throw "aim: $($messages -join ' | ')" }
           if (-not ($messages -match 'ui_cancel has no gamepad button') -or ($messages -match 'ui_accept')) { throw "menus: $($messages -join ' | ')" }
           if ($messages -match 'jump') { throw "jump has both bindings: $($messages -join ' | ')" }
+          if (-not ($messages -match '^Sentry starts before the player is asked \(auto_init\); attaches the whole Godot log')) { throw "sentry defaults: $($messages -join ' | ')" }
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
