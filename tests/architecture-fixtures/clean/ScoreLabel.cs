@@ -5,6 +5,7 @@ public partial class ScoreLabel : Label
 {
     private Node2D _player;
     private int _shown = -1;
+    private static readonly StringName Pause = "pause";
 
     public override void _Ready()
     {
@@ -16,7 +17,7 @@ public partial class ScoreLabel : Label
 
     public override void _Process(double delta)
     {
-        Visible = _player.Visible;
+        Visible = _player.Visible && !Input.IsActionPressed(Pause);
     }
 
     private void OnScoreChanged(int score)

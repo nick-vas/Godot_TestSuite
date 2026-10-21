@@ -37,7 +37,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -69,6 +69,10 @@ param(
     [string]$Resolution,
     # shot: a folder of earlier screenshots; each new one is compared with its namesake there (percent changed, side-by-side image).
     [string]$Baseline,
+    # shot: also take each scene in these locales (e.g. fr,ar,ja; each picture is named scene.<locale>.png) and report text
+    # that is cut off, off screen or missing glyphs. -Pseudo adds a pseudolocalized pass: accented, 40% longer, in [brackets].
+    [string[]]$Locale,
+    [switch]$Pseudo,
     # bench: V-Sync off, to see the headroom. -MaxFps caps the frame rate instead.
     [switch]$Uncapped,
     [int]$MaxFps = 0,
@@ -117,7 +121,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -220,7 +224,14 @@ function Invoke-Build {
         Set-JsonField engineErrors @(Get-GodotLogErrors $log | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_.Trim() } })
         Stop-GodotCi "Godot import exited with $code" 'import-failed'
     }
-    Assert-GodotLogClean $log 'Import'
+    # Godot loads internationalization/locale/translations at startup, before this import has made the .translation files
+    # from their CSV, so a fresh checkout of a localized game always logs "Cannot open file" for them. Only those whose
+    # file exists now are dropped: a translation that is still missing fails as before.
+    $madeByImport = @(foreach ($line in Get-GodotLogErrors $log) {
+        if ($line -match "(Cannot open file '|Failed loading resource: )(?<res>res://[^']+\.translation)'?\.?\s*$" -and
+            (Test-Path -LiteralPath (Join-Path $info.ProjectDir $Matches.res.Substring(6)))) { $line.Trim() }
+    })
+    Assert-GodotLogClean $log 'Import' -Expected $madeByImport
     Write-CiLog 'Build OK'
 }
 
@@ -246,7 +257,7 @@ function Invoke-Tests {
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice') -Frames $Frames -GameArgs $GameArgs
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'l10n') -Frames $Frames -GameArgs $GameArgs
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -343,7 +354,7 @@ switch ($Command) {
     }
     'shot' {
         Invoke-Setup; Invoke-Build
-        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline `
+        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -Locale $Locale -Pseudo:$Pseudo `
             -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
     }
     'audio' {

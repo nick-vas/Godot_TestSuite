@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
@@ -23,6 +23,7 @@
 | `-Label` | | `bench`: the run's name in `bench.csv` |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
+| `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Mix` | off | `audio`: also record the game's own mix with Movie Maker (needs a display) and judge its loudness |
@@ -84,7 +85,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `parent-path` | a node path climbs two or more levels (`../..`, `GetParent().GetParent()`) |
 | `ui-mutates-state` | a UI script (extends a Control type, or lives under `ui/`, `hud/`, `menu/`) assigns to an autoload's field |
 | `per-frame-lookup` | `_Process`/`_PhysicsProcess` looks up nodes (`GetNode`, `$Node`, `FindChild`, groups) |
-| `per-frame-alloc` | C# `_Process`/`_PhysicsProcess` allocates (collections, `StringName`/`NodePath`, interpolated strings, LINQ), even in a rare branch |
+| `per-frame-alloc` | C# `_Process`/`_PhysicsProcess` allocates (collections, `StringName`/`NodePath`, an action name as a string literal such as `Input.IsActionPressed("jump")`, interpolated strings, LINQ), even in a rare branch |
 | `event-not-unsubscribed` | a script subscribes to an autoload's C# event without `-=`, or connects a GDScript lambda to an autoload's signal without `disconnect` |
 | `too-many-autoloads` | the project has more autoloads than `maxAutoloads` (default 8) |
 | `audio-on-master` | a scene saves an `AudioStreamPlayer`, `AudioStreamPlayer2D` or `AudioStreamPlayer3D` with no bus, so it plays on Master and no volume setting but the master one reaches it |
@@ -131,3 +132,9 @@ by each `feedback` within `withinMs` (default 100) of game time:
 The game prints `[juice] event <name> <ms>` and `[juice] feedback <name> <ms>`, with `<ms>` its game time in milliseconds. A
 rule fails when an event went unanswered, or never happened (the bot did not reach it). Events too close to the end of the run
 to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).
+
+**The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
+`keys` or `key`) or `.po` files. It runs without Godot and has three cases: `duplicate keys` (the same key and context
+twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs, counted for
+15 common languages; others are not counted) and `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
+and `TranslationServer.Translate` calls that no table has; test folders are skipped). `tests/l10n-fixture` has one of each.

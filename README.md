@@ -113,6 +113,9 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-shaders-vfx` | shaders, particles, post-processing and graphics quality tiers, and what they cost |
 | `godot-animation` | animation state machines that do not cut attacks short, blending, root motion, the twelve principles |
 | `godot-audio` | buses and volume settings, adaptive music, sound variation and voice limits, 3D sound, ducking, loudness targets |
+| `godot-saves` | saves that survive crashes, damaged disks, new versions and a second device: atomic writes, migrations, golden saves, cloud conflicts |
+| `godot-localization` | translations, plurals, right-to-left, fonts for every script, and screens that still fit in every language |
+| `godot-input` | rebinding, keyboard and controller at once, button prompts that follow the device, Steam Input, accessibility |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |

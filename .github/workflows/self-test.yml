@@ -48,6 +48,9 @@ jobs:
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
+      - name: The l10n runner fails on duplicate, untranslated and missing keys
+        shell: pwsh
+        run: ./tests/Test-Localization.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |
@@ -282,6 +285,20 @@ jobs:
           if (-not $d.ok -or -not $d.shots[0].compare.sizeChanged) { throw "size change: $($d | ConvertTo-Json -Depth 5)" }
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Output screenshots -Baseline screenshots 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'invalid-arguments') { throw "-Baseline equal to -Output should be refused: $($d | ConvertTo-Json -Depth 5)" }
+          exit 0
+      - name: shot -Locale -Pseudo finds cut-off, off-screen and missing-glyph text
+        shell: pwsh
+        run: |
+          # A fresh checkout: the import also has to cope with translations listed before they are made.
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project tests/l10n-fixture/clean -Resolution 1920x1080 -Frames 5 -Locale fr -Pseudo -Output screenshots/l10n 2>$null | ConvertFrom-Json
+          if ($d.ok -or $d.error.code -ne 'shot-text' -or $d.shots.Count -ne 3) { throw "expected shot-text with 3 shots: $($d | ConvertTo-Json -Depth 6)" }
+          $by = @{}; foreach ($s in $d.shots) { $by["$($s.locale)"] = @($s.text | ForEach-Object { "$($_.problem):$($_.node)" }) }
+          foreach ($pass in '', 'fr', 'pseudo') {
+              foreach ($want in 'missing glyphs:Kanji', 'off screen:Edge') { if ($by[$pass] -notcontains $want) { throw "[$pass] should report $want, got: $($by[$pass] -join ', ')" } }
+              if ($by[$pass] -match ':Title$') { throw "[$pass] the label that fits was reported" }
+          }
+          if ($by[''] -contains 'cut off:Play') { throw 'English "Hello" fits the button' }
+          foreach ($pass in 'fr', 'pseudo') { if ($by[$pass] -notcontains 'cut off:Play') { throw "[$pass] the button text should be cut off, got: $($by[$pass] -join ', ')" } }
           exit 0
       - name: audio -Mix records the game's mix and judges its loudness
         shell: pwsh

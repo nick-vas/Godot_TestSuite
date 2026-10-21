@@ -1,0 +1,30 @@
+msgid ""
+msgstr ""
+"Language: de\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Options"
+msgstr "Optionen"
+
+#, fuzzy
+msgid "Credits"
+msgstr "Mitwirkende"
+
+msgid "%d coin"
+msgid_plural "%d coins"
+msgstr[0] "%d Münze"
+
+msgid "Back"
+msgstr ""
+
+msgctxt "verb"
+msgid "Open"
+msgstr "Öffnen"
+
+msgctxt "adjective"
+msgid "Open"
+msgstr "Offen"
+
+# Translator note: fuzzy match from the old menu
+msgid "Settings"
+msgstr "Einstellungen"

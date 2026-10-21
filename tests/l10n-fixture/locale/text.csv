@@ -1,0 +1,5 @@
+keys,en,fr,_notes
+HELLO,Hello,Bonjour,greeting on the title screen
+PLAY,Play,,the main menu button
+"QUIT","Quit, now","Quitter, maintenant","a comma inside quotes"
+HELLO,Hello again,Rebonjour,a duplicate key

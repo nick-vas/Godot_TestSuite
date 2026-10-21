@@ -1,0 +1,15 @@
+{
+  "format": "breakout-save",
+  "version": 2,
+  "savedAtUtc": "2026-03-01T12:00:00.0000000Z",
+  "playTimeSeconds": 1800,
+  "hash": "ab569818ae1fda5e8d06acddc8e9600860715b106b82ffc2196e5ebb64798d0f",
+  "history": [
+    "ab569818ae1fda5e8d06acddc8e9600860715b106b82ffc2196e5ebb64798d0f"
+  ],
+  "data": {
+    "highScore": 2500,
+    "levelsCleared": 4
+  },
+  "checksum": "6b05fc8e8faeb773ca49ad73b510fd682be4b7f2397eb7fc0f4db39756fd852b"
+}

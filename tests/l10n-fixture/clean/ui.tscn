@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[node name="Ui" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Title" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 400.0
+offset_bottom = 60.0
+text = "HELLO"
+
+[node name="Play" type="Button" parent="."]
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 76.0
+offset_bottom = 120.0
+text = "HELLO"
+clip_text = true
+
+[node name="Edge" type="Label" parent="."]
+offset_left = 1860.0
+offset_top = 20.0
+offset_right = 1990.0
+offset_bottom = 60.0
+text = "SCORE"
+
+[node name="Kanji" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 140.0
+offset_right = 400.0
+offset_bottom = 180.0
+text = "日本語"

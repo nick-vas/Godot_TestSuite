@@ -1,0 +1,20 @@
+{
+  "format": "breakout-save",
+  "version": 3,
+  "savedAtUtc": "2026-10-01T09:30:00.0000000Z",
+  "playTimeSeconds": 5400,
+  "hash": "91ca5118f87046e77179753ceedb4e72e77048da4dd5801aa690d8d96b9b1149",
+  "history": [
+    "91ca5118f87046e77179753ceedb4e72e77048da4dd5801aa690d8d96b9b1149"
+  ],
+  "data": {
+    "best": {
+      "score": 4100,
+      "level": 7
+    },
+    "settings": {
+      "musicVolume": 0.5
+    }
+  },
+  "checksum": "e6d7e158364c39a12603277d2ebf475f3fdd6845e87c8c16be05f4ff7dd736e6"
+}

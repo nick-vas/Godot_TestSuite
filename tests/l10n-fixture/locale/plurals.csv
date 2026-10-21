@@ -1,0 +1,7 @@
+key,?context,?plural,en,pl
+?pluralrule,,,,
+APPLES,,APPLES_PL,{n} apple,{n} jabłko
+,,,{n} apples,{n} jabłka
+OPEN,door,,Open,Otwórz
+OPEN,state,,Open,Otwarte
+OPEN,door,,Open,Otwórz

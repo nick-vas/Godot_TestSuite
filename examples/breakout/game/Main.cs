@@ -1,10 +1,12 @@
+using Breakout.Controls;
 using Breakout.Core;
 using Godot;
 using System.Collections.Generic;
 
 /// <summary>
 /// Minimal self-playing breakout. The paddle tracks the ball so a headless smoke run
-/// exercises collisions, scoring and floor progression without input.
+/// exercises collisions, scoring and floor progression without input; move_left and
+/// move_right (keyboard and controller at once, rebindable) take over while held.
 /// </summary>
 public partial class Main : Node2D
 {
@@ -12,6 +14,8 @@ public partial class Main : Node2D
     private const float PaddleBaseWidth = 96f;
     private static readonly Vector2 Arena = new(640, 480);
     private static readonly Vector2 BrickSize = new(56, 18);
+    // Cached: a string passed where a StringName is expected allocates a new one on every call.
+    private static readonly StringName MoveLeft = "move_left", MoveRight = "move_right";
 
     private readonly RunState _run = new();
     private readonly List<Rect2> _bricks = new();
@@ -24,12 +28,16 @@ public partial class Main : Node2D
     public int BricksRemaining => _bricks.Count;
     public int Score => _run.Score;
     public int Floor => _run.Floor;
+    public float PaddleX => _paddleX;
+    public InputDevices Devices { get; } = new();
 
     private float PaddleWidth => PaddleBaseWidth + _run.PaddleWidthBonus;
     private Rect2 PaddleRect => new(_paddleX - PaddleWidth / 2, Arena.Y - 32, PaddleWidth, 12);
 
     public override void _Ready()
     {
+        InputBindings.Load();
+        AddChild(Devices);
         BuildFloor();
         ResetBall();
     }
@@ -38,7 +46,10 @@ public partial class Main : Node2D
     {
         if (_run.IsOver) return;
 
-        _paddleX = Mathf.MoveToward(_paddleX, _ball.X, 600f * (float)delta);
+        float steer = Input.GetAxis(MoveLeft, MoveRight);
+        _paddleX = steer != 0
+            ? Mathf.Clamp(_paddleX + steer * 600f * (float)delta, 0, Arena.X)
+            : Mathf.MoveToward(_paddleX, _ball.X, 600f * (float)delta);
         _ball += _ballDir * BaseBallSpeed * _run.BallSpeedMultiplier * (float)delta;
 
         if (_ball.X < 0 || _ball.X > Arena.X) _ballDir.X = -_ballDir.X;

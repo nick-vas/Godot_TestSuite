@@ -7,7 +7,7 @@ $script:ArchitectureRules = [ordered]@{
     'parent-path'            = 'Reaches two or more levels up the scene tree; pass the dependency in, or signal up (godot-patterns: Observer)'
     'ui-mutates-state'       = 'A UI script changes game state in an autoload; send an intent the game handles instead'
     'per-frame-lookup'       = 'Looks up nodes every frame; find them once in _Ready and keep the reference'
-    'per-frame-alloc'        = 'Allocates every frame (collections, interpolated strings, LINQ); this feeds the garbage collector (godot-performance)'
+    'per-frame-alloc'        = 'Allocates every frame (collections, action names as string literals, interpolated strings, LINQ); this feeds the garbage collector (godot-performance)'
     'event-not-unsubscribed' = 'Subscribes to an autoload''s event without unsubscribing; the autoload outlives this node and keeps calling it'
     'too-many-autoloads'     = 'Many autoloads become hidden global state; group state in one autoload or pass dependencies in (godot-patterns: Singleton)'
     'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
@@ -111,7 +111,7 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
                 if ($line -match $lookup) {
                     & $add 'per-frame-lookup' $relative $n $line.Trim()
                 }
-                if ($isCSharp -and $line -match 'new\s+(List|Dictionary|HashSet|Queue|Stack)<|new\s+Godot\.Collections\.|new\s+(StringName|NodePath)\s*\(|\$"|string\.Format\s*\(|\.(Where|Select|OrderBy|ToList|ToArray)\s*\(') {
+                if ($isCSharp -and $line -match 'new\s+(List|Dictionary|HashSet|Queue|Stack)<|new\s+Godot\.Collections\.|new\s+(StringName|NodePath)\s*\(|\b(IsAction\w*|GetAction\w*|GetAxis|GetVector)\s*\(\s*"|\$"|string\.Format\s*\(|\.(Where|Select|OrderBy|ToList|ToArray)\s*\(') {
                     & $add 'per-frame-alloc' $relative $n $line.Trim()
                 }
             }

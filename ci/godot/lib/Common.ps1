@@ -236,8 +236,9 @@ function Select-GodotErrors([string[]]$Lines) {
 # Always wrap calls in @(...): an empty result comes back as nothing.
 function Get-GodotLogErrors([string]$LogFile) { return Select-GodotErrors @(Get-Content -LiteralPath $LogFile) }
 
-function Assert-GodotLogClean([string]$LogFile, [string]$What) {
-    $errors = @(Get-GodotLogErrors $LogFile)
+# -Expected: error lines that are known to be harmless in this run (compared after trimming).
+function Assert-GodotLogClean([string]$LogFile, [string]$What, [string[]]$Expected = @()) {
+    $errors = @(Get-GodotLogErrors $LogFile | Where-Object { $_.Trim() -notin $Expected })
     if ($errors.Count -gt 0) {
         Write-Console '[godot-ci] Godot reported errors:' -ForegroundColor Red
         $errors | Select-Object -First 30 | ForEach-Object { Write-Console "  $_" }

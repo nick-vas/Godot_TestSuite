@@ -1,0 +1,10 @@
+config_version=5
+
+[application]
+
+config/name="L10n clean"
+run/main_scene="res://ui.tscn"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://locale/text.en.translation", "res://locale/text.fr.translation")
