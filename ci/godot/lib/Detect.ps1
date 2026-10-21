@@ -136,10 +136,12 @@ function Get-ProjectInfo {
         if (Test-Path -LiteralPath (Join-Path $projectDir 'data.json')) { $selected += 'data' }
         # Text sizes are measured on small screens (the Steam Deck's 1280x800) when textsize.json asks for it.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'textsize.json')) { $selected += 'textsize' }
+        # Screens are laid out on phones, a tablet and an ultrawide monitor when layout.json asks for it.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'layout.json')) { $selected += 'layout' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize', 'layout'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 
