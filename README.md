@@ -79,6 +79,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, frames over 20/33 ms, a timestamped hitch log, draw calls, GC via custom monitors; one CSV row per labelled run |
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames an agent can open, at any resolution; with a baseline, the percentage changed and a before, after and diff image |
 | **Hear the mix** | `audio -Mix -GameArgs '--autoplay' [-TargetLufs -18]` | every sound file's loudness and true peak by category (music, voice, ambience, UI, effects), clipping files and voice lines out of step flagged; with `-Mix`, the game's own mix recorded and judged against -24 LUFS (or -18 for handhelds) and -1 dBTP |
+| **Credit everyone** | `credits` | `CREDITS.md`, `credits.json` for a credits screen and `THIRD-PARTY-NOTICES.txt` (assets, Godot and its components, .NET) from `assets.json`; fails when a licence's credit or notice is missing |
 | **Feel the game** | `juice` runner, `juice.json` | an autoplay run in which every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
@@ -128,6 +129,10 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
+| `godot-store-page` | Steam, itch.io and Epic store pages: current capsule sizes, screenshots, trailer, short description, tags, wishlists, Next Fest, Steam's dates |
+| `godot-legal` | age ratings (IARC, Steam's Content Survey, PEGI's loot box rules), privacy policies, EULAs, the rights to every asset |
+| `godot-credits` | credits screens, attribution and licence notices built from the asset manifest |
+| `godot-release-readiness` | is it ready to ship: a checklist where each line names the command or skill that proves it |
 | `godot-export-release` | exporting, smoke-launching, tagged releases, versions, signing, Steam, itch.io, Epic and GOG uploads |
 | `godot-debug-tools` | cheats, consoles, overlays, debug drawing and logging that never reach the shipped build |
 | `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
@@ -225,6 +230,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
 | [docs/art.md](docs/art.md) | Art and technical art: texture compression and pixel art, Blender to glTF, LODs, shaders, particles, post-processing tiers, animation state machines and root motion, free libraries' licences; what was tested in 4.7.2 |
 | [docs/audio.md](docs/audio.md) | Game audio: what FMOD, Wwise and Unreal teach about buses, adaptive music, variation, 3D sound and ducking, mapped to Godot; Godot facts checked in the source; ASWG and IESD loudness targets |
+| [docs/store-and-legal.md](docs/store-and-legal.md) | Store pages, ratings, privacy, licences and credits: Steamworks, Zukowski, IARC, PEGI, GDPR, SPDX and IGDA sources, what was tested, what agents get wrong |
 | [docs/studio-lessons.md](docs/studio-lessons.md) | What studios say worked and failed: Nintendo, Japanese developers, Eastern European and simulation studios, 20 postmortems, talks; each lesson quoted and linked |
 | [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |
 | [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |

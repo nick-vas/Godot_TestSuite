@@ -55,3 +55,5 @@ try {
 
 if ($failures.Count) { throw "$($failures.Count) credits check(s) failed" }
 Write-Host 'credits self-test passed'
+# The last kit run failed on purpose; GitHub's pwsh wrapper would exit with its code.
+exit 0

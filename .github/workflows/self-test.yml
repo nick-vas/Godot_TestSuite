@@ -57,6 +57,9 @@ jobs:
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
+      - name: doctor checks Steam store art sizes, formats, screenshots and the short description
+        shell: pwsh
+        run: ./tests/Test-Store.ps1
       - name: The token benchmark counts, checks and retries (against a stand-in CLI)
         shell: pwsh
         run: ./tests/Test-TokenBenchmark.ps1
@@ -298,6 +301,9 @@ jobs:
       - name: soak runs a server and clients, and catches a leak and a crash
         shell: pwsh
         run: ./tests/Test-Soak.ps1
+      - name: credits builds credits and notices from assets.json and refuses incomplete entries
+        shell: pwsh
+        run: ./tests/Test-Credits.ps1
       - name: shot -Locale -Pseudo finds cut-off, off-screen and missing-glyph text
         shell: pwsh
         run: |

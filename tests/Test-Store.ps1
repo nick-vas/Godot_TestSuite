@@ -79,3 +79,5 @@ try {
 
 if ($failures.Count) { throw "$($failures.Count) store check(s) failed" }
 Write-Host 'store self-test passed'
+# The last kit run failed on purpose; GitHub's pwsh wrapper would exit with its code.
+exit 0
