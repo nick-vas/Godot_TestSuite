@@ -1,0 +1,78 @@
+---
+name: godot-store-page
+description: Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, or the dates between paying for the page and release.
+---
+
+# The store page
+
+A game is bought from its page, and the page is judged in seconds: genre, hook and real gameplay must be obvious at a
+glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtomarketagame.com) on 2026-10-21; sources:
+`${CLAUDE_PLUGIN_ROOT}/docs/store-and-legal.md`.
+
+## 1. Steam's images (sizes changed in August 2024; old ones are refused)
+
+| File in `store/steam/` | Size | Notes |
+|---|---|---|
+| `header_capsule` | 920x430 | top of the page, recommendations |
+| `small_capsule` | 462x174 | lists and search: the logo nearly fills it |
+| `main_capsule` | 1232x706 | front-page carousel |
+| `vertical_capsule` | 748x896 | sale pages |
+| `library_capsule` | 600x900 | the library; logo, no other text |
+| `library_header` | 920x430 | |
+| `library_hero` | 3840x1240 PNG | no text at all; keep the subject in the centre 860x380 |
+| `library_logo` | 1280 wide or 720 tall, PNG with transparency | |
+| `shortcut_icon` | 256x256 or 512x512 | |
+| `app_icon` | 184x184 JPEG | |
+| `page_background` | 1438x810 | optional |
+| `screenshot1`... | at least 1920x1080, 16:9, at least 5 | gameplay only |
+
+- Keep them in `<project>/store/steam/` with an empty `store/.gdignore` (so Godot does not ship them); `doctor` then
+  checks every size, format and the screenshot count.
+- Capsules show only the art, the game's name and an official subtitle: no review scores, awards, "Wishlist now" or
+  discounts (Valve limits the visibility of capsules that do). Event text goes in an Artwork Override, at most a month,
+  translated.
+- A professional capsule artist is the most commonly recommended spend (Zukowski: "DO NOT DO YOUR OWN CAPSULE ART").
+
+## 2. What the page must say in seconds
+
+- **Short description:** the genre, the hook and what the player does, in plain text (no links, no "Out now"); Steam
+  allows "a few hundred characters" (300 is the commonly cited limit). `store/steam/short_description.txt` is checked by
+  `doctor`. Write verbs, not setting: "Smash bricks, draft upgrades, survive 30 floors" beats "In a war-torn land...".
+- **Screenshots:** the first four show the core loop (they appear when hovering the game in lists); real gameplay with
+  the game's UI, no concept art. `shot -Resolution 1920x1080` takes them from real scenes, and `shot -Locale` makes
+  translated sets.
+- **Trailer:** gameplay in the first seconds, no studio or engine logos first; the first video makes Steam's 6-second
+  microtrailer, so it should be gameplay throughout. H.264 and AAC, up to 1920x1080, 30 or 60 fps, 44.1 or 48 kHz audio.
+  A release cannot go out while a trailer is still encoding.
+- **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep "Indie" and praise out of the top 5.
+- **Review rubric** (ask someone who has not seen the game, or the `look` skill on the page's screenshots): can they
+  name the genre in 5 seconds? The hook? Is the gameplay visible? Is every screenshot readable at thumbnail size? If the
+  genre is not clear, the page fails, whatever else is true.
+
+## 3. Dates on Steam
+
+| Step | Rule |
+|---|---|
+| Steam Direct fee | US$100 per game, recouped after US$1,000 of revenue |
+| Fee paid to release | at least 21 days |
+| "Coming Soon" page live | at least 2 weeks before release; Zukowski advises months |
+| Store page review, build review | 3 to 5 business days each; submit 7 business days ahead; the page before the build |
+| Release date | locked 2 weeks before it |
+| Release | a manual "Release App" button; approved games do not release themselves |
+| Steam Next Fest | once per game; demo review submitted 3 weeks before (5 for the press preview); February 2027: register by January 10, runs February 22 to March 1 |
+
+## 4. Wishlists (Zukowski's data, not rules)
+
+- The old "7,000 wishlists" rule is retired (he archived it in June 2026, after Valve's Personalized Calendar). His
+  current tiers at launch: about 5,000 (Bronze), 8,000 (Silver), 50,000 (Gold), 90,000 (Diamond).
+- Next Fest (182 games, February 2026): the median gain was 322, 1,006, 5,215 and 12,882 wishlists for games going in
+  with under 1,000, 1,000 to 9,999, 10,000 to 99,999 and 100,000 or more; going-in wishlists predict the gain
+  (r = 0.825). Do the last Next Fest before launch.
+- First-week conversion of 15 to 25% of wishlists is Simon Carless's data from 2020, not Zukowski's.
+- Valve: a wishlist from two years before release converts about as well as one from two weeks before.
+
+## 5. Other stores
+
+- **itch.io:** cover image 630x500 recommended (315x250 minimum); 3 to 5 screenshots; label adult content and generative
+  AI use. Good for prototypes and jams, rarely for revenue.
+- **Epic:** logo 960x540 PNG; landscape 2560x1440 and portrait 1200x1600 images; uses IARC age ratings (`godot-legal`).

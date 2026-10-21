@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Store pages, legal basics, credits and release readiness:
+  - `credits` command: `CREDITS.md`, `credits.json` (sections with translation-key headings, for a credits screen) and
+    `THIRD-PARTY-NOTICES.txt` from `assets.json`, with Godot's MIT text and its third-party components read from the
+    engine, and the .NET runtime's notices for C# games (a C# export ships none). It fails (`credits-invalid`) on credits
+    without an author or a source URL, MIT, BSD, ISC, OFL and Apache entries without their copyright line or licence text,
+    and non-commercial or GPL-family licences. `export` copies the notices next to each executable.
+  - `doctor` checks Steam store art in `store/steam/` against the sizes in force since August 2024, at least five 16:9
+    screenshots at 1920x1080 or more, and the short description.
+  - Plan template: launch gates for credits, privacy and age ratings; the store gate names Steam's two-week Coming Soon
+    minimum.
+  - Skills: `godot-store-page`, `godot-legal`, `godot-credits` and `godot-release-readiness`. Sources and what was tested:
+    `docs/store-and-legal.md`.
 - The TRIBES networking model (Frohnmayer and Gift, GDC 2000) in Breakout.Core (`Net/Replication.cs`): a connection
   layer that reports every packet delivered or dropped, in order, and never resends; a ghost replicator per client with
   scope, priority, a byte budget and per-object state masks, where lost state is resent only if no newer value was sent;

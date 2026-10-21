@@ -175,6 +175,25 @@ function Invoke-Doctor($Info) {
     $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
     foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
+    # Store art for Steam, if the project keeps it in store/steam: sizes, formats, screenshots, the short description.
+    $storeDir = Join-Path $project 'store'
+    $steamDir = Join-Path $storeDir 'steam'
+    if (Test-Path -LiteralPath $steamDir) {
+        if (-not (Test-Path -LiteralPath (Join-Path $storeDir '.gdignore'))) {
+            Add-Check WARN 'store/ has no .gdignore: Godot imports the store art and ships it inside the game' 'Add an empty store/.gdignore'
+        }
+        $store = Test-SteamStoreAssets $steamDir
+        foreach ($p in $store.problems) {
+            $status = if ($p.code -eq 'asset-missing') { 'WARN' } else { 'FAIL' }
+            Add-Check $status "Steam store art: $($p.message)" 'Sizes: partner.steamgames.com/doc/store/assets (godot-store-page)'
+        }
+        if (-not $store.problems) { Add-Check OK "Steam store art: $($store.checked) image(s) at Steam's current sizes" }
+        foreach ($description in @(Get-ChildItem -LiteralPath $steamDir -File -Filter 'short_description*.txt')) {
+            $descriptionProblems = Test-SteamShortDescription (Get-Content -LiteralPath $description.FullName -Raw).Trim()
+            foreach ($p in $descriptionProblems) { Add-Check WARN "Steam $($description.Name): $p" 'Genre, hook and what the player does, in plain text (godot-store-page)' }
+        }
+    }
+
     # A game playable with a keyboard and with a gamepad needs both kinds of binding on every action (Crashlands
     # postmortem; Xbox Accessibility Guideline 107). Godot 4.7's default ui_accept and ui_cancel have no gamepad button.
     $actions = Get-InputActionDevices $projectGodot

@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/godot-ci.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio` and `soak`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak` and `credits`.
 
 | Parameter | Default | |
 |---|---|---|
@@ -15,7 +15,7 @@
 | `-Preset` | every preset | `export`: which presets |
 | `-Run` | off | `export`: launch builds this machine can run |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`) |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
 | `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
@@ -127,6 +127,22 @@ The `path` patterns work like this:
 - The first entry that matches a file wins.
 
 The `licence` field takes an SPDX identifier, or `LicenseRef-<name>` for custom terms such as the Sonniss bundles.
+
+**`credits`** builds the game's credits from `assets.json`: `CREDITS.md`, `credits.json` (for a credits screen) and
+`THIRD-PARTY-NOTICES.txt` (each asset's copyright line and licence text, Godot's MIT text and its third-party components read
+from the engine, and the .NET runtime's notices for a C# game). It fails (`credits-invalid`) when an entry lacks what its
+licence asks for. Optional fields help: `title`, `copyright` (the original copyright line), `modified` (what you changed),
+`licenceFile` and `noticeFile` (paths of the upstream licence and NOTICE files). Licence texts for MIT, ISC, BSD-2-Clause,
+BSD-3-Clause, Apache-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
+`THIRD-PARTY-NOTICES.txt` next to each executable. The rules: the `godot-credits` skill and [store-and-legal.md](store-and-legal.md).
+
+**`store/steam/`** (optional, in the Godot project folder, with an empty `store/.gdignore` so Godot does not ship it) holds
+the Steam store art. `doctor` checks the current sizes (`header_capsule` 920x430, `small_capsule` 462x174, `main_capsule`
+1232x706, `vertical_capsule` 748x896, `library_capsule` 600x900, `library_header` 920x430, `library_hero` 3840x1240 PNG,
+`library_logo` PNG with transparency, 1280 wide or 720 tall, `shortcut_icon` 256 or 512 square, `app_icon` 184x184 JPEG,
+optional `page_background` 1438x810), at least five `screenshot*` files at 1920x1080 or more in 16:9, and
+`short_description.txt` (plain text, no links or time-limited wording, 300 characters at most). Wrong sizes and formats FAIL;
+missing files and short description problems WARN.
 
 **`juice.json`** (optional, in the Godot project folder) turns on the `juice` runner: Godot plays the game headless at a fixed
 60 fps for `frames` frames (default 1800) with `args` (plus `-GameArgs`), and each rule checks that every `event` was followed

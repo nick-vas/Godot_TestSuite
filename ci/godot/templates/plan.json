@@ -203,7 +203,7 @@
       "gates": [
         {
           "id": "launch.store",
-          "text": "Store page live ('Coming soon') with capsule art, trailer and tags, ideally months before launch",
+          "text": "Store page live ('Coming soon'), at least 2 weeks before release on Steam and ideally months: capsules at the current sizes (doctor checks store/steam), gameplay trailer, 5+ screenshots, tags",
           "check": "manual"
         },
         {
@@ -222,8 +222,23 @@
           "check": "manual"
         },
         {
+          "id": "launch.credits",
+          "text": "Credits and third-party notices built from assets.json (credits command), reachable from the main menu",
+          "check": "file:THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "id": "launch.privacy",
+          "text": "Privacy policy published if the game sends any data (telemetry, accounts, online play); Google Play and the App Store want one in every case",
+          "check": "manual"
+        },
+        {
+          "id": "launch.rating",
+          "text": "Age ratings: Steam's content survey (Germany and Indonesia need its ratings), IARC for other stores",
+          "check": "manual"
+        },
+        {
           "id": "launch.legal",
-          "text": "Licences, credits, privacy/age-rating and refund basics sorted",
+          "text": "End-user licence (or the store's own terms), refund rules and the game's name checked",
           "check": "manual"
         },
         {

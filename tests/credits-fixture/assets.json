@@ -1,0 +1,11 @@
+{ "assets": [
+  { "path": "art/knight.png", "title": "Knight Sprite", "author": "Jane Doe", "source": "https://opengameart.org/content/knight", "licence": "CC-BY-4.0" },
+  { "path": "art/castle/**", "author": "Ann Lee", "source": "https://opengameart.org/content/castle", "licence": "CC-BY-3.0", "modified": "recoloured" },
+  { "path": "addons/tween_kit/**", "title": "Tween Kit", "author": "Sam Roe", "copyright": "2021 Sam Roe", "source": "https://github.com/example/tween-kit", "licence": "MIT" },
+  { "path": "fonts/sample_sans.ttf", "title": "Sample Sans", "author": "The Sample Sans Project Authors", "source": "https://example.org/sample-sans", "licence": "OFL-1.1", "licenceFile": "fonts/OFL.txt" },
+  { "path": "audio/rain.ogg", "title": "Rain", "author": "Kenney", "source": "https://kenney.nl/assets/rain", "licence": "CC0-1.0" },
+  { "path": "art/no_author.png", "source": "https://opengameart.org/content/tree", "licence": "CC-BY-4.0" },
+  { "path": "music/theme.ogg", "author": "Max Mo", "source": "https://example.org/theme", "licence": "CC-BY-NC-4.0" },
+  { "path": "shaders/water.gdshader", "author": "Lu Li", "source": "https://godotshaders.com/shader/water", "licence": "MIT" },
+  { "path": "art/player/**", "source": "own", "licence": "own" }
+] }

@@ -30,8 +30,9 @@ param(
     # status: GDD features, tagged tests, plan, latest runs, git activity and an inventory, in one read-only pass.
     # audio: loudness of the sound files and, with -Mix, of the game's recorded mix (needs ffmpeg).
     # soak: one headless server and -Clients headless clients of the game, run together; fails on crashes, errors and leaks.
+    # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -131,7 +132,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Credits', 'Store') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -351,6 +352,9 @@ function Invoke-ExportPresets {
             -not @(Get-ChildItem -LiteralPath $dir -Directory -Filter 'data_*' | Where-Object { @(Get-ChildItem -LiteralPath $_.FullName -Filter '*.dll').Count -gt 0 }).Count) {
             Stop-GodotCi "Export '$name' has no data_* folder with the game's C# assembly: the build would run without its code" 'export-failed'
         }
+        # The licence notices the game must ship (credits command), next to the executable.
+        $notices = Join-Path $info.ProjectDir 'THIRD-PARTY-NOTICES.txt'
+        if (Test-Path -LiteralPath $notices) { Copy-Item -LiteralPath $notices -Destination $dir -Force }
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
 
         $exports += [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
@@ -379,7 +383,7 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits') {
     Start-RunLog (Join-Path ([System.IO.Path]::GetFullPath($Results)) 'godot-ci.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
@@ -412,6 +416,10 @@ switch ($Command) {
         Invoke-Setup; Invoke-Build
         Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour `
             -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'soak-results' })))
+    }
+    'credits' {
+        Invoke-Setup
+        Invoke-Credits -Info $info -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { $info.ProjectDir })
     }
     'audio' {
         if ($Mix) { Invoke-Setup; Invoke-Build }
