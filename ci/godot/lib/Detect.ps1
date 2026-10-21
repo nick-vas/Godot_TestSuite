@@ -120,10 +120,13 @@ function Get-ProjectInfo {
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
         # A bot run that checks every gameplay event got its feedback in time, when juice.json says what to expect.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'juice.json')) { $selected += 'juice' }
+        # Translation tables are checked for duplicate, untranslated and missing keys.
+        $translations = Get-TranslationSources $projectDir
+        if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0) { $selected += 'l10n' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 

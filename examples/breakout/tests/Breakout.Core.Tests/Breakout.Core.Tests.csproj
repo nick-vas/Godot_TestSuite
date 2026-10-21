@@ -14,4 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Breakout.Core/Breakout.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- One save from every shipped version; SaveStoreTests loads each. -->
+    <None Include="Saves/golden/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

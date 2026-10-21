@@ -9,6 +9,7 @@
 #   validate   loads every script, scene and resource and instantiates every scene (tools/validate.gd)
 #   architecture  a static scan of the scripts for structural problems (lib/Architecture.ps1); warnings unless configured
 #   juice      a bot run that checks each gameplay event got its feedback in time (lib/Juice.ps1, juice.json)
+#   l10n       translation tables: duplicate, untranslated and missing keys (lib/Localization.ps1); no Godot needed
 #
 # -Filter means: dotnet/gdunit4 `dotnet test --filter`; godottest suite name; gut test name.
 
@@ -162,6 +163,9 @@ function Invoke-TestRunner {
         }
         'architecture' {
             $code = Invoke-ArchitectureRunner $project $ResultsDir
+        }
+        'l10n' {
+            $code = Invoke-LocalizationRunner $project $ResultsDir
         }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'
