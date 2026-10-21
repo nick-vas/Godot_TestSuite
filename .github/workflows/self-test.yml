@@ -63,6 +63,9 @@ jobs:
       - name: doctor checks Steam store art sizes, formats, screenshots and the short description
         shell: pwsh
         run: ./tests/Test-Store.ps1
+      - name: doctor checks Web and Android presets and export paths inside the project
+        shell: pwsh
+        run: ./tests/Test-Platforms.ps1
       - name: The token benchmark counts, checks and retries (against a stand-in CLI)
         shell: pwsh
         run: ./tests/Test-TokenBenchmark.ps1
@@ -304,6 +307,9 @@ jobs:
       - name: The textsize runner fails text under 9 px at 1280x800, and integer scaling that cuts off
         shell: pwsh
         run: ./tests/Test-TextSize.ps1
+      - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
+        shell: pwsh
+        run: ./tests/Test-Layout.ps1
       - name: soak runs a server and clients, and catches a leak and a crash
         shell: pwsh
         run: ./tests/Test-Soak.ps1
@@ -342,6 +348,17 @@ jobs:
           $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r2" 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'tests-failed') { throw "without the flag the smoke run should fail: $($d | ConvertTo-Json -Depth 6)" }
           exit 0   # the last run failed on purpose; see the bench step
+
+  # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Playwright's Chromium and Firefox
+        run: npx --yes playwright@1.56.1 install --with-deps chromium firefox
+      - name: export -Run starts web builds, serves threads builds isolated and catches script errors
+        shell: pwsh
+        run: ./tests/Test-Web.ps1 -Browser chromium,firefox,msedge
 
   # The composite action inside a custom workflow.
   action:
