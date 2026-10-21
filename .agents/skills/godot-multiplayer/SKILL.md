@@ -92,7 +92,8 @@ never got ready, or memory that keeps growing (`soak-failed`, `engine-errors`, `
       (a GitHub job runs at most 6 hours: split longer soaks, or use your own runner)
 - [ ] a 2 to 3 second blackout: clients recover without the server dropping them
 
-On a 4-core runner, 50 clients as separate processes took about 8 GB and a core; the same 50 in one process (a`nSceneMultiplayer` per branch) took 184 MB and a sixth of a core. Leave the first seconds after many clients connect
+On a 4-core runner, 50 clients as separate processes took about 8 GB and a core; the same 50 in one process (a
+`SceneMultiplayer` per branch) took 184 MB and a sixth of a core. Leave the first seconds after many clients connect
 out of any assertion (a connection storm loses inputs), give `soak` a `-Warmup` that covers it, and have each process
 write its results to a file before it quits. Full-world snapshots stop working somewhere past 80 to 100 players: send
 each player only what is near it, as deltas.
