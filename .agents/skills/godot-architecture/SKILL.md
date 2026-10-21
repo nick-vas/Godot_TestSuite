@@ -64,10 +64,28 @@ on those materials). Cheerful assets under a stark grade give a distinctive look
 - Far from the player, run the simulation as plain data at a lower rate, and give actors nodes only near the player
   (A-Life's offline mode). Let places hand out goals instead of scripting routes, show off-screen events to the player
   (news, rumours), and give every AI system a debug view, pause and time scale.
+- A spawn economy as data (DayZ's Central Economy): each item type a `[GlobalClass]` Resource with a target count, a
+  floor, a lifetime and which copies count (on the map, in containers, on players); a plain C# economy keeps a live
+  count per type and runs on a `Timer` every few seconds, removing expired items and spawning at most a fixed number per
+  tick. Crafted-only items have a target of 0: counted, never spawned. Usage and rarity labels come from one declared
+  vocabulary (`[Export(PropertyHint.Flags, "Military,Police,Farm,Town")]`), rarity is painted on map zones rather than
+  set per building, and a test fails on any label outside the vocabulary.
 - Multiplayer: one source of truth. The server owns state, clients send inputs, `MultiplayerSynchronizer` sends state back,
   and the server never trusts a client's claim (DayZ).
+- Replicate the smallest state (Arma Reforger's drawer is one float) and derive animation, sound and labels from it on every
+  peer. Put the synchronizer in the base scene so inherited variants replicate; parts that detach or spawn at runtime are
+  their own scenes in a `MultiplayerSpawner`. A client asks with `RpcId(1, ...)`; the server method
+  (`[Rpc(MultiplayerApi.RpcMode.AnyPeer)]`) runs the same `CanPerform` check again before it changes anything.
+- Build and run the headless server from the first multiplayer commit (`OS.HasFeature("dedicated_server")`), started from
+  a config file that names a scenario scene: the shared map plus one logic node, so maps are not copied per mode.
 - Mods and long-lived games: gameplay in data and scripts that can be replaced; load mod packs from `user://` with
   `ProjectSettings.LoadResourcePack`; when rewriting internals, keep the old data contract working.
+
+## Graybox, then reskin (Croteam)
+
+Build puzzles and levels from a small kit: a `GridMap` whose `MeshLibrary` holds 2, 3 and 5 m wall blocks in one plain
+material. Layout is judged in playtests before any theme exists; a `[Tool]` `EditorScript` then swaps in a themed
+`MeshLibrary`, and decoration is added by hand on top.
 
 ## Checklist
 

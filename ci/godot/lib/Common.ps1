@@ -118,15 +118,73 @@ function Stop-LogGroup { if ($env:GITHUB_ACTIONS -and -not $script:QuietMode) { 
 
 # Runs a program, streaming its output (stdout and stderr) to the console (the run log only, with -Quiet) and, if given,
 # a log file. Returns the exit code instead of throwing, so callers decide what a failure means.
+# Seconds a program may run before it counts as hung (a deadlock, an await that never resumes). Without a limit a hung
+# Godot stalls a local run, and the agent waiting on it, forever. GODOT_CI_TIMEOUT overrides it; 0 turns it off.
+function Get-ProcessTimeout {
+    if (-not $env:GODOT_CI_TIMEOUT) { return 1800 }
+    $seconds = 0
+    if (-not [int]::TryParse($env:GODOT_CI_TIMEOUT, [ref]$seconds) -or $seconds -lt 0) {
+        Stop-GodotCi "GODOT_CI_TIMEOUT must be a whole number of seconds: $env:GODOT_CI_TIMEOUT"
+    }
+    return $seconds
+}
+
+# Runs a program, shows (or logs) stdout and stderr line by line, and returns its exit code. A program that outlives
+# Get-ProcessTimeout is stopped with its child processes and returns 124, the exit code of coreutils' timeout.
 function Invoke-Logged {
     param([string]$FilePath, [string[]]$ArgumentList = @(), [string]$LogFile)
     $show = if ($script:QuietMode) { { Write-RunLog $_ } } else { { Write-Console $_ } }
-    if ($LogFile) {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $LogFile | ForEach-Object $show
-    } else {
-        & $FilePath @ArgumentList 2>&1 | ForEach-Object { "$_" } | ForEach-Object $show
+    $command = @(Get-Command $FilePath -CommandType Application -ErrorAction SilentlyContinue)
+    if ($command.Count -eq 0) { Stop-GodotCi "Program not found: $FilePath" }
+    $info = [System.Diagnostics.ProcessStartInfo]::new($command[0].Source)
+    foreach ($argument in $ArgumentList) { $info.ArgumentList.Add($argument) }
+    $info.UseShellExecute = $false
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $info.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $info.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
+    $timeout = Get-ProcessTimeout
+    $writer = if ($LogFile) { [System.IO.StreamWriter]::new($LogFile, $false, [System.Text.UTF8Encoding]::new($false)) }
+    $process = [System.Diagnostics.Process]::Start($info)
+    $clock = [System.Diagnostics.Stopwatch]::StartNew()
+    $readers = @($process.StandardOutput, $process.StandardError)
+    $pending = @($readers[0].ReadLineAsync(), $readers[1].ReadLineAsync())
+    $timedOut = $false
+    try {
+        while ($null -ne $pending[0] -or $null -ne $pending[1]) {
+            $wait = 1000
+            if ($timeout -gt 0) {
+                $left = $timeout * 1000 - $clock.ElapsedMilliseconds
+                if ($left -le 0) { $timedOut = $true; break }
+                $wait = [Math]::Min($wait, $left)
+            }
+            $open = @(foreach ($i in 0, 1) { if ($null -ne $pending[$i]) { $i } })
+            $tasks = [System.Threading.Tasks.Task[]]@(foreach ($i in $open) { $pending[$i] })
+            $done = [System.Threading.Tasks.Task]::WaitAny($tasks, [int]$wait)
+            if ($done -lt 0) {
+                # A child the program started (a build server) can keep the pipes open after the program itself exits.
+                if ($process.HasExited) { break }
+                continue
+            }
+            $stream = $open[$done]
+            $line = $pending[$stream].Result
+            if ($null -eq $line) { $pending[$stream] = $null; continue }
+            $pending[$stream] = $readers[$stream].ReadLineAsync()
+            if ($writer) { $writer.WriteLine($line) }
+            $line | ForEach-Object $show
+        }
+        if ($timedOut) {
+            try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }
+            $message = "[godot-ci] $FilePath was still running after $timeout s and was stopped (raise GODOT_CI_TIMEOUT if it needs longer)"
+            if ($writer) { $writer.WriteLine($message) }
+            Write-Console $message -ForegroundColor Red
+        }
+    } finally {
+        if ($writer) { $writer.Dispose() }
     }
-    return $LASTEXITCODE
+    $process.WaitForExit()
+    if ($timedOut) { return 124 }
+    return $process.ExitCode
 }
 
 # Runs a program and stops the whole run if it fails.

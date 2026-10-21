@@ -54,6 +54,12 @@ localisation and accessibility decided up front, not bolted on), `prototype.vari
 the ending on every CI run) and `launch.archive` (ship exactly the build that was tested, with its source tagged). Keep the
 first estimate of each phase, and report how far the actual time has slipped from it.
 
+Croteam shipped earlier games as "the alpha plus bug fixes"; The Talos Principle changed a lot after its alpha, through
+team, closed-beta and public-demo playtests. Its biggest failure was a localisation nobody had played. Hence `beta.iterate`
+(redesign what playtesters struggled with, then play it again) and `beta.localization` (a native speaker who has not played
+finishes each language). In a story game, production's draft stage ends when every quest is playable start to end with
+placeholder dialogue (CD Projekt Red); any later stage may send a quest back.
+
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every
 milestone is a build someone can play. Sources and reasoning: `docs/plan.md`.

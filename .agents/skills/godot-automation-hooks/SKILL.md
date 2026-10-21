@@ -75,7 +75,26 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
 - **Why players fail.** Log every death or quit with its cause (`[Death] cause=fall level=3 t=212.4`); a heat map of deaths
   and movement shows where the design does not work as planned (GSC on S.T.A.L.K.E.R. 2, DayZ).
 - **Which build.** Stamp the commit and build time on screen and in every log, so a report or screenshot names its build.
-- **A feedback key.** One key saves a screenshot, the log and the save file together for the report (Inkbound).
+- **A feedback key.** One key and one typed line ("these rocks look wrong") save a screenshot, the log, the save file and
+  a `user://reports/<time>.json` with the scene path, the player's and camera's `GlobalTransform`, the seed and the
+  commit (Inkbound, Croteam). The place and view are what make a vague report fixable; the fixing commit names the report.
+
+## Record a solution, replay it in CI
+
+Croteam's bot finished The Talos Principle in about 20 minutes on every build (a person needs about ten hours), so a jump
+or physics change was known safe within the hour. Its recordings survived level edits because they stored intent:
+
+- `--record=res://solutions/<level>.json` writes the designer's solution as steps on named nodes (`take Key_A`,
+  `place Box_1 on Socket_2`, `use Door_3`), never raw input or coordinates.
+- `--replay=<file>` walks to each target with `NavigationAgent3D`, performs the step, and logs `[Run] level=<name> solved`.
+  By hand, run it under `--fixed-fps 60` (fast-forward with fixed physics steps).
+- A `smoke` run passes on a bot stuck in the first room. Until the kit checks for an ending, give it enough frames
+  (`test -Runners smoke -Frames 216000 -GameArgs '--replay=all','--no-save'`; smoke counts frames, not game time, so
+  size `-Frames` from a local run) and fail CI yourself: `grep -q '\[Run\] ending reached' test-results/smoke/smoke.log`.
+- It proves the game can be finished, not that it has no bugs (their door stopped opening after a texture change).
+  People still play it.
+- A hung run (a deadlock, an `await` that never resumes) is stopped after `GODOT_CI_TIMEOUT` seconds (default 1800) and
+  fails; set it a little above the run's real length so a hang is caught early.
 
 ## One log line per meaningful event
 
