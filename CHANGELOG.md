@@ -14,6 +14,10 @@
   - Breakout.Core: platform services (achievements, stats, a leaderboard, rich presence) with a local backend that
     behaves like Steam, and `SaveStore.SaveResolved`, which ends a cloud conflict so the next sync goes one way.
   - `godot-console-cert`: PlayStation and Nintendo details are out of scope (NDA); "save on suspend" is now "save often".
+- Token benchmark (`benchmark/`, `docs/token-benchmark.md`): tasks from this repository run as read-only `claude -p`
+  sessions under three profiles (baseline, scoped, plan then answer), repeated, with tokens counted including cache
+  reads and writes, Claude Code's own cost, turns, time and answer checks; medians and 90th percentiles per profile and
+  task. A manual workflow (`Token benchmark`) and a self-test against a stand-in CLI.
 - Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
   - Skills: `godot-data`, `godot-determinism`, `godot-modding`, `godot-anti-cheat`, `godot-console-cert` and
     `godot-debug-tools`; `godot-performance` gains C# profiling (`dotnet-trace`, `dotnet-gcdump`, starting the counters

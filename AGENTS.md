@@ -14,6 +14,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` and `godot-architect` subagents, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
+- `benchmark/` the token benchmark (`Invoke-TokenBenchmark.ps1`, `token-benchmark.json`); each real run costs money, `-DryRun` does not.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
 - `examples/breakout` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract.
@@ -37,7 +38,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   imports nor exports it, and `Find-ProjectFiles` skips folders that have one). Do not remove them.
 - Verify with the examples: `pwsh ci/godot/godot-ci.ps1 test -Project examples/breakout/game` and `-Project examples/gdscript`
   must be green; `doctor` and `plan` on both. Changing a version matrix entry means re-running both on that Godot.
-- Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass; architecture rules: `pwsh tests/Test-ArchitectureFixtures.ps1`; juice log: `pwsh tests/Test-JuiceLog.ps1`; process time limit: `pwsh tests/Test-ProcessTimeout.ps1`; audio: `pwsh tests/Test-Audio.ps1` (`-Mix` with a display); assets: `pwsh tests/Test-AssetManifest.ps1`; localization: `pwsh tests/Test-Localization.ps1`; soak: `pwsh tests/Test-Soak.ps1`; data: `pwsh tests/Test-Data.ps1`; text size: `pwsh tests/Test-TextSize.ps1`; Steam: `pwsh tests/Test-Steam.ps1`; skill shaders: `pwsh tests/Test-SkillShaders.ps1`. A skill description says only when to use it, never how.
+- Skills: `pwsh ci/godot/tools/Test-Skills.ps1` and `pwsh tests/Test-SkillFixtures.ps1` must pass; architecture rules: `pwsh tests/Test-ArchitectureFixtures.ps1`; juice log: `pwsh tests/Test-JuiceLog.ps1`; process time limit: `pwsh tests/Test-ProcessTimeout.ps1`; audio: `pwsh tests/Test-Audio.ps1` (`-Mix` with a display); assets: `pwsh tests/Test-AssetManifest.ps1`; localization: `pwsh tests/Test-Localization.ps1`; soak: `pwsh tests/Test-Soak.ps1`; data: `pwsh tests/Test-Data.ps1`; text size: `pwsh tests/Test-TextSize.ps1`; Steam: `pwsh tests/Test-Steam.ps1`; token benchmark: `pwsh tests/Test-TokenBenchmark.ps1`; skill shaders: `pwsh tests/Test-SkillShaders.ps1`. A skill description says only when to use it, never how.
   Commands, flags, error codes and versions quoted in a skill are checked against the real script, `docs/json.md` and `examples/breakout`.
 - Commit as the repository owner. Do not add AI attribution trailers to commits or PR descriptions.
 - Do not rewrite pushed history.

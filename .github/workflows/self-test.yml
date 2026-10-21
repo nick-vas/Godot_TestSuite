@@ -20,7 +20,8 @@ jobs:
         shell: pwsh
         run: |
           $issues = @(Invoke-ScriptAnalyzer -Path ci/godot -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
-            @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
+            @(Invoke-ScriptAnalyzer -Path hooks -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1) +
+            @(Invoke-ScriptAnalyzer -Path benchmark -Recurse -Settings ci/godot/PSScriptAnalyzerSettings.psd1)
           $issues | Format-Table -AutoSize RuleName, ScriptName, Line, Message | Out-String -Width 200
           if ($issues) { exit 1 }
       - name: Skills pass their own validator, and the validator catches broken fixtures
@@ -59,6 +60,9 @@ jobs:
       - name: doctor's GDExtension and Steam package checks, and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1
+      - name: The token benchmark counts, checks and retries (against a stand-in CLI)
+        shell: pwsh
+        run: ./tests/Test-TokenBenchmark.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: |

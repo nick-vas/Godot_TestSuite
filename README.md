@@ -88,6 +88,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, eighteen skills and the `godot-verifier` subagent, copied or as a plugin |
 | **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last passing `test` run |
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
+| **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens (cache included), cost, time and answer checks per task and way of working, as medians over repeated runs |
 
 Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotnet test`, and UI flows. Verified on Godot 4.7.2 and .NET 8.
 
@@ -222,6 +223,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/case-study-breakout-roguelike.md](docs/case-study-breakout-roguelike.md) | Lessons from a real Godot 4.7 C# game, and what the kit does with each |
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/research.md](docs/research.md) | Measured output sizes and the studies behind the plugin, quiet output and evals |
+| [docs/token-benchmark.md](docs/token-benchmark.md) | The token benchmark: running it, the spec, how sessions are isolated, reading the numbers |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
 | [docs/art.md](docs/art.md) | Art and technical art: texture compression and pixel art, Blender to glTF, LODs, shaders, particles, post-processing tiers, animation state machines and root motion, free libraries' licences; what was tested in 4.7.2 |
 | [docs/audio.md](docs/audio.md) | Game audio: what FMOD, Wwise and Unreal teach about buses, adaptive music, variation, 3D sound and ducking, mapped to Godot; Godot facts checked in the source; ASWG and IESD loudness targets |

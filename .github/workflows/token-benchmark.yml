@@ -1,0 +1,58 @@
+# Measures the tokens, cost and time Claude Code spends on the tasks in benchmark/token-benchmark.json under each profile
+# (benchmark/Invoke-TokenBenchmark.ps1). Manual only: each run calls the model and costs money. Needs the repository
+# secret ANTHROPIC_API_KEY.
+name: Token benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model alias or id (empty for the spec's)
+        default: ''
+      repeat:
+        description: Runs per task and profile (empty for the spec's)
+        default: ''
+      profiles:
+        description: Comma-separated profile ids (empty for all)
+        default: ''
+      tasks:
+        description: Comma-separated task ids (empty for all)
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Claude Code
+        shell: pwsh
+        run: |
+          if (-not $env:ANTHROPIC_API_KEY) { throw 'Add the ANTHROPIC_API_KEY repository secret to run the benchmark' }
+          npm install -g @anthropic-ai/claude-code
+      - name: Run the benchmark
+        shell: pwsh
+        env:
+          MODEL: ${{ inputs.model }}
+          REPEAT: ${{ inputs.repeat }}
+          PROFILES: ${{ inputs.profiles }}
+          TASKS: ${{ inputs.tasks }}
+        run: |
+          $params = @{ OutputDir = 'benchmark/results'; SaveResponses = $true }
+          if ($env:MODEL) { $params.Model = $env:MODEL }
+          if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
+          if ($env:PROFILES) { $params.ProfileId = $env:PROFILES }
+          if ($env:TASKS) { $params.TaskId = $env:TASKS }
+          ./benchmark/Invoke-TokenBenchmark.ps1 @params
+          Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: token-benchmark
+          path: benchmark/results/
+          retention-days: 30
