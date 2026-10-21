@@ -40,8 +40,45 @@ claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and lo
   player on 500 ms kills people half a second after they reached cover.
 - **Checksums.** Server and clients hash the state they agree on every so often; a mismatch is a desync found early.
 
-## 3. Godot 4.7 specifics
+## 3. Sending state to many players (the TRIBES model)
 
+Starsiege TRIBES (1998) ran 128 players over modems by sorting data by what its delivery needs, and sending each
+player only what matters to them, as partial updates. Breakout's `Net/Replication.cs` is that model, tested.
+
+| Data | Needs | Example | In Godot 4.7 |
+|---|---|---|---|
+| Not guaranteed | Nothing; late is useless | an effect, a footstep | `Unreliable` RPC |
+| Guaranteed | Every one, in order | chat, a goal, a spawn, a kill | `Reliable` RPC, `MultiplayerSpawner` |
+| Most recent state | Only the latest value | position, health, ammo | `MultiplayerSynchronizer` with `Always`, or a replicator (below) |
+| Soonest possible | Every packet | inputs (3 copies), the player's own state | in every snapshot |
+| Static | Once, at connection | weapon and vehicle definitions | the game's data; send its id |
+
+- `OnChange` replication sends "using reliable transfer mode when its value changes" (Godot's class reference): good
+  for values that change rarely (team, name, score), wrong for ones that change all the time. Under loss a reliable
+  channel resends every stale value, in order, and newer values wait behind them. `Always` sends unreliably, but every
+  property every interval.
+- **Notify, never resend.** The connection layer numbers unreliable packets, and the acknowledgements tell the sender,
+  packet by packet and in order, what arrived (a packet arriving after a newer one counts as lost and is discarded, so
+  old state never overwrites new). It retransmits nothing; each kind of data decides what a loss means.
+- **State masks.** Each object has state groups (position, health, animation...), one dirty bit each, per client. A
+  packet takes the dirty groups' current values and clears the bits. On a loss, a bit is set again only if no later
+  packet carried that group: a newer value is already on its way, so the old one is never resent.
+- **Scope and priority.** Each client gets only the objects in its scope (in view, near, relevant), most important
+  first, within a byte budget per packet. Godot's visibility filters (`PublicVisibility = false`,
+  `AddVisibilityFilter`, `SetVisibilityFor`) give the scope; nothing in Godot gives priority or a budget. Rank by
+  distance, size on screen and heading towards the player, and let waiting raise an object's rank, so bandwidth is
+  shared in proportion to priority and nothing starves.
+- **Inputs.** TRIBES first resent every unacknowledged move in each packet: on a slow link a lost packet made the next
+  one bigger, which got lost too. TRIBES II capped it; Breakout sends each input in 3 packets.
+- **Static data by id.** Each vehicle sent the id of its definition (TRIBES' datablocks), loaded once at connection,
+  not the definition itself (`godot-data`).
+
+Measured with `ReplicationTests` (80 objects, 4 groups each, 8 changes a tick, 30 packets a second of at most 400 bytes,
+20% loss and 120 ± 30 ms each way): the client ends with exactly the objects in its scope and their current values,
+never applies an older value over a newer one, and partial updates use 5% of the bytes full snapshots would; 151 lost
+values were not resent because newer ones were already sent.
+
+## 4. Godot 4.7 specifics
 - `ENetMultiplayerPeer.CreateServer(port, maxClients)`: the client limit defaults to **32**. Do not pass a channel
   count on 4.7.x: it lands in the incoming-bandwidth slot and the server throttles every client to a few bytes a
   second (the `architecture` runner warns: `enet-server-channels`). Use transfer channels 1..N on RPCs anyway.
@@ -63,7 +100,7 @@ claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and lo
   the kernel has it (GitHub's Ubuntu runners, with sudo; not every container). Keep game logic testable without Godot,
   like Breakout's `SimulatedLink`.
 
-## 4. Rollback and lockstep
+## 5. Rollback and lockstep
 
 - Determinism first: integer or fixed-point state, seeded random numbers kept in the state, no wall-clock time, no
   `Dictionary` iteration order. .NET floats can differ between machines; on one machine and build they repeat.
@@ -71,7 +108,7 @@ claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and lo
 - Prediction depth is limited (GGPO: 8 frames); beyond it the game waits. Choose an input delay of 1 to 3 frames to
   keep rollbacks short.
 
-## 5. Prove it
+## 6. Prove it
 
 Logic tests run without Godot over a simulated link (fast, seeded); `soak` runs the real game:
 
@@ -96,4 +133,4 @@ On a 4-core runner, 50 clients as separate processes took about 8 GB and a core;
 `SceneMultiplayer` per branch) took 184 MB and a sixth of a core. Leave the first seconds after many clients connect
 out of any assertion (a connection storm loses inputs), give `soak` a `-Warmup` that covers it, and have each process
 write its results to a file before it quits. Full-world snapshots stop working somewhere past 80 to 100 players: send
-each player only what is near it, as deltas.
+each player only what is in its scope, as partial updates (section 3).

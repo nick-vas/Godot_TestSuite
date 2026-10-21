@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- The TRIBES networking model (Frohnmayer and Gift, GDC 2000) in Breakout.Core (`Net/Replication.cs`): a connection
+  layer that reports every packet delivered or dropped, in order, and never resends; a ghost replicator per client with
+  scope, priority, a byte budget and per-object state masks, where lost state is resent only if no newer value was sent;
+  creations and deletions resent until they arrive. Tested against the paper's four loss cases and a lossy run (5% of the
+  bytes of full snapshots, no older value ever applied). `godot-multiplayer` gains the delivery classes and how they map
+  to Godot 4.7 (`OnChange` replication is reliable: wrong for state that changes all the time).
 - Steam and Steam Deck:
   - Skills: `godot-steam` (which C# binding works in Godot 4.7.2 and which does not, start-up without Steam, achievements,
     stats, leaderboards, rich presence, Cloud conflicts, DLC, demos, dedicated servers, branches) and `godot-steam-deck`
