@@ -12,6 +12,44 @@ function Get-FreeUdpPort {
     try { return ([System.Net.IPEndPoint]$socket.Client.LocalEndPoint).Port } finally { $socket.Dispose() }
 }
 
+# A loopback-only junk flood for measuring how an ENet server holds up when packets crowd its socket buffer. It sends
+# small UDP datagrams to 127.0.0.1 on the server's own port (never any other host) at about -JunkPps a second for the
+# run, in a child process so the pacing does not steal the sampler's thread. The child writes how many it sent to a file.
+function Start-JunkFlood([int]$Port, [int]$Pps, [double]$Seconds, [string]$ResultsDir) {
+    $countFile = Join-Path $ResultsDir 'junk.count'
+    if (Test-Path -LiteralPath $countFile) { Remove-Item -LiteralPath $countFile }
+    $floodScript = Join-Path $ResultsDir 'junk-flood.ps1'
+    # 127.0.0.1 is hard-coded: the flood can only reach a server on this machine, the one soak just started.
+    @'
+param([int]$Port, [int]$Pps, [double]$Seconds, [string]$CountFile)
+$ErrorActionPreference = 'Stop'
+$socket = [System.Net.Sockets.Socket]::new('InterNetwork', 'Dgram', 'Udp')
+$socket.Connect([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Loopback, $Port))
+$buffer = [byte[]]::new(16)
+$clock = [System.Diagnostics.Stopwatch]::StartNew()
+$sent = [long]0
+while ($clock.Elapsed.TotalSeconds -lt $Seconds) {
+    $target = [long]($Pps * $clock.Elapsed.TotalSeconds)
+    if ($sent -lt $target) {
+        $batch = [Math]::Min(500, $target - $sent)
+        for ($i = 0; $i -lt $batch; $i++) { [void]$socket.Send($buffer) }
+        $sent += $batch
+    } else { Start-Sleep -Milliseconds 1 }
+}
+$socket.Dispose()
+[System.IO.File]::WriteAllText($CountFile, $sent.ToString())
+'@ | Set-Content -LiteralPath $floodScript -Encoding utf8
+    $info = [System.Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path)
+    foreach ($a in @('-NoProfile', '-File', $floodScript, '-Port', $Port, '-Pps', $Pps, '-Seconds', $Seconds, '-CountFile', $countFile)) {
+        $info.ArgumentList.Add([string]$a)
+    }
+    $info.UseShellExecute = $false
+    # Keep the child's streams off the parent's stdout so a -Json run stays one clean document (the flood prints nothing).
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    return [pscustomobject]@{ Process = [System.Diagnostics.Process]::Start($info); CountFile = $countFile }
+}
+
 function Start-SoakProcess([string]$ProjectDir, [string]$Log, [string[]]$UserArgs) {
     $info = [System.Diagnostics.ProcessStartInfo]::new($env:GODOT_BIN)
     foreach ($a in @('--headless', '--path', $ProjectDir, '--log-file', $Log, '--') + @($UserArgs)) { $info.ArgumentList.Add($a) }
@@ -38,15 +76,17 @@ function Get-GrowthMbPerHour($Samples) {
 }
 
 function Invoke-Soak {
-    param($Info, [int]$Clients, [double]$Seconds, [double]$Warmup, [string]$ResultsDir, [string[]]$GameArgs, [double]$MaxGrowthMbPerHour)
+    param($Info, [int]$Clients, [double]$Seconds, [double]$Warmup, [string]$ResultsDir, [string[]]$GameArgs, [double]$MaxGrowthMbPerHour, [int]$JunkPps)
     if ($Clients -lt 1) { Stop-GodotCi '-Clients must be 1 or more' 'invalid-arguments' }
+    if ($JunkPps -lt 0) { Stop-GodotCi '-JunkPps must be 0 or more' 'invalid-arguments' }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
     $port = Get-FreeUdpPort
     $extra = @(Split-GameArgs $GameArgs)
     $procs = [System.Collections.Generic.List[object]]::new()
+    $flood = $null
     $sampleEvery = [Math]::Max(1.0, [Math]::Min(30.0, $Seconds / 20))
 
-    Start-LogGroup "Soak: 1 server and $Clients client(s) for $Seconds s (port $port)"
+    Start-LogGroup "Soak: 1 server and $Clients client(s) for $Seconds s (port $port)$(if ($JunkPps) { ", junk flood $JunkPps pps" })"
     try {
         $serverLog = Join-Path $ResultsDir 'server.log'
         $procs.Add([pscustomobject]@{ Name = 'server'; Log = $serverLog; Samples = [System.Collections.Generic.List[object]]::new()
@@ -60,6 +100,8 @@ function Invoke-Soak {
 
         $clock = [System.Diagnostics.Stopwatch]::StartNew()
         $end = $Warmup + $Seconds
+        # Flood for the whole run, the warm-up included, so the measured window is entirely under load.
+        if ($JunkPps -gt 0) { $flood = Start-JunkFlood $port $JunkPps $end $ResultsDir }
         $nextSample = $Warmup
         while ($clock.Elapsed.TotalSeconds -lt $end) {
             Start-Sleep -Milliseconds 250
@@ -75,6 +117,11 @@ function Invoke-Soak {
         }
         $ranFor = [Math]::Round($clock.Elapsed.TotalSeconds, 1)
     } finally {
+        # The flood ends with the run; wait a moment for it to write its count, then make sure it is gone.
+        if ($flood) {
+            $flood.Process.WaitForExit(3000) | Out-Null
+            if (-not $flood.Process.HasExited) { try { $flood.Process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'flood already gone' } }
+        }
         $exited = @{}
         foreach ($p in $procs) { if ($p.Process.HasExited) { $exited[$p.Name] = $p.Process.ExitCode } }
         # Clients first, so the server does not report them as lost; then the server.
@@ -123,6 +170,11 @@ function Invoke-Soak {
             average = $clientsReport ? [Math]::Round((@($clientsReport | ForEach-Object { $_.memoryMb.end } | Where-Object { $null -ne $_ }) | Measure-Object -Average).Average, 1) : $null
         }
         processes = $report
+    }
+    if ($JunkPps -gt 0) {
+        $sent = if ($flood -and (Test-Path -LiteralPath $flood.CountFile)) { [long](Get-Content -LiteralPath $flood.CountFile -Raw).Trim() } else { 0 }
+        $summary['junk'] = [ordered]@{ pps = $JunkPps; packetsSent = $sent }
+        Write-CiLog ("Junk flood: {0} pps requested, {1:N0} packets sent to 127.0.0.1:{2}" -f $JunkPps, $sent, $port)
     }
     $summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ResultsDir 'soak.json') -Encoding utf8
     Set-JsonField soak $summary

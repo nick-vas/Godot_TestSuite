@@ -84,6 +84,9 @@ param(
     [int]$Clients = 4,
     # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
     [double]$MaxGrowthMbPerHour = 0,
+    # soak: flood the server's own port on 127.0.0.1 with this many junk UDP packets a second (loopback only), to measure
+    # how the server holds up under a packet flood. 0: no flood. Reported under soak.junk; the server's input_loss_pct rises.
+    [int]$JunkPps = 0,
     # bench: V-Sync off, to see the headroom. -MaxFps caps the frame rate instead.
     [switch]$Uncapped,
     [int]$MaxFps = 0,
@@ -414,7 +417,7 @@ switch ($Command) {
     }
     'soak' {
         Invoke-Setup; Invoke-Build
-        Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour `
+        Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour -JunkPps $JunkPps `
             -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'soak-results' })))
     }
     'credits' {
