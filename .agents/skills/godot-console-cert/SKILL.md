@@ -10,6 +10,10 @@ NDA. Their themes are the same (stability, suspend and resume, users and control
 privacy, user content), so the public Xbox list is a sound stand-in checklist, never a claim about the others. Sources
 and figures: `${CLAUDE_PLUGIN_ROOT}/docs/console-cert.md`.
 
+**Out of scope, on purpose:** the detailed PlayStation TRC and Nintendo Lotcheck requirements. They are under NDA and
+reach a developer only through the platform holder after approval. Never state one as fact or invent one; say that the
+platform's own documentation, read once the studio is registered, decides.
+
 ## 1. Getting onto a console
 
 - Godot's only official console is Steam Deck (the Linux export). Everything else goes through a third party, listed at
