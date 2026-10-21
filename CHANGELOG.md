@@ -10,7 +10,7 @@
   - Breakout.Core: utility scoring, a reactive behaviour tree, a backward-searching GOAP planner and Reynolds steering;
     a netcode model (lossy link, server input queue, prediction, interpolation, lag compensation) tested at 50, 100 and
     250 ms; a telemetry client with consent per purpose, a schema without free text, persistence, sampling, export and
-    erasure; crash fingerprints and a session marker. 73 unit tests.
+    erasure; crash fingerprints and a session marker. Breakout.Core now has 73 unit tests.
   - Breakout: crash reports through a Godot `Logger`, with consent, installed only by the running game.
   - `soak` command: one headless server and `-Clients` clients run together for `-Seconds`; fails on a crash, an engine
     error, a process that never got ready (`soak-failed`) or memory that keeps growing (`soak-leak`, `-MaxGrowthMbPerHour`).
