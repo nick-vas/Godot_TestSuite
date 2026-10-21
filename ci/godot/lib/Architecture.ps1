@@ -111,7 +111,7 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
                 if ($line -match $lookup) {
                     & $add 'per-frame-lookup' $relative $n $line.Trim()
                 }
-                if ($isCSharp -and $line -match 'new\s+(List|Dictionary|HashSet|Queue|Stack)<|new\s+Godot\.Collections\.|new\s+(StringName|NodePath)\s*\(|\$"|string\.Format\s*\(|\.(Where|Select|OrderBy|ToList|ToArray)\s*\(') {
+                if ($isCSharp -and $line -match 'new\s+(List|Dictionary|HashSet|Queue|Stack)<|new\s+Godot\.Collections\.|new\s+(StringName|NodePath)\s*\(|\b(IsAction\w*|GetAction\w*|GetAxis|GetVector)\s*\(\s*"|\$"|string\.Format\s*\(|\.(Where|Select|OrderBy|ToList|ToArray)\s*\(') {
                     & $add 'per-frame-alloc' $relative $n $line.Trim()
                 }
             }

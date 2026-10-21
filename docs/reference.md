@@ -84,7 +84,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `parent-path` | a node path climbs two or more levels (`../..`, `GetParent().GetParent()`) |
 | `ui-mutates-state` | a UI script (extends a Control type, or lives under `ui/`, `hud/`, `menu/`) assigns to an autoload's field |
 | `per-frame-lookup` | `_Process`/`_PhysicsProcess` looks up nodes (`GetNode`, `$Node`, `FindChild`, groups) |
-| `per-frame-alloc` | C# `_Process`/`_PhysicsProcess` allocates (collections, `StringName`/`NodePath`, interpolated strings, LINQ), even in a rare branch |
+| `per-frame-alloc` | C# `_Process`/`_PhysicsProcess` allocates (collections, `StringName`/`NodePath`, an action name as a string literal such as `Input.IsActionPressed("jump")`, interpolated strings, LINQ), even in a rare branch |
 | `event-not-unsubscribed` | a script subscribes to an autoload's C# event without `-=`, or connects a GDScript lambda to an autoload's signal without `disconnect` |
 | `too-many-autoloads` | the project has more autoloads than `maxAutoloads` (default 8) |
 | `audio-on-master` | a scene saves an `AudioStreamPlayer`, `AudioStreamPlayer2D` or `AudioStreamPlayer3D` with no bus, so it plays on Master and no volume setting but the master one reaches it |

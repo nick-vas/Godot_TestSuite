@@ -3,6 +3,7 @@
   "ui-mutates-state": "ui-mutates-state",
   "per-frame-lookup": "per-frame-lookup",
   "per-frame-alloc": "per-frame-alloc",
+  "per-frame-alloc-action": "per-frame-alloc",
   "event-not-unsubscribed": "event-not-unsubscribed",
   "too-many-autoloads": "too-many-autoloads",
   "audio-on-master": "audio-on-master"
