@@ -16,6 +16,7 @@ $script:ArchitectureRules = [ordered]@{
     'steam-removed-api'      = 'Calls a Steamworks function that SDK 1.65 removed or deprecated: IsSteamRunningOnSteamDeck (choose defaults with GetSteamHardwareDefaultConfig) or RequestCurrentStats (Steam loads stats before launch) (godot-steam)'
     'steam-env-dotnet'       = 'Sets a Steam variable with .NET''s Environment.SetEnvironmentVariable, which the native Steam API never sees on Linux and macOS; use Godot''s OS.SetEnvironment (godot-steam)'
     'culture-parse'          = 'Parses a number without CultureInfo.InvariantCulture: on a German or French system "0.5" reads as 5 or throws, and CI machines never show it (godot-data)'
+    'frame-dependent-lerp'   = 'Moves a fixed fraction of the way to its target every frame, so it converges faster at higher frame rates and ignores time scale; use 1 - Mathf.Exp(-rate * delta) as the weight (godot-math)'
 }
 
 # Godot's Control family, for spotting UI scripts by what they extend.
@@ -43,12 +44,15 @@ function Get-ArchitectureConfig([string]$ProjectDir) {
     return $config
 }
 
-# Line numbers (1-based) of the bodies of _Process/_PhysicsProcess (C#) or _process/_physics_process (GDScript).
-function Get-PerFrameLines([string[]]$Lines, [bool]$IsCSharp) {
+# Line numbers (1-based) of the bodies of _Process/_PhysicsProcess (C#) or _process/_physics_process (GDScript);
+# with -IdleOnly, of _Process/_process alone (the one that runs once per rendered frame).
+function Get-PerFrameLines([string[]]$Lines, [bool]$IsCSharp, [bool]$IdleOnly = $false) {
     $inside = [System.Collections.Generic.HashSet[int]]::new()
+    $csharpName = if ($IdleOnly) { '_Process' } else { '_(Process|PhysicsProcess)' }
+    $gdName = if ($IdleOnly) { '_process' } else { '_(physics_)?process' }
     for ($i = 0; $i -lt $Lines.Count; $i++) {
         if ($IsCSharp) {
-            if ($Lines[$i] -notmatch '\bvoid\s+_(Process|PhysicsProcess)\s*\(') { continue }
+            if ($Lines[$i] -notmatch "\bvoid\s+$csharpName\s*\(") { continue }
             $depth = 0; $opened = $false
             for ($j = $i; $j -lt $Lines.Count; $j++) {
                 $code = $Lines[$j] -replace '//.*$', ''
@@ -59,7 +63,7 @@ function Get-PerFrameLines([string[]]$Lines, [bool]$IsCSharp) {
                 if (($opened -and $depth -le 0) -or (-not $opened -and $code -match '=>.*;\s*$')) { break }
             }
         } else {
-            if ($Lines[$i] -notmatch '^(?<indent>\s*)func\s+_(physics_)?process\s*\(') { continue }
+            if ($Lines[$i] -notmatch "^(?<indent>\s*)func\s+$gdName\s*\(") { continue }
             $indent = $Matches.indent.Length
             for ($j = $i + 1; $j -lt $Lines.Count; $j++) {
                 if ($Lines[$j].Trim() -eq '') { continue }
@@ -69,6 +73,65 @@ function Get-PerFrameLines([string[]]$Lines, [bool]$IsCSharp) {
         }
     }
     return , $inside   # the comma keeps an empty set from unrolling to $null
+}
+
+# The top-level arguments of the call whose "(" is at $Open, or $null when it does not close on this line.
+function Get-CallArguments([string]$Code, [int]$Open) {
+    $list = [System.Collections.Generic.List[string]]::new()
+    $depth = 0; $start = $Open + 1; $quote = $null
+    for ($k = $Open; $k -lt $Code.Length; $k++) {
+        $ch = $Code[$k]
+        if ($quote) { if ($ch -eq '\') { $k++ } elseif ($ch -eq $quote) { $quote = $null }; continue }
+        if ($ch -eq '"' -or $ch -eq "'") { $quote = $ch }
+        elseif ($ch -in '(', '[', '{') { $depth++ }
+        elseif ($ch -in ')', ']', '}') {
+            $depth--
+            if ($depth -eq 0) { $list.Add($Code.Substring($start, $k - $start).Trim()); return , $list }
+        } elseif ($ch -eq ',' -and $depth -eq 1) { $list.Add($Code.Substring($start, $k - $start).Trim()); $start = $k + 1 }
+    }
+    return $null
+}
+
+# True when a lerp weight depends on the frame time: it names delta (or dt), or is a variable the script assigns from it
+# (`var w := 1.0 - exp(-rate * delta)` on an earlier line).
+function Test-DeltaWeight([string]$Weight, [string]$Text) {
+    $deltaPattern = '(?i:delta|\bdt\b)'
+    if ($Weight -match $deltaPattern) { return $true }
+    foreach ($id in @([regex]::Matches($Weight, '(?<![\w.])[A-Za-z_]\w*') | ForEach-Object Value | Sort-Object -Unique)) {
+        if ($Text -match "(?m)(?<![\w.])$id\s*(:\s*[\w.<>\[\]]+\s*)?(:=|=>|[-+*/]?=(?!=))[^\n]*?$deltaPattern") { return $true }
+    }
+    return $false
+}
+
+# A lerp of a value toward a target by a fixed weight, assigned back to the same value, on one line:
+#   C#: Position = Position.Lerp(target, 0.1f); x = Mathf.Lerp(x, target, 0.1f); x += (target - x) * 0.1f;
+#   GDScript: position = position.lerp(target, 0.1); x = lerp(x, target, 0.1) (or lerpf, lerp_angle, slerp).
+# Returns the line, or $null. A lerp between two other values (a blend, or a tween's progress) is not flagged.
+function Find-FrameDependentLerp([string]$Line, [string]$Text, [bool]$IsCSharp) {
+    $code = if ($IsCSharp) { $Line -replace '\s*//.*$', '' } else { $Line -replace '\s*#.*$', '' }
+    $assign = [regex]::Match($code, '^\s*(?<lhs>[A-Za-z_][\w.]*)\s*(?<op>\+?=)(?!=)')
+    if (-not $assign.Success) { return $null }
+    $lhs = $assign.Groups['lhs'].Value -replace '^(this|self)\.', ''
+    $isSelf = { param($from) $from = $from.Trim() -replace '^(this|self)\.', ''; $from -ceq $lhs -or $from.StartsWith("$lhs.") }
+
+    if ($assign.Groups['op'].Value -eq '+=') {
+        # The asymptotic average written out: x += (target - x) * k, or x += k * (target - x).
+        $rest = $code.Substring($assign.Length).Trim().TrimEnd(';')
+        $esc = [regex]::Escape($assign.Groups['lhs'].Value)
+        $average = [regex]::Match($rest, "^\(\s*[^()]+?-\s*$esc\s*\)\s*\*\s*(?<w>.+)$|^(?<w>[^()]+?)\s*\*\s*\(\s*[^()]+?-\s*$esc\s*\)$")
+        if ($average.Success -and -not (Test-DeltaWeight $average.Groups['w'].Value $Text)) { return $Line.Trim() }
+        return $null
+    }
+    $names = if ($IsCSharp) { '(?-i:Lerp|LerpAngle|Slerp|InterpolateWith)' } else { '(?-i:lerp|lerpf|lerp_angle|slerp|interpolate_with)' }
+    foreach ($m in [regex]::Matches($code, "(?:(?<recv>[A-Za-z_][\w.]*)\.)?(?<![\w])$names\s*\(")) {
+        $callArgs = Get-CallArguments $code ($m.Index + $m.Length - 1)
+        if ($null -eq $callArgs) { continue }
+        # Three arguments: the static form (Mathf.Lerp, lerp, Vector2.Lerp), from first. Two: the method form, from the receiver.
+        $from = if ($callArgs.Count -eq 3) { $callArgs[0] } elseif ($callArgs.Count -eq 2 -and $m.Groups['recv'].Success) { $m.Groups['recv'].Value } else { $null }
+        if ($null -eq $from -or -not (& $isSelf $from)) { continue }
+        if (-not (Test-DeltaWeight $callArgs[$callArgs.Count - 1] $Text)) { return $Line.Trim() }
+    }
+    return $null
 }
 
 function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
@@ -98,6 +161,7 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
             ($isCSharp -and $text -match "(?m)class\s+\w+\s*:\s*($script:UiBaseTypes)\b") -or
             (-not $isCSharp -and $text -match "(?m)^extends\s+($script:UiBaseTypes)\b")
         $perFrame = Get-PerFrameLines $lines $isCSharp
+        $perRenderedFrame = Get-PerFrameLines $lines $isCSharp $true
 
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]; $n = $i + 1
@@ -128,6 +192,11 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
             $subscribes = $line -match '[-+]=\s*(On[A-Z]\w*|_on_\w+|\([^)]*\)\s*=>|\w+\s*=>)'
             if ($isUi -and $autoloadPattern -and -not $subscribes -and $line -match ($autoloadPattern + '(\.Instance)?\.\w+\s*([-+*/]=|=(?!=)|\+\+|--)')) {
                 & $add 'ui-mutates-state' $relative $n $line.Trim()
+            }
+            # Only _process: _physics_process runs at a fixed rate, so a fixed weight there does not change with the frame rate.
+            if ($perRenderedFrame.Contains($n)) {
+                $lerp = Find-FrameDependentLerp $line $text $isCSharp
+                if ($lerp) { & $add 'frame-dependent-lerp' $relative $n $lerp }
             }
             if ($perFrame.Contains($n)) {
                 $lookup = if ($isCSharp) { '\bGetNode\b|\bFindChild\b|GetNodesInGroup' } else { '\bget_node\b|\bfind_child\b|get_nodes_in_group|(^|[^\w"])\$[A-Za-z_"%]' }
