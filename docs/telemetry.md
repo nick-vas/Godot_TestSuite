@@ -37,3 +37,7 @@ engineering research, not legal advice.
   ids, are questions for a lawyer.
 - The sentry-godot binaries could not be downloaded here; its source was read, not run.
 - The cause of the coverlet hang was not found (no engine symbols); see the roadmap.
+
+## Comparing versions
+
+- Which test to run on these events, and why: [Three Statistical Tests Every Game Developer Should Know](gdc/three-statistical-tests.md).
