@@ -131,11 +131,11 @@ public sealed class AiTests
         var actions = Enumerable.Range(0, 6).Select(i => new GoapAction($"step {i}", 1, i == 0 ? State() : State($"done{i - 1}"), State($"done{i}")))
             .Concat(Enumerable.Range(0, 20).Select(i => new GoapAction($"fidget {i}", 0.5f, State(), State($"fidget{i}"))))
             .ToList();
-        var watch = Stopwatch.StartNew();
-        List<GoapAction>? plan = null;
-        for (int run = 0; run < 100; run++) plan = GoapPlanner.Plan(State(), State("done5"), actions);
+        var plan = GoapPlanner.Plan(State(), State("done5"), actions, out int expanded);
+        GoapPlanner.Plan(State(), State("done5"), actions.Take(6).ToList(), out int withoutFidgets);
         Assert.Equal(Enumerable.Range(0, 6).Select(i => $"step {i}"), plan!.Select(a => a.Name));
-        Assert.True(watch.Elapsed.TotalMilliseconds / 100 < 5, $"{watch.Elapsed.TotalMilliseconds / 100:F2} ms per plan");
+        // Twenty actions that never lead to the goal add no work (asserted on states searched, not wall time).
+        Assert.Equal(withoutFidgets, expanded);
     }
 
     [Fact]
