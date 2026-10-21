@@ -19,6 +19,8 @@ public abstract record FieldKind
     public sealed record Integer(long Min, long Max) : FieldKind;
     public sealed record Number(double Min, double Max) : FieldKind;
     public sealed record Flag : FieldKind;
+    /// <summary>16 hex digits from <see cref="CrashFingerprint"/>: groups the same crash, says nothing about the player.</summary>
+    public sealed record Fingerprint : FieldKind;
 }
 
 public sealed record EventDefinition(string Name, int Version, Purpose Purpose, IReadOnlyDictionary<string, FieldKind> Fields);
@@ -77,6 +79,7 @@ public sealed class TelemetrySchema
                 (FieldKind.Number n, double v) when v >= n.Min && v <= n.Max && double.IsFinite(v) => v,
                 (FieldKind.Number n, float v) when v >= n.Min && v <= n.Max && float.IsFinite(v) => v,
                 (FieldKind.Flag, bool v) => v,
+                (FieldKind.Fingerprint, string s) when s.Length == 16 && s.All(Uri.IsHexDigit) => s,
                 _ => throw new SchemaException($"{name}.{field} = {value} does not fit {kind}"),
             };
         }
