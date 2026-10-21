@@ -154,7 +154,8 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
   The run fails (`web-run-failed`) when the engine does not start, or on any page error, failed request or `ERROR` /
   `SCRIPT ERROR` line. Without the browser it fails with `no-browser`; `npx playwright install --with-deps firefox`
   installs one. `chrome` and `msedge` use the browsers installed on the machine. On a machine without a GPU (GitHub's
-  runners) headless Firefox has no WebGL 2 and the run fails at start; test Firefox where there is a GPU or a display.
+  runners) headless Firefox has no WebGL 2 and fails at start: give it a window, `GODOT_CI_WEB_HEADED=1` with Xvfb running
+  (the kit's self-test does this).
 
 ## 8. Done means
 

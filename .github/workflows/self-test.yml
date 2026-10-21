@@ -359,10 +359,8 @@ jobs:
       - name: export -Run starts web builds, serves threads builds isolated and catches script errors
         shell: pwsh
         run: ./tests/Test-Web.ps1 -Browser chromium,msedge
-      # Headless Firefox on this runner reports WebGL 2 missing; a window under Xvfb may render in software. Informational
-      # until it passes here.
-      - name: Firefox with a window under Xvfb (informational)
-        continue-on-error: true
+      # Headless Firefox on this runner reports WebGL 2 missing; with a window under Xvfb it renders in software.
+      - name: Firefox with a window under Xvfb
         shell: pwsh
         env:
           GODOT_CI_WEB_HEADED: '1'
