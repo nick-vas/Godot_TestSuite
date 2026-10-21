@@ -324,6 +324,9 @@ jobs:
           if ($by[''] -contains 'cut off:Play') { throw 'English "Hello" fits the button' }
           foreach ($pass in 'fr', 'pseudo') { if ($by[$pass] -notcontains 'cut off:Play') { throw "[$pass] the button text should be cut off, got: $($by[$pass] -join ', ')" } }
           exit 0
+      - name: Capture mode hides the HUD, mutes only the music, and freezes the game while the free camera flies
+        shell: pwsh
+        run: ./tests/Test-Capture.ps1
       - name: audio -Mix records the game's mix and judges its loudness
         shell: pwsh
         run: |
