@@ -57,6 +57,9 @@ jobs:
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
+      - name: The plan's vertical-slice gates (tech debt automatic, frame budget manual) and the gates the skill names
+        shell: pwsh
+        run: ./tests/Test-Plan.ps1
       - name: doctor's GDExtension and Steam package checks, and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1
