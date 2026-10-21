@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[node name="Main" type="Node" unique_id=433054844]
+
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=2111574145]
+bus = &"Music"
+
+[node name="Hit" type="AudioStreamPlayer2D" parent="." unique_id=580256043]
+max_polyphony = 4
+bus = &"SFX"

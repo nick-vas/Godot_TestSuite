@@ -29,6 +29,7 @@ pwsh ci/godot/godot-ci.ps1 test -Json -Quiet             # every time: build + e
         |
    godot-ci.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
    bench / shot          measure frame pacing, look at screens                          (with a display)
+   audio [-Mix]          loudness of the sound files and of the game's own mix          (ffmpeg; -Mix needs a display)
         |
    plan -Do move/done    record progress; Trello mirrors the board
 ```
@@ -71,12 +72,13 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Test first** | `test -Json -Quiet [-Runners x -Filter y]` | per-runner pass/fail with the failure's `message`, `file`, `line`; fails on zero tests and on any engine `ERROR:`; Godot's output stays in a log file |
 | **Play the UI** | `flows` runner | `*.flow.json` files: press buttons, send input actions, wait, assert on node properties, headless in the real engine |
 | **Catch what tests miss** | `validate` and `smoke` runners | loads every script, scene and resource; plays the main scene |
-| **Keep the structure sound** | `architecture` runner, `godot-architect` subagent | warns on fragile node paths, UI writing game state, per-frame lookups and allocations, events never unsubscribed, too many autoloads; design reviews recorded in `docs/decisions/` |
+| **Keep the structure sound** | `architecture` runner, `godot-architect` subagent | warns on fragile node paths, UI writing game state, per-frame lookups and allocations, events never unsubscribed, too many autoloads, sound players left on the Master bus; design reviews recorded in `docs/decisions/` |
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Ship** | `export -Preset X -Run`, tagged releases | exported, launched and zipped on its own OS |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, frames over 20/33 ms, a timestamped hitch log, draw calls, GC via custom monitors; one CSV row per labelled run |
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames an agent can open, at any resolution; with a baseline, the percentage changed and a before, after and diff image |
+| **Hear the mix** | `audio -Mix -GameArgs '--autoplay' [-TargetLufs -18]` | every sound file's loudness and true peak by category (music, voice, ambience, UI, effects), clipping files and voice lines out of step flagged; with `-Mix`, the game's own mix recorded and judged against -24 LUFS (or -18 for handhelds) and -1 dBTP |
 | **Feel the game** | `juice` runner, `juice.json` | an autoplay run in which every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
@@ -107,6 +109,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-math` | vectors, angles, rotations, bounces and oscillation in Godot, and where textbook formulas and the engine disagree |
 | `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
+| `godot-audio` | buses and volume settings, adaptive music, sound variation and voice limits, 3D sound, ducking, loudness targets |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
 | `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
@@ -203,6 +206,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/skills-quality.md](docs/skills-quality.md) | How the skills are checked, compared with GodotPrompter and superpowers |
 | [docs/research.md](docs/research.md) | Measured output sizes and the studies behind the plugin, quiet output and evals |
 | [docs/strategies.md](docs/strategies.md) | Design decisions, with the options considered |
+| [docs/audio.md](docs/audio.md) | Game audio: what FMOD, Wwise and Unreal teach about buses, adaptive music, variation, 3D sound and ducking, mapped to Godot; Godot facts checked in the source; ASWG and IESD loudness targets |
 | [docs/studio-lessons.md](docs/studio-lessons.md) | What studios say worked and failed: Nintendo, Japanese developers, Eastern European and simulation studios, 20 postmortems, talks; each lesson quoted and linked |
 | [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |
 | [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |

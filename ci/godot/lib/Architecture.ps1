@@ -10,6 +10,7 @@ $script:ArchitectureRules = [ordered]@{
     'per-frame-alloc'        = 'Allocates every frame (collections, interpolated strings, LINQ); this feeds the garbage collector (godot-performance)'
     'event-not-unsubscribed' = 'Subscribes to an autoload''s event without unsubscribing; the autoload outlives this node and keeps calling it'
     'too-many-autoloads'     = 'Many autoloads become hidden global state; group state in one autoload or pass dependencies in (godot-patterns: Singleton)'
+    'audio-on-master'        = 'Plays on the Master bus, out of reach of the music, voice and effects volume settings; set its Bus (godot-audio)'
 }
 
 # Godot's Control family, for spotting UI scripts by what they extend.
@@ -122,6 +123,24 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
                     $undone = if ($isCSharp) { $text -match "\.$eventName\s*-=" } else { $text -match "\.$eventName\.disconnect\s*\(" }
                     if (-not $undone) { & $add 'event-not-unsubscribed' $relative $n $line.Trim() }
                 }
+            }
+        }
+    }
+
+    # Scenes: a sound player saved without a bus plays on Master (Godot leaves the property out of the .tscn).
+    $scenes = @(Find-ProjectFiles -Root $ProjectDir -Filter '*.tscn' |
+        Where-Object { [System.IO.Path]::GetRelativePath($ProjectDir, $_.FullName) -notmatch '^(tests?|addons)[\\/]|[\\/](tests?)[\\/]' })
+    foreach ($file in $scenes) {
+        $relative = ConvertTo-ResPath $ProjectDir $file.FullName
+        $lines = @(Get-Content -LiteralPath $file.FullName)
+        $player = $null
+        for ($i = 0; $i -le $lines.Count; $i++) {
+            $line = if ($i -lt $lines.Count) { $lines[$i] } else { '[' }
+            if ($line.StartsWith('[')) {
+                if ($player -and -not $player.HasBus) { & $add 'audio-on-master' $relative $player.Line $player.Name }
+                $player = if ($line -match '^\[node name="(?<name>[^"]+)" type="AudioStreamPlayer(2D|3D)?"') { @{ Name = $Matches.name; Line = $i + 1; HasBus = $false } }
+            } elseif ($player -and $line -match '^bus = ') {
+                $player.HasBus = $true
             }
         }
     }

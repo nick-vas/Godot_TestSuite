@@ -16,6 +16,8 @@
     ./ci/godot/godot-ci.ps1 bench -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -BudgetMs 16.7
 .EXAMPLE
     ./ci/godot/godot-ci.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
 #>
 [CmdletBinding()]
 param(
@@ -24,8 +26,9 @@ param(
     # doctor: check tools and project. init: wire the suite in. plan: A-to-Z game plan with gates.
     # bench: measure a scene's frame pacing. shot: save screenshots of scenes at a resolution.
     # status: GDD features, tagged tests, plan, latest runs, git activity and an inventory, in one read-only pass.
+    # audio: loudness of the sound files and, with -Mix, of the game's recorded mix (needs ffmpeg).
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -53,9 +56,9 @@ param(
     # Your game's own flags, passed after "--" to smoke runs, export -Run, bench and shot (read them with
     # OS.GetCmdlineUserArgs()). Release exports ignore scene paths, so debug entry points belong here, e.g. '--autoplay','--seed=3'.
     [string[]]$GameArgs,
-    # bench, shot: the scenes (res:// paths). Default: the main scene. bench uses the first.
+    # bench, shot, audio -Mix: the scenes (res:// paths). Default: the main scene. bench and audio use the first.
     [string[]]$Scene,
-    # bench: seconds to measure, after -Warmup seconds that are not counted.
+    # bench: seconds to measure, after -Warmup seconds that are not counted. audio -Mix: seconds to record (default 60).
     [double]$Seconds = 10,
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
@@ -71,6 +74,10 @@ param(
     [int]$MaxFps = 0,
     # bench: run without a window. Nothing is drawn, so this measures CPU time only; it works where there is no display.
     [switch]$Headless,
+    # audio: also record the game's own mix (Movie Maker, needs a display) and check it against -TargetLufs.
+    [switch]$Mix,
+    # audio -Mix: integrated loudness the mix must reach, within 2 LU. -24 for console and PC, -18 for phones and handhelds (ASWG-R001).
+    [double]$TargetLufs = -24,
     # setup: also install export templates.
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT.
@@ -110,7 +117,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -310,7 +317,7 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio') {
     Start-RunLog (Join-Path ([System.IO.Path]::GetFullPath($Results)) 'godot-ci.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
@@ -338,6 +345,12 @@ switch ($Command) {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline `
             -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
+    }
+    'audio' {
+        if ($Mix) { Invoke-Setup; Invoke-Build }
+        Invoke-Audio -Info $info -TargetLufs $TargetLufs -Mix:$Mix -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 60 }) `
+            -Scene @($Scene)[0] -GameArgs $GameArgs `
+            -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'audio-results' })))
     }
 }
 Add-RunHistory $true ''

@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/godot-ci.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot` and `status`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status` and `audio`.
 
 | Parameter | Default | |
 |---|---|---|
@@ -17,14 +17,16 @@
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
-| `-Scene` | main scene | `bench` (first scene), `shot` (every scene): `res://` paths |
-| `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted |
+| `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
+| `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60) |
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
 | `-Label` | | `bench`: the run's name in `bench.csv` |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
+| `-Mix` | off | `audio`: also record the game's own mix with Movie Maker (needs a display) and judge its loudness |
+| `-TargetLufs` | `-24` | `audio -Mix`: the integrated loudness the mix must reach, within 2 LU; `-18` for phones and handhelds |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `<Results>/godot-ci.log`, not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
@@ -85,6 +87,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `per-frame-alloc` | C# `_Process`/`_PhysicsProcess` allocates (collections, `StringName`/`NodePath`, interpolated strings, LINQ), even in a rare branch |
 | `event-not-unsubscribed` | a script subscribes to an autoload's C# event without `-=`, or connects a GDScript lambda to an autoload's signal without `disconnect` |
 | `too-many-autoloads` | the project has more autoloads than `maxAutoloads` (default 8) |
+| `audio-on-master` | a scene saves an `AudioStreamPlayer`, `AudioStreamPlayer2D` or `AudioStreamPlayer3D` with no bus, so it plays on Master and no volume setting but the master one reaches it |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
