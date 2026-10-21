@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -20,15 +21,16 @@ public enum SaveStatus
     TooNew,
 }
 
-public sealed record SaveMeta(int Version, DateTime SavedAtUtc, double PlayTimeSeconds, string Hash, IReadOnlyList<string> History);
+public sealed record SaveMeta(int Version, long Generation, DateTime SavedAtUtc, double PlayTimeSeconds, string Hash, IReadOnlyList<string> History);
 
 public sealed record LoadResult(SaveStatus Status, JsonObject? Data, SaveMeta? Meta, SaveSource Source, IReadOnlyList<string> Notes);
 
 /// <summary>
 /// A versioned, checksummed save file that survives power loss and old versions:
 /// writes go to path.tmp, are flushed to disk, then replace path, keeping the previous save as path.bak;
-/// loads try the save, an interrupted write and the backup, take the newest valid one, and migrate it
-/// one version at a time (v1 to v2 to v3 ...). Plain .NET, no engine: in Godot pass
+/// loads use the save if it is valid, else the newer (by generation, not clock) of an interrupted write and the backup,
+/// put that copy back in place (the damaged file is kept as path.corrupt-*), and migrate it one version at a time.
+/// Plain .NET, no engine: Godot's FileAccess truncates the live file and never syncs it to disk, so in Godot pass
 /// ProjectSettings.GlobalizePath("user://save.json").
 /// </summary>
 public sealed class SaveStore
@@ -40,6 +42,7 @@ public sealed class SaveStore
     readonly int _currentVersion;
     readonly IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> _migrations;
     List<string> _history = new();
+    long _generation;
 
     /// <param name="migrations">Step from version v to v+1, for every v below currentVersion.</param>
     public SaveStore(string path, int currentVersion, IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> migrations)
@@ -61,11 +64,12 @@ public sealed class SaveStore
         var history = new List<string>(_history);
         if (history.Count == 0 || history[^1] != hash) history.Add(hash);
         if (history.Count > HistoryLength) history.RemoveRange(0, history.Count - HistoryLength);
-        var meta = new SaveMeta(_currentVersion, nowUtc ?? DateTime.UtcNow, playTimeSeconds, hash, history);
+        var meta = new SaveMeta(_currentVersion, _generation + 1, nowUtc ?? DateTime.UtcNow, playTimeSeconds, hash, history);
         var envelope = new JsonObject
         {
             ["format"] = Format,
             ["version"] = meta.Version,
+            ["generation"] = meta.Generation,
             ["savedAtUtc"] = meta.SavedAtUtc.ToString("O"),
             ["playTimeSeconds"] = meta.PlayTimeSeconds,
             ["hash"] = hash,
@@ -81,11 +85,43 @@ public sealed class SaveStore
             stream.Write(bytes);
             stream.Flush(flushToDisk: true);   // the bytes are on disk before the old save is touched
         }
-        if (File.Exists(_path)) File.Replace(PendingPath, _path, BackupPath, ignoreMetadataErrors: true);
-        else File.Move(PendingPath, _path);
+        Retry(() =>
+        {
+            if (File.Exists(_path)) File.Replace(PendingPath, _path, BackupPath, ignoreMetadataErrors: true);
+            else File.Move(PendingPath, _path);
+        });
+        SyncDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
         _history = history;
+        _generation = meta.Generation;
         return meta;
     }
+
+    /// <summary>Antivirus and cloud-sync clients hold files open for a moment on Windows; Godot itself retries for this.</summary>
+    static void Retry(Action action)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try { action(); return; }
+            catch (IOException) when (attempt < 10 && OperatingSystem.IsWindows()) { Thread.Sleep(20 * attempt); }
+        }
+    }
+
+    /// <summary>
+    /// The rename is only durable once the directory is synced (fsync(2)); .NET has no API for it, so call libc on Linux.
+    /// Without it a power cut can undo the rename, which still leaves a consistent save and backup.
+    /// </summary>
+    static void SyncDirectory(string dir)
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        int fd = open(dir, 0x10000 /* O_RDONLY | O_DIRECTORY */);
+        if (fd < 0) return;
+        fsync(fd);
+        close(fd);
+    }
+
+    [DllImport("libc", SetLastError = true)] static extern int open(string path, int flags);
+    [DllImport("libc")] static extern int fsync(int fd);
+    [DllImport("libc")] static extern int close(int fd);
 
     public LoadResult Load()
     {
@@ -109,9 +145,15 @@ public sealed class SaveStore
             return new LoadResult(anyFile ? SaveStatus.Corrupt : SaveStatus.Missing, null, null, SaveSource.None, notes);
         }
 
-        // The newest valid copy wins: a completed but unswapped write is newer than the primary it was replacing.
-        var best = valid.OrderByDescending(v => v.Meta.SavedAtUtc).ThenBy(v => v.Source).First();
-        if (best.Source != SaveSource.Primary) notes.Add($"recovered from {best.Source}");
+        // A valid save wins: a write that never got swapped in was never confirmed to the player. Without one, the highest
+        // generation wins (a counter in the file: device clocks jump, and the backup and the pending write may disagree).
+        var best = valid.FirstOrDefault(v => v.Source == SaveSource.Primary);
+        if (best.Envelope == null) best = valid.OrderByDescending(v => v.Meta.Generation).ThenBy(v => v.Source).First();
+        if (best.Source != SaveSource.Primary)
+        {
+            notes.Add($"recovered from {best.Source}");
+            Restore(best.Source);
+        }
         var data = (JsonObject)best.Envelope["data"]!.DeepClone();
         for (int v = best.Meta.Version; v < _currentVersion; v++)
         {
@@ -119,7 +161,20 @@ public sealed class SaveStore
             notes.Add($"migrated v{v} to v{v + 1}");
         }
         _history = best.Meta.History.ToList();
+        _generation = best.Meta.Generation;
         return new LoadResult(SaveStatus.Ok, data, best.Meta, best.Source, notes);
+    }
+
+    /// <summary>
+    /// Puts the recovered copy back as the save, so the next Save keeps a good backup instead of rotating the damaged file
+    /// into it. The damaged save is kept beside it as path.corrupt-<time>, never deleted.
+    /// </summary>
+    void Restore(SaveSource from)
+    {
+        if (File.Exists(_path)) File.Move(_path, $"{_path}.corrupt-{DateTime.UtcNow:yyyyMMddTHHmmss}-{Guid.NewGuid():N}"[..^24]);
+        if (from == SaveSource.PendingWrite) File.Move(PendingPath, _path);
+        else File.Copy(BackupPath, _path);
+        SyncDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
     }
 
     /// <summary>Reads one file. A file without the envelope is a version 1 save from before envelopes existed.</summary>
@@ -134,7 +189,7 @@ public sealed class SaveStore
         if (root["format"] is null && root["checksum"] is null && root["data"] is null && root["version"] is null)
         {
             var legacy = new JsonObject { ["data"] = root.DeepClone() };
-            return (legacy, new SaveMeta(1, File.GetLastWriteTimeUtc(path), 0, Hash(root), Array.Empty<string>()), null);
+            return (legacy, new SaveMeta(1, 0, File.GetLastWriteTimeUtc(path), 0, Hash(root), Array.Empty<string>()), null);
         }
         if (root["format"] is not JsonValue format || format.GetValueKind() != JsonValueKind.String || format.GetValue<string>() != Format)
             return (null, null, "not a save file of this game");
@@ -148,6 +203,7 @@ public sealed class SaveStore
             if (Hash(data) != hash) return (null, null, "data hash mismatch");
             var meta = new SaveMeta(
                 root["version"]!.GetValue<int>(),
+                root["generation"]?.GetValue<long>() ?? 0,      // saves from before v3.1 have none
                 DateTime.Parse(root["savedAtUtc"]!.GetValue<string>(), null, System.Globalization.DateTimeStyles.RoundtripKind),
                 root["playTimeSeconds"]!.GetValue<double>(),
                 hash,

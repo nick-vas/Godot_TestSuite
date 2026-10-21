@@ -119,22 +119,65 @@ public sealed class SaveStoreTests : IDisposable
         Assert.Equal("{ \"format\": \"breakout-save\", \"version\": 3, ", File.ReadAllText(SavePath));
     }
 
-    // The states an interrupted Save can leave: tmp written but not swapped in, or swapped halfway.
+    // The states an interrupted Save can leave (write tmp, flush, replace): see docs/saves.md for the whole table.
+    static void LeaveAPendingWrite(string dir, string savePath, int score)
+    {
+        // A complete next save, flushed as save.json.tmp, that was never swapped in.
+        var next = BreakoutSave.Open(Path.Combine(dir, "next.json"));
+        File.Copy(savePath, Path.Combine(dir, "next.json"));
+        next.Load();
+        next.Save(Current(score), 30);
+        File.Move(Path.Combine(dir, "next.json"), savePath + ".tmp");
+    }
+
     [Fact]
-    public void AnInterruptedWriteBeforeTheSwapKeepsTheNewerCompleteCopy()
+    public void AValidSaveWinsOverAWriteThatWasNeverConfirmed()
     {
         var store = BreakoutSave.Open(SavePath);
-        store.Save(Current(100), 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        // Simulate: the next save wrote and flushed save.json.tmp, then the power went out.
-        var other = BreakoutSave.Open(Path.Combine(_dir, "next.json"));
-        other.Save(Current(300), 30, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
-        File.Move(Path.Combine(_dir, "next.json"), SavePath + ".tmp");
+        store.Save(Current(100), 10);
+        LeaveAPendingWrite(_dir, SavePath, 300);
+        var result = BreakoutSave.Open(SavePath).Load();
+        Assert.Equal(SaveSource.Primary, result.Source);
+        Assert.Equal(100, result.Data!["best"]!["score"]!.GetValue<int>());
+    }
+
+    // Windows ReplaceFile error 1177: the save is gone, the old one is the backup, the new one is still the tmp.
+    [Fact]
+    public void WithTheSaveGoneTheHigherGenerationWinsAndIsPutBack()
+    {
+        var store = BreakoutSave.Open(SavePath);
+        store.Save(Current(100), 10, new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc));   // a clock set ahead
+        store.Save(Current(200), 20, new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        LeaveAPendingWrite(_dir, SavePath, 300);                                            // saved "earlier" by the clock
+        File.Delete(SavePath);
 
         var result = BreakoutSave.Open(SavePath).Load();
         Assert.Equal(SaveSource.PendingWrite, result.Source);
         Assert.Equal(300, result.Data!["best"]!["score"]!.GetValue<int>());
+        Assert.True(File.Exists(SavePath));
+        Assert.False(File.Exists(SavePath + ".tmp"));
+        Assert.Equal(SaveSource.Primary, BreakoutSave.Open(SavePath).Load().Source);
     }
 
+    // Without putting the backup back, the next save would rotate the damaged file into .bak and lose the only good copy.
+    [Fact]
+    public void AfterARecoveryTheNextSaveStillHasAGoodBackup()
+    {
+        var store = BreakoutSave.Open(SavePath);
+        store.Save(Current(100), 10);
+        store.Save(Current(200), 20);
+        File.WriteAllText(SavePath, "garbage");
+
+        var recovered = BreakoutSave.Open(SavePath);
+        Assert.Equal(100, recovered.Load().Data!["best"]!["score"]!.GetValue<int>());
+        Assert.Single(Directory.GetFiles(_dir, "save.json.corrupt-*"));                       // kept, not deleted
+        recovered.Save(Current(150), 15);
+
+        File.WriteAllText(SavePath, "garbage again");
+        var again = BreakoutSave.Open(SavePath).Load();
+        Assert.Equal(SaveSource.Backup, again.Source);
+        Assert.Equal(100, again.Data!["best"]!["score"]!.GetValue<int>());
+    }
     [Fact]
     public void AHalfWrittenTmpIsIgnored()
     {
