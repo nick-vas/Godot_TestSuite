@@ -124,17 +124,47 @@ public sealed class AiTests
         Assert.Empty(GoapPlanner.Plan(State("enemyDown"), State("enemyDown"), SoldierActions)!);
     }
 
+    // Cheap actions that have nothing to do with the goal: a forward search expands all of them, a backward one none.
+    [Fact]
+    public void GoapIgnoresIrrelevantActionsAndStaysFast()
+    {
+        var actions = Enumerable.Range(0, 6).Select(i => new GoapAction($"step {i}", 1, i == 0 ? State() : State($"done{i - 1}"), State($"done{i}")))
+            .Concat(Enumerable.Range(0, 20).Select(i => new GoapAction($"fidget {i}", 0.5f, State(), State($"fidget{i}"))))
+            .ToList();
+        var watch = Stopwatch.StartNew();
+        List<GoapAction>? plan = null;
+        for (int run = 0; run < 100; run++) plan = GoapPlanner.Plan(State(), State("done5"), actions);
+        Assert.Equal(Enumerable.Range(0, 6).Select(i => $"step {i}"), plan!.Select(a => a.Name));
+        Assert.True(watch.Elapsed.TotalMilliseconds / 100 < 5, $"{watch.Elapsed.TotalMilliseconds / 100:F2} ms per plan");
+    }
+
     [Fact]
     public void GoapGivesUpOnAnUnreachableGoalWithinItsBudget()
     {
         Assert.Null(GoapPlanner.Plan(State(), State("enemyDown", "flying"), SoldierActions));
-        // 40 independent switches: 2^40 states. The cap stops the search instead of the frame.
-        var many = Enumerable.Range(0, 40).Select(i => new GoapAction($"flip {i}", 1, State(), State($"s{i}"))).ToList();
+        // Twelve facts, each reachable two ways from things that never hold: 4096 dead ends. The cap stops the search.
+        var actions = Enumerable.Range(0, 12).SelectMany(i => new[]
+        {
+            new GoapAction($"a{i}", 1, State($"never_a{i}"), State($"g{i}")),
+            new GoapAction($"b{i}", 1, State($"never_b{i}"), State($"g{i}")),
+        }).ToList();
         var watch = Stopwatch.StartNew();
-        Assert.Null(GoapPlanner.Plan(State(), State("never"), many, maxExpanded: 500));
-        Assert.True(watch.ElapsedMilliseconds < 1000, $"{watch.ElapsedMilliseconds} ms");
+        Assert.Null(GoapPlanner.Plan(State(), Enumerable.Range(0, 12).ToDictionary(i => $"g{i}", _ => true), actions, maxExpanded: 500));
+        Assert.True(watch.ElapsedMilliseconds < 500, $"{watch.ElapsedMilliseconds} ms");
     }
 
+    // Opening the door uses the key up; the goal wants the door open and a key in hand, so the key comes second.
+    [Fact]
+    public void GoapOrdersActionsThatUndoWhatAnotherNeeds()
+    {
+        var actions = new[]
+        {
+            new GoapAction("open door", 1, State("hasKey"), new Dictionary<string, bool> { ["doorOpen"] = true, ["hasKey"] = false }),
+            new GoapAction("get key", 1, State(), State("hasKey")),
+        };
+        Assert.Equal(new[] { "open door", "get key" }, GoapPlanner.Plan(State("hasKey"), State("doorOpen", "hasKey"), actions)!.Select(a => a.Name));
+        Assert.Equal(new[] { "get key", "open door", "get key" }, GoapPlanner.Plan(State(), State("doorOpen", "hasKey"), actions)!.Select(a => a.Name));
+    }
     [Fact]
     public void ArriveStopsOnTheTargetWhereSeekOvershoots()
     {
