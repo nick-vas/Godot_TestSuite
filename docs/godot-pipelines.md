@@ -86,6 +86,10 @@ exclude_filter="test/*, addons/gut/*, gdunit4_testadapter*/*"
 - Builds, exports and smoke runs fail on any `ERROR:` or `SCRIPT ERROR:` Godot prints. A short list of
   engine-internal messages is ignored (`$KnownNoise` in [`lib/Common.ps1`](../ci/godot/lib/Common.ps1)). To
   ignore more, set the `GODOT_CI_IGNORE_ERRORS` environment variable to a regex.
+- Every program the suite runs (Godot, dotnet, the setup scripts) is stopped, with its child processes, if it is still
+  running after 30 minutes. It then counts as a failure with exit code 124, and its log says so, so a deadlocked game or
+  an `await` that never resumes fails the run instead of stalling it. Set `GODOT_CI_TIMEOUT` to another number of
+  seconds (a little above a long bot run), or to `0` for no limit.
 - Godot 4.7.2 sometimes aborts (exit 134) while importing, mostly seen when the import cache is stale. The suite retries the import up to twice
   on any exit code of 128 or more, never on ordinary failures, and reports `importRetried` in the JSON. It could not be reproduced on demand, so
   this is a mitigation, not a fix.

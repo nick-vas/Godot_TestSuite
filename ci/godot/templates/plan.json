@@ -169,6 +169,11 @@
           "check": "manual"
         },
         {
+          "id": "beta.iterate",
+          "text": "At least one change-and-replay round after the alpha: what playtesters struggled with was redesigned, not only bug-fixed, and played again",
+          "check": "manual"
+        },
+        {
           "id": "beta.perf",
           "text": "Worst case benchmarked (godot-ci.ps1 bench): p99 within budget with V-Sync on and off, at the target resolution, zero GC collections in the frame loop; also checked on minimum-spec hardware",
           "check": "manual"
@@ -176,6 +181,11 @@
         {
           "id": "beta.a11y",
           "text": "Accessibility basics: rebindable input, readable text, no colour-only cues",
+          "check": "manual"
+        },
+        {
+          "id": "beta.localization",
+          "text": "Every shipped language played start to end by a native speaker who had not played the game (one language: done when it ships)",
           "check": "manual"
         },
         {

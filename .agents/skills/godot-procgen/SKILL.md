@@ -105,12 +105,18 @@ Generate data first (a grid, a graph, a list), with no nodes; build the scene fr
   (`godot-automation-hooks`), not guessed.
 - Which kind of fun it serves, usually discovery (`godot-game-design`): if every seed feels the same, more randomness is not
   the fix; more distinct hand-made pieces are.
+- Loot and spawns roll in two seeded stages, as DayZ's economy does: first what spawns and where (N of M candidate
+  `Marker3D` spots, never two inside each other's safe radius), then its condition and contents from shared presets
+  ("an optic 50% of the time, then this one 30%, that one 20%"). Each stage gets its own derived seed.
 
 ## Tests
 
 - **Same seed, same output**: generate twice and compare a fingerprint of the data (e.g. `GD.Hash` of the tile array).
 - **Every seed valid**: a test runs the generator for seeds 1 to 1000 (it is pure data, so this takes moments) and asserts the
   hard rules for each, naming the first failing seed.
+- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within a tolerance.
+- **One vocabulary**: placement labels (usage, tier, category) are declared once; a test loads every item and place
+  (`DirAccess.GetFilesAt`, `ResourceLoader.Load<T>`) and fails on a label that is not declared.
 - **A pinned seed**: one seed's fingerprint is written into a test, so an unintended change to the generator shows up. When the
   change is intended, update the number in the same commit and say so.
 - **In the running game**: a flow or smoke run with `-GameArgs '--seed=7'`, and screenshots of a few seeds compared with

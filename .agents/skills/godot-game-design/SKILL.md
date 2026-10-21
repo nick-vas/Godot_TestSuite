@@ -100,6 +100,27 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
   the AI cannot use and tests cannot cover: cut them.
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
 
+## 6. Puzzles and quests (Croteam, CD Projekt Red)
+
+Puzzles, as Croteam tuned The Talos Principle's 200 gray rooms:
+
+- Testers rate each puzzle for difficulty and fun and are timed; order levels from that data, and put a less fun
+  teaching puzzle between two favourites.
+- Every mechanic gets one or two simpler puzzles that teach it before any puzzle combines it with others.
+- Never one linear path: hubs with several puzzles open, gates that count solved puzzles, so a stuck player goes elsewhere.
+- Rewards for explorers stay off counters and achievements; only count what takes skill to get.
+- Hints are tuned with stuck players, not by the designer who knows the answer.
+
+Quests, from Sasko's ten lessons (The Witcher 3, Cyberpunk 2077). For each quest ask:
+
+1. Which key fact is held back, so the player wants the next scene?
+2. Which emotional beat does it build to, and which earlier scenes set up the people it depends on?
+3. Is anything said twice, or is there busy work a cut would remove?
+4. Is each choice a dilemma, with both sides given equal screen time and writing?
+5. Where does the player see each consequence? One they never notice does not exist for them.
+6. Does each detail mean something to the player? Key facts come when the player is focused, not in a walk-and-talk.
+7. Is it as new as it can be while staying familiar, and are a rule's normal uses taught before a quest breaks it?
+
 ## In a review
 
 1. Say the core loop in one sentence. If it needs two, it is two loops; find which one the game is about.

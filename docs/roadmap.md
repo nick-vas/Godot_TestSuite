@@ -149,10 +149,13 @@ why:
 | Source | State | What is left |
 |---|---|---|
 | Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`) | Reachable, but the site's own TLS certificate has expired, so it was not read (certificate checks stay on) | Optional: the MDA paper itself was read and `godot-game-design` follows its wording; recheck when the certificate is renewed |
-| Talk transcripts: Croteam's NG16 Talos Principle post-mortem (`D0ErxdacTT8`), Sasko's GDC 2023 quest design talk (`nAkH86__g0o`) | YouTube refuses this cloud server ("confirm you're not a bot"); two other talks' captions came through before it started refusing; the Breath of the Wild GDC talk has no captions at all | Run `yt-dlp --skip-download --write-auto-subs --sub-langs en <id>` on your machine and push the `.vtt` files to a branch, or put exported YouTube cookies in the environment's secrets |
-| Bohemia wiki (`community.bistudio.com`) and forums | Cloudflare challenge (403), not the network policy | Paste "Arma Reforger:Multiplayer Scripting" and "DayZ:Central Economy Configuration" |
+| Bohemia wiki (`community.bistudio.com`) and forums | Still a Cloudflare challenge (403), also through archive.org and a reader service. Bohemia's own DayZ Central Economy files and Arma Reforger samples on GitHub were read instead (`docs/studio-lessons.md`) | Optional: paste "DayZ:Central Economy Configuration" for the exact restock, counting-flag and respawn-cap rules, which the files only name, and "Arma Reforger:Multiplayer Scripting" for the replication API, which the samples do not use |
 | The rest of *The Untold History of Japanese Game Developers* | Only the first four chapters were in the file, the fourth cut off mid-sentence | The full text, for the Hidaka (tools, maps, music), Game Arts, Koshiro and ZUN chapters |
-| Full Iassenev interview on A-Life (AIGameDev, archived) | web.archive.org rate-limited this server (429) | Retry later, or paste it |
+| Full Iassenev interview on A-Life (AIGameDev, archived) | web.archive.org rate-limited this server (429) on 2026-10-20, and on 2026-10-21 reset every connection for an hour of retries; archive.org confirms a 2019 snapshot exists | Retry later, or paste it |
+
+Done in the second pass (2026-10-21): the Talos Principle post-mortem and Sasko's quest design talk, through yt-dlp's
+`android_vr` player client (the web client still asks this server to sign in), plus Croteam's "Taking CI and automated
+testing seriously"; all three in `docs/studio-lessons.md` with quotes checked against the captions.
 
 Done since: the Game Accessibility Guidelines (111 guidelines; no licence stated for the text, so summarised and linked in
 `docs/wcag-ui.md`, with the 16 menu and settings rules WCAG and XAG miss added to `godot-ui-accessibility`); Tracery (Apache
@@ -165,3 +168,16 @@ Done in the first pass: all 23 Xbox Accessibility Guidelines (in `docs/wcag-ui.m
 IMSC, COGA, MAUR, XAUR, SSML); the MDA paper, the 400 Project's master rule list and the gameplay design patterns wiki
 (`godot-game-design` corrected and given real rule and pattern names); Wikidata's genres (`templates/genres.json`); the
 Kenney, OpenGameArt, Fast WFC add-on, WaveFunctionCollapse and MarkovJunior licences (`godot-procgen`).
+
+## To do: kit features from the second pass
+
+Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. The hang time limit was done in that
+pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contract or needs its own fixture and review:
+
+| Feature | Why | Smallest change |
+|---|---|---|
+| A `playthrough` runner | `production.playthrough` is a manual gate, and `smoke` passes on a bot stuck in the first room | Built from the `juice` runner: run the main scene with `--headless --fixed-fps 60` and the game's flags, fail unless every expected log line (`[Run] ending reached`) appears; a `runner:playthrough` gate check; a fixture whose bot never finishes |
+| `--fixed-fps` for `smoke` | `-Frames` counts frames, not game time, so a long bot run is neither fast-forwarded nor reproducible | Opt-in switch, so existing smoke runs keep their meaning |
+| `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
+| Test duration in `status` | Croteam steered by submit-to-verdict time; the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
+| Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |

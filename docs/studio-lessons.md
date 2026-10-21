@@ -6,9 +6,14 @@ source and checked word for word, with its link; the "Apply" or "Godot" line und
 with AI agents uses it. Sources are quoted briefly and linked; translations (Shmuplations) and books (*The Untold History of
 Japanese Game Developers*) remain their authors' work.
 
+A second pass on 2026-10-21 replaced the press write-ups of the Talos Principle and Witcher 3 talks with their own
+captions, added Croteam's talk on CI and automated testing, and read Bohemia's published DayZ economy files and Arma
+Reforger samples in place of the wiki pages Cloudflare blocks.
+
 The skills carry the working version: `godot-game-design` (prototyping and feel), `godot-game-plan` (scope, playtests,
 release), `godot-automation-hooks` (bots, telemetry, testing), `godot-architecture` (data, simulation, networking) and
-`weekly-review`. `doctor` checks two of them (keyboard and gamepad bindings, a git remote).
+`weekly-review`. `doctor` checks two of them (keyboard and gamepad bindings, a git remote), and every program the kit runs
+now has a time limit, so a hung game fails instead of stalling (Croteam's "lockups deadlocks").
 
 ## What recurs across sources
 
@@ -17,10 +22,11 @@ release), `godot-automation-hooks` (bots, telemetry, testing), `godot-architectu
 | Prototype the core action with plain shapes and the rules only; decide the function before the theme | Miyamoto, Iwata (Splatoon), Yamagami (Xenoblade), Fujibayashi (Breath of the Wild), Nomura |
 | Build several variants and choose by playing, not by arguing | Wii Sports (bowling or boxing), Gradius (20 option patterns), Untold History |
 | You go blind to your own game: bring in fresh players early and often | Nishitani (Street Fighter II), 9 of 20 postmortems, Nomura (Google) |
-| Someone, or a bot, plays the whole game on every build | Nakamura (Dragon Quest III), Croteam (Talos test bot), Isaac and Outland postmortems |
+| Someone, or a bot, plays the whole game on every build | Nakamura (Dragon Quest III), Ladavac (Talos bot: the whole game in 20 minutes, every build), Isaac and Outland postmortems |
 | Consistent systems beat hand-made content; but test them as systems, not by playing in order | Dohta (BotW), Iassenev (A-Life), Binkowski (Dying Light), Moro (Animal Crossing) |
 | Feel is found by playing; physics serves the design; assist the player quietly | Ogata (FF6), Dohta, Suzuki (Space Harrier), Kulon (Dying Light), Miyamoto |
-| Tunable numbers live in data, changed without a patch; balance on measured behaviour | Hicks (DayZ), Stona (War Thunder), Horii (fights in sequence) |
+| Tunable numbers live in data, changed without a patch; balance on measured behaviour | Hicks (DayZ), DayZ's Central Economy files, Stona (War Thunder), Horii (fights in sequence) |
+| Playtest in rounds after the content is in, and change what players struggle with | Ladavac (Talos: rated, timed playtests; the game changed after alpha), Sasko (any stage can send a quest back) |
 | Scope to what you can build and test now; cut moves the AI and tests cannot cover | Nishitani, Stolz-Zwilling (Kingdom Come), 8 of 20 postmortems |
 | Prove the slice before content; decide multiplayer, saves, localisation and accessibility up front | Psychonauts, Empires of the Undergrowth, Infernax postmortems |
 | Label, archive and ship exactly the build that was tested | Horii (build labels), Eguchi (D2's lost code; the swapped release build), Eastshade (no version control) |
@@ -486,6 +492,253 @@ https://www.gdcvault.com/play/1018027/Designing-DayZ-Lessons-from
     https://forum.warthunder.com/t/following-the-roadmap-possible-changes-to-ground-vehicle-damage-models/98214
     *Godot:* keep a separate rules layer, such as "a hit always stuns briefly", on top of the hit-detection simulation, and tune it in data.
 
+## Bohemia's own files: DayZ Central Economy and Arma Reforger samples
+
+Bohemia publishes DayZ's server loot economy as XML ([DayZ-Central-Economy](https://github.com/BohemiaInteractive/DayZ-Central-Economy),
+commit `f220b29` of 2026-10-16, Arma and DayZ Public License Share Alike) and its Arma Reforger modding samples
+([Arma-Reforger-Samples](https://github.com/BohemiaInteractive/Arma-Reforger-Samples), commit `83f1239` of 2025-04-16, Arma
+Public License); both licences are non-commercial and forbid use in other games, so the short quotes below are for study and
+only the ideas carry over. These repositories replace the wiki pages "DayZ:Central Economy Configuration" and "Arma
+Reforger:Multiplayer Scripting", which Cloudflare blocks for this server.
+
+### DayZ Central Economy (how a loot economy is configured as data)
+
+Each map is a mission folder (`dayzOffline.chernarusplus/`, `dayzOffline.enoch/`, `dayzOffline.sakhal/`, `dayzOffline.nasdara/`).
+The files split the economy into a few jobs:
+
+- **What exists, and how many.** `db/types.xml` has 2,382 `<type>` entries for Chernarus. Each entry has a target count
+  (`nominal`), a floor (`min`), a `lifetime` and a `restock` time in seconds, a quantity range (`quantmin`/`quantmax`, with -1
+  meaning not used), a `cost`, and flags named `count_in_map`, `count_in_cargo`, `count_in_player`, `count_in_hoarder`,
+  `crafted` and `deloot`. Labels say where the item belongs: `category`, `tag`, `usage` (the kind of place) and `value` (tier).
+
+  ```xml
+  <type name="AKM">
+      <nominal>3</nominal>
+      <lifetime>7200</lifetime>
+      <restock>3600</restock>
+      <min>2</min>
+      <quantmin>30</quantmin>
+      <quantmax>80</quantmax>
+      <cost>100</cost>
+      <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+      <category name="weapons"/>
+      <usage name="Military"/>
+      <value name="Tier4"/>
+  </type>
+  ```
+  (`dayzOffline.chernarusplus/db/types.xml`, line 124)
+
+  1,267 types have `nominal` 0, and all 321 types marked `crafted="1"` are among them. Every type with a
+  nominal above 0 has `min` at or below `nominal`. `restock` is 0 for 2,240 of the 2,382 types. Lifetimes for spawned items run from 30 seconds (one
+  vest) to 3,888,000 (45 days: the barrels, tents, sea chest and protector case, which `cfgspawnabletypes.xml` marks
+  `<hoarder />`); 4 hours (14400) is the most common value.
+- **The vocabulary.** `cfglimitsdefinition.xml` declares the only allowed names: 8 categories, 3 tags (`floor`, `shelves`,
+  `ground`), 17 usage flags (`Military`, `Police`, `Farm`, `Town`, ...) and 5 value flags (`Tier1` to `Tier4`, `Unique`).
+  `cfglimitsdefinitionuser.xml` names shortcuts that combine them, such as `TownVillage` and `Tier234`. Every usage name used
+  in the Chernarus `types.xml` is declared there.
+- **Where things can appear.** `mapgroupproto.xml` describes each building type once (446 prototypes). A prototype has usage
+  flags, a `lootmax`, and containers whose local spawn points carry categories and tags:
+
+  ```xml
+  <group name="Land_Shed_M1" lootmax="2">
+      <usage name="Industrial" />
+      <usage name="Farm" />
+      <container name="lootFloor" lootmax="2">
+          <category name="tools" />
+          <category name="containers" />
+          <tag name="ground" />
+          <tag name="floor" />
+          <point pos="0.504883 -1.174019 0.807373" range="0.587867" height="1.469666" flags="32" />
+  ```
+  (`dayzOffline.chernarusplus/mapgroupproto.xml`, line 18)
+
+  `mapgrouppos.xml` then lists 11,679 placed buildings by name, position and angle. Value tiers are not set on buildings: only
+  2 prototypes carry a `<value>`. Tiers are painted over the terrain instead. The `CETool/` project has one image layer per
+  usage and value flag (`valueFlg_Tier1.tga` ... `valueFlg_Unique.tga`, with bit values 1, 2, 4, 8 and 16), and each mission
+  ships a binary `areaflags.map`.
+- **How a spawned item is set up.** `cfgspawnabletypes.xml` gives a damage range and attachment groups, each rolled with its
+  own chance, and `cfgrandompresets.xml` holds named, shared cargo lists (`foodHermit`, `foodVillage`, `mixArmy`, ...):
+
+  ```xml
+  <type name="AKM">
+      <damage min="0.45" max="0.85" />
+      <attachments chance="0.50">
+          <item name="KashtanOptic" chance="0.30" />
+          <item name="PSO11Optic" chance="0.20" />
+      </attachments>
+  ```
+  (`dayzOffline.chernarusplus/cfgspawnabletypes.xml`, line 2674, shortened). The same file marks tents, barrels and stashes
+  with `<hoarder />`.
+- **Events.** `db/events.xml` has 61 events (animals, infected, vehicles, crash sites, trains, fruit trees). Each has
+  `nominal`/`min`/`max`, `lifetime`, `restock`, three radii (`saferadius`, `distanceradius`, `cleanupradius`), a position mode
+  (`fixed`, `player` or `uniform`), a limit mode, an `active` switch, and children with their own `lootmin`/`lootmax`:
+
+  ```xml
+  <event name="StaticHeliCrash">
+      <nominal>3</nominal>
+      <lifetime>2100</lifetime>
+      <saferadius>1000</saferadius>
+      <secondary>InfectedArmy</secondary>
+      <active>1</active>
+      <children>
+          <child lootmax="15" lootmin="10" max="3" min="1" type="Wreck_UH1Y"/>
+  ```
+  (`dayzOffline.chernarusplus/db/events.xml`, line 822, shortened). `cfgeventspawns.xml` lists the candidate positions: 95
+  for the 3 helicopter crashes, 55 for the 8 civilian sedans, 21 for the 3 trains. `cfgeventgroups.xml` defines multi-object
+  sets such as `Train_Abandoned_Cherno`, whose children are placed by offsets from one origin. 10 of the 61 events are
+  `<active>0</active>`, among them a `StaticFridgeTest`.
+- **Server-wide numbers.** `db/globals.xml` holds timers and caps: `CleanupLifetimeDeadPlayer` 3600,
+  `CleanupLifetimeDeadInfected` 330, `CleanupLifetimeRuined` 330, `RespawnLimit` 20, `RespawnTypes` 12, `RespawnAttempt` 2,
+  `LootSpawnAvoidance` 100, `CleanupAvoidance` 100, `ZombieMaxCount` 1000, `AnimalMaxCount` 200. `db/economy.xml` says, per
+  subsystem, whether it is initialised, loaded, respawned and saved:
+
+  ```xml
+  <dynamic init="1" load="1" respawn="1" save="1"/>
+  <animals init="1" load="0" respawn="1" save="0"/>
+  <zombies init="1" load="0" respawn="1" save="0"/>
+  <building init="1" load="1" respawn="0" save="1"/>
+  ```
+  `cfgeconomycore.xml` holds the root classes the economy tracks and a set of log switches (`log_ce_loop`,
+  `log_ce_lootspawn`, `log_ce_lootcleanup`, `log_ce_lootrespawn`, `log_ce_statistics`, ...), all `false` by default.
+- **Seasonal variants.** Folders such as `PaydayOffline.ChernarusPlus/` (only `init.c` and `db/types.xml`) and
+  `ChristmasOffline.ChernarusPlus/` (`init.c`, `types.xml`, `events.xml`, `cfgrandompresets.xml`) ship just the files they change,
+  but each changed file is a whole copy, and the copies differ in size: the Payday `types.xml` has 1,795 entries against
+  2,382 in the base mission.
+
+1. **Give every item a target band, and say where copies count.**
+   Each type has a `nominal` and a `min`, with `min` at or below `nominal` whenever `nominal` is above 0, and flags named
+   `count_in_map`/`count_in_cargo`/`count_in_player`/`count_in_hoarder` that choose which copies count toward it.
+   Godot: a `[GlobalClass] partial class LootType : Resource` with `[Export]` fields `Nominal`, `Min`, `LifetimeSec`,
+   `RestockSec` and the counting flags. A plain C# economy object keeps a live count per type, updated when items spawn,
+   despawn or move into a player's inventory, so the economy never has to walk the scene tree.
+2. **Design despawning as carefully as spawning.**
+   Lifetimes per type run from 30 seconds to 45 days (storage containers live longest), and `globals.xml` sets separate
+   cleanup timers for dead players (3600), dead infected (330) and ruined items (330). More than half the types (1,267) have
+   a nominal of 0; all 321 `crafted` types are among them.
+   Godot: store a despawn time on every spawned item and remove expired ones in the same tick that spawns. Mark items that
+   only players make (`Crafted`, `Nominal = 0`) so the economy counts them but never spawns them.
+3. **Run the economy as a capped, switchable tick.**
+   `globals.xml` caps work with `RespawnLimit` 20, `RespawnTypes` 12 and `RespawnAttempt` 2. The names say they limit how
+   much is respawned per pass; the exact rule is on the blocked wiki page. `cfgeconomycore.xml` has one log switch per part
+   of the loop.
+   Godot: drive the economy from a `Timer` (`Timeout` signal) at a few seconds, not every frame. Cap spawns per tick, measure
+   the tick with `Time.GetTicksUsec()` in `bench`, and give each part (spawn, cleanup, respawn, statistics) its own log
+   category that a config file can switch on.
+4. **Keep one closed vocabulary, shared by items and places, and keep rarity on the map.**
+   Items and building containers use the same declared names (`category`, `tag`, `usage`), and `cfglimitsdefinition.xml`
+   is the only list of them. Tiers are not part of a building: they are painted as map layers (`CETool/*/layers/valueFlg_Tier1.tga`
+   with bit values 1 to 16, compiled into `areaflags.map`), so the same building type gives better loot in a dangerous area.
+   Godot: declare usage and value as flag enums (`[Export(PropertyHint.Flags, "Military,Police,Farm,Town")]`), add a test
+   that loads every item and place Resource and fails on any label not in the vocabulary, and read the tier from a zone layer
+   (an `Area3D` per zone or a painted image sampled by position), not from the building scene.
+5. **Describe loot points once per building type, then place many copies.**
+   446 prototypes in `mapgroupproto.xml` carry the local spawn points (`pos`, `range`, `height`) and a `lootmax` per building and
+   per container; `mapgrouppos.xml` places 11,679 buildings by name and transform.
+   Godot: put `Marker3D` loot points with tag metadata inside each building scene and add them to a group. The economy reads
+   them with `GetTree().GetNodesInGroup("loot_point")` and respects the building's and container's `LootMax`.
+6. **Roll in two stages: what spawns, then what state it is in.**
+   `types.xml` decides which item and how many. `cfgspawnabletypes.xml` then rolls its damage range and attachment groups
+   (an AKM gets an optic group 50% of the time, then Kashtan 30% or PSO-11 20%), and `cfgrandompresets.xml` shares named cargo
+   lists between many types (`foodCity` is used 120 times, `mixArmy` 47).
+   Godot: one seeded `RandomNumberGenerator` per stage (`Seed`, `Randf()`, `RandiRange()`), presets as shared Resources, and a
+   test that rolls 10,000 seeds and checks each chance comes out within tolerance (`godot-procgen`).
+7. **Make events data: N of M fixed spots, radii, a follow-up event and an off switch.**
+   The helicopter crash has a nominal of 3 and 95 listed positions, a `saferadius` of 1000, and brings a `secondary` event
+   (`InfectedArmy`) and 10 to 15 loot items. Multi-object events such as trains are offset groups in `cfgeventgroups.xml`,
+   and a test event (`StaticFridgeTest`) is simply left `active` 0.
+   Godot: an `EventDef` Resource with `Nominal`, `LifetimeSec`, radii, an optional follow-up `EventDef` and an `Active` flag;
+   candidate spots are `Marker3D` nodes; a group is a small scene instanced at the chosen marker. Test that no two active events
+   pick spots closer than their safe radius.
+8. **Write the persistence policy per subsystem down as data, and overlay seasons as differences.**
+   `economy.xml` saves `dynamic`, `vehicles`, `building` and `player` but not `animals` or `zombies`, and never respawns
+   `building`. The seasonal folders
+   replace whole files, and the copies have drifted (1,795 types against 2,382). `cfggameplay.json` carries a `"version": 123`
+   field.
+   Godot: a save-policy table (init, load, respawn, save per category) read by the save code, with a save-then-load test per
+   category. Store a season as an override file that names only the changed fields of base entries, merge it at load, and
+   test that every overridden key exists in the base. Put a version number in every data file.
+
+### Arma Reforger replication (what the samples show)
+
+The samples are 13 mods (`SampleMod_NewProp`, `SampleMod_NewFaction`, `SampleMod_Replacement`, `SampleMod_ModdedScript`, ...)
+with 15 script files and 340 prefabs. They contain no `RplProp`, `RplRpc` or `Replication` calls: replication shows up only as
+the `RplComponent` placed on prefabs (9 times in 6 files). The scripts show how interactions are written, and the configs show
+how a multiplayer scenario is built. The lessons below stay within that; the scripting API itself is on the blocked wiki page.
+
+- **Replication is a component in the base prefab.** `PortableDesk_01_Base.et` inherits from `Destructible_Props_Base.et`
+  (a game prefab, not in the repository) and lists, next to `SignalsManagerComponent` and `ActionsManagerComponent`:
+
+  ```
+  RplComponent "{5624A88DC2D9928D}" {
+   Enabled 1
+  }
+  ```
+  (`SampleMod_NewProp/Prefabs/Props/Military/Camps/PortableDesk_01_Base.et`). The same component ID appears in the lid, the
+  wing and a child of the armory composition, all of which inherit from that same base, so the component is defined once there
+  and switched on in each prefab. The colour variants (`PortableDesk_01_Olive.et`) inherit from the desk base and override only
+  materials and debris models; they do not mention replication. The lid and wings are separate prefabs, attached through
+  `SlotManagerComponent` slots in `PortableDesk_01_Base_Full.et`, and each has its own `Hierarchy`, its own
+  `SCR_DestructionMultiPhaseComponent` and its own `RplComponent`. The campaign composition `Campaign_ArmoryDepot_BLUFOR.et`
+  has `Hierarchy` and `RplComponent` on its root; its nested prefabs each have a `Hierarchy`, and three of them set an
+  `RplComponent`.
+- **An interaction is a check plus an action on one small value.** `SCR_DrawerUserAction` (`SampleMod_NewProp/Scripts/Game/UserActions/`)
+  overrides `CanBeShownScript`, `CanBePerformedScript`, `PerformAction` and `GetActionNameScript`. The drawer's whole state
+  is one signal value:
+
+  ```c
+  float targetValue = Math.AbsFloat((m_SignalsManager.GetSignalValue(m_iSignalIndex)) - MAX_SIGNAL_VALUE);
+  m_SignalsManager.SetSignalValue(m_iSignalIndex, targetValue);
+  ```
+  The procedural animation reads the signal, the sound is chosen from the new value, and the label ("Open"/"Close") is
+  computed from it. Designer-facing fields are declared with `[Attribute(defvalue: ..., uiwidget: ..., desc: ...)]`. The car
+  trunk and weapon flip actions in other samples copy the same pattern.
+- **A headless server is a build target.** 11 of the 13 `.gproj` files (all but the animation and cinematic tutorials) list
+  `GameProjectConfig HEADLESS` next to PC, Xbox and PS4, and 886 of the 932 resource `.meta` files have `HEADLESS : PC`. `SampleMod_Main/Configs/SampleMod_MP_Test.conf` is a `ServerConfig` that names a
+  `ServerMissionHeader`; a mission header (`Missions/SampleMod_ShowcaseBasic.conf`) names a `World`.
+- **A scenario is a base world plus a logic layer.** `CTI_Campaign_Eden_SampleFaction_01.ent` is only
+  `SubScene { Parent "{597E75E2D375DC70}Worlds/MP/CTI_Campaign_Eden_base.ent" }`; its `logic.layer` adds the game mode,
+  faction manager, loadout manager and task manager as prefab instances with a few overridden fields (`m_iControlPointsThreshold 5`).
+  The showcase mission does the same with `SCR_BaseGameMode`, an `SCR_RespawnTimerComponent` (`m_fRespawnTime 1`), an
+  `SCR_SpawnPoint` and an `SCR_LoadoutManager`.
+- **Content is referenced by ID, and configs inherit.** References look like `"{FA5C25BF66A53DCF}Prefabs/Weapons/Rifles/AK74/Rifle_AK74.et"`.
+  `SampleMod_Replacement` ships `Prefabs/Weapons/Rifles/Rifle_AK74.et`, a different path, whose `.meta` has the same ID
+  `{FA5C25BF66A53DCF}`, and changes the fire rate (`RoundsPerMinute 200`). Faction configs chain:
+  `SampleFactionREDFOR_Campaign.conf : SampleFactionREDFOR.conf : OPFOR.conf`, each overriding a few fields. Scripts extend
+  game classes with `modded class SCR_BaseScoringSystemComponent` and call `super.AddSuicide(...)` to keep the original logic.
+
+1. **Make replication part of the base scene, and give every detachable part its own.**
+   The desk's `RplComponent` sits in the base prefab, so every colour variant has it without saying so. The lid and wings,
+   which attach through slots and have their own destruction component, each carry their own `RplComponent` and `Hierarchy`.
+   Godot: put the `MultiplayerSynchronizer` (with its `ReplicationConfig`) in the base scene and make variants inherited scenes.
+   Parts that can detach or be spawned at runtime are their own scenes, registered with the `MultiplayerSpawner`
+   (`AddSpawnableScene`, `SpawnPath`) and each with its own synchronizer.
+2. **Replicate the smallest state and derive the rest on every peer.**
+   The drawer is one float; its animation, sound and "Open"/"Close" label are computed from it.
+   Godot: add only that value to the `SceneReplicationConfig` (`AddProperty`), and play the sound and set the animation in the
+   property setter on each peer, so presentation never travels over the network.
+3. **Split "may I" from "do it", and run the check again on the server.**
+   Every sample action separates `CanBeShownScript`/`CanBePerformedScript` from `PerformAction`.
+   Godot: the client calls `RpcId(1, MethodName.RequestToggle)`. The server-side method has
+   `[Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]`, checks
+   `Multiplayer.IsServer()`, finds the player from `Multiplayer.GetRemoteSenderId()`, and calls the same `CanPerform` method
+   before it changes state. The object keeps `SetMultiplayerAuthority(1)`, and code that writes state is guarded with
+   `IsMultiplayerAuthority()`. Test with a fake sender that fails the check.
+4. **Build and test the headless server from the first multiplayer commit, and start it from config.**
+   Each sample project lists a `HEADLESS` configuration, and a server starts from a `ServerConfig` that names a mission, which
+   names a world.
+   Godot: add a Linux export preset with export mode "dedicated server", branch on `OS.HasFeature("dedicated_server")`
+   (or `DisplayServer.GetName() == "headless"` under `--headless`), and have the server read a JSON file that names the scenario
+   scene. A scenario scene instances the shared map scene and adds one logic node (game mode, spawn points, loadouts) with the
+   scenario's overrides, so maps are not duplicated per mode.
+5. **Reference shared content by ID, inherit data, and let mods replace by ID or extend with a base call.**
+   The replacement mod overrides the AK-74 by shipping a file with the same ID at another path, faction configs override a few
+   fields of a parent, and `modded class` scripts call `super`.
+   Godot: references in `.tscn`/`.tres` already carry `uid://` IDs (`ResourceUid.TextToId`, `ResourceUid.GetIdPath`); keep them
+   in version control, and load mod packs with `ProjectSettings.LoadResourcePack` so a pack can replace a resource at its
+   path. Godot has no `.tres` inheritance: give data Resources an optional `Base` field and resolve overrides in one loader
+   (`Resource.Duplicate()`, then apply set fields). In C# a mod extends behaviour through `virtual` methods whose overrides call
+   `base.Method()`.
+
 ## Postmortems (20 games, mostly small teams)
 
 
@@ -670,33 +923,77 @@ The quotes are verbatim from the source named. Auto-caption quotes keep the capt
 5. **Ambition gets cut, so scope it.** "A-Life never reached its full potential because the developers needed to hold parts of it back" (same source)
    Godot: build the simulation behind feature flags so unfinished layers can ship turned off.
 
-### 4. The Talos Principle (Croteam), from written coverage
+### 4. The Talos Principle post-mortem (Croteam, Nordic Game 2016), auto-captions
 
-1. **Replace the generic gate with a mechanic.** "we didn't want to do the typical blue key, blue door thing" (Hunski, [Gamereactor](https://www.gamereactor.eu/croteam-on-how-the-talos-principle-was-a-happy-accident-and-on-talking-ai-through-the-decades-1489983/))
-   Godot: when a plan item is "locked door + key", ask the architect agent for a version where the lock is solved by the core verb.
-2. **Players love combinations.** On puzzles mixing mechanics in unexpected ways: "People enjoyed those the most" (same source)
-   Godot: add each new mechanic only if a test scene shows it combining with at least two existing ones.
-3. **Playtest with a bot.** Croteam's process included "playtesting with a bot" (same source)
-   Godot: write headless solver or replay scripts that check every puzzle is solvable and catch unintended shortcuts after each change.
-4. **Decide, then commit.** "at the moment when we decide, okay, you're the one that will decide, we'll go B, right? From that moment, B will be my opinion." (Hunski, same source)
-   Godot: record decisions in ADR.md with an owner. Agents follow the ADR instead of re-arguing it each session.
-5. **Your own tools make a small team fast.** Croteam "primarily used our own proprietary editor, Serious Editor. It allowed us to rapidly develop concepts and production itself." ([IGF interview](https://www.gamedeveloper.com/design/road-to-the-igf-croteam-s-i-the-talos-principle-i-))
-   Godot: invest early in @tool scripts and editor plugins for the main content type (puzzle or level authoring).
+1. **Build the game around the prototype people already enjoy.** The puzzles were made for a Serious Sam game, the team liked the complex ones best, so Croteam made a new game from them: "we pick it because we knew that people wanted to play it and we put that as a basis for the game" ([07:00](https://www.youtube.com/watch?v=D0ErxdacTT8&t=420))
+   Godot: keep the core loop in a bare test scene and add no art, story or menus until other people have played it and asked for more. Record that go/no-go decision in ADR.md.
+2. **Rate, time and sort every puzzle with playtesters.** About 20 people played some 200 gray puzzles: "they rated each of them for difficulty each of them for how much fun it is and we timed them" ([07:38](https://www.youtube.com/watch?v=D0ErxdacTT8&t=458))
+   Godot: a PuzzleRoom node that writes solve time and a 1-5 difficulty and fun rating to a JSON file in user://. Order levels from that data, easy to hard, with the less fun teaching puzzles placed between ones everyone liked.
+3. **Do not force a linear path.** Testers stuck on a puzzle others found simple could solve everything else, then came back to it later: "we must not force the linear gameplay so we organized the levels in a nonlinear fashion" ([10:01](https://www.youtube.com/watch?v=D0ErxdacTT8&t=601))
+   Godot: hubs where several puzzles are open at once, with gates that count solved puzzles instead of needing one specific puzzle. Add a test that checks every gate can be reached by more than one set of puzzles.
+4. **Watch first-time players and write down every problem.** Testing came in layers: designers, the whole team, an E3 demo, a closed beta, friends in the office and a free public demo. For friends testing: "you watch them all the time while they play for hours and sometimes record the video and write down all the problems" ([12:54](https://www.youtube.com/watch?v=D0ErxdacTT8&t=774))
+   Godot: sit next to each tester, log events (puzzle entered, reset, solved) to a timestamped file, and have an agent turn your notes and the log into plan.json items afterwards.
+5. **Leave time to iterate after content-complete.** On earlier projects they shipped the alpha plus bug fixes. This time "the final game is much more different than the Alpha which we would normally say this is the game" ([14:12](https://www.youtube.com/watch?v=D0ErxdacTT8&t=852))
+   Godot: in plan.json, schedule playtest-and-change rounds after the "everything is in" milestone. Do not put the release date right after it.
+6. **Reward explorers without giving achievers a counter.** Achievers hated stars that had to be stumbled upon, so all stars became hard to get and Easter eggs were added instead: "we never track them there's no way to know how many you have found" ([16:40](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1000))
+   Godot: keep exploration rewards (notes, secret areas) out of the UI counters, save statistics and achievements. Only count collectibles that take skill to get.
+7. **Report bugs from inside the game and link each one to its fix.** A key press files the bug where it happens, and the fix "connect that with the perforce change list so that you automatically know which change which fixed which bug" ([20:52](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1252))
+   Godot: a debug-only key that saves a screenshot, the scene path, the player position and the build's git commit to a JSON file in user://. The commit that fixes it mentions the report id.
+8. **Record a puzzle solution as steps, not inputs.** The test bot "recalls the concepts like okay you have to use this switch to open that door", then uses pathfinding to carry them out ([22:33](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1353))
+   Godot: store each puzzle's solution as a Resource listing steps (go to switch A, carry item B to plate C). A headless bot walks between targets with NavigationAgent3D, so the solution still works after the room layout changes.
+9. **Make risky changes safe with fast feedback.** The bot finishes the game in about 20 minutes (a skilled human needs about 10 hours), and the full build-and-test cycle takes under an hour. For physics or jump changes: "just submit it and within one hour you will know if you broke something" ([23:47](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1427))
+   Godot: run the bot headless with `--fixed-fps 60` on every push, so it plays faster than real time with the same physics steps. Run it every time CharacterBody3D movement or jump values change.
+10. **A bot proves the game can be finished, not that it has no bugs.** "this system cannot prove that there are no bugs in the game ... what it can prove that it's possible to complete the game" ([24:32](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1472))
+    Godot: a CI check that fails when the bot cannot finish any puzzle. Their example was a door that stopped opening after someone changed its texture. Keep playing the game by hand as well.
+11. **Test every translation with a native speaker who has never played.** Localization was the biggest problem: rushed, cheap and barely tested. "we should have done a lot of testing with natives speaker just playing the game like someone who never played the game before" ([26:18](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1578))
+    Godot: keep all text in translation files read through `tr()`. Add a plan.json item for each language: one full playthrough by a native speaker before release.
+12. **Tune the help system with players who are stuck.** "our hinting system that was supposed to help you if you're stuck in some puzzles was such barely tuned that it was ridiculous" because hints were too hard to get ([26:51](https://www.youtube.com/watch?v=D0ErxdacTT8&t=1611))
+    Godot: put hint thresholds (time stuck, resets) in exported variables, and in playtests log whether stuck players actually received a hint.
+13. **Graybox from a small kit of fixed-size pieces.** Ideas started on paper or with Lego, and then "you create the puzzles from preset walls of sizes 3 meters 5 meters 2 meters" on a flat floor with one texture ([35:25](https://www.youtube.com/watch?v=D0ErxdacTT8&t=2125))
+    Godot: a GridMap with a MeshLibrary of 2, 3 and 5 m wall blocks and one material, so agents and designers build and change puzzles fast without art.
+14. **Teach each mechanic with simpler puzzles first.** A complex idea "also forces you to create a few several simpler versions so that people can be smoothly brought into it" ([35:57](https://www.youtube.com/watch?v=D0ErxdacTT8&t=2157))
+    Godot: in plan.json, list the introduction puzzle(s) for each mechanic before any puzzle that combines it with others. When a tester says "I wish I had known I could do that", add a puzzle that teaches it.
+15. **Reskin gray levels with a script.** The final setting of each puzzle was not known yet, so "we had scripts that you run on a level and that just replaces the generic models with Roman models" ([36:47](https://www.youtube.com/watch?v=D0ErxdacTT8&t=2207))
+    Godot: a @tool EditorScript that swaps the GridMap's MeshLibrary (or replaces generic wall scenes) for a themed set. Then decorate by hand.
 
-### 5. Witcher 3 / Cyberpunk 2077 quest design (Sasko, GDC 2023), from a write-up
+From earlier written coverage ([Gamereactor](https://www.gamereactor.eu/croteam-on-how-the-talos-principle-was-a-happy-accident-and-on-talking-ai-through-the-decades-1489983/), [IGF interview](https://www.gamedeveloper.com/design/road-to-the-igf-croteam-s-i-the-talos-principle-i-)):
 
-1. **Make players want the story.** "We want the players to want the story." ([Game Developer](https://www.gamedeveloper.com/marketing/10-key-takeaways-from-the-quest-design-of-cyberpunk-2077-and-the-witcher-3))
-   Godot: in quest data, withhold one key fact per beat and track it as an explicit "open question" field.
-2. **Separate signal from noise.** Deliver key information "in focused, isolated moments"; leave minor talk for walk-and-talks. (same source)
-   Godot: a dialogue tag `critical: true` that pauses combat and spawning while that line plays.
-3. **Consequences must be delayed and visible.** "Design for the visibility of consequences; investing in something not telegraphed well is mostly not worth it." (same source)
-   Godot: store choices in a save-game flags dictionary, and require each flag to be read in at least one later visible payoff (an agent-checkable rule).
-4. **Avoid overdesign.** "A game is not a life simulation, it is entertainment" (Sasko, same source)
-   Godot: cut systems the player cannot perceive. Have the verifier agent ask "where does the player see this?"
-5. **Be brief.** "Look for the spots in narrative and quests where information is being repeated and get rid of it." (same source)
-   Godot: have an agent diff the dialogue files for repeated exposition and propose cuts.
-6. **Design for the team you have.** "Alignment of various disciplines is the simplest way to create remarkable content." (same source)
-   Godot: as a solo developer, design quests around your strongest skills and the assets you can actually make or license.
+16. **Decide, then commit.** "at the moment when we decide, okay, you're the one that will decide, we'll go B, right? From that moment, B will be my opinion." (Hunski, [Gamereactor](https://www.gamereactor.eu/croteam-on-how-the-talos-principle-was-a-happy-accident-and-on-talking-ai-through-the-decades-1489983/))
+    Godot: record decisions in ADR.md with an owner. Agents follow the ADR instead of re-arguing it each session.
+17. **Your own tools make a small team fast.** Croteam "primarily used our own proprietary editor, Serious Editor. It allowed us to rapidly develop concepts and production itself." ([IGF interview](https://www.gamedeveloper.com/design/road-to-the-igf-croteam-s-i-the-talos-principle-i-))
+
+    Godot: invest early in @tool scripts and editor plugins for the main content type (puzzle or level authoring).
+
+### 5. Witcher 3 / Cyberpunk 2077 quest design (Sasko, GDC 2023), auto-captions
+
+1. **Engagement: make the player want the story by holding back key information.** "by subtraction of key information you can actually make the player really intrigued and really curious about what's going on" ([09:38](https://www.youtube.com/watch?v=nAkH86__g0o&t=578))
+   Godot: give each quest step in the quest data (a Resource or JSON) the fact it reveals; a flows test plays the quest and asserts that no fact appears before its step.
+2. **Impact: build the story around emotional moments, and set up the characters they depend on.** "think about those emotional moments like the moments when you can really like punch the player or your reader your audience into the gut" ([15:27](https://www.youtube.com/watch?v=nAkH86__g0o&t=927))
+   Godot: list the emotional beats in `docs/GDD.md` first, each with the earlier quests that build up its character (Vesemir's death worked because many earlier quests built him up); "cool scenes" come second.
+3. **Believability: give characters quiet moments with no objective, where they talk about themselves, not the plot.** "so when you have those moments don't rush" ([23:42](https://www.youtube.com/watch?v=nAkH86__g0o&t=1422))
+   Godot: allow scenes with an empty objective tracker; tag dialogue lines `plot` or `character` in the dialogue data and have a script report main characters with no `character` lines.
+4. **Brevity: remove repeated information and busy work; cut to what matters.** "when you remove the fat when you trim the fat then the story becomes much more Punchy" ([27:01](https://www.youtube.com/watch?v=nAkH86__g0o&t=1621))
+   Godot: have an agent scan the dialogue files for facts the player already heard or is about to see, and replace those conversations with a cut (scene transition).
+5. **Choices: the best choices are dilemmas with both sides built up; offer an option when the player expects one.** "those emotional dilemmas those interesting dilemmas are like they are making the best possible choices you can actually have in your game" ([33:54](https://www.youtube.com/watch?v=nAkH86__g0o&t=2034))
+   Godot: for each choice in the quest data, write what the player loses on each side; in playtest notes, record every moment the tester says "I want to do X" and the game has no option for it.
+6. **Consequences: telegraph them on every level, even long after the choice; subtle ones go unseen.** "when consequences are too subtle players won't see them" ([40:44](https://www.youtube.com/watch?v=nAkH86__g0o&t=2444))
+   Godot: store choices as save flags and give each flag a visible payoff later (a line naming the earlier event, a changed NPC or room); a script fails when a flag is never read outside the save code. Whatever the player does not see does not exist for them (the TV and radio changes most players missed).
+7. **Over design: add detail only when it means something to the player.** "details are amazing when they matter when there's some kind of a meaning behind them" ([44:51](https://www.youtube.com/watch?v=nAkH86__g0o&t=2691))
+   Godot: before an agent adds an NPC routine or a side system, it must say where the player sees it and why it matters; if it cannot, the plan gate is dropped.
+8. **Bravery: take on difficult topics when the scene serves the story, not for shock.** "it's not a shocking value just to be there I wanted to talk about something that wasn't talked about" ([52:54](https://www.youtube.com/watch?v=nAkH86__g0o&t=3174))
+   Godot: write down in `docs/GDD.md` what theme a hard scene is about and which earlier scenes give it context; playtest it after that context, not on its own.
+9. **Novelty: as new as possible while staying familiar enough (the MAYA principle).** "provide as much novelty as you only can while in the same time trying to stay somewhat relevant to the player somewhat familiar" ([57:48](https://www.youtube.com/watch?v=nAkH86__g0o&t=3468))
+   Godot: build a new mechanic on a familiar control and check in playtests that players find it (many players did not know they could move their head in Cyberpunk's interactive scenes).
+10. **Effectiveness: design for the team you have, and know what the rest of the game already contains.** "you can really design your story and everything you have for the team you have" ([59:37](https://www.youtube.com/watch?v=nAkH86__g0o&t=3577))
+    Godot: as a solo developer, design quests around what you and your agents can build and verify; keep a list of existing quests and mechanics in `docs/GDD.md` so a new agent session does not reuse a solution the game already has.
+11. **Pipeline: the draft stage ends when every quest is playable, and any stage can send work back.** "when the quest is playable and all the quests are playable that means that the whole game is playable" ([06:28](https://www.youtube.com/watch?v=nAkH86__g0o&t=388))
+    Godot: a plan.json gate "every quest playable start to end with placeholder dialogue", checked by one flows test per quest; when the implementation changes the design, update `docs/GDD.md` (CD Projekt did so until alpha).
+12. **Signal and noise: give key information only when the player is focused.** "all the most important information are always delivered when you're focused on the characters" ([29:54](https://www.youtube.com/watch?v=nAkH86__g0o&t=1794))
+    Godot: put minor talk in walk-and-talks where the player can move freely; deliver plot facts in a seated or camera-controlled scene, and make extra lore opt-in.
+13. **Balance the options of a choice: more screen time and better writing win (or a star actor).** "she had more screen time simply she was written in a better way" ([37:12](https://www.youtube.com/watch?v=nAkH86__g0o&t=2232))
+    Godot: count lines and scenes per side of each choice in the dialogue data, and log which option playtesters pick; a lopsided split means one side needs work.
+14. **Establish the rules before you break them.** "you need to establish the rules before you break them" ([59:09](https://www.youtube.com/watch?v=nAkH86__g0o&t=3549))
+    Godot: a quest that subverts a mechanic (like the scan in Dream On that returns only an unknown tag) comes after quests where that mechanic works as taught; order them so in plan.json.
 
 ### 6. How DayZ Deals With Cheaters (Bohemia, GDC 2016), auto-captions
 
@@ -712,3 +1009,38 @@ The quotes are verbatim from the source named. Auto-caption quotes keep the capt
    Godot: every automated punishment gets an appeal path and an undo, written down before launch.
 6. **Do not make it personal.** "try not to make it personal" ([42:34](https://www.youtube.com/watch?v=0M0xBMEuWdU&t=2554))
    Godot: keep community responses factual and run by policy. Solo developers are especially exposed to retaliation.
+
+### 7. Taking CI and automated testing seriously (Ladavac, Croteam, WebCamp Zagreb 2018), auto-captions
+
+The captions hear "bot" as "boat", "board" and "bodkin", and Ladavac's name as "Alan la Levitz".
+
+1. **Unit-test the low-level code, play-test the rest.** "we're gonna have unit tests for some things but we're just gonna functionality test the rest as much as we can" ([27:20](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1640))
+   Godot: `test -Json` already runs both halves: xUnit, gdUnit4Net or GUT for pure logic, and the `validate`, `smoke` and `flows` runners for the game in the real engine. The `godot-test-loop` skill says when to write which.
+2. **Do not build towers of mocks; game code is cross-cutting.** "90% of your work is just trying to come up with walks in order to create the test and people just give up" (the captions hear "mocks" as "walks") ([27:04](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1624))
+   Godot: keep the rules in plain C# classes that need no scene tree, as `godot-architecture` ("State in plain C#") asks, and test node-heavy code headless in the real engine with `flows` instead of mocking `SceneTree`.
+3. **A bot cannot prove there are no bugs, but it can prove the game can be finished.** "it can't prove that there are no bugs ... but what he can do is to prove that the game can be completed" ([17:15](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1035))
+   Godot: the plan gate `production.playthrough` and `godot-automation-hooks` ask for a bot run that reaches the ending, but the gate is manual and no runner checks it. A `smoke` run with `-GameArgs '--autoplay'` passes when the bot plays its frames without errors, even if it is stuck in the first room.
+4. **"Can you complete it?" is the first ship criterion.** "can you complete the game this is the number one if you if you can't complete the game that's obviously not shippable" ([28:45](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1725))
+   Godot: the launch gate `launch.gold` checks that the release export launches without engine errors, not that it can be finished. Until a runner checks the ending, close `production.playthrough` by hand before `launch.gold`, every time.
+5. **Record the designer's solution as intent, so it survives level edits.** "we made a bot that is able to record actions in general when developer plays" and replays it "even if you move the geometry around" ([16:37](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=997))
+   Godot: record actions as commands on named things ("take key `Key_A`", "place box on `Socket_2`"), not as raw input or coordinates. `godot-patterns` names the Command pattern for replays, but the kit has no recorder or replay format (`docs/strategies.md` section 3 left scripted playtests to the editor bridge).
+6. **A bot does not need real time.** "the boat he doesn't really need his time to be real-time" ... "the bodkin completes everything in 20 minutes" ([18:22](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1102))
+   Godot: `--headless --fixed-fps 60` makes each frame advance a fixed 1/60 s of game time as fast as the CPU allows. The `juice` runner already runs this way; `smoke` and `export -Run` do not pass `--fixed-fps`, so a long bot run there is neither fast-forwarded nor reproducible.
+7. **Keep submit-to-verdict time short, and know what it is.** "we came to what we call submit to test it time of less than one hour" ([19:03](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1143))
+   Godot: every `test` run already records its `seconds` in `.godot/godot-ci-history.jsonl`, but nothing warns when the suite slowly gets longer. Use `-Runners` and `-Filter` for the inner loop and leave the full playthrough to CI.
+8. **A bot is the tester a small team cannot hire.** "the board did approximately more than 15,000 hours of human testing" ([19:46](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1186))
+   Godot: for a solo developer the `--autoplay` bot is the only tester that plays every push. Build it with `godot-automation-hooks`, and run it on GitHub with the kit's workflow so it costs no local time.
+9. **Add the bot as early as possible, on rough blockouts.** "we always try to implement the board as soon as possible so we have very rough sketches of all the levels" ([31:47](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1907))
+   Godot: the vertical-slice gate `slice.hooks` already requires `--seed`, `--autoplay` and `--no-save` to work in an export. Let the bot walk greybox levels before they have art.
+10. **Long bot runs catch crashes and deadlocks for free.** "the engine gets tested as a side effect of that so if there's any big crashes or or any lockups deadlocks" ([32:01](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1921))
+    Godot: `smoke` fails on a non-zero exit and on any engine `ERROR:` line, which catches crashes. Hangs were not caught until this pass: the kit now stops any program still running after `GODOT_CI_TIMEOUT` seconds (default 1800) and fails the run, so a deadlocked game no longer stalls an agent or a CI job.
+11. **Creative breakage still needs people.** "there's no way you can automate testing this you need to have a very very creative human" ([21:25](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1285))
+    Godot: the bot proves the intended path; strangers find the unintended one. The gates `prototype.stranger` and `beta.playtest` cover this and stay manual on purpose.
+12. **Make reporting a bug one key and one line, from inside the game.** "you go to the game you see a bug you press the button then you type these rocks look wrong" ([22:26](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1346))
+    Godot: `godot-automation-hooks` already suggests a feedback key that saves a screenshot, the log and the save file. It does not ask for the player's position, camera and scene, which is what makes a vague "rocks look wrong" fixable.
+13. **Show each report where it happened, so duplicates are visible.** "you already see the someone else has put a pin on the same object" ... "you're gonna see the view that a tester has been looking at" ([22:59](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1379))
+    Godot: an `@tool` node could load saved reports and draw pins in the editor, with a button that moves the editor camera to the tester's view. The kit has nothing like this yet.
+14. **Fill the gap between unit tests and full playthroughs with small test levels and image comparison.** "just having very smaller levels that are testing specific functionalities" and "you would like to compare those two images" ([41:12](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=2472))
+    Godot: one small test scene per mechanic, driven by `flows`, covers the first part. `shot -Baseline` gives `changedPercent` and a diff image, but only reports: it never fails a run, and it needs a display.
+15. **What "looks wrong" is decided by people, and decided through testing.** "this tree is floating in the air this is something everyone's gonna say okay this is this is wrong" ([29:55](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1795))
+    Godot: the `look` skill critiques `shot` screenshots against `docs/STYLE.md` and asks you to choose. Write each accepted cheat ("no shadows on pickups") into the style guide, so the agent stops flagging it.

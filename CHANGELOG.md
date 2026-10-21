@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Every program the kit runs has a time limit (30 minutes; `GODOT_CI_TIMEOUT` in seconds, `0` for none). A hung Godot is
+  stopped with its child processes and fails with exit code 124, instead of stalling the run and the agent waiting on it.
+- Lessons from studios, second pass: the captions of Croteam's Talos Principle post-mortem and Sasko's quest design talk
+  replace their press write-ups, Croteam's talk on CI and automated testing is added, and Bohemia's published DayZ Central
+  Economy files and Arma Reforger samples stand in for the wiki pages Cloudflare blocks. Folded into
+  `godot-automation-hooks` (record a solution as intent and replay it; bug reports with place and view),
+  `godot-game-design` (puzzle playtests, a quest review), `godot-game-plan`, `godot-architecture` (a spawn economy as data,
+  replicating the smallest state, the headless server, graybox then reskin), `godot-procgen` (two-stage rolls, one label
+  vocabulary) and `weekly-review`. New gates `beta.iterate` and `beta.localization`.
 - Lessons from studios (`docs/studio-lessons.md`): about 110 lessons, each with a checked quote and its link, from Nintendo's
   Iwata Asks and the Breath of the Wild talks, 15 Shmuplations interviews, an excerpt of *The Untold History of Japanese Game
   Developers*, GSC, Croteam, Techland, CD Projekt Red, Warhorse, Bohemia, Gaijin and 1C, 20 postmortems counted for what
