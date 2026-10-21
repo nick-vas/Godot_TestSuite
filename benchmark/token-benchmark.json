@@ -1,0 +1,100 @@
+{
+  "name": "Godot_TestSuite token consumption benchmark",
+  "description": "Tokens, cost and time an agent spends on typical questions and changes in this repository, under three ways of working.",
+  "model": "sonnet",
+  "timeoutSeconds": 300,
+  "maxTurns": 15,
+  "repeat": 3,
+  "retries": 1,
+  "maxCalls": 120,
+  "settingSources": "project",
+  "tools": ["Read", "Grep", "Glob"],
+  "profiles": [
+    {
+      "id": "A-baseline",
+      "description": "The task as asked; the agent finds its own way around the repository"
+    },
+    {
+      "id": "B-scoped",
+      "description": "Only the listed files, a concise answer, fewer turns",
+      "maxTurns": 6,
+      "listContext": true,
+      "appendSystemPrompt": "Read only the files named under Context, and only what the task needs. Answer as briefly as the task allows: no preamble, no restating the question, no closing summary."
+    },
+    {
+      "id": "C-iterative",
+      "description": "A short plan first, then the answer, in the same session",
+      "listContext": true,
+      "steps": [
+        "Before answering, list the files you will read and your plan in at most five bullets. Do not answer yet.",
+        "Now carry out the plan and give the answer, within the limits the task sets."
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "COMP-PS-001",
+      "category": "comprehension",
+      "title": "Explain the PowerShell test orchestration flow",
+      "prompt": "Explain the end-to-end flow of `test` in this repository: the entry script, how the project and runners are detected, how Godot is invoked for each runner, and what files a run produces. Under 220 words.",
+      "expected": { "mustInclude": ["godot-ci.ps1", "Runners", "junit"], "maxWords": 240 },
+      "context": ["ci/godot/godot-ci.ps1", "ci/godot/lib/Detect.ps1", "ci/godot/lib/Runners.ps1", "ci/godot/lib/Report.ps1", "docs/json.md"]
+    },
+    {
+      "id": "COMP-GD-001",
+      "category": "comprehension",
+      "title": "Map the GDScript test structure",
+      "prompt": "Summarize how the GDScript example's tests are organized, named and discovered, and how the kit runs them. Under 180 words.",
+      "expected": { "mustInclude": ["GUT", "test_"], "maxWords": 200 },
+      "context": ["examples/gdscript/test", "examples/gdscript/project.godot", "ci/godot/lib/Runners.ps1", "ci/godot/lib/Detect.ps1"]
+    },
+    {
+      "id": "CODE-PS-001",
+      "category": "code_change",
+      "title": "Write a reusable test runner function in the repository's style",
+      "prompt": "Write a minimal PowerShell function that runs one test runner and returns a structured result, following this repository's conventions in AGENTS.md (strict mode, how failures are reported, no Write-Output from helpers). Return code only.",
+      "expected": { "mustInclude": ["function", "param(", "Stop-GodotCi"], "forbid": ["Write-Output"], "maxWords": 320 },
+      "context": ["AGENTS.md", "ci/godot/lib/Common.ps1", "ci/godot/lib/Runners.ps1"]
+    },
+    {
+      "id": "CODE-PS-002",
+      "category": "code_change",
+      "title": "Strengthen parameter validation",
+      "prompt": "Propose a concise diff that strengthens validation of one parameter of ci/godot/godot-ci.ps1 that is not validated today (for example with ValidateRange or ValidatePattern). Return only the diff.",
+      "expected": { "mustInclude": ["param", "Validate"], "maxWords": 260 },
+      "context": ["ci/godot/godot-ci.ps1"]
+    },
+    {
+      "id": "DEBUG-PS-001",
+      "category": "debugging",
+      "title": "Diagnose hanging test runs",
+      "prompt": "List the five most likely causes of a hanging test run in this repository's PowerShell orchestration, each with one concrete mitigation, naming the setting or code that already guards against it where one exists.",
+      "expected": { "mustInclude": ["mitigation", "GODOT_CI_TIMEOUT"], "maxWords": 260 },
+      "context": ["ci/godot/lib/Common.ps1", "ci/godot/lib/Runners.ps1", "AGENTS.md", ".github/workflows/self-test.yml"]
+    },
+    {
+      "id": "DEBUG-GD-001",
+      "category": "debugging",
+      "title": "Diagnose flaky GDScript tests",
+      "prompt": "Give five likely causes of flaky GDScript tests when this kit runs them in CI, each with one mitigation tailored to this repository. Under 240 words.",
+      "expected": { "mustInclude": ["mitigation", "CI", "process_frame"], "maxWords": 260 },
+      "context": ["AGENTS.md", "examples/gdscript/test", "ci/godot/tools/flows.gd", ".github/workflows/self-test.yml"]
+    },
+    {
+      "id": "CI-PS-001",
+      "category": "automation",
+      "title": "Reduce token use in AI-assisted CI",
+      "prompt": "Recommend five concrete changes that would reduce token use and time when agents work in this repository, covering scoping context, prompt templates, caching and output size. Bullets only.",
+      "expected": { "mustInclude": ["scope", "cache"], "maxWords": 220 },
+      "context": ["docs/research.md", "AGENTS.md", ".claude-plugin/plugin.json", "agents/godot-verifier.md"]
+    },
+    {
+      "id": "CI-PS-002",
+      "category": "automation",
+      "title": "Propose a profile routing policy",
+      "prompt": "Define a lightweight policy for when an agent working in this repository should use profile A-baseline, B-scoped or C-iterative (described in benchmark/token-benchmark.json), based on task type and risk, as if/then rules. Be concise.",
+      "expected": { "mustInclude": ["A-baseline", "B-scoped", "C-iterative"], "maxWords": 240 },
+      "context": ["benchmark/token-benchmark.json", "docs/research.md"]
+    }
+  ]
+}
