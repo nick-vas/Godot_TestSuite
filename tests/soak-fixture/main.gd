@@ -1,0 +1,93 @@
+# A minimal networked game for `godot-ci.ps1 soak`: one headless server, N headless clients over ENet on localhost.
+# The kit starts each process with --soak-role=server|client, --soak-port and --soak-id; the game prints
+# "[soak] ready", "[soak] metric <name> <value>" and, when it finds something wrong, "[soak] fail <reason>".
+# --leak makes the server keep memory it never frees; --crash-after=<s> makes it quit early: the self-test's broken cases.
+extends Node
+
+var _role := ""
+var _port := 0
+var _id := 0
+var _leak := false
+var _crash_after := -1.0
+var _elapsed := 0.0
+var _positions := {}          # server: peer id -> Vector2
+var _hoard := []              # server, with --leak
+var _sequence := 0
+var _last_metric := 0.0
+var _rtt_ms := -1.0
+var _states_received := 0
+
+
+func _ready() -> void:
+	for arg in OS.get_cmdline_user_args():
+		var value := arg.get_slice("=", 1)
+		match arg.get_slice("=", 0):
+			"--soak-role": _role = value
+			"--soak-port": _port = int(value)
+			"--soak-id": _id = int(value)
+			"--leak": _leak = true
+			"--crash-after": _crash_after = float(value)
+	var peer := ENetMultiplayerPeer.new()
+	if _role == "server":
+		var err := peer.create_server(_port, 64)
+		if err != OK:
+			print("[soak] fail server could not listen on %d: %s" % [_port, error_string(err)])
+			return
+		multiplayer.multiplayer_peer = peer
+		multiplayer.peer_connected.connect(func(id): _positions[id] = Vector2.ZERO)
+		multiplayer.peer_disconnected.connect(func(id): _positions.erase(id))
+		print("[soak] ready")
+	elif _role == "client":
+		peer.create_client("127.0.0.1", _port)
+		multiplayer.multiplayer_peer = peer
+		multiplayer.connected_to_server.connect(func(): print("[soak] ready"))
+		multiplayer.connection_failed.connect(func(): print("[soak] fail could not connect"))
+		multiplayer.server_disconnected.connect(func(): print("[soak] fail the server went away"))
+
+
+func _physics_process(delta: float) -> void:
+	_elapsed += delta
+	if _role == "server":
+		if _crash_after >= 0 and _elapsed > _crash_after:
+			get_tree().quit(3)
+		if _leak:
+			_hoard.append(PackedFloat32Array(range(4096)))   # 16 KB a tick, never freed
+		var state := PackedVector2Array()
+		for id in _positions:
+			state.append(_positions[id])
+		if Engine.get_physics_frames() % 3 == 0:
+			receive_state.rpc(state)
+		if _elapsed - _last_metric >= 5.0:
+			_last_metric = _elapsed
+			print("[soak] metric clients %d" % _positions.size())
+	elif _role == "client" and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
+		_sequence += 1
+		send_input.rpc_id(1, _sequence, Vector2(sin(_elapsed + _id), cos(_elapsed)))
+		if _sequence % 30 == 0:
+			ping.rpc_id(1, Time.get_ticks_usec())
+		if _elapsed - _last_metric >= 5.0:
+			_last_metric = _elapsed
+			print("[soak] metric rtt_ms %.1f" % _rtt_ms)
+			print("[soak] metric states %d" % _states_received)
+
+
+@rpc("any_peer", "unreliable_ordered")
+func send_input(_seq: int, direction: Vector2) -> void:
+	var from := multiplayer.get_remote_sender_id()
+	if _positions.has(from):
+		_positions[from] += direction.limit_length(1.0) * 4.0
+
+
+@rpc("authority", "unreliable_ordered")
+func receive_state(_state_positions: PackedVector2Array) -> void:
+	_states_received += 1
+
+
+@rpc("any_peer", "reliable")
+func ping(sent_usec: int) -> void:
+	pong.rpc_id(multiplayer.get_remote_sender_id(), sent_usec)
+
+
+@rpc("authority", "reliable")
+func pong(sent_usec: int) -> void:
+	_rtt_ms = (Time.get_ticks_usec() - sent_usec) / 1000.0
