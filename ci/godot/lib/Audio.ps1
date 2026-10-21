@@ -83,6 +83,24 @@ function Measure-Loudness([string]$File) {
     }
 }
 
+# Sample rate (Hz), channels, bit depth (0 when the codec has none, as in Ogg Vorbis and MP3) and length (s) of a file's first
+# audio stream, with ffprobe. Returns $null when ffprobe cannot read it.
+function Get-AudioFormat([string]$File) {
+    $output = @(& ffprobe -v error -select_streams a:0 -show_entries 'stream=sample_rate,channels,bits_per_sample,bits_per_raw_sample:format=duration' -of json $File 2>$null)
+    if ($LASTEXITCODE -ne 0) { return $null }
+    $data = ($output -join "`n") | ConvertFrom-Json -AsHashtable
+    $streams = @($data['streams'])
+    if ($streams.Count -eq 0 -or -not $streams[0]) { return $null }
+    $stream = $streams[0]
+    $bits = 0
+    foreach ($name in 'bits_per_sample', 'bits_per_raw_sample') {
+        $value = 0
+        if ($stream.ContainsKey($name) -and [int]::TryParse("$($stream[$name])", [ref]$value) -and $value -gt $bits) { $bits = $value }
+    }
+    $seconds = if ($data['format'] -and $data['format'].ContainsKey('duration')) { ConvertTo-AudioNumber "$($data['format']['duration'])" } else { $null }
+    return [ordered]@{ sampleRate = [int]$stream['sample_rate']; channels = [int]$stream['channels']; bits = $bits; seconds = $seconds }
+}
+
 function Get-Median([double[]]$Values) {
     $sorted = @($Values | Sort-Object)
     $middle = [int][math]::Floor($sorted.Count / 2)

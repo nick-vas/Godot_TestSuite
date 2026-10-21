@@ -152,7 +152,8 @@ function Resolve-FailureDetail($Failure, [string[]]$LogLines) {
     return [pscustomobject]@{ Name = $Failure.Name; Message = $message; File = $file; Line = $line; Details = $detail }
 }
 
-# JUnit for runners without their own report. Each case: @{ Name = ...; Failure = '' or the reason }.
+# JUnit for runners without their own report. Each case: @{ Name = ...; Failure = '' or the reason }, and optionally
+# Skipped = the reason a case could not run.
 function Write-JUnitCases([string]$Path, [string]$Suite, [object[]]$Cases) {
     $e = { param($t) [System.Security.SecurityElement]::Escape([string]$t) }
     $failed = @($Cases | Where-Object { $_.Failure }).Count
@@ -163,6 +164,8 @@ function Write-JUnitCases([string]$Path, [string]$Suite, [object[]]$Cases) {
         $xml.Add("  <testcase classname=""$(& $e $Suite)"" name=""$(& $e $case.Name)"">")
         if ($case.Failure) {
             $xml.Add("    <failure message=""$(& $e ($case.Failure -split "`n")[0])"">$(& $e $case.Failure)</failure>")
+        } elseif ($case -is [System.Collections.IDictionary] -and $case['Skipped']) {
+            $xml.Add("    <skipped message=""$(& $e $case['Skipped'])"" />")
         }
         $xml.Add('  </testcase>')
     }

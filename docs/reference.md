@@ -158,10 +158,15 @@ rule fails when an event went unanswered, or never happened (the bot did not rea
 to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).
 
 **The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
-`keys` or `key`) or `.po` files. It runs without Godot and has three cases: `duplicate keys` (the same key and context
-twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs, counted for
-15 common languages; others are not counted) and `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
-and `TranslationServer.Translate` calls that no table has; test folders are skipped). `tests/l10n-fixture` has one of each.
+`keys` or `key`), `.po` files or translation remaps. It runs without Godot and has six cases: `duplicate keys` (the same key
+and context twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs,
+counted for 15 common languages; others are not counted), `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
+and `TranslationServer.Translate` calls that no table has; test folders are skipped), `too long` (a CSV cell over the
+row's `_max` characters or `_lines` lines; `_max_<locale>` overrides `_max`), `translation remaps` (a remap target that does
+not exist or names no locale) and `localized audio` (a remapped sound whose sample rate, channels or bit depth differ from
+the source's, whose length is outside 0.5 to 2 times the source's, or whose loudness is more than 2 LU away; skipped with a
+warning without ffmpeg; `l10n.json` sets `voiceDurationMin`, `voiceDurationMax` and `voiceLoudnessLu`).
+`tests/l10n-fixture` has one of each; see [localization.md](localization.md).
 
 **`textsize.json`** (optional, in the Godot project folder) turns on the `textsize` runner, which measures every visible text
 on the listed scenes (the main scene by default) at each resolution (1280x800 by default, the Steam Deck), headless: the stretch

@@ -21,6 +21,10 @@ it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/
 - A key built at run time (`Tr($"LEVEL_{i}")`) cannot be checked: list the keys it can produce in a comment table, or
   look them up from data that names them.
 - Text drawn with `DrawString` or put in a `RichTextLabel` by code is not auto-translated: pass it through `Tr`.
+- Variants of one line (player gender, age) are contexts of the same key, `Tr("WELCOME", "female")`, not new keys: each
+  language fills every variant, repeating the text where it needs no difference.
+- In debug builds, print the key when a line of dialogue or a subtitle is shown (`GD.Print($"[l10n] {key}")`), so a
+  tester's log or recording names the row to fix.
 
 ## 2. Tables: CSV or gettext
 
@@ -42,15 +46,43 @@ it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/
 
 ## 3. The gate: tables complete
 
-The `l10n` runner (picked automatically when a project has translation CSVs or `.po` files) fails on duplicate keys
-(same key and context twice), untranslated entries (an empty cell, a fuzzy or empty PO entry, fewer plural forms than the
-language needs) and keys in `tr`/`Tr`/`TrN`/`atr` calls that no table has:
+The `l10n` runner (picked automatically when a project has translation CSVs, `.po` files or translation remaps) fails on
+duplicate keys (same key and context twice), untranslated entries (an empty cell, a fuzzy or empty PO entry, fewer plural
+forms than the language needs), keys in `tr`/`Tr`/`TrN`/`atr` calls that no table has, text over its length limit, and
+the remaps and voice of section 4:
 
 ```powershell
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Runners l10n -Json -Quiet
 ```
 
-## 4. The gate: screens fit and draw
+**Length limits**, set before translation starts from the box each text must fit, live in CSV columns Godot's import skips
+(any header starting with `_`):
+
+| Column | Limit |
+|---|---|
+| `_max` | characters, for every language |
+| `_max_<locale>` (`_max_ja`, `_max_pt_BR`) | characters for that language, instead of `_max`; `_max_pt` covers `pt_BR` too |
+| `_lines` | lines (`\n` in a cell is a line break) |
+
+The `too long` case lists key, language, length and limit. Characters are what a reader counts: an accented letter typed
+as two code points, or an emoji sequence, is one; line breaks are not counted. PO files have no limits.
+
+## 4. Voice and pictures per language: translation remaps
+
+- Project Settings > Localization > Remaps (`internationalization/locale/translation_remaps`): a source resource
+  (`res://voice/en/l01.ogg`) and one file per locale, each saved as `path:locale`. Code and scenes use the source path;
+  Godot loads the current locale's file instead, and reloads it when the locale changes.
+- Same file name, one folder per locale (`voice/fr/l01.ogg`): each pair is plain to read and to check.
+- A target that does not exist only warns at run time and plays the source; a target without `:locale` is never used. The
+  `translation remaps` case fails on both.
+- The `localized audio` case compares each sound with its source, with ffmpeg (skipped with a warning without it): the same
+  sample rate, channels and bit depth, 0.5 to 2 times the length, integrated loudness within 2 LU. A line is rarely the
+  source's length; for lip-synced lines, narrow the range in `l10n.json` (`voiceDurationMin`, `voiceDurationMax`). Fix a
+  loud or quiet language at mastering, the same target for all, not with a bus.
+- Godot 4.7.2 imports only plain PCM or float WAVs: a 24-bit WAV saved as WAVE_FORMAT_EXTENSIBLE (ffmpeg's default for
+  24-bit) fails to import with "not PCM".
+
+## 5. The gate: screens fit and draw
 
 ```powershell
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Scene res://ui/Menu.tscn -Resolution 1920x1080 -Locale de,ar,ja -Pseudo -Json -Quiet
@@ -69,7 +101,7 @@ off. After each picture the visible labels and buttons are checked, and any prob
 `missing glyphs` is the check a picture cannot make: the default font has system fallback on, so this machine draws CJK
 and Arabic from its own fonts and a player's may not. Look at the pictures too (`look`).
 
-## 5. Fonts and scripts
+## 6. Fonts and scripts
 
 - Godot's default font (Open Sans SemiBold) covers Latin, Cyrillic, Greek and Hebrew; it has no Chinese, Japanese,
   Korean, Arabic or emoji.
@@ -79,7 +111,7 @@ and Arabic from its own fonts and a player's may not. Look at the pictures too (
 - Thai, CJK, Khmer and other scripts break lines with dictionary data: export with
   `internationalization/locale/include_text_server_data = true` (about 4 MB).
 
-## 6. Right-to-left
+## 7. Right-to-left
 
 - `TranslationServer.SetLocale("ar")` mirrors Control layouts that inherit their direction: containers reverse,
   anchors and left/right alignment swap. Sprites and the game world do not mirror.
@@ -88,23 +120,25 @@ and Arabic from its own fonts and a player's may not. Look at the pictures too (
 - Arrows, progress bars and "next" icons that mean a direction need a mirrored variant; numbers and clocks do not flip.
 - Arabic letters join only with the Advanced text server (the default; `internationalization/rendering/text_driver`).
 
-## 7. Language selection
+## 8. Language selection
 
 - Start in the system language when it is shipped (`TranslationServer.SetLocale(OS.GetLocaleLanguage())`), let the
   player change it in settings, and save that choice with the settings, not in the save game.
 - Each language's name in its own language in the menu: `TranslationServer.GetLocaleName` gives English names.
 - `--language fr` on the command line starts the game in that locale: one CI run per language.
 
-## 8. Pseudolocalization in the game
+## 9. Pseudolocalization in the game
 
 `TranslationServer.PseudolocalizationEnabled = true` at run time (sub-options: `ProjectSettings.SetSetting` then
 `TranslationServer.ReloadPseudolocalization()`). It protects `%s`/`%d` but accents `{name}`, so a string formatted with
 named placeholders shows `{šćôŕé}` under pseudo: use `{0}` or `%d` in strings, or ignore that one artefact.
 Plural (`TrN`) strings are not pseudolocalized.
 
-## 9. Prove it
+## 10. Prove it
 
-- [ ] the `l10n` runner passes: no duplicate, untranslated or unknown keys
+- [ ] the `l10n` runner passes: no duplicate, untranslated, unknown or too long keys
+- [ ] every text in a fixed box has `_max` (and `_lines`) in its row
+- [ ] every remap target exists, and `localized audio` passed rather than skipped (ffmpeg installed in CI)
 - [ ] `shot -Pseudo` shows every visible string bracketed and none cut off
 - [ ] `shot -Locale` with the longest language (often German), an RTL one and a CJK one reports no `shot-text`
 - [ ] a test sets each shipped locale and checks `TranslationServer.Translate` returns no raw key for the menu's keys
