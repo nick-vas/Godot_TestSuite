@@ -31,3 +31,5 @@ Assert-True (@($integer.Failures | Where-Object { $_.message -match 'scale_mode 
 
 if ($failures.Count) { throw "$($failures.Count) textsize check(s) failed" }
 Write-Host 'textsize self-test passed'
+# The last kit run failed on purpose; GitHub's pwsh wrapper would exit with its code.
+exit 0
