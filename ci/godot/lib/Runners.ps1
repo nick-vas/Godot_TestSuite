@@ -171,6 +171,9 @@ function Invoke-TestRunner {
         'data' {
             $code = Invoke-DataRunner $project $ResultsDir
         }
+        'textsize' {
+            $code = Invoke-TextSizeRunner $Info $ResultsDir
+        }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'
             Start-LogGroup "Smoke run ($Frames frames)"

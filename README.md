@@ -119,6 +119,8 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-input` | rebinding, keyboard and controller at once, button prompts that follow the device, Steam Input, accessibility |
 | `godot-game-ai` | enemies and companions that decide and move: state machines, behaviour trees, utility, GOAP, steering, navigation that is ready |
 | `godot-multiplayer` | online play: prediction, reconciliation, interpolation, lag compensation, rollback, dedicated servers, soak tests |
+| `godot-steam` | Steam: choosing a C# binding that works, start-up without Steam, achievements, stats, leaderboards, rich presence, Cloud conflicts, DLC, demos, servers, branches |
+| `godot-steam-deck` | Steam Deck Verified: input, text size measured at 1280x800, defaults per device, text entry, sleep and resume |
 | `godot-telemetry` | crash reports and analytics with consent and without personal data: Sentry, catching C# errors, export and erasure |
 | `godot-data` | items, enemies and balance as data: the traps of custom Resources, JSON and CSV that survive export, the `data` runner |
 | `godot-determinism` | replays, rollback, lockstep and replay-checked scores: what .NET and Godot's physics really repeat, fixed-point cost |

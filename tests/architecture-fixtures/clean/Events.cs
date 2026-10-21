@@ -12,3 +12,8 @@ public static class InvariantNumbers
 {
     public static float Read(string cell) => float.Parse(cell, System.Globalization.CultureInfo.InvariantCulture);
 }
+
+public static class SteamSetup
+{
+    public static void UseTestApp() => Godot.OS.SetEnvironment("SteamAppId", "480");
+}

@@ -96,6 +96,17 @@ public sealed class SaveStore
         return meta;
     }
 
+    /// <summary>
+    /// Ends a cloud conflict: saves the copy the player chose (this device's or the other's) as a descendant of both, so the
+    /// next sync goes one way on each device instead of asking again: this device uploads, the other downloads.
+    /// </summary>
+    public SaveMeta SaveResolved(JsonObject chosen, double playTimeSeconds, SaveMeta other, DateTime? nowUtc = null)
+    {
+        foreach (string hash in other.History) if (!_history.Contains(hash)) _history.Add(hash);
+        _generation = Math.Max(_generation, other.Generation);
+        return Save(chosen, playTimeSeconds, nowUtc);
+    }
+
     /// <summary>Antivirus and cloud-sync clients hold files open for a moment on Windows; Godot itself retries for this.</summary>
     static void Retry(Action action)
     {
