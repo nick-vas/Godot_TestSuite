@@ -48,5 +48,9 @@ func _check(path: String) -> String:
 		node.free()
 	elif resource is Shader:
 		# Loading does not compile a shader headless; asking for its uniforms does, and prints SHADER ERROR if it is broken.
-		(resource as Shader).get_shader_uniform_list()
+		# A fresh Shader with the same code compiles here, between this file's markers, even if Godot already compiled (and
+		# reported) the loaded one at startup.
+		var fresh := Shader.new()
+		fresh.code = (resource as Shader).code + "\n// validate\n"  # different text, so no compile cache can skip it
+		fresh.get_shader_uniform_list()
 	return ""
