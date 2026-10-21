@@ -30,6 +30,12 @@ fixed, scored 0.67 with the plugin and 1.00 without, at $0.06 and $0.08. These r
 nothing yet about the kit. Real numbers need a machine where the sandbox can write: the `Evals` workflow (a GitHub runner),
 or WSL2 or Linux as a normal user.
 
+### Token benchmark
+
+`benchmark/` measures what a session costs per task and way of working ([token-benchmark.md](token-benchmark.md)). The
+first run (one repetition, Haiku) showed a session is mostly cache reads: 168,562 tokens for one explanation question,
+of which input and output were 1,947. Comparisons need the medians of repeated runs.
+
 ## Published evidence
 
 | Finding | Source | What the kit does with it |

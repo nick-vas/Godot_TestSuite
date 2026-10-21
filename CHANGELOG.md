@@ -1,7 +1,10 @@
 # Changelog
 
 ## Unreleased
-- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
+- Token benchmark (`benchmark/`, `docs/token-benchmark.md`): tasks from this repository run as read-only `claude -p`
+  sessions under three profiles (baseline, scoped, plan then answer), repeated, with tokens counted including cache
+  reads and writes, Claude Code's own cost, turns, time and answer checks; medians and 90th percentiles per profile and
+  task. A manual workflow (`Token benchmark`) and a self-test against a stand-in CLI.- Data, determinism, modding, anti-cheat, console certification, debug tools, profiling and release pipelines:
   - Skills: `godot-data`, `godot-determinism`, `godot-modding`, `godot-anti-cheat`, `godot-console-cert` and
     `godot-debug-tools`; `godot-performance` gains C# profiling (`dotnet-trace`, `dotnet-gcdump`, starting the counters
     `dotnet-counters` needs) and measured GC settings, `godot-export-release` versions, signing and store uploads.
