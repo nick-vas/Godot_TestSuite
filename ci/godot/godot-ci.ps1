@@ -279,12 +279,21 @@ function Invoke-Tests {
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
+    # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
+    $scope = Get-TestScope $info.Runners $Filter
+    $failing = Get-FailureIds $runs
+    $delta = Get-FailureDelta $failing.Ids $failing.Truncated $scope @(Read-RunHistory $info.ProjectDir)
+    Set-TestRunHistory $scope $failing @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
+    $deltaLine = Format-FailureDelta $delta
+    if ($deltaLine) { Write-CiLog $deltaLine }
     Set-JsonField resultsDir $resultsDir
     Set-JsonField coverage ([ordered]@{ linePercent = $percent; minimum = $MinCoverage })
-    Set-JsonField runnerResults @($runs | ForEach-Object {
-        [ordered]@{ runner = $_.Runner; ok = $_.Ok; total = $_.Total; passed = $_.Passed; failed = $_.Failed
-            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line; details = $_.Details } })
-            warnings = @($_.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } }) } })
+    Set-JsonField failureDelta $delta
+    Set-JsonField runnerResults @(foreach ($result in $runs) {
+        [ordered]@{ runner = $result.Runner; ok = $result.Ok; total = $result.Total; passed = $result.Passed; failed = $result.Failed
+            skipped = $result.Skipped; failures = @(foreach ($f in $result.Failures) {
+                [ordered]@{ name = $f.Name; message = $f.Message; file = $f.File; line = $f.Line; details = $f.Details; new = (Get-FailureNewFlag $delta $result.Runner $f.Name) } })
+            warnings = @($result.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } }) } })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }

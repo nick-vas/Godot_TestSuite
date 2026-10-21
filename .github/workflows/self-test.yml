@@ -48,6 +48,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: Test failures are compared with the last run of the same scope (new, still failing, fixed)
+        shell: pwsh
+        run: ./tests/Test-FailureDelta.ps1
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
@@ -223,6 +226,8 @@ jobs:
           if ($errBytes -gt 3000) { throw "-Quiet still wrote $errBytes bytes to stderr" }
           $f = $d.runnerResults[0].failures[0]
           if ($d.ok -or $f.file -ne 'test/test_score.gd' -or $f.line -ne 7 -or $f.message -notmatch 'expected to equal \[25\]') { throw "failure detail: $($d | ConvertTo-Json -Depth 6)" }
+          # The first run has nothing to compare with, so no failure claims to be new.
+          if ($null -ne $d.failureDelta.comparedWith -or $null -ne $f.new) { throw "first run's failureDelta: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (-not (Test-Path $d.log) -or (Get-Item $d.log).Length -lt 2000) { throw "the full log should be in $($d.log)" }
           $history = @(Get-Content (Join-Path $game '.godot/godot-ci-history.jsonl') | ConvertFrom-Json)
           if ($history[-1].ok -or $history[-1].code -ne 'tests-failed') { throw "history: $($history | ConvertTo-Json)" }
@@ -234,6 +239,7 @@ jobs:
           (Get-Content $test -Raw).Replace('25)', '20)') | Set-Content $test -NoNewline
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$null | ConvertFrom-Json
           if (-not $d.ok) { throw "the fixed test should pass: $($d | ConvertTo-Json -Depth 6)" }
+          if (@($d.failureDelta.fixed | ForEach-Object name) -notcontains $f.name -or @($d.failureDelta.new).Count -ne 0) { throw "the fixed test should be in failureDelta.fixed: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (& $hook 'false') { throw 'the Stop hook should allow stopping after a passing run' }
           # init -Agents copies the verifier with this machine's kit path; init -Plugin enables the plugin instead of copying.
           ./ci/godot/godot-ci.ps1 init -Agents -Project $game | Out-Null

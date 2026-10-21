@@ -49,16 +49,27 @@ function Write-RunLog([string]$Text, [switch]$NoNewline) {
 }
 
 # One line per test, build, export, bench or shot run, kept in the project's .godot folder (never committed, survives a
-# wiped results folder). The Stop hook reads it to tell whether code changed since the last passing test run, and
-# /retro reads recurring error codes from it.
+# wiped results folder). The Stop hook reads it to tell whether code changed since the last passing test run,
+# /retro reads recurring error codes from it, and each test run compares its failures with the previous one's.
 $script:HistoryCommand = $null
 $script:HistoryProject = $null
 $script:HistoryStart = $null
+$script:HistoryTestRun = $null
 
 function Start-RunHistory([string]$Command, [string]$ProjectDir) {
     $script:HistoryCommand = $Command
     $script:HistoryProject = $ProjectDir
     $script:HistoryStart = Get-Date
+    $script:HistoryTestRun = $null
+}
+
+# A test run's part of its history line: the runners that failed, the scope (runners and -Filter) and the failing test
+# ids (Get-FailureIds), which the next run with the same scope compares itself with (Get-FailureDelta).
+function Set-TestRunHistory($Scope, $Failing, [string[]]$FailedRunners) {
+    $script:HistoryTestRun = [ordered]@{
+        failedRunners = @($FailedRunners | Where-Object { $_ }); scope = $Scope
+        failures = @($Failing.Ids); failuresTruncated = [bool]$Failing.Truncated
+    }
 }
 
 function Add-RunHistory([bool]$Ok, [string]$Code) {
@@ -68,17 +79,20 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
         time = (Get-Date).ToUniversalTime().ToString('o'); command = $script:HistoryCommand; ok = $Ok; code = $Code
         seconds = [math]::Round(((Get-Date) - $script:HistoryStart).TotalSeconds, 1)
     }
-    if ($script:JsonDoc.Contains('runnerResults')) {
+    if ($script:HistoryTestRun) {
+        foreach ($key in $script:HistoryTestRun.Keys) { $entry[$key] = $script:HistoryTestRun[$key] }
+    } elseif ($script:JsonDoc.Contains('runnerResults')) {
         $entry['failedRunners'] = @($script:JsonDoc['runnerResults'] | Where-Object { -not $_.ok } | ForEach-Object { $_.runner })
     }
     try {
         New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
-        Add-Content -LiteralPath $file -Value ($entry | ConvertTo-Json -Compress) -Encoding utf8
+        Add-Content -LiteralPath $file -Value ($entry | ConvertTo-Json -Compress -Depth 4) -Encoding utf8
     } catch {
         # History is a convenience; a read-only project must not fail the run.
         Write-RunLog "[godot-ci] Could not record the run in ${file}: $_"
     }
     $script:HistoryCommand = $null
+    $script:HistoryTestRun = $null
 }
 
 # -Json: stdout carries exactly one JSON document (schema "godot-ci/1"); every log line goes to stderr.
