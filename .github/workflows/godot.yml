@@ -77,6 +77,70 @@ on:
       presets:
         description: JSON array of the presets that were exported
         value: ${{ jobs.test.outputs.presets }}
+  # The same inputs by hand (Actions > Godot > Run workflow), so the workflow has runs of its own: with no inputs it
+  # tests the shallowest project here, examples/gdscript, as the self-test's zero-config job does.
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Folder with project.godot (default - detected)
+        type: string
+        default: ""
+      godot-version:
+        description: "e.g. 4.7.2 or 4.8-rc1 (default - from Godot.NET.Sdk in the csproj, else 4.7.2)"
+        type: string
+        default: ""
+      runners:
+        description: "Comma list of validate, dotnet, gdunit4, godottest, gut, smoke; none to only build (default - detected)"
+        type: string
+        default: ""
+      filter:
+        description: Test filter passed to each runner
+        type: string
+        default: ""
+      retry:
+        description: Run a failed test runner again up to this many times (0-5); tests that pass only on a retry are listed as flaky, never hidden
+        type: number
+        default: 0
+      coverage:
+        description: Collect coverage and add it to the job summary
+        type: boolean
+        default: false
+      min-coverage:
+        description: Fail when line coverage is below this percentage (0 = off; turns coverage on)
+        type: number
+        default: 0
+      pr-comment:
+        description: On pull requests, post one comment with the results (needs pull-requests - write)
+        type: boolean
+        default: true
+      exports:
+        description: 'Presets to export after tests pass: "all", a comma list of preset names, or empty for none'
+        type: string
+        default: ""
+      run-exports:
+        description: Launch each exported build on a runner of its own OS (Windows builds on windows-latest) and fail on errors
+        type: boolean
+        default: false
+      release:
+        description: Zip the exports and publish a GitHub Release when the run is for a tag (dry run otherwise; needs contents - write)
+        type: boolean
+        default: false
+      runs-on:
+        description: Runner label. Linux is cheapest; windows-latest also works
+        type: string
+        default: ubuntu-latest
+      lfs:
+        description: Check out Git LFS files
+        type: boolean
+        default: false
+      submodules:
+        description: "Check out submodules: false, true or recursive"
+        type: string
+        default: "false"
+      retention-days:
+        description: Days to keep test results and exports
+        type: number
+        default: 14
 
 jobs:
   test:
