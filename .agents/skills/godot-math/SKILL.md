@@ -7,7 +7,8 @@ description: Use when game code works with positions, directions, angles, distan
 
 Adapted from Denny Burzynski, *Mathematics for Game Developers* (LibreTexts, CC BY 4.0,
 [math.libretexts.org](https://math.libretexts.org/@go/page/125894)): its chapters on vectors, matrices and trigonometry,
-mapped to Godot's API and conventions. The book's worked answers were rechecked in Godot 4.7.2 and match.
+mapped to Godot's API and conventions. The book's worked examples were rechecked in Godot 4.7.2 and match; its
+exercise answer key has errors (see "Test it").
 
 ## First: Godot's conventions differ from the textbook's
 
@@ -17,6 +18,7 @@ mapped to Godot's API and conventions. The book's worked answers were rechecked 
 | Positive angle in 2D | counterclockwise | **clockwise on screen**: `Vector2.Right.Rotated(Mathf.Pi / 2)` is (0, 1), pointing down |
 | Units | degrees | **radians**; convert with `Mathf.DegToRad` / `Mathf.RadToDeg` |
 | 3D | right-handed | right-handed, y up, **forward is -Z** (`Vector3.Forward` is (0, 0, -1)) |
+| Positive 3D rotation | counterclockwise, "looking at an axis straight on toward the origin" | the same, so a positive turn about `Vector3.Up` turns a -Z-facing object to its **left**: `Vector3.Forward.Rotated(Vector3.Up, Mathf.Pi / 2)` and `RotateY(Mathf.Pi / 2)` give (-1, 0, 0); "turn right" is a negative angle |
 | Rotation matrix | the 2 x 2 rows [cos -sin; sin cos] | `Transform2D` and `Basis` store **columns**: `basis.X`, `.Y`, `.Z` are the rotated axes |
 
 So a direction the book writes as (cos 30, sin 30) (up and to the right) points down and to the right on a Godot screen;
@@ -36,6 +38,7 @@ mirror the y component, or the angle, when porting a y-up formula.
 | Projection | `u.Project(v)` | the part of a move along a wall; the book's (4, 3) onto (2, 8) = (16/17, 64/17) |
 | Cross product (3D) | `a.Cross(b)` | a surface normal from two edges; `Vector3.Right.Cross(Vector3.Up)` is +Z |
 | Cross product (2D) | `a.Cross(b)` returns a number | its sign says which side: positive means b is clockwise from a on screen |
+| Cross product as area | `a.Cross(b).Length()` (3D), `Mathf.Abs(a.Cross(b))` (2D) | the parallelogram on a and b, half for the triangle ("produces the area of a parallelogram"; the book's ⟨1, −2, −4⟩ and ⟨4, 3, −5⟩: 26.94 and 13.47); near 0 means a degenerate triangle |
 
 **The book's ball and wall (2.6).** The ball's distance from a wall is the length of the part of its position *not* along the
 wall: `(p - p.Project(wallDir)).Length()`. For movement, Godot does the decomposition for you:
@@ -160,5 +163,9 @@ public override void _PhysicsProcess(double delta)
 
 ## Test it
 
-Math is plain data: test it in a C# unit test (`godot-test-loop`) with the book's worked answers as expected values, comparing
-floats with a tolerance (`Mathf.IsEqualApprox`, or the framework's approximate assertion), never with `==`.
+Math is plain data: test it in a C# unit test (`godot-test-loop`) with the book's worked examples as expected values, comparing
+floats with a tolerance (`Mathf.IsEqualApprox`, or the framework's approximate assertion), never with `==`. Take expected
+values from the worked examples or compute them, never from the exercise key, which has errors (checked in Godot 4.7.2):
+Ex. 5.2.3 (r = 25 at 75 degrees) answers "(6.4705, 4.8396)", but y is 24.1481; Ex. 5.1.3 gives sin 45 degrees as
+0.7070107, not 0.7071068; Ex. 5.2.6's point (5.682, 2.0521) lies at 19.9 degrees, not 60. Figure 2.6 labels the
+ball-to-wall distance 4.016 where the text says 4.062.
