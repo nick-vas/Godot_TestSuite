@@ -80,6 +80,102 @@ public static class Steering
         return push == Vector2.Zero ? Vector2.Zero : Desired(a, push, a.MaxSpeed) - a.Velocity;
     }
 
+    /// <summary>Toward the neighbours' average heading (flocking's second rule). Neighbours standing still are ignored.</summary>
+    public static Vector2 Alignment(SteeringAgent a, IEnumerable<Vector2> neighbourVelocities)
+    {
+        Vector2 sum = Vector2.Zero;
+        foreach (var v in neighbourVelocities)
+            if (v.LengthSquared() > 1e-6f) sum += Vector2.Normalize(v);
+        return sum == Vector2.Zero ? Vector2.Zero : Desired(a, sum, a.MaxSpeed) - a.Velocity;
+    }
+
+    /// <summary>Toward the neighbours' centre (flocking's third rule). Weigh it below separation, or the flock collapses.</summary>
+    public static Vector2 Cohesion(SteeringAgent a, IEnumerable<Vector2> neighbours)
+    {
+        Vector2 sum = Vector2.Zero;
+        int count = 0;
+        foreach (var n in neighbours) { sum += n; count++; }
+        return count == 0 ? Vector2.Zero : Seek(a, sum / count);
+    }
+
+    /// <summary>
+    /// Reynolds' path following: predict where the agent will be in <paramref name="predictSeconds"/>, find the nearest
+    /// point on the path to that, and steer only when it would leave the corridor of half-width <paramref name="radius"/>,
+    /// toward a point <paramref name="lookAhead"/> further along. Near the last point it arrives instead, so it stops
+    /// there. The path is a polyline of at least two points, walked in order.
+    /// </summary>
+    public static Vector2 FollowPath(SteeringAgent a, IReadOnlyList<Vector2> path, float radius, float lookAhead = 40, float predictSeconds = 0.25f)
+    {
+        if (path.Count < 2) throw new ArgumentException("A path needs at least two points", nameof(path));
+        Vector2 end = path[^1];
+        if (Vector2.Distance(a.Position, end) < lookAhead * 2) return Arrive(a, end, lookAhead * 2);
+        Vector2 future = a.Position + a.Velocity * predictSeconds;
+        float best = float.MaxValue;
+        int segment = 0;
+        Vector2 normal = path[0];
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            Vector2 p = ClosestOnSegment(future, path[i], path[i + 1]);
+            float d = Vector2.DistanceSquared(future, p);
+            if (d < best) { best = d; segment = i; normal = p; }
+        }
+        bool moving = a.Velocity.LengthSquared() > 1e-6f;
+        if (moving && MathF.Sqrt(best) <= radius) return Vector2.Zero;   // inside the corridor: keep going
+        return Seek(a, AlongPath(path, segment, normal, lookAhead));
+    }
+
+    /// <summary>
+    /// Steers around round obstacles ahead (Reynolds' "obstacle avoidance"): looks along the heading as far as
+    /// <paramref name="lookAheadSeconds"/> of travel, takes the nearest obstacle whose radius plus the agent's
+    /// <paramref name="agentRadius"/> crosses that line, and pushes sideways, away from its centre. Add it to the seek or
+    /// path force with a higher weight; it is zero when nothing is in the way.
+    /// </summary>
+    public static Vector2 AvoidObstacles(SteeringAgent a, IEnumerable<(Vector2 Centre, float Radius)> obstacles, float agentRadius, float lookAheadSeconds = 0.6f)
+    {
+        if (a.Velocity.LengthSquared() < 1e-6f) return Vector2.Zero;
+        Vector2 heading = Vector2.Normalize(a.Velocity);
+        Vector2 ahead = a.Position + a.Velocity * lookAheadSeconds;
+        float nearest = float.MaxValue;
+        Vector2 push = Vector2.Zero;
+        foreach (var (centre, r) in obstacles)
+        {
+            Vector2 closest = ClosestOnSegment(centre, a.Position, ahead);
+            float clearance = r + agentRadius;
+            if (Vector2.DistanceSquared(closest, centre) >= clearance * clearance) continue;
+            float along = Vector2.Dot(centre - a.Position, heading);
+            if (along < -r || along >= nearest) continue;
+            nearest = along;
+            Vector2 side = closest - centre;
+            Vector2 lateral = side - Vector2.Dot(side, heading) * heading;
+            // Dead ahead: pick a side rather than braking into it.
+            push = lateral.LengthSquared() > 1e-6f ? lateral : new Vector2(-heading.Y, heading.X);
+        }
+        return push == Vector2.Zero ? Vector2.Zero : Vector2.Normalize(push) * a.MaxForce;
+    }
+
+    static Vector2 ClosestOnSegment(Vector2 p, Vector2 from, Vector2 to)
+    {
+        Vector2 d = to - from;
+        float length = d.LengthSquared();
+        if (length < 1e-9f) return from;
+        float t = Math.Clamp(Vector2.Dot(p - from, d) / length, 0, 1);
+        return from + d * t;
+    }
+
+    // The point `distance` further along the polyline from `start`, which lies on segment `segment`.
+    static Vector2 AlongPath(IReadOnlyList<Vector2> path, int segment, Vector2 start, float distance)
+    {
+        Vector2 at = start;
+        for (int i = segment; i < path.Count - 1; i++)
+        {
+            float left = Vector2.Distance(at, path[i + 1]);
+            if (distance <= left) return at + Vector2.Normalize(path[i + 1] - at) * distance;
+            distance -= left;
+            at = path[i + 1];
+        }
+        return path[^1];
+    }
+
     static Vector2 Desired(SteeringAgent a, Vector2 direction, float speed) =>
         direction.LengthSquared() < 1e-9f ? Vector2.Zero : Vector2.Normalize(direction) * speed;
 }

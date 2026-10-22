@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
 | `-Coverage` | off | One merged coverage report |
@@ -19,6 +19,7 @@
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
+| `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
 | `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
@@ -27,6 +28,7 @@
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow) |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
+| `-MaxChangedPercent` | | `shot -Baseline`: fail with `shot-changed` when a picture differs by more than this percentage of pixels, or changed size; without it `-Baseline` only reports |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
 | `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
@@ -95,7 +97,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 **`architecture.json`** (optional, in the Godot project folder) configures the `architecture` runner:
 
 ```json
-{ "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6 }
+{ "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6, "simulation": ["sim", "src/Rules"] }
 ```
 
 | Rule | Warns when |
@@ -113,6 +115,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `steam-removed-api` | a call to `IsSteamRunningOnSteamDeck` or `RequestCurrentStats` (either casing): removed or deprecated in Steamworks SDK 1.65, and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 |
 | `steam-env-dotnet` | C# `Environment.SetEnvironmentVariable("SteamAppId"` or `SteamGameId`: on Linux and macOS .NET keeps its own copy of the environment, so the native Steam API never sees it; `OS.SetEnvironment` works |
 | `frame-dependent-lerp` | `_Process`/`_process` lerps a value toward a target and assigns it back to the same value, with a weight that has no `delta` in it: `Position = Position.Lerp(target, 0.1f)`, `x = Mathf.Lerp(x, target, 0.1f)`, `x += (target - x) * 0.1f`, GDScript `lerp`, `lerpf`, `lerp_angle`, `.lerp`, `.slerp`. A fixed fraction per frame converges faster at 144 fps than at 30 and ignores time scale; `1 - Mathf.Exp(-rate * delta)` does not. Not flagged: a weight that names `delta` (or a variable assigned from it), a lerp between two other values, `_physics_process` (a fixed rate), a call split over lines or made from a helper method ([why](gdc/juicing-your-cameras.md)) |
+| `nondeterministic-sim` | Only in the folders `simulation` lists (prefixes or globs, from the project folder): C# `Math`/`MathF`/`Mathf` `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`, `Exp`, `Log`, `Pow`, `Cbrt` (each OS's C library; `Sqrt` and `+ - * /` are exact), `new Random(`/`Random.Shared`, `GD.Randf`/`Randi`/`RandRange`, clocks (`DateTime.Now`, `Stopwatch`, `Time.GetTicksMsec`), `HashCode.Combine` and `.GetHashCode()`, and `foreach` over a `Dictionary` or `HashSet` the file declares; GDScript `sin`, `pow` and the like, the global `randf`/`randi`, `Time.get_ticks_*`. Not flagged: `SortedDictionary`, a seeded `RandomNumberGenerator` (`rng.randf()`), anything outside the folders (`godot-determinism`) |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
@@ -195,6 +198,18 @@ by each `feedback` within `withinMs` (default 100) of game time:
 The game prints `[juice] event <name> <ms>` and `[juice] feedback <name> <ms>`, with `<ms>` its game time in milliseconds. A
 rule fails when an event went unanswered, or never happened (the bot did not reach it). Events too close to the end of the run
 to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).
+
+**`playthrough.json`** (optional, in the Godot project folder) turns on the `playthrough` runner: Godot plays the game headless
+at a fixed 60 fps for at most `frames` frames (default 36000, ten minutes of game time) with `args` (plus `-GameArgs`), and
+every text in `expect` must appear in a log line, in that order, the ending last:
+
+```json
+{ "frames": 36000, "args": ["--autoplay", "--seed=1", "--no-save"], "expect": ["[Run] act 1 done", "[Run] ending reached"] }
+```
+
+`smoke` passes a bot that is stuck in the first room; this fails it and names the last milestone it reached. The game may
+quit by itself after the ending. The plan gate `production.playthrough` is checked as `runner:playthrough`: met once the
+runner is set up, so every CI run enforces it. `tests/playthrough-fixture` is a minimal example (`-GameArgs --stuck` fails).
 
 **The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
 `keys` or `key`), `.po` files or translation remaps. It runs without Godot and has six cases: `duplicate keys` (the same key

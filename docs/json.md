@@ -50,6 +50,7 @@ Branch on `error.code`; `message` can change.
 | `soak-unclean-stop` | `soak -RequireCleanStop`: the server did not quit with 0 within `-StopGraceSeconds` of SIGTERM | `soak.stop` |
 | `web-run-failed` | `export -Run`: a Web build did not start in a browser, or printed a page error, failed request, console error or Godot `ERROR`/`SCRIPT ERROR` | `webRuns[]` |
 | `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
+| `shot-changed` | `shot -Baseline -MaxChangedPercent <n>`: a picture differs from its baseline by more than n% of pixels, or changed size | `shots[].compare` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
@@ -84,7 +85,9 @@ under it), `line`, `key` (the error key, see the run history below).
 The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`, `message`): findings that do not fail the
 run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
-`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder.
+`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder. The `playthrough` runner has `run` and one
+case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
+missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
 case `table <name>` per table, each listing up to 50 problems, one per line.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,
@@ -200,7 +203,8 @@ else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene 
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
 also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
 differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the
-changes in red). With `-ColorVision protan,deutan,tritan`, each shot also has `colorVision`: one absolute PNG path per kind asked
+changes in red); `-MaxChangedPercent <n>` turns it into a check that fails with `shot-changed`, and a shot with no baseline picture
+is new, not changed. With `-ColorVision protan,deutan,tritan`, each shot also has `colorVision`: one absolute PNG path per kind asked
 for (`<name>.protan.png`, `<name>.deutan.png`, `<name>.tritan.png`), the picture as a protanope, deuteranope or tritanope sees
 it (Machado, Oliveira and Fernandes 2009, severity 1.0, in linear RGB). An unknown kind is `invalid-arguments`; a picture that
 could not be made is `shot-failed`.
@@ -257,6 +261,10 @@ and `noticesFile`.
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/godot-ci-history.jsonl`.
+- `testDuration`: `runners` (the usual scope), `runs` and `medianSeconds` (the last 10 passing test runs of that scope without
+  `-Filter`), `previousRuns` and `previousMedianSeconds` (the 10 before them), `budgetSeconds` (`testBudgetSeconds` in
+  `plan.json`, or `null`). Medians are `null` with no such runs. A warning when the median is over the budget, or 1.5 times
+  the previous median and at least 30 s more.
 - `flakyTests`: `days` (30), `testRuns` (test runs in that time) and `tests[]` (`runner`, `name`, `count`: runs in which it
   passed only on a retry, `last`), the 10 most frequent first. A test flaky in 2 or more runs is also a warning.
 - `recurringErrors[]`: the error keys of the history that were in at least one failed run, the most recently seen first

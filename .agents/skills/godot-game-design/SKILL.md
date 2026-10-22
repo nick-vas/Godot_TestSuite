@@ -165,7 +165,8 @@ way back plays differently. Details: [pacing.md](pacing.md).
   opening and then take it away. Show a panel only once it is used.
 - Rules on a timer show the time left by motion (Move or Die's rule text slowly scrolls up, then leaves), not a
   countdown bar that pulls the eye off the words.
-- Test with people who have never played, and stay silent while they play.
+- Test with people who have never played, and stay silent while they play. Valve's fixes for what testers did (teach
+  calm, example then check then twist, one new idea per room, refreshers, never a soft-lock) are `godot-playtest`.
 
 ## In a review
 
