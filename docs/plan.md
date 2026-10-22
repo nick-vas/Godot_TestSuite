@@ -34,7 +34,7 @@ Three inputs, cross-referenced:
 | # | Phase | Weeks* | Question it answers | Automatic gates |
 |---|---|---|---|---|
 | 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists |
-| 2 | Prototype | 4 | Is the core loop fun? | CI workflow wired; `docs/DECISIONS.md` has the verdict |
+| 2 | Prototype | 4 | Is the core loop fun? | CI workflow wired; `docs/TRAILER.md` exists; `docs/DECISIONS.md` has the verdict |
 | 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; an export preset exists; `docs/TECH-DEBT.md` exists |
 | 4 | Production | 24 | Can I build the rest as playable milestones? | `docs/MILESTONES.md` exists |
 | 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | tests green |
@@ -51,6 +51,10 @@ remove gates freely: `plan.json` is yours after `init`.
 - **Every milestone is a playable build** that someone other than you can run.
 - **Quality is automated where it can be**: tests, `validate`, `smoke` and `export -Run` are the gates agents can verify themselves;
   playtests and verdicts are manual gates that need a human.
+- **The trailer is written before the game.** `prototype.trailer` wants `docs/TRAILER.md` (template
+  `ci/godot/templates/TRAILER.md`): genre in the first 5 seconds, then the hook, content last; three standout moments; every
+  core mechanic with the on-screen feedback a viewer would see. A prototype nobody can picture a trailer for is weak, and a
+  mechanic with no visible feedback is design work now. Derek Lieu's talk: [docs/gdc/make-the-trailer-before-the-game.md](gdc/make-the-trailer-before-the-game.md).
 - **Marketing starts in the vertical slice**, not after the beta.
 - **A slice measures, not only impresses.** It lists its tech debt (`slice.debt`: every hacked, stubbed or unstarted system
   and what it costs at the size of the whole game, template `ci/godot/templates/TECH-DEBT.md`) and meets a frame budget on its

@@ -22,6 +22,11 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
   moderation PEGI 18; simulated casino gambling PEGI 18. ESRB adds "In-Game Purchases (Includes Random Items)", "Users
   Interact" and "Shares Location" notices.
 - Answer the questionnaire from what is in the build, all of it, including content players cannot reach.
+- **Paid random items:** build them, and trading items between players, behind per-country switches kept in data, so one
+  country's rule removes a feature rather than the whole game (Will Bucher, GDC 2019; that talk's country rules are dated).
+  The App Store requires the odds of receiving each type of item, shown before purchase (App Review Guideline 3.1.1, read
+  2026-10-22). Do not quietly tune the odds inside a shown type to keep players buying: it may meet a per-type disclosure,
+  yet the talk saw a fraud risk in it. Offer parental controls on purchases.
 
 ## 2. Privacy policy
 
@@ -32,9 +37,13 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
   who receives it; transfers outside the EU; how long it is kept; the player's rights (access, deletion, objection,
   withdrawing consent); the right to complain to a regulator.
 - Children: under GDPR a child's own consent counts from 16 (member states may lower it to 13); below that, a parent's.
-  The US COPPA rule applies to services for children under 13.
+  The US COPPA rule applies to services for children under 13, and to games that appeal to them in a major way. One
+  approach a lawyer's GDC talk names (Chris Reed, about 2016): a neutral age gate that asks the birth date, never "are you
+  under 13?", and sends younger players to a version that collects nothing; COPPA safe-harbor companies help.
 - The kit's telemetry model (`godot-telemetry`) is built for this: nothing sent before consent, per purpose, no free
   text, export and erase. The policy describes exactly that schema, and its version matches `policyVersion` in the code.
+  Never copy another game's policy: it describes someone else's practices, so it misleads players (Reed). Link it from the
+  main menu or splash screen and from the website's footer.
 - Store forms (Google Play's Data safety, Apple's privacy details) must match the policy, including what third-party SDKs
   collect.
 
@@ -78,6 +87,23 @@ information, not legal advice.
 - In `assets.json` such work is `"source": "commissioned"`, with `agreement` (a reference, never the contract itself),
   `rights` (`assigned` or `licensed`) and, for a licence, `uses`. `doctor` warns when any is missing.
 - Calling someone an independent contractor in the contract does not make them one for tax: ask an accountant.
+
+**The game's name, registration and the company.** From the same lawyer's other GDC talks (about 2016 and 2018): US law,
+general information, not legal advice; his fees are from then, so check current ones at the source.
+
+- Search the name before a logo or store page (the web, Steam, the trademark databases where it will sell: USPTO in the
+  US, EUIPO in the EU). For trademarks every video game is the same kind of product, so a game of any genre with the same
+  or a similar name conflicts (plan gate `concept.name`).
+- US trademark rights come from selling the game: a domain, social accounts, a Kickstarter or press coverage give none,
+  and Early Access is unclear. An intent-to-use application holds the date for up to three years. With money for one
+  filing, register the game's name as a word mark (about US$1,500 with an attorney, he said in 2018).
+- Copyright needs no registration, but a US registration (about US$65 then) within three months of launch gives the most
+  coverage; include about 30 seconds of gameplay video so a judge can see the game.
+- Mechanics and ideas are not protected; protect a pitch with an NDA. Fair use is an argument made in court, not a safe
+  harbour. No real person's name or likeness without permission (right of publicity), and no former employer's secrets
+  from a new hire.
+- A company (in the US often an LLC) once the project gets serious, before working with others, with a written operating
+  agreement even for one owner: without the formalities its liability protection can be challenged.
 
 ## 5. Before launch
 

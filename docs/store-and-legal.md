@@ -29,7 +29,7 @@ sources disagree. Everything else was read in the source named.
 | [Epic storefront media guide](https://dev.epicgames.com/docs/epic-games-store/sales-and-marketing/marketing/storefront-media-guide) | Logo 960x540 PNG; landscape 2560x1440 and portrait 1200x1600 images |
 | [IARC](https://www.globalratings.com/how-iarc-works/) (how it works, FAQ, participants, storefronts) | Free to developers; the rating authorities; the storefronts (Steam is not one) |
 | [Google Play: content ratings](https://support.google.com/googleplay/android-developer/answer/9898843), [user data](https://support.google.com/googleplay/android-developer/answer/10144311), [Data safety](https://support.google.com/googleplay/android-developer/answer/10787469) | IARC rating required, unrated apps removed; a privacy policy for every app, in Play Console and in the app |
-| [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) 5.1.1 | A privacy policy link in App Store Connect and in the app |
+| [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) 5.1.1 and 3.1.1 (3.1.1 read 2026-10-22) | A privacy policy link in App Store Connect and in the app; odds of each type of item in paid random items, shown before purchase |
 | [PEGI: what do the labels mean](https://pegi.info/what-do-the-labels-mean) | Since June 2026: paid random items PEGI 16 (18 social casino); time-limited offers, pressure to play, unrestricted communication |
 | [ESRB ratings guide](https://www.esrb.org/ratings-guide/) | Interactive elements, which "do not influence the rating assignment" |
 | GDPR Articles 8 and 13 ([legislation.gov.uk, as adopted](https://www.legislation.gov.uk/eur/2016/679/contents/adopted); EUR-Lex returned an empty page) | What a privacy notice must say; a child's consent from 16, member states may lower it to 13 |
@@ -37,9 +37,11 @@ sources disagree. Everything else was read in the source named.
 | [Creative Commons: recommended practices for attribution](https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution) | TASL (title, author, source, licence); title required in 3.0 and earlier |
 | [Godot: complying with licenses](https://docs.godotengine.org/en/stable/about/complying_with_licenses.html) | Include the MIT text somewhere; ship COPYRIGHT.txt for third-party components |
 | Chris Reed, [Practical Contract Law 201 for Indie Developers](https://www.youtube.com/watch?v=t8UFJ3obm-Q) (GDC, about 2017; US law; notes in [gdc/contract-law-201.md](gdc/contract-law-201.md)) | The maker owns the copyright unless a signed work-for-hire or assignment says otherwise, owners included; games pulled from Steam by a former contractor's DMCA notice; `assets.json`'s commissioned entries |
+| Michelle (Armor Games Studios; surname not given), [No Budget DIY Marketing for Indie Games](https://www.youtube.com/watch?v=NWyZlGMysH8) (GDC, about 2024, not stated; notes in [gdc/no-budget-diy-marketing.md](gdc/no-budget-diy-marketing.md)) | `godot-store-page` section 6: press kit contents (key art with and without the title, 6 to 10 screenshots, a contact address), the press list, review keys about a month ahead with an embargo, the launch email; `doctor`'s `store/press` check. One practitioner's advice; her platform advice and conversion figures are dated and not used |
 | [IGDA Game Crediting Guide 10.1](https://igda.org/wp-content/uploads/2021/11/IGDA-Game-Crediting-Guidelines-10.1-March-2023.pdf) (March 2023) | Who is credited, the order, names as people want them; "Credits must not be hidden or locked" |
 | [47 CFR Part 14](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-14) (2023 edition read as govinfo.gov PDFs of 14.1 to 14.31, 2026-10-22; ecfr.gov and fcc.gov were not reachable from here) and Mark Barlet, Bill Curtis-Davidson, [The CVAA and Gaming](https://www.youtube.com/watch?v=0GROVGdetG4) (GDC, about 2019; notes in [gdc/folds-accessibility.md](gdc/folds-accessibility.md)) | `godot-legal` section 7: what the CVAA covers, records and the 1 April certificate (14.31), "achievable" (14.10), the small-entity exemption ended 2013 (14.4); the games waiver ending 1 January 2019 and grandfathering are from the talk, **unconfirmed** in an FCC source |
 | Tim Rippon-Davies, [Contract Killers: What Developers Should Eliminate From Their Publishing Agreement](https://www.youtube.com/watch?v=yfrwQnqwPps) (GDC, about 2021, not stated; a London lawyer, common-law contracts; notes in [gdc/contract-killers.md](gdc/contract-killers.md)) | `godot-legal` section 6: licence term and what it counts from, auto-renewal, review windows with deemed approval, payment lag, recoup source, third-party marketing costs, first refusal instead of rights, tool carve-outs, cure periods, "time is of the essence", statements and audit. One lawyer's opinion, not rules |
+| GDC talks on store pages, Early Access, names and registration, privacy and loot boxes (Zukowski about 2021 and 2020, Christopher King about 2019, Derek Lieu, Chris Reed about 2016 and 2018, Will Bucher 2019; notes in [gdc/folds-procgen-balance-store.md](gdc/folds-procgen-balance-store.md)) | `godot-store-page` capsule, screenshot, tag, trailer and sale lines; `godot-release-readiness` section 6; `godot-legal`'s name, registration, age gate and paid random items lines; plan gate `concept.name`. One speaker's view each; fees and country rules dated |
 
 ## Tested here
 
@@ -49,8 +51,8 @@ sources disagree. Everything else was read in the source named.
   only what one export compiles in. `ci/godot/tools/notices.gd` dumps it for `credits`.
 - A Godot 4.7.2 C# Linux export (Breakout, 189 files in its data folder) contains no .NET licence or notices file. The
   runtime pack in the NuGet cache has `THIRD-PARTY-NOTICES.TXT`; `credits` appends it for C# games.
-- `doctor`'s store art check on generated PNG and JPEG files of right and wrong sizes (`tests/Test-Store.ps1`), and the
-  credits generator on a sample manifest (`tests/Test-Credits.ps1`).
+- `doctor`'s store art and press kit checks on generated PNG and JPEG files of right and wrong sizes
+  (`tests/Test-Store.ps1`), and the credits generator on a sample manifest (`tests/Test-Credits.ps1`).
 
 ## Mistakes an agent is likely to make
 

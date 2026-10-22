@@ -85,3 +85,29 @@ function Test-SteamShortDescription([string]$Text, [int]$Limit = 300) {
     if ($Text -match '(?i)https?://|www\.|\.com\b') { $problems.Add('short-description-link: no links') }
     return , $problems.ToArray()
 }
+
+# Press kit in store/press: what press most often ask for and should never have to request (Michelle of Armor Games
+# Studios, GDC "No Budget DIY Marketing for Indie Games", docs/gdc/no-budget-diy-marketing.md). Key art with and without
+# the title, 6 to 10 screenshots, and a fact sheet or press release as text with a way to contact the developer.
+function Test-PressKit([string]$Folder) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $files = @(Get-ChildItem -LiteralPath $Folder -File)
+    $images = @($files | Where-Object { $_.Extension -in '.png', '.jpg', '.jpeg' })
+    foreach ($name in 'key_art', 'key_art_notitle') {
+        if (-not @($images | Where-Object { $_.BaseName -eq $name })) {
+            $what = if ($name -eq 'key_art') { 'key art with the title' } else { 'key art without the title' }
+            $problems.Add([ordered]@{ code = 'press-missing'; asset = $name; message = "$name ($what) is missing" })
+        }
+    }
+    $shots = @($images | Where-Object { $_.BaseName -like 'screenshot*' })
+    if ($shots.Count -lt 6 -or $shots.Count -gt 10) {
+        $problems.Add([ordered]@{ code = 'press-screenshots-count'; asset = 'screenshot*'; message = "6 to 10 screenshots, found $($shots.Count)" })
+    }
+    $texts = @($files | Where-Object { $_.Extension -in '.txt', '.md' -and $_.BaseName -in 'fact_sheet', 'press_release' })
+    if (-not $texts) {
+        $problems.Add([ordered]@{ code = 'press-missing'; asset = 'fact_sheet'; message = 'fact_sheet.txt or press_release.txt is missing' })
+    } elseif (-not @($texts | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '[\w.+-]+@[\w-]+(\.[\w-]+)+' })) {
+        $problems.Add([ordered]@{ code = 'press-contact'; asset = $texts[0].Name; message = "no contact email address in $(@($texts | ForEach-Object Name) -join ' or ')" })
+    }
+    return [ordered]@{ ok = ($problems.Count -eq 0); screenshots = $shots.Count; problems = @($problems) }
+}

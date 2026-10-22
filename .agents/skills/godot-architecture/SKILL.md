@@ -70,6 +70,11 @@ on those materials). Cheerful assets under a stark grade give a distinctive look
   tick. Crafted-only items have a target of 0: counted, never spawned. Usage and rarity labels come from one declared
   vocabulary (`[Export(PropertyHint.Flags, "Military,Police,Farm,Town")]`), rarity is painted on map zones rather than
   set per building, and a test fails on any label outside the vocabulary.
+- Currency like a central bank (NetEase's inflation monitoring, GDC): every faucet and sink goes through one ledger with a
+  source or sink tag, so each day logs issued, collected and stock (`[Econ] day=12 issued=... collected=... stock=...`).
+  Alert when issued exceeds collected day after day; fix the source and add short-term sinks until the stock settles. Keep
+  counting currency held by players who left (a returning-player event releases it at once); with player trading, log
+  transfers, so one player trading back and forth with dozens of others stands out.
 - Multiplayer: one source of truth. The server owns state, clients send inputs, `MultiplayerSynchronizer` sends state back,
   and the server never trusts a client's claim (DayZ).
 - Replicate the smallest state (Arma Reforger's drawer is one float) and derive animation, sound and labels from it on every

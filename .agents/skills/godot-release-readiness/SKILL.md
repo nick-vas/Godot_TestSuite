@@ -25,6 +25,7 @@ results in the plan's launch gates (`godot-game-plan`), and answer with what pas
 - [ ] Steam Cloud tested on two devices with a conflict (`godot-steam`)
 - [ ] Steam Deck: `textsize` passes at 1280x800, controls complete, sleep and resume (`godot-steam-deck`)
 - [ ] build uploaded to a beta branch and tested from Steam before going live
+- [ ] press kit in `store/press/` passes `doctor`; review keys sent about a month ahead with an embargo (`godot-store-page`)
 
 ## 3. Legal
 
@@ -47,13 +48,25 @@ results in the plan's launch gates (`godot-game-plan`), and answer with what pas
   TalkBack both, on mobile): a BBC game built for blind players lost VoiceOver in a build that arrived three hours before
   launch (Hannah Bunce, GDC); `doctor` warns when `accessibility/general/accessibility_support` is Disabled
 
-## 6. Consoles
+## 6. Early Access
+
+From 20XX's 142 weeks in Early Access (Christopher King, GDC, about 2019):
+
+- [ ] community time budgeted: 20XX's lead spent about 8 hours a week on it, 17% of his time
+- [ ] an update rhythm you can keep, with a countdown to the next update on the main menu (20XX: every other Wednesday,
+      70 of 72 updates on the hour), released early in the working day (6 pm left nobody around for problems)
+- [ ] no date announced for a feature until it is tested; new content may be spread over updates, bug fixes never wait
+- [ ] feedback goes to public places (forum, Discord, a public bug tracker you visibly answer), not a personal email address
+      on the menu, which keeps receiving mail years later
+- [ ] negative reviews read for a repeated misunderstanding, and the store page fixed for it (`godot-store-page`)
+
+## 7. Consoles
 
 Detailed PlayStation and Nintendo requirements are under NDA and out of scope; Xbox publishes its list
 (`godot-console-cert`). For a console release: register with the platform holder, get a porter or W4 Games, and plan for
 the platform's own certification.
 
-## 7. Answer
+## 8. Answer
 
 Report as a table: each line, pass or fail, and the evidence (a command and its result, a test name, a file). Anything
 that needs a person (a Content Survey, a store review, the release button) is listed as such, with the date it is due.
