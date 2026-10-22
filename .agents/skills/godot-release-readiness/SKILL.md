@@ -25,6 +25,7 @@ results in the plan's launch gates (`godot-game-plan`), and answer with what pas
 - [ ] Steam Cloud tested on two devices with a conflict (`godot-steam`)
 - [ ] Steam Deck: `textsize` passes at 1280x800, controls complete, sleep and resume (`godot-steam-deck`)
 - [ ] build uploaded to a beta branch and tested from Steam before going live
+- [ ] press kit in `store/press/` passes `doctor`; review keys sent about a month ahead with an embargo (`godot-store-page`)
 
 ## 3. Legal
 
