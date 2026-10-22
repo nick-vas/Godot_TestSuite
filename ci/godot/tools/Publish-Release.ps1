@@ -58,7 +58,9 @@ if (-not $Tag) {
 if ($LASTEXITCODE -eq 0) {
     & gh release upload $Tag @zips --clobber
 } else {
-    & gh release create $Tag @zips --title "$Name $Tag" --generate-notes --verify-tag
+    # v1.2.0-rc.1, v2.0.0-beta: a pre-release (semantic versioning's hyphen), so it is not shown as the latest.
+    $pre = if ($Tag -match '^v?\d+(\.\d+)*-') { @('--prerelease') } else { @() }
+    & gh release create $Tag @zips --title "$Name $Tag" --generate-notes --verify-tag @pre
 }
 if ($LASTEXITCODE -ne 0) { throw "Publishing the release failed (the calling job needs 'permissions: contents: write')" }
 Write-Host "Published $Name $Tag with $($zips.Count) build(s)"

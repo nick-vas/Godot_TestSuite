@@ -7,6 +7,16 @@
   matchmaker, a rate limiter and chat moderation. `soak` stops the server with SIGTERM at the end and reports
   `soak.stop` (headless Godot dies at once with 143 unless the game handles it; C# can); `-RequireCleanStop` fails
   `soak-unclean-stop`, and `-StopGraceSeconds` sets the wait.
+- CI, from GameCI's documentation: the action's cache keys name the Godot build (.NET or standard) so a repository with
+  both no longer restores the wrong one, the import cache's key covers the source assets (a `.import` file does not
+  change when its picture does), and Godot, its templates and the import cache are saved when the tests fail too.
+  `godot.yml` jobs stop after `timeout-minutes` (60); the self-test's after 45; actionlint is pinned (1.7.12). Tags with
+  a hyphen are published as pre-releases; pull requests from forks get a notice instead of a misleading PR-comment
+  warning. `doctor` fails on Git LFS pointers left in place of assets, committed keystores, certificates and
+  `config.vdf`, names Windows cannot create and paths that differ only in case, and warns on `res://` paths whose case
+  differs from the file. `Test-DocLinks.ps1` checks every link and quoted path in the docs and skills. The self-test
+  installs ffmpeg through `.github/actions/ffmpeg`, which keeps its packages in the Actions cache: Ubuntu's mirror took
+  12 minutes for them in one run.
 - Algorithms (TheAlgorithms/C-Sharp, GPL-3.0, studied and measured, not copied; its MIT explanations read too;
   `docs/algorithms.md`): a `godot-algorithms` skill; Breakout.Core gains a Dijkstra map for crowds and fleeing
   (`DistanceField`), region labelling and union-find (`Regions`, `DisjointSet`) and "did you mean" (`Suggest`). The

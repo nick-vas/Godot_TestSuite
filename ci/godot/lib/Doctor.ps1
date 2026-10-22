@@ -92,6 +92,58 @@ function Get-SteamPackageProblems([string]$Csproj, [string[]]$Platforms) {
     return , $problems.ToArray()
 }
 
+# Files that break a checkout, a build on another OS, or a secret: GameCI's troubleshooting lists, applied to Godot.
+# lfsPointers: Git LFS pointer files where the asset should be (LFS not pulled; Godot imports 130 bytes of text).
+# secrets: signing keys and Steam login files tracked by git. reserved: names Windows cannot create (CON, NUL, COM1...).
+# caseTwins: paths that differ only in case (one is lost on Windows and macOS). wrongCase: res:// paths whose case differs
+# from the file on disk, which load on Windows and fail on Linux and in exported games.
+function Get-RepositoryHygiene([string]$ProjectDir) {
+    $root = (Resolve-Path -LiteralPath $ProjectDir).Path
+    $files = @(Find-ProjectFiles $root '*')
+    $relative = @(foreach ($f in $files) { [System.IO.Path]::GetRelativePath($root, $f.FullName) -replace '\\', '/' })
+    $result = [ordered]@{ lfsPointers = @(); secrets = @(); reserved = @(); caseTwins = @(); wrongCase = @() }
+
+    $result.lfsPointers = @(for ($i = 0; $i -lt $files.Count; $i++) {
+        if ($files[$i].Length -lt 200 -and $files[$i].Length -gt 0) {
+            $head = [System.IO.File]::ReadAllText($files[$i].FullName)
+            if ($head.StartsWith('version https://git-lfs.github.com/spec/')) { $relative[$i] }
+        }
+    })
+
+    $secretPattern = '\.(keystore|jks|p12|pfx|p8|mobileprovision)$|(^|/)config\.vdf$|(^|/)export_credentials\.cfg$'
+    $candidates = @($relative | Where-Object { $_ -match $secretPattern })
+    $gitRoot = Get-GitRoot $root
+    if ($candidates -and $gitRoot) {
+        $tracked = @(& git -C $root ls-files -- @($candidates) 2>$null)
+        $result.secrets = @($candidates | Where-Object { $_ -in $tracked })
+    }
+
+    $result.reserved = @($relative | Where-Object {
+        foreach ($part in $_ -split '/') { if ($part -match '^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$' -or $part -match '[ .]$') { return $true } }
+        $false
+    })
+
+    $result.caseTwins = @($relative | Group-Object { $_.ToLowerInvariant() } | Where-Object Count -gt 1 | ForEach-Object { $_.Group -join ' and ' })
+
+    # Each res:// path in scenes, resources, scripts and project.godot, compared with the files' real names.
+    $exact = [System.Collections.Generic.HashSet[string]]::new([string[]]$relative, [System.StringComparer]::Ordinal)
+    $folded = @{}
+    foreach ($r in $relative) { $folded[$r.ToLowerInvariant()] = $r }
+    $seen = [System.Collections.Generic.HashSet[string]]::new()
+    $wrong = [System.Collections.Generic.List[string]]::new()
+    for ($i = 0; $i -lt $files.Count -and $wrong.Count -lt 20; $i++) {
+        if ($files[$i].Extension -notin '.tscn', '.tres', '.gd', '.cs', '.godot', '.cfg' -or $files[$i].Length -gt 4MB) { continue }
+        foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($files[$i].FullName), 'res://([^"''\s)\]]+)')) {
+            $path = $m.Groups[1].Value
+            if (-not $seen.Add($path) -or $exact.Contains($path)) { continue }
+            $match = $folded[$path.ToLowerInvariant()]
+            if ($match) { $wrong.Add("res://$path (the file is res://$match, in $($relative[$i]))") }
+        }
+    }
+    $result.wrongCase = @($wrong)
+    return $result
+}
+
 function Invoke-Doctor($Info) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
@@ -307,6 +359,24 @@ function Invoke-Doctor($Info) {
         if ($pixel.vram) { Add-Check WARN "Pixel art textures with VRAM or Basis compression (smeared colours; often set by Detect 3D): $(& $list $pixel.vram)" 'Import dock: Compress > Mode Lossless, and Detect 3D > Compress To Disabled' }
         foreach ($setting in $pixel.stretch) { Add-Check INFO "Pixel art: $setting, so pixels can end up uneven sizes" 'Project Settings > Display > Window > Stretch: Mode viewport (or canvas_items), Scale Mode integer' }
         if (-not ($pixel.mipmaps -or $pixel.lossy -or $pixel.vram)) { Add-Check OK "Pixel art: $($pixel.textures) texture(s) imported without mipmaps, lossy or VRAM compression" }
+    }
+
+    $hygiene = Get-RepositoryHygiene $project
+    $first = { param($items) "$((@($items) | Select-Object -First 5) -join ', ')$(if (@($items).Count -gt 5) { " and $(@($items).Count - 5) more" })" }
+    if ($hygiene.lfsPointers) {
+        Add-Check FAIL "Git LFS pointer files instead of assets (LFS was not pulled): $(& $first $hygiene.lfsPointers)" 'git lfs install; git lfs pull (in CI: actions/checkout with lfs: true, or the workflow''s lfs input)'
+    }
+    if ($hygiene.secrets) {
+        Add-Check FAIL "Signing keys or login files are committed: $(& $first $hygiene.secrets)" 'git rm --cached them, add them to .gitignore, replace the keys (they are public now), and pass them to CI as secrets'
+    }
+    if ($hygiene.reserved) {
+        Add-Check FAIL "Names Windows cannot create (a checkout there fails or loses them): $(& $first $hygiene.reserved)" 'Rename them: CON, PRN, AUX, NUL, COM1-9 and LPT1-9 are reserved with any extension, and names cannot end in a dot or a space'
+    }
+    if ($hygiene.caseTwins) {
+        Add-Check FAIL "Paths that differ only in case (Windows and macOS keep one of each pair): $(& $first $hygiene.caseTwins)" 'Rename or merge them'
+    }
+    if ($hygiene.wrongCase) {
+        Add-Check WARN "res:// paths whose case differs from the file, which load on Windows but not on Linux or in an exported game: $(& $first $hygiene.wrongCase)" 'Write the path exactly as the file is named'
     }
 
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.

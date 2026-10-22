@@ -62,6 +62,7 @@
 | `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`); exports of a tag carry its version (`-GameVersion`) |
 | `runs-on` | `ubuntu-latest` | `windows-latest` also works |
 | `lfs`, `submodules`, `retention-days` | | Checkout options and artifact retention |
+| `timeout-minutes` | `60` | Longest each job may run before GitHub cancels it (its own limit is 6 hours) |
 
 **Your own workflow:** the composite action runs one command with setup and caching, then uploads the
 results or the build.
