@@ -52,6 +52,8 @@ Branch on `error.code`; `message` can change.
 | `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
 | `shot-changed` | `shot -Baseline -MaxChangedPercent <n>`: a picture differs from its baseline by more than n% of pixels, or changed size | `shots[].compare` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
+| `shot-off-palette` | `shot -MaxOffPalettePercent <n>`: more than n% of a picture is in colours off the palette in `docs/STYLE.md` | `shots[].palette` |
+| `no-palette` | `shot -MaxOffPalettePercent`: the project has no `docs/STYLE.md`, or its `## Palette` table has no `#RRGGBB` colours; checked before Godot starts | `palette.problem` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
 | `audio-failed` | `audio`: ffmpeg could not read a sound file, or Godot exited non-zero while recording the mix | `error.message` |
@@ -224,6 +226,18 @@ is new, not changed. With `-ColorVision protan,deutan,tritan`, each shot also ha
 for (`<name>.protan.png`, `<name>.deutan.png`, `<name>.tritan.png`), the picture as a protanope, deuteranope or tritanope sees
 it (Machado, Oliveira and Fernandes 2009, severity 1.0, in linear RGB). An unknown kind is `invalid-arguments`; a picture that
 could not be made is `shot-failed`.
+Every shot also has `palette` when the project's `docs/STYLE.md` has a palette (every `#RRGGBB` in the table rows under
+`## Palette`): `onPalettePercent` (within `-PaletteTolerance`, CIEDE2000, of a palette colour), `blendPercent` (within it of
+a mix of two palette colours that are both on screen, in sRGB or linear light: anti-aliasing, filtering, translucency),
+`offPalettePercent` (off-palette colours, grouped with the colours within the tolerance of them, that cover at least 0.1%
+of the picture each), `scatteredPercent` (smaller groups: noise, grain), `offPaletteColours` (how many groups count),
+`distinctColours`, `colours[]` (the five largest groups: `hex`, the group's most common colour; `percent`; `counted`;
+`nearest`, the closest palette colour, and `deltaE` to it) and `image` (`<name>.palette.png`, the counted pixels in magenta
+over a dimmed copy, or `null` when none count). The four percentages add up to 100, give or take rounding. The top-level `palette` says what was
+checked: `source` (the style guide's path, or `null`), `colours[]`, `toleranceDeltaE` (3), `minColourPercent` (0.1),
+`maxOffPalettePercent` (`null` without the flag) and `problem` (why there is no check, or `null`). Without
+`-MaxOffPalettePercent` an off-palette share is a warning in the log; with it, `shot-off-palette`. The method and its
+measurements are in [art.md](art.md#palette-check-shot).
 
 **audio**: `audio` with `targetLufs`, `toleranceLu` (2), `truePeakMaxDbtp` (-1), `files[]` (`file`, `category`: music, voice,
 ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `truePeakDbtp`, `rangeLu`; `integratedLufs` is

@@ -32,6 +32,8 @@
 | `-MaxChangedPercent` | | `shot -Baseline`: fail with `shot-changed` when a picture differs by more than this percentage of pixels, or changed size; without it `-Baseline` only reports |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
 | `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
+| `-MaxOffPalettePercent` | | `shot`: fail with `shot-off-palette` when more than this percentage of a picture is in colours off the palette table in `docs/STYLE.md` (`shots[].palette`, `<name>.palette.png`); without it the check only warns, and there is none without a palette. With the flag and no palette: `no-palette` |
+| `-PaletteTolerance` | `3` | `shot`: how far (CIEDE2000) a colour may be from a palette colour, or from a blend of two, and still count as on the palette; 0.5 to 50 ([art.md](art.md#palette-check-shot)) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Sound` | all | `sfx`: which sounds: `coin`, `laser`, `explosion`, `powerup`, `hit`, `jump`, `blip` (or bfxr's names, `pickup_coin`...) |

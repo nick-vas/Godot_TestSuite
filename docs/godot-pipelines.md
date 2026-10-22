@@ -115,10 +115,12 @@ ci/godot/lib/Doctor.ps1             `doctor`: tool and project checks with fixes
 ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export filters, CI workflow, agent files, MCP config
 ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, Trello sync
 ci/godot/lib/Measure.ps1            `bench` and `shot`
+ci/godot/lib/Palette.ps1            `shot`'s palette check against docs/STYLE.md
 ci/godot/tools/validate.gd          the load check Godot runs for the validate runner
 ci/godot/tools/flows.gd             the UI-flow player Godot runs for the flows runner
 ci/godot/tools/bench.gd             frame-pacing measurement for bench
 ci/godot/tools/shot.gd              screenshots for shot
+ci/godot/tools/Palette.cs           PNG reader and CIEDE2000 palette check for shot (Add-Type)
 ci/godot/tools/Test-Skills.ps1      checks the agent skills (structure, budgets, real commands and versions)
 ci/godot/tools/Publish-PrComment.ps1  the pull request summary comment (workflow only)
 ci/godot/tools/Publish-Release.ps1    zips exports into a GitHub Release (workflow only)

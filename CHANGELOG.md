@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- From the roadmap's art to-do list: `shot` checks every screenshot against the palette table in `docs/STYLE.md`
+  (every `#RRGGBB` in its rows). Distances are CIEDE2000 (checked against Sharma, Wu and Dalal's test pairs) with a
+  tolerance of 3 (`-PaletteTolerance`; one 8-bit level moves a colour by at most 2.40); anti-aliased edges, filtering
+  and translucency pass as blends of two palette colours, in sRGB or linear light; off-palette colours are grouped and
+  only groups over 0.1% of the picture count, so noise does not. Each shot gets `palette` (`offPalettePercent`,
+  `blendPercent`, `scatteredPercent`, the largest off colours with their nearest palette colour, and
+  `<name>.palette.png` with them in magenta); it warns, and `-MaxOffPalettePercent <n>` fails with `shot-off-palette`
+  (`no-palette` when there is nothing to check against). The pixels are read by `ci/godot/tools/Palette.cs`, compiled
+  with `Add-Type` (no Godot, no Python; about 0.3 s a 1080p picture). The style guide template says the table is read.
+  Self-test: `Test-Palette.ps1` (`-NoGodot` for its synthetic part); method and measurements in `docs/art.md`.
 - Add-ons and GDExtensions (`docs/addons.md`, skill `godot-addons`, `ci/godot/lib/Addons.ps1`): the state of 25 popular
   add-ons on Godot 4.7, cross-checked with garciamarquez.dev's ranking. `doctor`'s GDExtension check now picks each
   library as Godot does (measured on 4.7.2: every tag of a key must be a feature of the build, the most tags wins), for
