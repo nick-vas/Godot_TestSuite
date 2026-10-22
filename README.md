@@ -237,6 +237,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/audio.md](docs/audio.md) | Game audio: what FMOD, Wwise and Unreal teach about buses, adaptive music, variation, 3D sound and ducking, mapped to Godot; Godot facts checked in the source; ASWG and IESD loudness targets |
 | [docs/mobile-web.md](docs/mobile-web.md) | Phones, tablets and browsers: what Godot 4.7.2 did when exported to Android and the web and run in Chromium, sources, and the mistakes agents make |
 | [docs/store-and-legal.md](docs/store-and-legal.md) | Store pages, ratings, privacy, licences and credits: Steamworks, Zukowski, IARC, PEGI, GDPR, SPDX and IGDA sources, what was tested, what agents get wrong |
+| [docs/gdc/README.md](docs/gdc/README.md) | GDC talks read in full from their transcripts: what the kit took from each (a check, a tested core, a skill rule), and what it did not |
 | [docs/studio-lessons.md](docs/studio-lessons.md) | What studios say worked and failed: Nintendo, Japanese developers, Eastern European and simulation studios, 20 postmortems, talks; each lesson quoted and linked |
 | [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |
 | [docs/roadmap.md](docs/roadmap.md) | What comes next: self-improvement, `/game` with Trello, architecture, look and feel |
