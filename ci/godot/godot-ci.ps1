@@ -255,7 +255,7 @@ function Invoke-Build {
     }
     Stop-LogGroup
     if ($code -ne 0) {
-        Set-JsonField engineErrors @(Get-GodotLogErrors $log | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_.Trim() } })
+        Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
         Stop-GodotCi "Godot import exited with $code" 'import-failed'
     }
     # Godot loads internationalization/locale/translations at startup, before this import has made the .translation files
@@ -394,7 +394,7 @@ function Invoke-ExportPresets {
         $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-release', $name, $file) $log
         Stop-LogGroup
         if ($code -ne 0) {
-            Set-JsonField engineErrors @(Get-GodotLogErrors $log | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_.Trim() } })
+            Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
             Stop-GodotCi "Export '$name' exited with $code" 'export-failed'
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" }

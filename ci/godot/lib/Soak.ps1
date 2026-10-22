@@ -132,7 +132,7 @@ function Invoke-Soak {
         Stop-LogGroup
     }
 
-    $report = @(); $problems = @(); $errors = @()
+    $report = @(); $problems = @(); $errors = @(); $errorDetails = @()
     foreach ($p in $procs) {
         $lines = if (Test-Path -LiteralPath $p.Log) { @(Get-Content -LiteralPath $p.Log) } else { @() }
         $metrics = [ordered]@{}
@@ -160,6 +160,7 @@ function Invoke-Soak {
         if (-not $ready) { $problems += "$($p.Name) never printed [soak] ready" }
         foreach ($f in $fails) { $problems += "$($p.Name): $f" }
         $errors += @(Select-GodotErrors $lines | ForEach-Object { "$($p.Name): $_" })
+        $errorDetails += @(Get-GodotErrorDetails $lines | ForEach-Object { $_.Text = "$($p.Name): $($_.Text)"; $_ })
     }
     $server = $report[0]
     $clientsReport = @($report | Select-Object -Skip 1)
@@ -183,9 +184,10 @@ function Invoke-Soak {
         $ranFor, $server.memoryMb.end, $server.memoryMb.growthPerHour, $server.cpuPercent, $summary.clientMemoryMb.average)
     foreach ($m in $server.metrics.GetEnumerator()) { Write-CiLog "  server $($m.Key): $($m.Value)" }
 
+    # engineErrors[] (and the error keys in the history line) when a process crashed as much as when it only logged errors.
+    if ($errorDetails) { Set-EngineErrors $errorDetails }
     if ($problems) { Stop-GodotCi "Soak failed: $(($problems | Select-Object -First 10) -join '; ')" 'soak-failed' }
     if ($errors) {
-        Set-JsonField engineErrors @($errors | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_ } })
         Stop-GodotCi "Soak: $($errors.Count) engine error(s), first: $($errors[0])" 'engine-errors'
     }
     $leaks = @($report | Where-Object { $_.memoryMb.growthPerHour -gt $MaxGrowthMbPerHour })
