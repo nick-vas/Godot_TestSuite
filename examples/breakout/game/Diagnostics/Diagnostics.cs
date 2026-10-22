@@ -22,7 +22,9 @@ public partial class Diagnostics : Node
         {
             ["floor"] = new FieldKind.Integer(1, 999),
             ["score"] = new FieldKind.Integer(0, int.MaxValue),
-        }));
+        }),
+        // One per run, on victory or death: the floor reached and when each upgrade was first taken (BalanceReport).
+        RunSummary.Event);
 
     /// <summary>The fingerprint of a session that did not quit cleanly: nothing to group by but the fact itself.</summary>
     public const string UncleanExitFingerprint = "0000000000000000";

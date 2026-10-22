@@ -76,6 +76,9 @@ have a lawyer read the privacy notice and the consent flow before release.
 - A failed send keeps the events; events older than a week are dropped unsent. Sample whole sessions
   (`analyticsSampleRate`), never single events, so funnels stay whole; never sample crashes.
 - Comparing two versions from these events (an A/B test): `godot-automation-hooks`, "Comparing two versions".
+- For balance, send one summary per run on victory or death, so quiet players count too: the floor reached, the result,
+  the difficulty and the floor each option was taken on (Breakout's `run_end`, `RunSummary`). Reading it without being
+  fooled: `godot-automation-hooks`, "Reading balance from run data".
 - With `using Godot;` and `using System.Net.Http;` in one file, `HttpClient` is ambiguous (CS0104): keep the transport in
   a file without `using Godot;`, or name `System.Net.Http.HttpClient` in full.
 

@@ -1,5 +1,6 @@
 using Breakout.Controls;
 using Breakout.Core;
+using Breakout.Core.Telemetry;
 using Breakout.Diagnostics;
 using Godot;
 using System.Collections.Generic;
@@ -87,6 +88,7 @@ public partial class Main : Node2D
         if (_ball.Y > Arena.Y)
         {
             _run.LoseBall();
+            if (_run.IsOver) OnRunEnded();
             ResetBall();
         }
 
@@ -103,6 +105,10 @@ public partial class Main : Node2D
     // Once a floor, not every frame: the event's dictionary is allocated here, outside the physics step.
     private void OnFloorReached() =>
         Diagnostics.Client.Track("floor_reached", new Dictionary<string, object> { ["floor"] = _run.Floor, ["score"] = _run.Score });
+
+    // Breakout has no ending and one difficulty: a run ends when the last ball is lost.
+    private void OnRunEnded() =>
+        Diagnostics.Client.Track(RunSummary.EventName, RunSummary.Fields(_run, RunResult.Died));
 
     private void BuildFloor()
     {
