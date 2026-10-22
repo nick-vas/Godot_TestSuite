@@ -301,22 +301,20 @@ From this pass (`docs/mobile-web.md`):
 GameCI (Unity's CI, `docs/` of game-ci/documentation, MIT) was read in October 2026. Done: cache keys per Godot build
 flavour and asset content, caches kept when tests fail, job timeouts, pre-release tags, no misleading PR-comment
 warning on forks, a pinned actionlint, `doctor`'s repository checks (`Test-RepoHygiene.ps1`), a link checker
-(`Test-DocLinks.ps1`), and Steam, Play and TestFlight notes in `godot-export-release`. Still to do:
+(`Test-DocLinks.ps1`), Steam, Play and TestFlight notes in `godot-export-release`, `-GameVersion auto` (git's tags;
+`shallow-checkout` for a shallow clone) with the Android `version/code` set for the export only and the action's
+`version`, `android-version-code` and `build-path` outputs (`Test-GameVersion.ps1`), Git LFS and Gradle caches in the
+action, `setup` on macOS, optional signing secrets and an `environment` input on `godot.yml`, and
+[self-hosted-runners.md](self-hosted-runners.md). Still to do:
 
-- [ ] Versions from git: `-GameVersion auto` (latest tag plus commits since, `git describe`; needs a full-history
-      checkout) and the Android preset's `version/code` set for the export only (GameCI: major*1,000,000 + minor*1,000 +
-      patch). The action would output `version`, `android-version-code` and `build-path`.
-- [ ] Cache Git LFS objects (`.git/lfs`, keyed on a hash of `git lfs ls-files -l`) and Gradle's caches for Android
-      exports.
-- [ ] macOS: download the macOS build of Godot in `setup` (it stops on macOS today), so iOS and macOS exports can run on
-      `macos-latest`.
-- [ ] Optional secrets and an `environment` input on `godot.yml`, so callers can sign Windows, macOS and Android builds
-      through it.
 - [ ] A GitLab CI template using the JUnit and Cobertura files the kit already writes; a container image with Godot,
       templates, PowerShell and .NET, refreshed by the canary.
 - [ ] Tag the kit's releases and keep a moving `v1` tag, so callers stop pinning `@main`.
-- [ ] A short page on self-hosted runners (labels, one workspace per runner, disk clean-up; `~/.godot-ci` persists
-      there, so the cache steps are redundant).
+- [ ] Run on a real runner what could not be run here: `setup` and an export on `macos-latest` (the macOS download was
+      written from the release's asset names and tested only as names and paths), a signed Android, Windows and macOS
+      export through the workflow's secrets, the LFS and Gradle caches, and `environment:` left empty (GitHub runs the
+      job without one). The session that wrote these could not start PowerShell (its sandbox refused it), so
+      `Test-GameVersion.ps1`, PSScriptAnalyzer and the example exports were first run by the self-test, not locally.
 
 
 ## To do: from Valve's public material
