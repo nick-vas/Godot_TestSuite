@@ -61,7 +61,8 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
 - `JoyButton` is a position: `A` is the bottom button, labelled Cross on PlayStation and **B** on Nintendo. Map
   (family, button) to the picture; offer a "swap confirm and cancel" option rather than swapping on your own.
 - Prompts come from the current bindings (`PromptGlyphs.ForAction(action, family)`), so a rebind changes every hint,
-  tutorial and button label at once, as Xbox Accessibility Guideline 107 asks.
+  tutorial and button label at once, as Xbox Accessibility Guideline 107 asks. Never put a button's name in recorded
+  voice or painted into a texture: it cannot follow (a Sonic voice line named the wrong button; Nicolae Berbece, GDC 2016).
 - Kenney's Input Prompts (CC0) has Xbox, PlayStation, Switch, Steam Deck, keyboard and mouse sets; unpack it under
   `res://prompts` and record it in `assets.json` (`godot-asset-pipeline`). Fall back to text (`InputBindings.Label`).
 - `Input.JoyConnectionChanged` fires on plug and unplug. Pause the game when the controller in use disconnects.

@@ -59,6 +59,9 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/TRAILER.md`, gate `prototype.trailer`): genre in the first 5 seconds, then the
   hook, content (bosses, modes, unlocks) only at the end; and its three standout moments. Without one, write it before
   capturing anything.
+- **Accessibility:** a line in the description and the press kit naming the options (colour-blind mode, subtitles,
+  remapping), and a page listing them, what is missing included (XAG 121). Hue's press-kit bullet reached the reviews
+  that lifted it to a green Metacritic score; Dots and Flow Free had colour-blind options nobody found (Ian Hamilton, GDC).
 - **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep "Indie" and praise out of the top 5. List
   the tags of three top games of the genre and keep those all three share that fit yours; a good change shows as a
   Discovery Queue spike in Steam's traffic report. Judge page changes by wishlists per day, with a diary of each change,

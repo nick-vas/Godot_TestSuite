@@ -44,6 +44,9 @@ results in the plan's launch gates (`godot-game-plan`), and answer with what pas
 - [ ] every action rebindable, keyboard and gamepad both complete (`doctor` input checks, `godot-input`)
 - [ ] subtitles or captions for speech and important sounds; volume per kind of sound (`doctor` bus check, `godot-audio`)
 - [ ] text readable at the smallest supported screen (`textsize`), menus usable with a gamepad alone (`godot-ui-accessibility`)
+- [ ] the accessibility checks ran on the exact build that ships, with each platform's screen reader (VoiceOver and
+  TalkBack both, on mobile): a BBC game built for blind players lost VoiceOver in a build that arrived three hours before
+  launch (Hannah Bunce, GDC); `doctor` warns when `accessibility/general/accessibility_support` is Disabled
 
 ## 6. Early Access
 

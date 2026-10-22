@@ -114,6 +114,7 @@ general information, not legal advice; his fees are from then, so check current 
   commissioned entry
 - [ ] an end-user licence decided (own or the store's) and a mod/player-content clause if the game has either
 - [ ] refunds understood (Steam: within 14 days and under 2 hours of play)
+- [ ] chat between players, sold in the US: CVAA records kept and the yearly certificate filed (section 7)
 
 ## 6. Publisher agreements: what to check before signing
 
@@ -163,3 +164,11 @@ developer's share s = 50% of receipts R after the store's cut; neither column go
 
 Recouping from the developer's share makes the developer repay all of C alone: the first payment comes at R = C/s
 instead of R = C, and from then on its total is (1 - s)C lower for good.
+
+## 7. United States: the CVAA, when players can talk to each other
+
+A game with text, voice or video chat between players falls under the US CVAA (47 CFR Part 14): the chat and the path to
+it (menus, matchmaking, friends lists) must be accessible unless not achievable; records of how disabled players were
+consulted are kept until two years after the game stops being offered; an officer certifies them every 1 April. Read
+[cvaa.md](cvaa.md) before shipping chat to the US. General information, not legal advice.
+
