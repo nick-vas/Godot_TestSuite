@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-- Evals: the eval sandbox works on GitHub's Ubuntu 24.04 runners (AppArmor stopped bwrap from making user namespaces, so
+- Evals: bwrap is allowed to make its sandbox on GitHub's Ubuntu 24.04 runners (AppArmor stopped bwrap from making user namespaces, so
   every command in run 4 failed and its scores measured that); the workflow checks the sandbox before any case and fails
   when a result reports a bwrap error. Run 4's scores and what they do and do not show are in `docs/research.md`.
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
