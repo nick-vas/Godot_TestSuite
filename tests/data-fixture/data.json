@@ -1,18 +1,191 @@
 {
   "tables": {
-    "techs": { "file": "data/techs.json", "id": "id", "fields": { "requires": { "ref": "techs", "list": true, "optional": true, "acyclic": true } } },
-    "recipes": { "file": "data/techs.json", "id": "id", "fields": { "requires": { "ref": "itemz", "list": true, "optional": true, "acyclic": true } } },
-    "items": { "file": "data/items.json", "id": "id",
-      "fields": { "price": { "type": "int", "min": 0, "max": 9999 }, "rarity": { "enum": ["common", "rare"] } } },
-    "enemies": { "file": "res://data/enemies.csv", "id": "id",
-      "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true }, "speed": { "type": "number", "min": 0 } } },
-    "levels": { "file": "data/levels.json",
-      "fields": { "enemies": { "ref": "enemies", "list": true }, "boss": { "type": "bool" }, "music": { "type": "string", "pattern": "^res://", "optional": true } } },
-    "quests": { "file": "data/quests.json", "id": "id", "fields": { "reward": { "ref": "loot" } } },
-    "mechanics": { "file": "data/mechanics.json", "id": "id", "fields": {} },
-    "puzzles": { "file": "data/puzzles.json", "id": "id",
-      "fields": { "kind": { "enum": ["puzzle", "action"] }, "purpose": { "enum": ["teach", "reinforce", "moment", "breather"] },
-                  "mechanics": { "ref": "mechanics", "list": true },
-                  "solution": { "type": "string", "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$" } } }
+    "techs": {
+      "file": "data/techs.json",
+      "id": "id",
+      "fields": {
+        "requires": {
+          "ref": "techs",
+          "list": true,
+          "optional": true,
+          "acyclic": true
+        }
+      }
+    },
+    "recipes": {
+      "file": "data/techs.json",
+      "id": "id",
+      "fields": {
+        "requires": {
+          "ref": "itemz",
+          "list": true,
+          "optional": true,
+          "acyclic": true
+        }
+      }
+    },
+    "items": {
+      "file": "data/items.json",
+      "id": "id",
+      "fields": {
+        "price": {
+          "type": "int",
+          "min": 0,
+          "max": 9999
+        },
+        "rarity": {
+          "enum": [
+            "common",
+            "rare"
+          ]
+        }
+      }
+    },
+    "enemies": {
+      "file": "res://data/enemies.csv",
+      "id": "id",
+      "fields": {
+        "hp": {
+          "type": "int",
+          "min": 1
+        },
+        "drops": {
+          "ref": "items",
+          "list": true
+        },
+        "speed": {
+          "type": "number",
+          "min": 0
+        }
+      }
+    },
+    "levels": {
+      "file": "data/levels.json",
+      "fields": {
+        "enemies": {
+          "ref": "enemies",
+          "list": true
+        },
+        "boss": {
+          "type": "bool"
+        },
+        "music": {
+          "type": "string",
+          "pattern": "^res://",
+          "optional": true
+        }
+      }
+    },
+    "quests": {
+      "file": "data/quests.json",
+      "id": "id",
+      "fields": {
+        "reward": {
+          "ref": "loot"
+        }
+      }
+    },
+    "mechanics": {
+      "file": "data/mechanics.json",
+      "id": "id",
+      "fields": {}
+    },
+    "puzzles": {
+      "file": "data/puzzles.json",
+      "id": "id",
+      "fields": {
+        "kind": {
+          "enum": [
+            "puzzle",
+            "action"
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "teach",
+            "reinforce",
+            "moment",
+            "breather"
+          ]
+        },
+        "mechanics": {
+          "ref": "mechanics",
+          "list": true
+        },
+        "solution": {
+          "type": "string",
+          "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$"
+        }
+      }
+    },
+    "zones": {
+      "file": "data/zones.json",
+      "id": "id",
+      "fields": {
+        "xpToNext": {
+          "type": "int",
+          "min": 0,
+          "optional": true
+        }
+      }
+    },
+    "zonequests": {
+      "file": "data/zonequests.json",
+      "id": "id",
+      "fields": {
+        "zone": {
+          "ref": "zones"
+        },
+        "xp": {
+          "type": "int",
+          "min": 0
+        },
+        "gold": {
+          "type": "int",
+          "min": 0
+        }
+      },
+      "totals": [
+        {
+          "sum": "xp",
+          "by": "zone",
+          "atLeast": "zones.xpToNext"
+        },
+        {
+          "sum": "gold",
+          "by": "zone",
+          "atLeast": 100
+        },
+        {
+          "sum": "xp",
+          "by": "zone",
+          "atLeast": "zone.xpToNext"
+        },
+        {
+          "sum": "exp",
+          "by": "zone",
+          "atLeast": 1
+        }
+      ]
+    },
+    "characters": {
+      "file": "data/characters.json",
+      "id": "id",
+      "fields": {
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "names": {
+    "table": "characters",
+    "field": "name",
+    "files": [
+      "dialogue/**/*.json"
+    ],
+    "allow": [
+      "Belysa"
+    ]
   }
 }
