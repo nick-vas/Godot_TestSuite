@@ -6,6 +6,9 @@ on Linux x86_64 (4 cores, headless), with exported Linux builds of a small C# te
 here, **source** means read in the code, **doc** means stated by the vendor or author, and **unconfirmed** means not
 verified. The consoles, DebugDraw3D and the editor's Game workspace were read about, not run.
 
+Capture mode for trailers, GIFs and screenshots (HUD, music, cursor, freeze, time scale, free camera) comes from a GDC
+talk: [gdc/capturing-footage-for-trailers.md](gdc/capturing-footage-for-trailers.md).
+
 ## Sources
 
 | Source | What it gave |

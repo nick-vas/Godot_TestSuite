@@ -8,12 +8,13 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
-| `-Run` | off | `export`: launch builds this machine can run |
+| `-Run` | off | `export`: launch builds this machine can run; Web builds open in a browser (a debug export of the preset, served on 127.0.0.1, with cross-origin isolation headers only for a threads build) |
+| `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `GODOT_CI_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `GODOT_CI_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
@@ -22,15 +23,19 @@
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
 | `-Label` | | `bench`: the run's name in `bench.csv` |
+| `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow) |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
+| `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Mix` | off | `audio`: also record the game's own mix with Movie Maker (needs a display) and judge its loudness |
 | `-TargetLufs` | `-24` | `audio -Mix`: the integrated loudness the mix must reach, within 2 LU; `-18` for phones and handhelds |
+| `-MaxOnsetMs` | `20` | `audio`: warn when an `sfx` or `ui` file takes longer than this to come within 10 dB of its loudest 10 ms (`onsetMs`) |
 | `-Clients` | `4` | `soak`: headless clients started next to the one server |
 | `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows faster than this |
+| `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `<Results>/godot-ci.log`, not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
@@ -97,6 +102,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `culture-parse` | C# `float.Parse`, `double.Parse`, `decimal.Parse` (or `TryParse`) without `CultureInfo`, `NumberFormatInfo` or another format provider on the line: on a German system `"0.5"` parses as 5, on a French one it throws |
 | `steam-removed-api` | a call to `IsSteamRunningOnSteamDeck` or `RequestCurrentStats` (either casing): removed or deprecated in Steamworks SDK 1.65, and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 |
 | `steam-env-dotnet` | C# `Environment.SetEnvironmentVariable("SteamAppId"` or `SteamGameId`: on Linux and macOS .NET keeps its own copy of the environment, so the native Steam API never sees it; `OS.SetEnvironment` works |
+| `frame-dependent-lerp` | `_Process`/`_process` lerps a value toward a target and assigns it back to the same value, with a weight that has no `delta` in it: `Position = Position.Lerp(target, 0.1f)`, `x = Mathf.Lerp(x, target, 0.1f)`, `x += (target - x) * 0.1f`, GDScript `lerp`, `lerpf`, `lerp_angle`, `.lerp`, `.slerp`. A fixed fraction per frame converges faster at 144 fps than at 30 and ignores time scale; `1 - Mathf.Exp(-rate * delta)` does not. Not flagged: a weight that names `delta` (or a variable assigned from it), a lerp between two other values, `_physics_process` (a fixed rate), a call split over lines or made from a helper method ([why](gdc/juicing-your-cameras.md)) |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
@@ -109,6 +115,7 @@ reads it when the project has such files, and warns about:
 - non-commercial licences (`CC-BY-NC-*`)
 - GPL-family licences
 - licences it does not recognise
+- commissioned work with no `agreement`, with `rights` other than `assigned` or `licensed`, or licensed with no `uses`
 
 It also reports how many files need a credit (attribution licences such as `CC-BY-4.0` and `MIT`):
 
@@ -116,7 +123,11 @@ It also reports how many files need a credit (attribution licences such as `CC-B
 { "assets": [
   { "path": "art/kenney_ui/**", "source": "https://kenney.nl/assets/ui-pack", "author": "Kenney", "licence": "CC0-1.0" },
   { "path": "shaders/dissolve.gdshader", "source": "https://godotshaders.com/shader/...", "author": "...", "licence": "MIT" },
-  { "path": "art/player/**", "source": "own", "licence": "proprietary" }
+  { "path": "art/player/**", "source": "own", "licence": "proprietary" },
+  { "path": "art/boss/**", "source": "commissioned", "author": "Jane Doe", "licence": "proprietary",
+    "agreement": "WFH-2026-03", "rights": "assigned" },
+  { "path": "music/**", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music",
+    "agreement": "MM-2026-01", "rights": "licensed", "uses": ["game", "trailer", "store"] }
 ] }
 ```
 
@@ -127,6 +138,19 @@ The `path` patterns work like this:
 - The first entry that matches a file wins.
 
 The `licence` field takes an SPDX identifier, or `LicenseRef-<name>` for custom terms such as the Sonniss bundles.
+
+`"source": "commissioned"` marks work made for the game by anyone else: a contractor, a freelancer, a co-founder. Under US
+copyright the maker owns it unless a signed agreement says otherwise, so besides `licence` (`proprietary` when assigned,
+`LicenseRef-<name>` for a licence's own terms) such an entry has:
+
+- `agreement`: a reference to the signed document (an id, or a path kept outside the shipped project); never the contract
+  itself in a public repository
+- `rights`: `assigned` (the studio owns it: work for hire or an IP assignment) or `licensed` (the maker keeps it)
+- `uses` (licensed only): what the licence covers, as the agreement words it, such as `game`, `trailer`, `store`,
+  `soundtrack`, `merchandise`
+
+`doctor` lists licensed entries with their uses. `credits` treats commissioned work as the game's own (no third-party credit)
+unless its `licence` asks for one. The rules: `godot-legal` section 4 and [gdc/contract-law-201.md](gdc/contract-law-201.md).
 
 **`credits`** builds the game's credits from `assets.json`: `CREDITS.md`, `credits.json` (for a credits screen) and
 `THIRD-PARTY-NOTICES.txt` (each asset's copyright line and licence text, Godot's MIT text and its third-party components read
@@ -158,19 +182,41 @@ rule fails when an event went unanswered, or never happened (the bot did not rea
 to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).
 
 **The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
-`keys` or `key`) or `.po` files. It runs without Godot and has three cases: `duplicate keys` (the same key and context
-twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs, counted for
-15 common languages; others are not counted) and `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
-and `TranslationServer.Translate` calls that no table has; test folders are skipped). `tests/l10n-fixture` has one of each.
+`keys` or `key`), `.po` files or translation remaps. It runs without Godot and has six cases: `duplicate keys` (the same key
+and context twice), `untranslated` (an empty cell; an empty or fuzzy PO entry; fewer plural forms than the language needs,
+counted for 15 common languages; others are not counted), `missing keys` (literal keys in `tr`, `Tr`, `TrN`, `atr`
+and `TranslationServer.Translate` calls that no table has; test folders are skipped), `too long` (a CSV cell over the
+row's `_max` characters or `_lines` lines; `_max_<locale>` overrides `_max`), `translation remaps` (a remap target that does
+not exist or names no locale) and `localized audio` (a remapped sound whose sample rate, channels or bit depth differ from
+the source's, whose length is outside 0.5 to 2 times the source's, or whose loudness is more than 2 LU away; skipped with a
+warning without ffmpeg; `l10n.json` sets `voiceDurationMin`, `voiceDurationMax` and `voiceLoudnessLu`).
+`tests/l10n-fixture` has one of each; see [localization.md](localization.md).
 
 **`textsize.json`** (optional, in the Godot project folder) turns on the `textsize` runner, which measures every visible text
 on the listed scenes (the main scene by default) at each resolution (1280x800 by default, the Steam Deck), headless: the stretch
 scale comes from the project settings and the letters' height from the font. A font size under `minPx` (9) fails; capitals under
 `minPx` or a size under `wantPx` (12) are warnings. Integer scaling with a base bigger than the window fails (drawn 1:1, cut off).
+Subtitles are text in the `subtitleGroup` node group (`subtitles`), or inside a node in it, hidden or not; their sizes are
+given at 1080p and scaled with each window's height: a font size under `subtitleMinPx` (28) fails, under `subtitleWantPx` (46)
+warns (`subtitle-below-recommended`). The numbers come from two GDC talks ([docs/gdc/subtitles-are-changing.md](gdc/subtitles-are-changing.md)).
 `-Runners textsize` runs it without the file, with the defaults.
 
 ```json
-{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12 }
+{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12,
+  "subtitleGroup": "subtitles", "subtitleMinPx": 28, "subtitleWantPx": 46 }
+```
+
+**`layout.json`** (optional, in the Godot project folder) turns on the `layout` runner, which lays out the listed scenes (the main
+scene by default), headless, at each profile and fails on controls that are off screen, outside the profile's safe area, or too small
+to touch (`minTouchDp`, 48) or click (`minPointerPx`, 24 CSS px). Profiles: `phone_portrait` (1080x2400 at 420 dpi, a 128 px top inset
+and 66 px bottom), `phone_landscape`, `tablet` (2048x1536 at 264 dpi) and `ultrawide` (3440x1440, mouse), or
+`name:WIDTHxHEIGHT@DPI[:touch][:insets=L,T,R,B]`. If the game has a `SafeArea` autoload with `set_insets`/`SetInsets(left, top, right,
+bottom)`, each profile's insets are passed to it first, so the game's own safe-area handling is measured. `checks` limits what is
+reported. `-Runners layout` runs it without the file, with the defaults.
+
+```json
+{ "scenes": ["res://ui/menu.tscn"], "profiles": ["phone_portrait", "tablet", "foldable:1812x2176@374:touch:insets=0,96,0,48"],
+  "minTouchDp": 48, "minPointerPx": 24, "checks": ["off-screen", "unsafe-area", "small-target"] }
 ```
 
 **`data.json`** (optional, in the Godot project folder) turns on the `data` runner, which checks the game's data tables without

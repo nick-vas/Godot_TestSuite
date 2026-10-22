@@ -1,0 +1,5 @@
+keys,en,de,ja,_max,_max_de,_max_ja,_lines,_notes
+TITLE,Start game,Spiel starten,ゲーム開始,10,13,5,1,"German has its own, longer limit; Japanese its own, shorter one"
+CAFE,Café,Café,カフェ,4,,,1,"The English é is e plus a combining accent: 5 UTF-16 units, 4 characters"
+HINT,"Press A\nto jump","Drücke A\nzum Springen","Aで\nジャンプ",20,,,2,"Two lines; the line break is not counted"
+FAMILY,👨‍👩‍👧,👨‍👩‍👧,👨‍👩‍👧,1,,,1,"One character, eight UTF-16 units"

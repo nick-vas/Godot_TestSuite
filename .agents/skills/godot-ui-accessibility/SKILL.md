@@ -46,6 +46,13 @@ Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. 
   }
   ```
 - Never colour alone: selected, locked, disabled, error, rarity and team states also get an icon, shape, pattern or word.
+- Colours that mean something (friendly, enemy, danger, faction A) are defined once, in the theme or one static class, and
+  scenes and code use the names; then a colour that fails a test is fixed everywhere at once.
+- Two things that must never be confused are blue and orange: they stay apart for protanopes, deuteranopes and tritanopes.
+  Red and green of similar brightness collapse into one olive for the first two.
+- Key markers (team, squad, enemy, loot, path) get a player-chosen colour in the settings, a `ColorPickerButton` or a row of
+  swatches. Recolour the markers and the UI rather than offer a filter over the whole screen: a filter changes the world the
+  player sees and still does not guarantee the markers differ. The options sit on an Accessibility page.
 - Clickable controls at least 24 x 24 px at 1080p (`CustomMinimumSize`), more on a TV; touch targets 15 mm on phones
   (59 px at 100 DPI), 24 mm on tablets, and resizable (XAG 107).
 - Text is `Label`s with a font, never painted into textures (logos aside): it scales, translates and can be read aloud.
@@ -74,8 +81,18 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   first is only implemented on Windows and macOS), so the settings must exist either way.
 - Separate volume and mute for music, voice-over, gameplay effects, ambient effects and narration (one `AudioServer` bus
   each), apart from the master, and a mono option (XAG 105).
-- Subtitles for voiced dialogue and cutscenes, on at first start, with speaker names, at most 40 characters a line and two
-  lines, on an adjustable background (1.2.2, XAG 104).
+- Subtitles for all voiced dialogue, the opening cinematic included, on at first start or offered before the first line
+  (1.2.2, XAG 104). Size: design to 46 px at 1080p, never under 28 px, and offer a size setting. Put subtitle labels (or
+  their container) in the `subtitles` node group: the `textsize` runner fails them under 28 px and warns under 46 px,
+  scaled to each resolution's height.
+- Subtitle layout: bottom centre, in one place, inside a 5% safe margin; at most two lines of 38 characters (BBC; XAG 104
+  allows 40), broken where the sense breaks; one sentence per subtitle; on screen long enough for 180 words a minute.
+  Several at once: a new one enters at the bottom and pushes the oldest off the top, never a fixed row per speaker.
+  Tested splitting and reading time: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ui/Subtitles.cs`.
+- The speaker's name in text, even when colour tells speakers apart. Important sounds as captions in brackets, short
+  subject and verb ("[door slams]"), with an arrow for off-screen speakers and sounds.
+- A solid box behind subtitles with adjustable opacity (an outline or shadow alone breaks up over busy scenes), a sans
+  serif in sentence case, a live preview at the real size in the settings, and presets once the options are many.
 
 ## Predictable and forgiving (2.5.2, 3.2.2, 3.2.3, 3.3.1, 3.3.4)
 
@@ -116,4 +133,8 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   steps, and assert the screen it should reach. Flows send actions directly, so also check in Project Settings > Input
   Map that `ui_accept`, `ui_cancel` and the four directions each have a key and a joypad event.
 - Screenshots at every resolution in `docs/STYLE.md` and at 200% UI scale, critiqued with `/look` against this list.
+- The same screens as people with colour blindness see them: `shot -ColorVision protan,deutan,tritan` saves
+  `<name>.protan.png`, `.deutan.png` and `.tritan.png` next to each picture. Two states that look the same there need a
+  second cue, or other colours; ask a colour-blind player too, since they cannot report a cue they never see. The research:
+  `${CLAUDE_PLUGIN_ROOT}/docs/gdc/designing-for-color-blindness.md`.
 - Flows cannot yet assert which control has focus; check focus order by reading the scene until they can.

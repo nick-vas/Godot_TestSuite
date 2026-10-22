@@ -1,7 +1,8 @@
 #!/usr/bin/env pwsh
 # Self-test of the credits generator on tests/credits-fixture (one of each case: a CC BY credit, a CC BY 3.0 credit without
-# its title, MIT from the standard text, OFL from the asset's own licence file, CC0 thanks, and three errors), then the
-# `credits` command end to end on its clean sub-project, which reads the engine's notices from Godot (needs Godot).
+# its title, MIT from the standard text, OFL from the asset's own licence file, CC0 thanks, commissioned work assigned to the
+# studio and commissioned work under a credit licence, and three errors), then the `credits` command end to end on its
+# clean sub-project, which reads the engine's notices from Godot (needs Godot).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -23,6 +24,7 @@ try {
     Assert-True ($errors -contains 'copyright-missing shaders/water.gdshader') 'MIT without a copyright line is an error'
     Assert-True ($errors.Count -eq 3) "only those three errors: $($errors -join ' | ')"
     Assert-True ($warnings -contains 'credit-title-missing art/castle/**') 'CC BY 3.0 without a title warns'
+    Assert-True (-not ($warnings -match 'art/boss')) 'commissioned work under its agreement is not warned about as a bought asset'
     Assert-True (-not $r.ok) 'errors make the result not ok'
 
     $md = Get-Content -LiteralPath (Join-Path $out 'CREDITS.md') -Raw
@@ -30,6 +32,8 @@ try {
     Assert-True ($md -match 'Ann Lee .*; modified: recoloured') 'a modified work says so'
     Assert-True ($md -match 'Rain by Kenney \(CC0 1\.0\)') 'CC0 works get a thank-you line'
     Assert-True ($md -notmatch 'art/player') 'the game''s own work is not credited as third-party'
+    Assert-True ($md -notmatch 'art/boss|Ivy Ng') 'commissioned work assigned to the studio is not credited as third-party'
+    Assert-True ($md -match '"Last Light" by Max Mo, licensed under CC BY 4\.0') 'commissioned work under a credit licence gets its credit, with no source URL asked for'
 
     $notices = Get-Content -LiteralPath (Join-Path $out 'THIRD-PARTY-NOTICES.txt') -Raw
     Assert-True ($notices -match 'Copyright \(c\) 2021 Sam Roe' -and $notices -match 'Permission is hereby granted') 'MIT notices carry the copyright line and the licence text'

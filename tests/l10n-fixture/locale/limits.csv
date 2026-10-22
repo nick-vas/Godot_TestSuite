@@ -1,0 +1,7 @@
+keys,?plural,en,de,ja,_max,_lines,_max_ja,_notes
+TITLE,,Start game,Spiel starten!,ゲーム開始,10,,,"German is 14 characters, the limit 10"
+HINT,,"Press A\nto jump","Drücke A\nzum\nSpringen","Aで\nジャンプ",,2,,"German has three lines, the limit two"
+MENU,,Menu,Menü,メニュー画面,10,,4,"Japanese is 6, its own limit 4; German fits the general 10"
+COINS,COINS_PL,{n} coin,{n} Münze,{n}枚,12,,,"the second German form is 14"
+,,{n} coins,{n} Goldmünzen,,,,,
+SCORE,,Score,Punkte,スコア,ten,,,"not a number"

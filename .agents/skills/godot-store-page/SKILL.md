@@ -43,7 +43,8 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   translated sets.
 - **Trailer:** gameplay in the first seconds, no studio or engine logos first; the first video makes Steam's 6-second
   microtrailer, so it should be gameplay throughout. H.264 and AAC, up to 1920x1080, 30 or 60 fps, 44.1 or 48 kHz audio.
-  A release cannot go out while a trailer is still encoding.
+  A release cannot go out while a trailer is still encoding. Capture its footage with the HUD, music and cursor off
+  (capture mode and a free camera, `godot-debug-tools`); screenshots keep the UI.
 - **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep "Indie" and praise out of the top 5.
 - **Review rubric** (ask someone who has not seen the game, or the `look` skill on the page's screenshots): can they
   name the genre in 5 seconds? The hook? Is the gameplay visible? Is every screenshot readable at thumbnail size? If the
