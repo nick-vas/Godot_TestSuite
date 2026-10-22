@@ -225,6 +225,19 @@ function Invoke-Doctor($Info) {
         }
     }
 
+    # Text-to-speech: with audio/general/text_to_speech off (Godot 4.7.2's default), the engine starts speech on the first
+    # call instead of at launch. Read in 4.7.2's source: Android then waits up to 1 s on the main thread and drops the line
+    # if speech is still not ready; Linux opens Speech Dispatcher on a thread that the first line can overtake, which loses it.
+    # Narration that is slow or silent the first time breaks the player's trust in it (godot-ui-accessibility).
+    $ttsCalls = @(@(Find-ProjectFiles -Root $project -Filter '*.gd') + @(Find-ProjectFiles -Root $project -Filter '*.cs') |
+        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '\btts_speak\s*\(|\bTtsSpeak\s*\(' })
+    $ttsOn = (Get-GodotProjectSetting $projectGodot 'audio/general/text_to_speech') -eq 'true'
+    if ($ttsCalls -and -not $ttsOn) {
+        Add-Check WARN "Scripts speak with text-to-speech, but audio/general/text_to_speech is off, so the first line is late or lost: $(($ttsCalls | ForEach-Object { ConvertTo-ResPath $project $_.FullName } | Select-Object -First 3) -join ', ')" `
+            'Project Settings > Audio > General > Text to Speech on ([audio] general/text_to_speech=true in project.godot; godot-ui-accessibility)'
+    } elseif ($ttsCalls) { Add-Check OK 'Text-to-speech: started at launch (audio/general/text_to_speech)' }
+    elseif ($ttsOn) { Add-Check INFO 'audio/general/text_to_speech is on but no script calls tts_speak or TtsSpeak; Godot says it costs idle CPU' 'Turn it off unless an add-on speaks' }
+
     # Crash reporting: the Sentry addon starts before game code and attaches the Godot log unless told otherwise
     # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (godot-telemetry).
     if ((Test-Path -LiteralPath (Join-Path $project 'addons/sentry')) -or $projectGodot -match '(?m)^\[sentry\]') {
