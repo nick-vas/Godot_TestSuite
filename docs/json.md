@@ -89,8 +89,10 @@ finds no visible text. Text under the recommended size is a warning (`text-below
 another (`subtitle-below-recommended`), in `runnerResults[].warnings`; its log is `textsize.log`.
 The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
 (`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
-`unsafe-area`, `small-target`), separated by `; `; a case `run` when Godot fails, a scene cannot be loaded, a profile is
-not understood, or nothing was found to check. Its log is `layout.log`.
+`unsafe-area`, `small-target`, and `small-control` when `layout.json` sets `minControlDp`: a TouchScreenButton or a Control
+in the group `touch_control` under that size on a touch profile, `60 dp (9.5 mm, 158 px), under 75 dp`), separated by `; `;
+a case `run` when Godot fails, a scene cannot be loaded, a profile is not understood, or nothing was found to check. Its
+log is `layout.log`.
 The `l10n` runner has six cases, `duplicate keys`, `untranslated`, `missing keys`, `too long`, `translation remaps` and
 `localized audio`; a failure's message lists up to 50 entries, one per line: `res://file: 'KEY' reason` for the first four
 (`too long`: `'KEY' de is 14 characters, limit 10 (_max)` or `has 3 lines, limit 2 (_lines)`), `res://target (locale) does

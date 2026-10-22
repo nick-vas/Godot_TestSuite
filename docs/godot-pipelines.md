@@ -47,7 +47,9 @@ their own.
 4.7.2 and .NET 8:
 
 **gdUnit4Net**: add to the Godot project's csproj, write `[TestSuite]` classes and mark engine tests with
-`[RequireGodotRuntime]`. The suite writes the `.runsettings` (`GODOT_BIN`, `--headless`) for you.
+`[RequireGodotRuntime]`. The suite writes the `.runsettings` (`GODOT_BIN`, `--headless`, a 3-minute limit on the adapter's in-Godot rebuild
+instead of its 20 s default) for you. If that rebuild fails, the adapter runs none of its tests and still exits 0; the
+`dotnet` runner fails instead and names the cause (`gdUnit4 (tests not run)`).
 ```xml
 <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
 <PackageReference Include="gdUnit4.api" Version="5.0.0" />

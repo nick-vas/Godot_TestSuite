@@ -1,15 +1,17 @@
 # The `layout` runner: the game's screens laid out on phones, a tablet and an ultrawide monitor, headless. It fails on
-# Controls that are off screen, inside a notch or the system bars (unless the game moves them out through a SafeArea
-# autoload), or too small to touch (Android: 48 dp; Apple: 44 pt) or to click (WCAG 2.2: 24 CSS px).
+# Controls and TouchScreenButtons that are off screen, inside a notch or the system bars (unless the game moves them out
+# through a SafeArea autoload), or too small to touch (Android: 48 dp; Apple: 44 pt) or to click (WCAG 2.2: 24 CSS px).
+# With minControlDp set, also on-screen game controls (TouchScreenButtons, Controls in the group "touch_control") under
+# that size on touch profiles: controls pressed without looking need more than buttons the player looks at (75 suggested).
 # layout.json in the project turns it on:
 #   { "scenes": ["res://ui/menu.tscn"], "profiles": ["phone_portrait", "phone_landscape", "tablet", "ultrawide",
-#     "foldable:1812x2176@374:touch:insets=0,96,0,48"], "minTouchDp": 48, "minPointerPx": 24,
-#     "checks": ["off-screen", "unsafe-area", "small-target"] }
+#     "foldable:1812x2176@374:touch:insets=0,96,0,48"], "minTouchDp": 48, "minPointerPx": 24, "minControlDp": 75,
+#     "checks": ["off-screen", "unsafe-area", "small-target", "small-control"] }
 # One JUnit case per profile, or per profile, scene and node when something is wrong.
 
 function Get-LayoutConfig([string]$ProjectDir) {
     $config = [ordered]@{ scenes = @(); profiles = @('phone_portrait', 'phone_landscape', 'tablet', 'ultrawide'); minTouchDp = 48.0
-        minPointerPx = 24.0; checks = @('off-screen', 'unsafe-area', 'small-target') }
+        minPointerPx = 24.0; minControlDp = 0.0; checks = @('off-screen', 'unsafe-area', 'small-target', 'small-control') }
     $file = Join-Path $ProjectDir 'layout.json'
     if (Test-Path -LiteralPath $file) {
         try { $custom = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
@@ -20,7 +22,7 @@ function Get-LayoutConfig([string]$ProjectDir) {
         }
     }
     foreach ($check in @($config.checks)) {
-        if ("$check" -notin 'off-screen', 'unsafe-area', 'small-target') { Stop-GodotCi "layout.json: unknown check '$check' (off-screen, unsafe-area, small-target)" 'invalid-arguments' }
+        if ("$check" -notin 'off-screen', 'unsafe-area', 'small-target', 'small-control') { Stop-GodotCi "layout.json: unknown check '$check' (off-screen, unsafe-area, small-target, small-control)" 'invalid-arguments' }
     }
     if (@($config.profiles).Count -eq 0) { Stop-GodotCi 'layout.json: "profiles" is empty' 'invalid-arguments' }
     return $config
@@ -67,7 +69,7 @@ function Invoke-LayoutRunner($Info, [string]$ResultsDir) {
     Start-LogGroup "Layout on $(@($config.profiles) -join ', ')"
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--',
         "--scenes=$($scenes -join ',')", "--profiles=$(@($config.profiles) -join ';')", "--min-dp=$($config.minTouchDp)",
-        "--min-css=$($config.minPointerPx)", "--checks=$(@($config.checks) -join ',')") $log
+        "--min-css=$($config.minPointerPx)", "--min-control-dp=$($config.minControlDp)", "--checks=$(@($config.checks) -join ',')") $log
     Stop-LogGroup
     $result = ConvertFrom-LayoutLog @(Get-Content -LiteralPath $log) $config
     $cases = @($result.Cases)
