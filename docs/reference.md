@@ -31,6 +31,11 @@
 | `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
+| `-Sound` | all | `sfx`: which sounds: `coin`, `laser`, `explosion`, `powerup`, `hit`, `jump`, `blip` (or bfxr's names, `pickup_coin`...) |
+| `-Count` | `1` | `sfx`: sounds per kind, from consecutive seeds; with `-Vary`, how many variations |
+| `-Seed` | `1` | `sfx`: the first seed, a number or text; the same seed gives the same sound as bfxr2's library |
+| `-Vary` | | `sfx`: a `.bfxr` file to make variations of, each parameter moved by up to `-Amount` (0.05) of its range |
+| `-PeakDb` | `-6` | `sfx`: the peak every sound is scaled to, in dBFS; bfxr's sounds overshoot by up to about 2 dB between samples |
 | `-Mix` | off | `audio`: also record the game's own mix with Movie Maker (needs a display) and judge its loudness |
 | `-TargetLufs` | `-24` | `audio -Mix`: the integrated loudness the mix must reach, within 2 LU; `-18` for phones and handhelds |
 | `-MaxOnsetMs` | `20` | `audio`: warn when an `sfx` or `ui` file takes longer than this to come within 10 dB of its loudest 10 ms (`onsetMs`) |

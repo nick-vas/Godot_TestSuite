@@ -24,7 +24,31 @@ None of the web pages states a licence, so they are summarised and linked here, 
 | [John Johanas, Hi-Fi Rush GDC talk](https://www.youtube.com/watch?v=pG4UxqRMNX0) ([notes](gdc/hi-fi-rush-rhythm-action.md)) | Landing each action's impact on the beat by changing its animation speed; rewarding on-beat play without punishing off-beat play |
 | [Guy Somberg, "Lessons Learned from a Decade of Audio Programming"](https://www.youtube.com/watch?v=Vjm--AqG04Y) (GDC, 2014 inferred; notes in [gdc/decade-of-audio-programming.md](gdc/decade-of-audio-programming.md)) | Max within radius, a voice cap per spot that keeps every direction audible; integer voice handles; 6 dB as half or double |
 | Dominic Vega, "Building a Mixing Sandbox for Just Cause 4" ([GDC talk](https://www.youtube.com/watch?v=uN8RxOvrxMM); [notes](gdc/folds-l10n-audio-net.md)) | Snapshots driven by game state and time instead of sidechains for priority (a sidechain on the lowest bus is nearly always on, so its sounds get mastered hot); a storm's mix changing over 15 and 25 s; ambience muted past five engaged enemies; the player's vehicle moved to a higher bus instead of boosted |
+| [bfxr2](https://github.com/increpare/bfxr2) (Stephen Lavelle, MIT; its synthesis after Thomas Vian's SfxrSynth, Apache-2.0; wavetables AKWF, CC0) | `sfx`: the Bfxr synth, its seven presets and its seeded random numbers, ported to C# (`ci/godot/tools/Sfxr.cs`) |
 | [Xbox Accessibility Guideline 105](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/105) | Separate volume or mute for music, voice, effects, ambience and narration, and a mono option |
+
+## Sound effects from a seed (`sfx`)
+
+bfxr2's Bfxr synth is DrPetter's sfxr as extended by bfxr: an oscillator (square with a sweeping duty, saw, sine,
+triangle, noise, bit noise, tan, whistle, breaker and three AKWF wavetables), an attack, sustain-with-punch and decay
+envelope, pitch slides, vibrato, two pitch jumps, a repeat, low- and high-pass filters, a flanger, bit crush and a
+compressor, rendered 8 times per output sample at 44.1 kHz. `Sfxr.cs` translates `Bfxr_DSP.js` (engine 1.0.4), the
+presets in `Bfxr.js` (pickup_coin from its template, as bfxr's editor and library do) and the mulberry32 generator and
+FNV-1a seed that `lib/bfxrlib.js` installs as `Math.random`, so the kit and bfxr2 make the same sound from the same seed.
+`riffwave.js` (GPL-2) was not used: the WAV writer is the kit's own.
+
+Checked in October 2026 with bfxr2's library under Node.js 22: for each of the seven presets at seeds 1, 12345 and 777,
+the seed, every preset parameter and every sample were identical (21 sounds, largest difference 0). The `.bfxr` files
+`sfx` writes, opened by the same library, rendered to within half a 16-bit step of the WAVs. Godot 4.7.2 imported them
+as 44.1 kHz mono `AudioStreamWAV`. `tests/Test-Sfx.ps1` keeps the seed-1 length, RMS and three samples of each preset,
+so a change is caught without Node.js.
+
+- Untouched, bfxr's sounds peak between about -18 dBFS (a plain square) and 0 dBFS; `sfx` scales each to `-PeakDb`
+  (-6). Measured with `audio`: the true peak of six of them was 1.2 to 2.3 dB above the sample peak (sharp edges
+  overshoot between samples), so a peak of 0 dBFS would clip after conversion.
+- C# compiles in about 5 s the first time in a PowerShell session; a sound then takes about 15 ms.
+- `-Vary` is bfxr2 library's gentle mutation (each parameter, with even odds, moved by up to 5% of its range), not its
+  editor's, which also re-rolls the pitch.
 
 ## Middleware ideas in Godot
 

@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `sfx`: placeholder sound effects from a seed (coin, laser, explosion, powerup, hit, jump, blip), so a prototype has
+  sounds on day one. bfxr2's Bfxr synth ported to C# (`ci/godot/tools/Sfxr.cs`, Apache-2.0 and MIT) and compiled into
+  the session, so it needs no Godot; the same seed gives bfxr2's sound sample for sample. WAVs at `-PeakDb` (-6 dBFS),
+  `.bfxr` files bfxr2's editor opens, `-Vary` for variations of one sound, and an `assets.json` entry.
 - Algorithms (TheAlgorithms/C-Sharp, GPL-3.0, studied and measured, not copied; its MIT explanations read too;
   `docs/algorithms.md`): a `godot-algorithms` skill; Breakout.Core gains a Dijkstra map for crowds and fleeing
   (`DistanceField`), region labelling and union-find (`Regions`, `DisjointSet`) and "did you mean" (`Suggest`). The
