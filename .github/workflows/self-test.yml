@@ -36,6 +36,9 @@ jobs:
       - name: doctor reports LFS pointers, committed keys, Windows-reserved names, case twins and res:// paths in the wrong case
         shell: pwsh
         run: ./tests/Test-RepoHygiene.ps1
+      - name: doctor reports agent instructions that name kit flags or files that do not exist; the kit's own calls bind
+        shell: pwsh
+        run: ./tests/Test-Context.ps1
       - name: Architecture rules catch their fixtures and stay quiet on clean code
         shell: pwsh
         run: ./tests/Test-ArchitectureFixtures.ps1
@@ -97,6 +100,9 @@ jobs:
       - name: doctor's GDExtension, Steam package and Steamworks file checks (rich presence, achievements, build scripts), and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1
+      - name: doctor picks each GDExtension library as Godot does, and reports add-on mistakes
+        shell: pwsh
+        run: ./tests/Test-Addons.ps1
       - name: doctor checks Steam store art, the short description, trailers (with the ffprobe installed above), tags and the privacy policy
         shell: pwsh
         run: ./tests/Test-Store.ps1

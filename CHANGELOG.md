@@ -5,6 +5,39 @@
   Windows): Godot 4.7.2 headless aborted with 134 after finished exports 4 times in 23 runs. The crashed run's file is
   deleted first and the entry gets `retried`; an ordinary failure, a hang and a crash on every run still fail. The import
   and the Web debug export share the same `Invoke-GodotRetried` (`Test-CrashRetry.ps1`).
+- From the TRIBES networking paper, *Mathematics for Game Developers*, a Unity performance checklist and Adam Sawicki's
+  GPU debugging talk: Breakout.Core gains `BitPacker` (`BitWriter`/`BitReader`: bools, ints in the bits their range
+  needs, floats quantised in a range; a reader that disagrees with its writer throws) and `EventStream` (TRIBES'
+  events in the same packets as ghost state: numbered, a lost packet's events resent ahead of newer ones, and an event
+  naming an object sent only once its creation is in the packet or acknowledged; at 20% loss, 0 events before their
+  object, 11 without the wait), plus `EconomySim` (currency sources and sinks per hour, seeded over 10 to 1000 hours,
+  currencies without a sink, hours a player ran short). Skills: physics interpolation, events with state, bit packing
+  and client-set rates in `godot-multiplayer`; the 3D turn direction, the cross product as an area and the exercise
+  key's errors in `godot-math` (its worked examples match, its answer key does not); Godot 4.7 counterparts of the Unity
+  checklist in `godot-performance`; `--gpu-validation`, `--gpu-abort`, `--accurate-breadcrumbs` and
+  `--single-threaded-scene` in `godot-diagnose`; RenderDoc labels in `godot-debug-tools`; currencies in
+  `godot-progression`. What could not be run or checked here (Vulkan-only flags, shader precision, Mobile light limits,
+  dialogue tool licences) is in `docs/roadmap.md`.
+- Publisher contracts: Jan Willem Nijman's red flags from his comments on a 2020 publishing agreement draft
+  (`docs/publisher-contracts.md`, clause by clause with what to ask for; `godot-legal` section 6): markups and fixed
+  splits, recoup before any revenue, one-sided termination and breach clauses, unpublishing, reserves, sequel fees, and
+  a worked example of what a 15% markup and a 50/50 split cost against his 70/30 benchmark.
+- Add-ons and GDExtensions (`docs/addons.md`, skill `godot-addons`, `ci/godot/lib/Addons.ps1`): the state of 25 popular
+  add-ons on Godot 4.7, cross-checked with garciamarquez.dev's ranking. `doctor`'s GDExtension check now picks each
+  library as Godot does (measured on 4.7.2: every tag of a key must be a feature of the build, the most tags wins), for
+  each preset's release and debug builds and Android ABIs, with paths relative to the `.gdextension` and multi-line
+  `[dependencies]`. Before, it saw only `res://` paths, so the official template's and Debug Draw 3D's libraries were
+  never checked, and a build no key fits (Godot exports it with exit code 0 and no library) passed. New: an editor-only
+  extension exported, `compatibility_minimum` and `_maximum` against the project's Godot, the Godot Jolt extension on
+  4.4+, an add-on autoload the game uses but `project.godot` lacks, test add-ons shipped, and `forced_dd3d` in a preset.
+- `doctor` checks the instructions every agent session loads (IBM's context engineering: stale context poisons every
+  session): `AGENTS.md`, `CLAUDE.md` and their `@` imports. It warns about kit calls with a command or flag the script
+  does not have (read from its own parameters), files and `res://` paths that do not exist, imports that load nothing,
+  and files over 200 lines; lines kept from the kit's template are skipped. `tests/Test-Context.ps1` also holds the
+  template, skills and docs to the real flags. The kit's own `AGENTS.md` named `licences/` without its folder.
+- Evals: bwrap is allowed to make its sandbox on GitHub's Ubuntu 24.04 runners (AppArmor stopped bwrap from making user namespaces, so
+  every command in run 4 failed and its scores measured that); the workflow checks the sandbox before any case and fails
+  when a result reports a bwrap error. Run 4's scores and what they do and do not show are in `docs/research.md`.
 - Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
   an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
   `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the

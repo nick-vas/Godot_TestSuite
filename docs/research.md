@@ -45,6 +45,22 @@ First run with the token (2026-10-22, Claude Code 2.1.308): the eval stopped aft
 token` (`partialReason: auth_failed`), and the workflow, which ended with `exit 0`, showed green. Both workflows now
 check the token with one small `claude -p` request before anything else, and Evals fails when a run was never graded.
 
+Run 4 (2026-10-22, all four cases, 3 runs per arm, $1.77): the subscription token works for `claude plugin eval` in
+Actions, but the scores mostly measured a broken sandbox. On `ubuntu-latest` (24.04), AppArmor stops unprivileged
+programs from making user namespaces, so bwrap failed with `loopback: Failed RTM_NEWADDR: Operation not permitted` and
+every Bash call in a case failed with it ([Ubuntu 24.04 and Bubblewrap](https://etbe.coker.com.au/2024/04/24/ubuntu-24-04-bubblewrap/)).
+
+| Case | With | Without | What it measured |
+|---|---:|---:|---|
+| explain-failure | 0.67 | 1.00 | All 6 runs reported the bwrap error; without the plugin the model read the code and guessed right, with it the model refused to guess without a test run |
+| fix-score-bug | 0.67 | 0.67 | Fixed in every run, verified in none, and the kit never used: nothing could run |
+| lost-in-level | 1.00 | 0.00 | A design question, no commands: a real result for the plugin |
+| review-publishing-deal | 0.78 | 0.78 | A reading task, no commands: no difference |
+
+The Evals workflow now lets bwrap make namespaces (an AppArmor profile for bwrap, then the sysctl as a fallback),
+checks that the sandbox can run a command before any case, and fails when a result mentions a bwrap error. Only
+`lost-in-level` and `review-publishing-deal` count from run 4.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 
@@ -62,6 +78,8 @@ of which input and output were 1,947. Comparisons need the medians of repeated r
 | Context files gave no significant success gain and raised cost about 20%; LLM-written ones did slightly worse; repository overviews did not help; instructions about non-standard practice did | Evaluating AGENTS.md, [arXiv 2602.11988](https://arxiv.org/abs/2602.11988) | The `AGENTS.md` template lost its skill list and layout section and is capped at 4 KB |
 | Model reliability drops as input grows, even on simple tasks (18 models) | Chroma, [Context Rot](https://research.trychroma.com/context-rot) | `-Quiet`; failure details in the JSON; the verifier subagent |
 | Token use explained 80% of performance variance on BrowseComp; multi-agent beat single-agent by 90.2% but used about 15 times the tokens of chat; coding is a poor fit for many agents | Anthropic, [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) | One verifier subagent for isolated, verbose checks; coding stays in the main conversation |
+| Context engineering is choosing, structuring, ordering, compressing and maintaining what a model sees; one step is "preventing context poisoning, when inaccurate or malicious information enters the context window", and management means to "invalidate outdated data" | IBM, [What is context engineering?](https://www.ibm.com/think/topics/context-engineering) | `doctor` checks the instructions every session loads (`AGENTS.md`, `CLAUDE.md`, their imports) for kit flags and files that do not exist. The rest of the article (selection, structure, instructions first, compression) the kit already does, and its retrieval and database sections do not apply |
+| CLAUDE.md files: "target under 200 lines"; imports "don't reduce its context cost"; `/doctor prompt-audit` finds "references to files or commands that don't exist" | Claude Code [memory](https://code.claude.com/docs/en/memory) | The same check in `doctor`, against the kit's real parameters, on every run and for any agent; a warning over 200 lines |
 | Sub-agents return condensed summaries of 1,000 to 2,000 tokens; tool-result clearing is the lightest compaction | Anthropic, [effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) | The verifier replies in at most 15 lines |
 | A concise tool response used 72 tokens against 206 for the detailed one; errors should say what to do | Anthropic, [writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) | Failure `message`, `file`, `line`; hints print a command that can be pasted |
 | Hooks are deterministic, CLAUDE.md is advisory; a Stop hook can gate the end of a turn, with an 8-continuation cap | Claude Code [best practices](https://code.claude.com/docs/en/best-practices), [hooks](https://code.claude.com/docs/en/hooks) | The Stop hook (`hooks/stop-gate.ps1`) |
