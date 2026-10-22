@@ -77,16 +77,22 @@ runs:
       with:
         dotnet-version: 8.0.x
 
-    - uses: actions/cache@v6
+    # Restored here, saved at the end even when the tests fail (actions/cache saves only after a green job, so a red
+    # branch would download Godot and its templates again on every run). The flavour is in each key: C# projects use
+    # the .NET build and its templates, GDScript projects the standard ones, and a repository with both would otherwise
+    # restore the wrong one under a key that already exists, and never save the right one.
+    - id: godot-cache
+      uses: actions/cache/restore@v6
       with:
         path: ~/.godot-ci
-        key: godot-ci-${{ runner.os }}-${{ runner.arch }}-${{ steps.detect.outputs.godot-version }}
+        key: godot-ci-${{ runner.os }}-${{ runner.arch }}-${{ steps.detect.outputs.godot-version }}-${{ steps.detect.outputs.csharp == 'true' && 'mono' || 'standard' }}
 
-    - if: inputs.command == 'export'
-      uses: actions/cache@v6
+    - id: templates-cache
+      if: inputs.command == 'export'
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.detect.outputs.templates }}
-        key: godot-templates-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}
+        key: godot-templates-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-${{ steps.detect.outputs.csharp == 'true' && 'mono' || 'standard' }}
 
     - uses: actions/cache@v6
       with:
@@ -95,14 +101,17 @@ runs:
         restore-keys: nuget-${{ runner.os }}-
 
     # Godot's import cache: reused safely after a checkout to a new path with new file times (tested on 4.7.2, zero
-    # reimports). Not .godot/mono, which holds build output.
-    - uses: actions/cache@v6
+    # reimports). Not .godot/mono, which holds build output. The key hashes the source assets too: a .import file does
+    # not change when the picture it describes does, so a key of .import files alone never moves, and the cache would
+    # be restored stale and reimported on every run without ever being saved again.
+    - id: import-cache
+      uses: actions/cache/restore@v6
       with:
         path: |
           ${{ steps.detect.outputs.project }}/.godot/imported
           ${{ steps.detect.outputs.project }}/.godot/uid_cache.bin
           ${{ steps.detect.outputs.project }}/.godot/editor/filesystem_cache*
-        key: godot-import-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-${{ hashFiles('**/*.import', '**/project.godot') }}
+        key: godot-import-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-${{ hashFiles('**/*.import', '**/project.godot', '**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.webp', '**/*.svg', '**/*.tga', '**/*.exr', '**/*.hdr', '**/*.glb', '**/*.gltf', '**/*.blend', '**/*.fbx', '**/*.obj', '**/*.dae', '**/*.wav', '**/*.ogg', '**/*.mp3', '**/*.ttf', '**/*.otf', '**/*.woff2', '**/*.csv') }}
         restore-keys: godot-import-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-
 
     - id: run
@@ -144,6 +153,31 @@ runs:
         if ($env:GAME_VERSION) { $params.GameVersion = $env:GAME_VERSION }
         & $env:CLI $env:COMMAND @params
         exit $LASTEXITCODE
+
+    # Only a complete install (Setup writes GODOT_CI_INSTALLED after it), never a half-finished download.
+    - if: always() && steps.godot-cache.outputs.cache-hit != 'true' && env.GODOT_CI_INSTALLED == '1'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: ~/.godot-ci
+        key: ${{ steps.godot-cache.outputs.cache-primary-key }}
+
+    - if: always() && inputs.command == 'export' && steps.templates-cache.outputs.cache-hit != 'true' && steps.run.outcome == 'success'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: ${{ steps.detect.outputs.templates }}
+        key: ${{ steps.templates-cache.outputs.cache-primary-key }}
+
+    - if: always() && steps.import-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: |
+          ${{ steps.detect.outputs.project }}/.godot/imported
+          ${{ steps.detect.outputs.project }}/.godot/uid_cache.bin
+          ${{ steps.detect.outputs.project }}/.godot/editor/filesystem_cache*
+        key: ${{ steps.import-cache.outputs.cache-primary-key }}
 
     - if: always() && inputs.command == 'test' && steps.run.outputs.results != ''
       uses: actions/upload-artifact@v7
