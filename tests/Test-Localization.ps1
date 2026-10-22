@@ -1,6 +1,9 @@
 #!/usr/bin/env pwsh
-# Self-test of the l10n runner on tests/l10n-fixture (one of each problem), its clean sub-project and its voice sub-project
-# (translation remaps; the sounds are made here with ffmpeg, so none are committed). Runs without Godot.
+# Self-test of the l10n runner on tests/l10n-fixture (one of each problem), its clean sub-project, its voice sub-project
+# (translation remaps; the sounds are made here with ffmpeg, so none are committed) and its glyphs sub-project (a Latin
+# font with a katakana fallback: Japanese lacks two kanji, English, French and German are covered). The glyph check runs
+# the kit in Godot (GODOT_BIN, or the kit installs it); -NoGodot runs only the parts without Godot.
+param([switch]$NoGodot)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -37,7 +40,7 @@ $clean = @(Get-TranslationCases (Join-Path $fixture 'clean') | Where-Object { $_
 if ($clean) { $failures += "the clean project reported: $(($clean | ForEach-Object { "$($_.Name): $($_.Failure)" }) -join ' | ')" }
 
 $sources = Get-TranslationSources $fixture
-if ($sources.Csv.Count -ne 7 -or $sources.Po.Count -ne 1) { $failures += "detection found $($sources.Csv.Count) CSV and $($sources.Po.Count) PO files" }
+if ($sources.Csv.Count -ne 8 -or $sources.Po.Count -ne 2) { $failures += "detection found $($sources.Csv.Count) CSV and $($sources.Po.Count) PO files" }
 
 # A plain "zh" column is one table for Simplified and Traditional readers alike: a warning naming that column, not zh_TW.
 $zh = @(Get-TranslationWarnings $fixture)
@@ -128,6 +131,57 @@ Remove-Item -Recurse -Force $voice
 # A project with remaps and no translation table still gets the runner.
 $detected = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') detect -Json -Project (Join-Path $fixture 'voice') 2>$null) -join "`n" | ConvertFrom-Json
 if ('l10n' -notin @($detected.runners)) { $failures += "detect did not pick l10n for a project with translation remaps: $(@($detected.runners) -join ', ')" }
+
+# Glyphs, without Godot: the texts as the player sees them, the characters that need a glyph, and the tool's lines read back.
+$glyphs = Join-Path $fixture 'glyphs'
+$texts = @(Get-TranslationTexts $glyphs)
+$title = @($texts | Where-Object { $_.Locale -eq 'ja' -and $_.Key -eq 'TITLE' })
+if ($title.Count -ne 1 -or $title[0].Text -ne 'ゲーム開始' -or $title[0].File -ne 'res://locale/text.csv') { $failures += "Get-TranslationTexts should give ja TITLE from text.csv: $($title | ConvertTo-Json -Compress)" }
+if (@($texts | Where-Object { $_.Locale -eq 'de' -and $_.Key -eq 'Close' -and $_.Text -eq 'Schließen' }).Count -ne 1) { $failures += "the .po's German text was not read: $($texts | ConvertTo-Json -Compress)" }
+if (@($texts | Where-Object { $_.Locale -like '_*' }).Count) { $failures += 'a _notes column was read as a locale' }
+$points = @(Get-GlyphCodePoints "Score: {0} %d {name} [b]x[/b]$([char]0x200D) é`t$([char]0xFE0F)😀")
+$expected = @([int][char]'S', [int][char]'c', [int][char]'o', [int][char]'r', [int][char]'e', [int][char]':', [int][char]'x', 0xE9, 0x1F600)
+if (($points -join ',') -ne ($expected -join ',')) { $failures += "placeholders, tags, whitespace, joiners and variation selectors need no glyph: got $($points -join ',')" }
+$characters = Get-GlyphCharacters $texts
+if (-not $characters.Contains('ja') -or -not $characters['ja'].ContainsKey(0x958B) -or $characters['ja'].ContainsKey([int][char]'{')) {
+    $failures += "ja should need 開 and not the placeholder's braces"
+}
+$parsed = ConvertFrom-GlyphLog @('@@glyphs-font 0|res://fonts/latin.tres|default font', '@@glyphs-font 1|res://fonts/digits.tres|res://ui/theme.tres ProgressBar/font',
+    '@@glyphs-font 2|res://fonts/system.tres|res://ui/dialog.tres Label/font', '@@glyphs-missing 0|38283,22987', '@@glyphs-missing 1|65,38283',
+    '@@glyphs-system 2|Noto Sans CJK JP|38283') $characters @('res://fonts/digits.tres')
+$line = 'ja: res://fonts/latin.tres (default font) has no 始 U+59CB, 開 U+958B'
+if (@($parsed.Failures).Count -ne 1 -or -not $parsed.Failures[0].StartsWith($line) -or $parsed.Failures[0] -notmatch "'TITLE'") { $failures += "one failure for ja expected, '$line ... (in 'TITLE')', got: $($parsed.Failures -join ' | ')" }
+if (@($parsed.Warnings).Count -ne 1 -or $parsed.Warnings[0].rule -ne 'system-font' -or $parsed.Warnings[0].file -ne 'res://fonts/system.tres' -or $parsed.Warnings[0].message -notmatch '^ja: .*Noto Sans CJK JP') {
+    $failures += "one system-font warning for ja expected: $($parsed.Warnings | ConvertTo-Json -Compress)"
+}
+if (@($parsed.Report.fonts | Where-Object { $_['ignored'] }).Count -ne 1) { $failures += 'glyphIgnoreFonts should mark the digits font ignored' }
+
+# Glyphs in Godot: the kit's own run on a copy (the import writes beside the tables).
+if ($NoGodot) {
+    Write-Host 'SKIP the glyph check in Godot (-NoGodot)'
+} else {
+    $copy = Join-Path ([System.IO.Path]::GetTempPath()) "l10n-glyphs-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+    Copy-Item -Recurse $glyphs $copy
+    $results = "$copy-results"
+    $run = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') test -Json -Project $copy -Runners l10n -Results $results 2>$null) -join "`n" | ConvertFrom-Json
+    $l10n = @($run.runnerResults | Where-Object runner -eq 'l10n')
+    if ($run.ok -or $l10n.Count -ne 1) { $failures += "the glyphs project should fail the l10n runner: $($run | ConvertTo-Json -Compress -Depth 8)" }
+    else {
+        $glyphFailures = @($l10n[0].failures | Where-Object { $_.name -like '*missing glyphs' })
+        $details = "$(@($glyphFailures | ForEach-Object { $_.details }) -join "`n")"
+        if ($glyphFailures.Count -ne 1 -or -not ($details -split "`n" | Where-Object { $_.StartsWith($line) })) { $failures += "missing glyphs should report: $line`n  got: $($glyphFailures | ConvertTo-Json -Compress)" }
+        if ($details -match '(?m)^(en|fr|de):' -or $details -match 'digits') { $failures += "covered locales or the ignored font were reported: $details" }
+        if (@($l10n[0].failures | Where-Object { $_.name -notlike '*missing glyphs' }).Count) { $failures += "only missing glyphs should fail: $(@($l10n[0].failures | ForEach-Object name) -join ', ')" }
+        $system = @($l10n[0].warnings | Where-Object { $_.rule -eq 'system-font' -and $_.file -eq 'res://fonts/system.tres' })
+        if ($system.Count -ne 4) { $failures += "one system-font warning per locale (de, en, fr, ja) for the SystemFont expected: $($l10n[0].warnings | ConvertTo-Json -Compress)" }
+        $report = $l10n[0].glyphs
+        $ja = @($report.missing | Where-Object { $_.locale -eq 'ja' })
+        if (-not $report -or $report.checked -lt 1 -or $ja.Count -ne 1 -or ($ja[0].codePoints -join ',') -ne 'U+59CB,U+958B' -or $ja[0].font -ne 'res://fonts/latin.tres') {
+            $failures += "runnerResults[].glyphs should list ja's two missing kanji: $($report | ConvertTo-Json -Compress -Depth 6)"
+        }
+    }
+    Remove-Item -Recurse -Force $copy, $results -ErrorAction SilentlyContinue
+}
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" }; exit 1 }
 Write-Host 'l10n reports duplicate, untranslated (empty, fuzzy, short of plurals), missing and too long keys, broken remaps, mismatched localized voice, tables that are not UTF-8 and a plain zh locale, and nothing on a clean project'

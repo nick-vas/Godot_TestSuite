@@ -7,10 +7,14 @@ foreach ($lib in 'Common', 'Report', 'Status', 'Localization', 'Data') { . (Join
 $fixture = Join-Path $PSScriptRoot 'data-fixture'
 $failures = @()
 
-$cases = @{}
-foreach ($case in Get-DataCases $fixture) { $cases[$case.Name] = $case.Failure }
+$cases = @{}; $warned = @{}
+foreach ($case in Get-DataCases $fixture) {
+    $cases[$case.Name] = $case.Failure
+    $warned[$case.Name] = @(if ($case.Contains('Warnings')) { foreach ($w in $case['Warnings']) { $w['message'] } })
+}
 $expect = @{
     'data.json'     = @("table 'quests': data/quests.json does not exist",
+                        "table 'quotes': kind 'barks' is unknown (the one kind is responses)",
                         "table 'recipes' field 'requires' refers to table 'itemz', which data.json does not list; did you mean 'items'?",
                         "table 'recipes' field 'requires' is acyclic, which needs a ref to its own table ('recipes')",
                         "table 'quests' field 'reward' refers to table 'loot', which data.json does not list")
@@ -34,6 +38,19 @@ $expect = @{
                         "'slow-lockstep' purpose is 'filler', not one of: teach, reinforce, moment, breather",
                         "'two-switches' solution 'Try each switch. Then walk back up to see if the gate opened.' does not match ^(?!.*[.!?]\s+\S)\s*\S.*$",
                         "'timed-gap' kind is 'both', not one of: puzzle, action")
+    # ResponseSystem rows (Valve's dialogue rules): criteria syntax with the column, follow-ups to nobody, missing voice
+    # files, rules that tie for ever, criteria that contradict each other, and the columns' own shapes.
+    'table barks'   = @("'coach_hurt' criteria column 8: '<' needs a number, not 'lots'",
+                        "'nick_plan' then names concept 'AnswerPlna', which no rule has; did you mean 'AnswerPlan'?",
+                        "'nick_ask_rochelle' then sends 'AnswerPlan' to 'rochelle', but no 'AnswerPlan' rule is for 'rochelle' or for anyone",
+                        "'coach_witch' line 2 voice voice/coach_witch_2.ogg does not exist",
+                        "'zombie_b' has the same who, concept and criteria as 'zombie_a': the two tie and one is drawn at random each time, so make them one rule with all the lines",
+                        "'hurt_and_fine' can never match: its criteria on 'health' (health<10, health>20) contradict each other",
+                        "'bad_columns' has no lines",
+                        "'bad_columns' then needs a concept",
+                        "'bad_columns' remember 'mood' value is neither a number, true, false nor a name: 'very grumpy'")
+    # A voiced table needs a file for every line; a follow-up and a fact may come from another responses table.
+    'table radio'   = @("'radio_check' line 1 has no voice file")
 }
 foreach ($name in $expect.Keys) {
     $got = if ($cases.ContainsKey($name)) { "$($cases[$name])" -split "`n" } else { @() }
@@ -64,6 +81,32 @@ if ($cases['table puzzles'] -match 'three-flippers') { $failures += "three-flipp
 if ($cases['table zonequests'] -match "'jade'|'peak'") { $failures += "jade reaches its total and peak needs none: $($cases['table zonequests'])" }
 if (@("$($cases['table zonequests'])" -split "`n").Count -ne 4) { $failures += "zonequests should report four problems: $($cases['table zonequests'])" }
 if ($cases['names'] -match "'Belysa'|'TYRAEL'|'There'") { $failures += "an allowed word, a name in capitals or an ordinary word was reported: $($cases['names'])" }
+if (@("$($cases['table barks'])" -split "`n").Count -ne 9) { $failures += "barks should report nine problems: $($cases['table barks'])" }
+if (@("$($cases['table radio'])" -split "`n").Count -ne 1) { $failures += "radio should report one problem (its follow-up and fact come from barks): $($cases['table radio'])" }
+$wantWarnings = @("fact 'gag_cooldow' is read by 'gag', but no rule remembers it and the table's facts do not list it; did you mean 'gag_cooldown'?")
+if (($warned['table barks'] -join ' | ') -ne ($wantWarnings -join ' | ')) { $failures += "barks should warn only: $($wantWarnings -join ' | ')`n  got: $($warned['table barks'] -join ' | ')" }
+if (@($warned['table radio']).Count) { $failures += "radio reads seen_witch, which barks remembers: $($warned['table radio'] -join ' | ')" }
+
+# One criteria grammar: the cases Breakout.Core's ResponseTableTests also runs against CriteriaSyntax.Parse in C#.
+$examplesFile = Join-Path $root 'examples/breakout/tests/Breakout.Core.Tests/criteria-examples.json'
+$examples = @(Get-Content -LiteralPath $examplesFile -Raw | ConvertFrom-Json -AsHashtable)
+if ($examples.Count -lt 30) { $failures += "criteria-examples.json has $($examples.Count) cases" }
+foreach ($example in $examples) {
+    $parsed = Read-ResponseCriteria $example['text']
+    if ($example.Contains('error')) {
+        if ($parsed.Error -cne $example['error']) { $failures += "criteria '$($example['text'])': C# says '$($example['error'])', the data runner '$($parsed.Error)'" }
+        continue
+    }
+    $want = @(foreach ($c in @($example['criteria'])) {
+        $number = if ($c.Contains('number')) { ([double]$c['number']).ToString([cultureinfo]::InvariantCulture) } else { '' }
+        "$($c['key'])|$($c['op'])|$number|$(if ($c.Contains('name')) { $c['name'] })"
+    }) -join ' ; '
+    $got = @(foreach ($c in @($parsed.Criteria)) {
+        $number = if ($null -ne $c.Number) { ([double]$c.Number).ToString([cultureinfo]::InvariantCulture) } else { '' }
+        "$($c.Key)|$($c.Op)|$number|$($c.Name)"
+    }) -join ' ; '
+    if ($parsed.Error -or $got -cne $want) { $failures += "criteria '$($example['text'])': C# says '$want', the data runner '$got' $($parsed.Error)" }
+}
 
 # The levels table quoted in godot-game-design is the one tested here.
 function ConvertTo-RuleText($Rule) { (@($Rule.Keys) | Sort-Object | ForEach-Object { "$_=$(ConvertTo-Json $Rule[$_] -Compress)" }) -join ' ' }
@@ -80,9 +123,16 @@ else {
     }
 }
 
-$clean = @(Get-DataCases (Join-Path $fixture 'clean') | Where-Object { $_.Failure })
+$cleanCases = @(Get-DataCases (Join-Path $fixture 'clean'))
+$clean = @($cleanCases | Where-Object { $_.Failure })
 if ($clean) { $failures += "the clean project reported: $(($clean | ForEach-Object { "$($_.Name): $($_.Failure)" }) -join ' | ')" }
+$cleanWarnings = @(foreach ($case in $cleanCases) { if ($case.Contains('Warnings')) { foreach ($w in $case['Warnings']) { $w['message'] } } })
+if ($cleanWarnings) { $failures += "the clean project warned: $($cleanWarnings -join ' | ')" }
+if (-not ($cleanCases | Where-Object { $_.Name -eq 'table talk' })) { $failures += 'the clean project has no responses table checked' }
+# Breakout's own dialogue table (loaded by ResponseTable in its C# tests) is green too.
+$breakout = @(Get-DataCases (Join-Path $root 'examples/breakout/game') | Where-Object { $_.Failure -or ($_.Contains('Warnings') -and @($_['Warnings']).Count) })
+if ($breakout) { $failures += "examples/breakout/game/data.json reported: $(($breakout | ForEach-Object { "$($_.Name): $($_.Failure) $(if ($_.Contains('Warnings')) { @($_['Warnings'] | ForEach-Object { $_['message'] }) -join ' | ' })" }) -join ' | ')" }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'data reports duplicates, missing and unknown fields, types, ranges, enums and broken references (with the near name when there is one), prerequisite cycles, puzzle levels without one solution sentence or a purpose, and nothing on a clean project'
+Write-Host 'data reports duplicates, missing and unknown fields, types, ranges, enums and broken references (with the near name when there is one), prerequisite cycles, puzzle levels without one solution sentence or a purpose, dialogue rules (criteria syntax as in C#, follow-ups, voice files, ties, contradictions, facts never written), and nothing on a clean project'
 exit 0

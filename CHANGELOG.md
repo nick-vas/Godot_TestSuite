@@ -10,6 +10,27 @@
   key on closet door, go Hall -> Closet. Stuck in Closet, holding nothing"). `everyItemCanBeLost` is the stress test.
   A game's test calls `SoftLockCheck.AssertNoSoftLock(level)`; `godot-playtest` gains a section on it. With
   `LookTrigger`, the roadmap item is done.
+- Localization, from the roadmap's to-do list: the `l10n` runner gains a seventh case, `missing glyphs`, a glyph-coverage
+  check per locale without a display. It reads every translated string from the CSV and PO tables (an imported,
+  compressed `.translation` lists no keys, measured), drops placeholders, BBCode tags and invisible characters, and runs
+  `ci/godot/tools/glyphs.gd` in headless Godot to check each character with `Font.has_char` against the default font
+  (the project theme's, `gui/theme/custom_font` or Godot's Open Sans) and every font of a `.tres` theme, fallbacks
+  included. Each finding names the locale, font, characters with code points and up to five keys; characters only a
+  `SystemFont` could draw are a `system-font` warning (they depend on the player's OS), and `l10n.json`'s
+  `glyphIgnoreFonts` leaves out fonts that never draw translated text. `test -Json` adds `glyphs` to the l10n entry of
+  `runnerResults`. Measured on 4.7.2 (`docs/localization.md`): `has_char` walks `FontFile` and `FontVariation`
+  fallbacks but never the system fonts `allow_system_fallback` draws from. Fixture: `tests/l10n-fixture/glyphs`
+  (text-only bitmap fonts, no font file committed); `tests/Test-Localization.ps1` gains `-NoGodot`.
+- Dialogue tables, from the roadmap's Valve list: a `data.json` table of `"kind": "responses"` holds `ResponseSystem`'s
+  rules (id, who, concept, criteria, lines with optional voice files, then, remember, once), and the `data` runner fails
+  criteria syntax errors with the column, a `then` no rule answers (across all responses tables, with the near name),
+  voice files that do not exist (and lines without one when `"voiced": true`), rules with the same who, concept and
+  criteria, and criteria that contradict each other; a fact read but never remembered nor listed in `facts` is a
+  `fact-never-written` warning. `"type": "criteria"` checks the grammar in any table. Breakout.Core gains
+  `ResponseTable.Load` (rules from the same JSON, every bad row reported at once), `Rule.Voices` and `Rule.VoiceOf`, and
+  one strict criteria grammar, `CriteriaSyntax` (`Criterion.Parse` no longer accepts `a=` or `a=1;b=2` as one
+  criterion); 37 shared cases in `criteria-examples.json` keep the C# and PowerShell parsers in agreement. Breakout has a
+  green dialogue table (`game/data/barks.json`), and `tests/data-fixture` a broken one per check.
 - Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
   three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
   milestones), world rules, what failing costs, content counts and length, optional modes, open questions and a change

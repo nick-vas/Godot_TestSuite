@@ -212,7 +212,6 @@ From this pass (`docs/saves.md`, `docs/localization.md`, `docs/input.md`):
 | PlayStation and Nintendo save rules (saving indicator, minimum display time) | Under NDA; only Xbox's requirements are public |
 | Real power-loss testing of `SaveStore` | Needs a virtual machine or `dm-log-writes`; the kill test and crash-state tests cover the logic only |
 | Directory sync on macOS after a rename | `O_DIRECTORY` differs there and no primary source gives the best practice |
-| A glyph-coverage check per locale without a display | `shot` checks visible text; checking every translated string against the project font needs a Godot script run per locale |
 | `force_right_to_left_layout_direction` in an exported game | Needs export templates; the source says it works outside editor builds |
 | Controller names per OS, `steam_input_index` on a Steam Deck, SDL3's pad limit on Windows | No controller or Deck was available |
 | Kenney's PlayStation shoulder and right-stick picture names | The pack listing was cut off; `PromptGlyphs` returns text for them |
@@ -332,16 +331,17 @@ action, `setup` on macOS, optional signing secrets and an `environment` input on
 
 Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
 `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
-`godot-playtest` skill, Valve's process in `godot-game-plan`, and from the commentaries `LookTrigger` (a look target with
-a fallback timer) and `SoftLockCheck` (every order of using up or losing key items searched, the shortest path into a
-dead end reported). Still to do:
+`godot-playtest` skill, Valve's process in `godot-game-plan`, a dialogue authoring path (`"kind": "responses"` tables
+in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `docs/data.md`), and from the commentaries
+`LookTrigger` (a look target with a fallback timer) and `SoftLockCheck` (every order of using up or losing key items
+searched, the shortest path into a dead end reported). Still to do:
 
 - [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
       scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
       page is "Under Construction"), *Game Developer* November 2005 ("Scaling the Cabal": the GDC Vault serves a login
       page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
-- [ ] A dialogue authoring path: a `data.json` table for `ResponseSystem` rows (who, concept, criteria, lines, then,
-      remember), so the `data` runner checks criteria syntax, follow-up targets and missing voice files.
+- [ ] Dialogue tables in more than one language: per-locale lines (and voice files) in a responses table, checked for
+      lines missing in a locale. The `data` runner has no locales today, so lines are translated as keys.
 - [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
       `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),

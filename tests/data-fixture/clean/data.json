@@ -7,6 +7,7 @@
     "puzzles": { "file": "data/puzzles.json", "id": "id",
       "fields": { "kind": { "enum": ["puzzle", "action"] }, "purpose": { "enum": ["teach", "reinforce", "moment", "breather"] },
                   "mechanics": { "ref": "mechanics", "list": true },
-                  "solution": { "type": "string", "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$" } } }
+                  "solution": { "type": "string", "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$" } } },
+    "talk": { "file": "data/talk.json", "kind": "responses", "facts": ["gold"], "voiced": false }
   }
 }

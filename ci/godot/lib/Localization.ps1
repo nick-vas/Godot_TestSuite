@@ -1,23 +1,34 @@
-# The `l10n` runner: translation tables checked without Godot. It fails on duplicate keys, untranslated entries (an empty CSV
+# The `l10n` runner: translation tables checked without Godot, their characters against the fonts with it. It fails on duplicate keys, untranslated entries (an empty CSV
 # cell; an empty, fuzzy or short-of-plurals PO entry; a table that is not UTF-8), keys the code asks for that no table has, CSV text longer than the
 # limits in its _max/_lines columns, translation remaps to files that do not exist, and localized sounds whose format,
 # length or loudness differ from the source's (with ffmpeg; skipped without it). Selected when the project has Godot
 # translation CSVs (imported as csv_translation, or a first header cell "keys"), gettext .po files or translation remaps.
-# A plain "zh" locale is a warning (chinese-without-script).
+# A plain "zh" locale is a warning (chinese-without-script). With Godot (the `test` command always has it), every
+# character of every translation is checked against the fonts that would draw it (`missing glyphs`, tools/glyphs.gd);
+# characters only a SystemFont could draw are a warning (system-font).
 #
-# l10n.json in the project (optional) changes the localized-voice tolerances:
-#   { "voiceDurationMin": 0.5, "voiceDurationMax": 2.0, "voiceLoudnessLu": 2.0 }
+# l10n.json in the project (optional) changes the localized-voice tolerances and leaves fonts out of the glyph check:
+#   { "voiceDurationMin": 0.5, "voiceDurationMax": 2.0, "voiceLoudnessLu": 2.0, "glyphIgnoreFonts": ["res://fonts/digits.tres"] }
 
 function Get-L10nConfig([string]$ProjectDir) {
     # A localized line is rarely the source's length (European languages run about 30% longer than English), so the default
     # range only catches a wrong, cut or placeholder file. Lip-synced lines can ask for a tighter one.
-    $config = [ordered]@{ voiceDurationMin = 0.5; voiceDurationMax = 2.0; voiceLoudnessLu = 2.0 }
+    $config = [ordered]@{ voiceDurationMin = 0.5; voiceDurationMax = 2.0; voiceLoudnessLu = 2.0; glyphIgnoreFonts = @() }
     $file = Join-Path $ProjectDir 'l10n.json'
     if (Test-Path -LiteralPath $file) {
         try { $custom = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
         catch { Stop-GodotCi "l10n.json is not valid JSON: $($_.Exception.Message)" 'invalid-arguments' }
         foreach ($key in @($custom.Keys)) {
             if (-not $config.Contains($key)) { Stop-GodotCi "l10n.json: unknown setting '$key' (settings: $($config.Keys -join ', '))" 'invalid-arguments' }
+            if ($key -eq 'glyphIgnoreFonts') {
+                # A font that never draws translated text, such as a digits-only score font, named as the glyph check names it.
+                $paths = @(foreach ($path in @($custom[$key])) {
+                    if ("$path" -notlike 'res://*') { Stop-GodotCi "l10n.json: glyphIgnoreFonts lists res:// font paths, not '$path'" 'invalid-arguments' }
+                    "$path"
+                })
+                $config[$key] = $paths
+                continue
+            }
             $value = 0.0
             if (-not [double]::TryParse("$($custom[$key])", [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value) -or $value -le 0) {
                 Stop-GodotCi "l10n.json: $key must be a positive number, not '$($custom[$key])'" 'invalid-arguments'
@@ -395,8 +406,184 @@ function Get-TranslationCases([string]$ProjectDir) {
     )
 }
 
+# Every translated string as the player sees it: locale, key, table and text. CSV cells are unescaped as the import does,
+# with every plural form; PO msgstr values, without fuzzy entries (Godot skips them) and in the header's Language (the
+# file name without one). Tables Godot cannot read are left out: `untranslated` reports them.
+function Get-TranslationTexts([string]$ProjectDir) {
+    $sources = Get-TranslationSources $ProjectDir
+    $texts = [System.Collections.Generic.List[object]]::new()
+    foreach ($file in $sources.Csv) {
+        if (Get-TableEncodingProblem $file.FullName) { continue }
+        $res = ConvertTo-ResPath $ProjectDir $file.FullName
+        $import = "$($file.FullName).import"
+        $importText = if (Test-Path -LiteralPath $import) { Get-Content -LiteralPath $import -Raw } else { '' }
+        $delimiter = ','
+        if ($importText -match '(?m)^delimiter=(?<d>\d)') { $delimiter = @(',', ';', "`t")[[int]$Matches.d] }
+        $unescape = $importText -notmatch '(?m)^unescape_translations=false'
+        $rows = ConvertFrom-TranslationCsv (Get-Content -LiteralPath $file.FullName -Raw) $delimiter   # already an array of rows
+        if ($rows.Count -eq 0) { continue }
+        $header = @($rows[0])
+        $pluralColumn = [array]::IndexOf($header, '?plural')
+        $pluralKey = $null
+        for ($r = 1; $r -lt $rows.Count; $r++) {
+            $row = @($rows[$r])
+            if ($row[0] -eq '?pluralrule') { continue }
+            # The rows after a plural entry with an empty key hold its other forms.
+            if ($row[0]) {
+                $key = $row[0]
+                $pluralKey = if ($pluralColumn -ge 0 -and $pluralColumn -lt $row.Count -and $row[$pluralColumn]) { $key } else { $null }
+            } elseif ($pluralKey) { $key = $pluralKey }
+            else { continue }
+            for ($c = 1; $c -lt [math]::Min($header.Count, $row.Count); $c++) {
+                if (-not $header[$c] -or $header[$c][0] -in '_', '?' -or -not $row[$c]) { continue }
+                $text = if ($unescape) { ConvertFrom-CsvEscapes $row[$c] } else { $row[$c] }
+                $texts.Add([pscustomobject]@{ Locale = $header[$c]; Key = $key; File = $res; Text = $text })
+            }
+        }
+    }
+    foreach ($file in $sources.Po) {
+        if (Get-TableEncodingProblem $file.FullName) { continue }
+        $res = ConvertTo-ResPath $ProjectDir $file.FullName
+        $raw = Get-Content -LiteralPath $file.FullName -Raw
+        $locale = if ($raw -match '(?m)^"Language:\s*(?<l>[^\\"\s]+)') { $Matches.l } else { $file.BaseName }
+        $entries = ConvertFrom-PoFile $raw   # already an array of entries
+        foreach ($entry in $entries) {
+            if ($entry.Id -eq '' -or $entry.Fuzzy) { continue }
+            foreach ($n in @($entry.Strings.Keys | Sort-Object)) {
+                if ($entry.Strings[$n]) { $texts.Add([pscustomobject]@{ Locale = $locale; Key = $entry.Id; File = $res; Text = $entry.Strings[$n] }) }
+            }
+        }
+    }
+    return $texts.ToArray()
+}
+
+# The code points of a string that need a glyph. Placeholders (%d, %5.2f, {0}, {name}, {0:N2}) and BBCode tags ([b],
+# [color=red]) are replaced before the text is drawn; whitespace, control and format characters (zero-width joiners,
+# direction marks, the soft hyphen, the BOM) and variation selectors draw nothing.
+function Get-GlyphCodePoints([string]$Text) {
+    $visible = $Text -creplace '%(?:\d+\$)?[-+ 0#]*(?:\d+|\*)?(?:\.(?:\d+|\*))?[sdifFeExXcov%]', '' -creplace '\{\w*(?::[^{}]*)?\}', '' `
+        -creplace '\[/?[a-z_]+(?:=[^\[\]]*)?(?:\s[^\[\]]*)?\]', ''
+    $skip = @([System.Globalization.UnicodeCategory]::Control, [System.Globalization.UnicodeCategory]::Format,
+        [System.Globalization.UnicodeCategory]::SpaceSeparator, [System.Globalization.UnicodeCategory]::LineSeparator,
+        [System.Globalization.UnicodeCategory]::ParagraphSeparator)
+    $codes = [System.Collections.Generic.List[int]]::new()
+    for ($i = 0; $i -lt $visible.Length; $i++) {
+        $c = $visible[$i]
+        if ([char]::IsHighSurrogate($c) -and $i + 1 -lt $visible.Length -and [char]::IsLowSurrogate($visible[$i + 1])) {
+            $code = [char]::ConvertToUtf32($c, $visible[$i + 1]); $i++
+        } elseif ([char]::IsSurrogate($c)) { continue }
+        else { $code = [int]$c }
+        if ([System.Globalization.CharUnicodeInfo]::GetUnicodeCategory([int]$code) -in $skip) { continue }
+        if (($code -ge 0xFE00 -and $code -le 0xFE0F) -or ($code -ge 0xE0100 -and $code -le 0xE01EF)) { continue }
+        $codes.Add($code)
+    }
+    return $codes.ToArray()
+}
+
+# Per locale, each code point its strings use and the keys that use it (the first five).
+function Get-GlyphCharacters([object[]]$Texts) {
+    $locales = [ordered]@{}
+    foreach ($text in $Texts) {
+        if (-not $locales.Contains($text.Locale)) { $locales[$text.Locale] = [System.Collections.Generic.Dictionary[int, System.Collections.Generic.List[string]]]::new() }
+        $chars = $locales[$text.Locale]
+        foreach ($code in Get-GlyphCodePoints $text.Text) {
+            if (-not $chars.ContainsKey($code)) { $chars[$code] = [System.Collections.Generic.List[string]]::new() }
+            if ($chars[$code].Count -lt 5 -and -not $chars[$code].Contains($text.Key)) { $chars[$code].Add($text.Key) }
+        }
+    }
+    return $locales
+}
+
+# Theme resources saved as text: Control.theme gives each to a branch of the scene tree, so their fonts draw text too.
+function Get-ThemeFiles([string]$ProjectDir) {
+    return @(foreach ($file in Find-ProjectFiles -Root $ProjectDir -Filter '*.tres') {
+        $head = @(Get-Content -LiteralPath $file.FullName -TotalCount 5) -join "`n"
+        if ($head -match '(?m)^\[gd_resource type="Theme"') { ConvertTo-ResPath $ProjectDir $file.FullName }
+    })
+}
+
+# tools/glyphs.gd's lines, per font and locale: characters no font in the chain has (failures), and characters only a
+# SystemFont in the chain could draw (system-font warnings). $Characters is Get-GlyphCharacters' result; fonts named in
+# $Ignore (l10n.json glyphIgnoreFonts) are listed but not reported.
+function ConvertFrom-GlyphLog([string[]]$Lines, $Characters, [string[]]$Ignore = @()) {
+    $fonts = [ordered]@{}
+    $failures = [System.Collections.Generic.List[string]]::new()
+    $warnings = [System.Collections.Generic.List[object]]::new()
+    $missing = [System.Collections.Generic.List[object]]::new()
+    $system = [System.Collections.Generic.List[object]]::new()
+    $errors = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $Lines) {
+        if ($line -match '^@@glyphs-font (\d+)\|([^|]*)\|(.*)$') {
+            $fonts["f$($Matches[1])"] = [ordered]@{ name = $Matches[2]; where = $Matches[3].Trim(); ignored = ($Matches[2] -in $Ignore) }
+            continue
+        }
+        if ($line -match '^@@glyphs-error (.*)$') { $errors.Add($Matches[1].Trim()); continue }
+        if ($line -notmatch '^@@glyphs-(?<kind>missing|system) (?<n>\d+)\|(?:(?<names>[^|]*)\|)?(?<codes>[\d,]+)\s*$') { continue }
+        $kind = $Matches.kind; $names = $Matches['names']
+        $font = $fonts["f$($Matches.n)"]
+        if (-not $font -or $font['ignored']) { continue }
+        $codes = [System.Collections.Generic.HashSet[int]]::new()
+        foreach ($c in $Matches.codes -split ',') { if ($c) { [void]$codes.Add([int]$c) } }
+        foreach ($locale in $Characters.Keys) {
+            $chars = $Characters[$locale]
+            $hit = @(@(foreach ($code in $chars.Keys) { if ($codes.Contains($code)) { $code } }) | Sort-Object)
+            if ($hit.Count -eq 0) { continue }
+            $letters = @(foreach ($code in $hit) { [char]::ConvertFromUtf32($code) })
+            $points = @(foreach ($code in $hit) { 'U+{0:X4}' -f $code })
+            $keys = @(@(foreach ($code in $hit) { $chars[$code] }) | Select-Object -Unique | Select-Object -First 5)
+            $shown = @(for ($i = 0; $i -lt [math]::Min(20, $hit.Count); $i++) { "$($letters[$i]) $($points[$i])" }) -join ', '
+            if ($hit.Count -gt 20) { $shown += " and $($hit.Count - 20) more" }
+            $used = @($keys | ForEach-Object { "'$_'" }) -join ', '
+            $record = [ordered]@{ locale = $locale; font = $font['name']; where = $font['where']; characters = $letters; codePoints = $points; keys = $keys }
+            if ($kind -eq 'missing') {
+                $missing.Add($record)
+                $failures.Add("${locale}: $($font['name']) ($($font['where'])) has no $shown (in $used)")
+            } else {
+                $record['systemFonts'] = $names
+                $system.Add($record)
+                $warnings.Add([ordered]@{ rule = 'system-font'; severity = 'warning'; file = $(if ($font['name'] -like 'res://*') { $font['name'] } else { $null }); line = $null
+                    message = "${locale}: $($font['name']) ($($font['where'])) draws $shown only with the SystemFont $names, found on the player's machine: whether they have it depends on their OS (in $used)" })
+            }
+        }
+    }
+    $report = [ordered]@{ fonts = @($fonts.Values); missing = $missing.ToArray(); systemFont = $system.ToArray() }
+    return [pscustomobject]@{ Failures = $failures.ToArray(); Warnings = $warnings.ToArray(); Errors = $errors.ToArray(); Report = $report; Fonts = $fonts.Count }
+}
+
+# The `missing glyphs` case: every character of every translation against the fonts that would draw it, in Godot,
+# headless (tools/glyphs.gd). Godot is not started when no table has text.
+function Invoke-GlyphCheck([string]$ProjectDir, [string]$ResultsDir) {
+    $characters = Get-GlyphCharacters @(Get-TranslationTexts $ProjectDir)
+    $codes = [System.Collections.Generic.SortedSet[int]]::new()
+    foreach ($locale in $characters.Keys) { foreach ($code in $characters[$locale].Keys) { [void]$codes.Add($code) } }
+    if ($codes.Count -eq 0) {
+        return [pscustomobject]@{ Case = @{ Name = 'missing glyphs'; Failure = '' }; Warnings = @()
+            Report = [ordered]@{ checked = 0; fonts = @(); missing = @(); systemFont = @() } }
+    }
+    $charsFile = Join-Path $ResultsDir 'glyphs-chars.txt'
+    Set-Content -LiteralPath $charsFile -Value @(foreach ($code in $codes) { "$code" }) -Encoding utf8
+    $themes = @(Get-ThemeFiles $ProjectDir)
+    $tool = (Join-Path $PSScriptRoot '../tools/glyphs.gd' | Resolve-Path).Path -replace '\\', '/'
+    $log = Join-Path $ResultsDir 'glyphs.log'
+    Start-LogGroup "Glyphs: $($codes.Count) characters in $($characters.Count) locale(s) against the fonts"
+    $exit = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $ProjectDir, '-s', $tool, '--', "--glyph-chars=$charsFile", "--glyph-themes=$($themes -join ',')") $log
+    Stop-LogGroup
+    $config = Get-L10nConfig $ProjectDir
+    $result = ConvertFrom-GlyphLog @(Get-Content -LiteralPath $log) $characters @($config.glyphIgnoreFonts)
+    $problems = @(@($result.Failures) + @($result.Errors))
+    $errors = @(Get-GodotLogErrors $log)
+    if ($exit -ne 0) { $problems += "Godot exited with $exit" }
+    elseif ($errors) { $problems += $errors }
+    elseif ($result.Fonts -eq 0) { $problems += 'glyphs.gd named no font' }
+    $report = [ordered]@{ checked = $codes.Count; fonts = $result.Report.fonts; missing = $result.Report.missing; systemFont = $result.Report.systemFont }
+    return [pscustomobject]@{ Case = @{ Name = 'missing glyphs'; Failure = (@($problems | Select-Object -First 50) -join "`n") }; Warnings = @($result.Warnings); Report = $report }
+}
+
 function Invoke-LocalizationRunner([string]$ProjectDir, [string]$ResultsDir) {
     $cases = @(Get-TranslationCases $ProjectDir)
+    $glyphs = Invoke-GlyphCheck $ProjectDir $ResultsDir
+    $cases += $glyphs.Case
+    ConvertTo-Json -InputObject $glyphs.Report -Depth 5 | Set-Content -LiteralPath (Join-Path $ResultsDir 'glyphs.json') -Encoding utf8
     Write-JUnitCases (Join-Path $ResultsDir 'l10n.junit.xml') 'l10n' $cases
     foreach ($case in $cases | Where-Object { $_.Failure }) { Write-CiLog "l10n $($case.Name): $(($case.Failure -split "`n").Count) problem(s)" }
     # A comparison that could not run is a warning, never a pass.
@@ -404,7 +591,7 @@ function Invoke-LocalizationRunner([string]$ProjectDir, [string]$ResultsDir) {
         Write-CiLog "l10n $($case.Name) skipped: $($case.Skipped)"
         [ordered]@{ rule = 'no-ffmpeg'; severity = 'warning'; file = $null; line = $null; message = "$($case.Name): $($case.Skipped)" }
     })
-    foreach ($warning in Get-TranslationWarnings $ProjectDir) { Write-CiLog "l10n warning: $($warning.message)"; $warnings += $warning }
+    foreach ($warning in @(Get-TranslationWarnings $ProjectDir) + @($glyphs.Warnings)) { Write-CiLog "l10n warning: $($warning.message)"; $warnings += $warning }
     ConvertTo-Json -InputObject $warnings -Depth 4 | Set-Content -LiteralPath (Join-Path $ResultsDir 'findings.json') -Encoding utf8
     return 0
 }
