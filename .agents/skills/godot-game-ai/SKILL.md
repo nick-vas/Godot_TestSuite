@@ -7,8 +7,9 @@ description: Use when a Godot game has enemies, companions, crowds or opponents 
 
 Pick the simplest decision structure that holds, keep it in plain C# so it is tested without the engine, and wait for
 navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ai/`
-(`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Perception.cs`) with
-`examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`. Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
+(`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Aim.cs`, `Perception.cs`) with
+`examples/breakout/tests/Breakout.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
+`${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
 
 ## 1. Which structure
 
@@ -77,55 +78,24 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Seek is `normalize(target - position) * maxSpeed - velocity`. Reynolds' 1999 paper prints the subtraction the other way
   round under Seek: copied, the agent flees.
 - Arrive slows inside a radius; Seek overshoots and orbits ("like a moth around a light bulb").
-- Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek.
+- Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek. That guess
+  is fine for a body that re-steers every frame, not for a projectile, which cannot (below).
 - Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass a seeded `Random`.
 - Summed behaviours can cancel out; put obstacle avoidance first (the first non-zero wins) when it must not lose.
 
+### Aiming projectiles
+
+Lead anything slow enough to dodge with `Aim.Lead` (the exact intercept: the smallest positive root of a quadratic; null
+means no shot), arc with `Aim.Ballistic`, and miss on purpose with `Aim.Scatter` (±2 degrees) or the AI is an aimbot.
+`position + velocity * distance / speed` hit 3.6% of fast targets where `Aim.Lead` hit 100%. Details, the designer knobs
+and the fallbacks: [aiming.md](aiming.md).
+
 ## 6. Perception
 
-Perception is on or off: is the target there? What it means (an enemy, a noise worth a look) is the decision layer's
-job. `VisionSensor`, `VisionPie`, `VisionModifiers` and `TargetMemory` are in `Ai/Perception.cs`.
-
-- Cheapest first: pick which entities to try (the player, a body left on the floor), test shape and range in the eye's
-  local space, and cast a ray last. `VisionSensor.CanSee` casts no ray for a point outside the shape.
-- The shape is a pie: half-angle, far and optional near distance (3D adds top and bottom cut-offs). Hearing is a
-  radius; a small circle round the agent is a "sixth sense" for someone standing at its back. Nested shapes can carry
-  danger levels.
-- Sample several points on the target (head, hips, a hand) and stop at the first clear one: a twig hides a single
-  point. The node's origin is at the feet, behind every crate. Far away, a skeleton LOD may stop updating bones: fall
-  back to fixed offsets from the root.
-- Once the weapon is out, see from the muzzle (pass it as `eye`). Eyes above the gun see what the gun cannot hit, and
-  the agent loops between "I see it" and "I cannot shoot it".
-- Modifiers are a stack: each effect pushes and pops its own handle (`var h = Modifiers.Push("flashbang", 0)`, later
-  `Pop(h)`), so a flashbang wearing off keeps a designer's permanent blind. Factors above 1 count as 1: modifiers only
-  reduce, because players learn the ranges. Show the player why (a hand over the eyes).
-- Decisions read a `TargetMemory`, not this frame's ray: the last known position and time since seen keep a target
-  through a moment behind a pillar, and the search starts where it was last seen.
-- Aim the sensor from a dedicated node the animation drives, not the head bone, which sweeps it around; delay its turn
-  after a 180 so the player escapes just in time. If a target moving beside the agent flickers in and out, let the
-  sensor follow the target until it is occluded.
-- Smoke and tall grass: sum the depth the ray travels inside them, with a threshold per material. Whether a moving
-  object occludes can depend on state (Assassin's Creed Syndicate's carriages stopped hiding you once combat began).
-  Neither is in the core.
-
-Godot wiring, in `_PhysicsProcess` (the direct space state is only safe to query during the physics step):
-
-```csharp
-static LineOfSight RayTo(CollisionObject2D self, CollisionObject2D target, uint occluderMask)
-{
-    var space = self.GetWorld2D().DirectSpaceState;
-    var exclude = new Godot.Collections.Array<Rid> { self.GetRid(), target.GetRid() };
-    return (from, to) => space.IntersectRay(PhysicsRayQueryParameters2D.Create(
-        new Vector2(from.X, from.Y), new Vector2(to.X, to.Y), occluderMask, exclude)).Count == 0;
-}
-```
-
-- Exclude the observer and the target and mask to occluder layers. With the characters' layer in the mask and the target
-  not excluded, the target's own body blocks every ray. This 2D wiring ran once on 4.7.2 headless (a blocked head with
-  clear hips was seen, in 2 rays); it has no test in the repository. 3D (`PhysicsRayQueryParameters3D`) was not run.
-- Budget rays: queue sight requests and run at most N per physics frame, highest priority first (interacting with the
-  player, near the camera, in combat), the rest next frame; reuse a result when several agents test the same point.
-  Not tested: the kit has no scheduler. Measure N with `bench`.
+Perception answers "is the target there?"; what it means is the decision layer's job (`Ai/Perception.cs`). Test shape and
+range before casting a ray, sample several points on the target, see from the muzzle once the weapon is out, stack
+modifiers with handles, and decide from a `TargetMemory`, not this frame's ray. Rules, Godot ray wiring and budgets:
+[perception.md](perception.md).
 
 ## 7. Navigation (Godot 4.7)
 
@@ -170,7 +140,7 @@ Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness.
 
 - [ ] each structure's failure mode has a test: momentum stops flip-flopping, a higher branch interrupts and aborts,
       GOAP finds the cheapest plan, changes it when the situation changes its costs and gives up within its budget,
-      arrive does not overshoot
+      arrive does not overshoot, a led shot flown frame by frame hits fast targets
 - [ ] perception: no ray for a point outside the shape, one blocked sample does not hide the target, ending one
       modifier keeps the others, a brief occlusion does not forget the target
 - [ ] a scenario test waits for navigation to be ready, then asserts the agent reaches its goal within N seconds and is
