@@ -38,6 +38,12 @@ Master  <- a hard limiter, the last thing before the speakers
 - Shared effects are return buses: one `Reverb` bus that the world's sounds send to, not a reverb on every player.
 - A "snapshot" (a whole mix state: paused, cinematic, underwater) is a set of bus volumes and enabled effects, applied
   together and faded with a `Tween`. Keep them in one place, so states never fight over a bus.
+- Drive snapshots from game state and time, which a compressor cannot read (Just Cause 4, Dominic Vega's GDC talk):
+  enemies shooting at the player, an explosion only while the player looks at it. A long state changes as it lasts
+  against fatigue: their storm starts loud, its base drops about 10 dB after 15 s while thunder rises, and only 10 s
+  later may enemy fire duck it. Ambience falls as engaged enemies rise (muted past five, which also stops its streams).
+- When the player takes over a car (or any object), move its players to a higher-priority sub-bus with its own
+  snapshot. Boosting its volume instead built up low end, still pumped under louder sounds and needed a huge `MaxDistance`.
 - A bus name that does not exist falls back to Master at run time, silently: test the names (section 8).
 
 ## 2. Adaptive music
@@ -122,6 +128,9 @@ The most important sound must always be heard: dialogue over music, UI over ambi
   12 dB), set by ear. Duck a sub-bus or the players, not the player-facing Music bus, and keep the amount in one constant.
 - Sidechain ducking, automatic: an `AudioEffectCompressor` on the Music bus with `Sidechain = "Voice"`; the voice bus's
   level drives the cut. Tune `Threshold`, `Ratio` and `ReleaseMs` by ear; `AttackUs` is in microseconds.
+- For priority between whole buses, prefer scripted snapshots. A sidechain on the lowest bus is ducking almost all the
+  time, so whoever makes those sounds masters them hot to hear them, and the mix loses its dynamics. Just Cause 4
+  removed most compressors and sidechains and got more punch for less CPU.
 - Pause: the tree's pause pauses players; menu music and UI sounds set `ProcessMode = ProcessModeEnum.Always`. Muffle the
   game with an `AudioEffectLowPassFilter` on its buses, switched on with `AudioServer.SetBusEffectEnabled`, and duck it.
   A `Tween` that must run in the pause menu needs `SetPauseMode(Tween.TweenPauseMode.Process)`.

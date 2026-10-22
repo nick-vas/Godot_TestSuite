@@ -156,6 +156,10 @@ A one-frame spike the first time something appears (first enemy hit, first popup
   (OpenGL) renderer on an NVIDIA driver; Mobile on Vulkan (`rendering/rendering_device/fallback_to_opengl3=true`) fixed it.
 - Safety net: if V-Sync is on but the first second runs far above the refresh rate, set `Engine.MaxFps` to the refresh rate. A fixed
   "refresh + 2" cap caused beat drops instead.
+- When the GPU or V-Sync is the limit, every queued frame is input lag. Shadow of War's pipeline (simulation, render,
+  driver, GPU, display queue) once put the screen about 200 ms behind the input (Piotr Mintus, GDC 2018); they stretched
+  the simulation 1 ms a frame until the display queue drained. Keep `rendering/rendering_device/vsync/frame_queue_size`
+  at its default 2 and measure input lag in the GPU-bound case, not only in the menu.
 
 ## Cheap wins
 
@@ -165,6 +169,10 @@ A one-frame spike the first time something appears (first enemy hit, first popup
 - Shadow map 2048 with low soft-shadow quality is enough for a tilted top-down camera.
 - Content that rarely changes (a board drawn on the floor): a `SubViewport` with `UpdateMode.Once`, re-triggered only on change.
 - Turn fog off on additive particle materials (fog darkens them).
+- Scale CPU work from frame time, not only resolution: Shadow of War pushed character LODs out when rendering neared
+  30 ms of a 33 ms frame, and paused streaming high mips if frames still dropped. Past about 90% of the budget for
+  several frames, raise `Viewport.MeshLodThreshold` or pull in `VisibilityRangeEnd`; restore below a lower mark, held
+  longer, so it never flips frame to frame.
 - AI that re-plans, paths or rebuilds influence maps for many agents in one frame: spread it under a fixed per-frame budget
   (`godot-game-ai`, `FrameBudget`); 200 GOAP re-plans took 4 to 10 ms in one frame here, about 1 ms a frame over 4 to 6.
 

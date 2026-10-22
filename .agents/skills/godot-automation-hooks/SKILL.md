@@ -68,6 +68,12 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
 - Log **game time**, not wall-clock, and run many seeds in parallel faster than real time:
   `godot --headless --path . --fixed-fps 60 -- --autoplay --seed=N` (an engine flag, so it goes before `--`).
 - Deterministic bots loop: a "safe" fallback move repeated forever. When the goal is out of reach, pick a *random* safe move.
+- Bots press the player's inputs (the same actions or input frames), never set state: they can do nothing a player
+  cannot, and what they find is a player's bug. For Honor's bots used the player's input pipeline for this reason.
+- **Bot against bot for difficulty tiers.** For Honor ran over 250 bot duels a night on one PC and compared each
+  matchup's win ratio with a target (a fast fighter should beat a slow one more often than not), not with 50%. Anchor
+  each difficulty with one bot tuned by hand against people: two broken bots agree with each other. It finds large
+  anomalies, not fine balance.
 - Test every level or encounter end to end with the bot at two skill levels and several seeds. In one project this found five
   bugs that unit tests and solvers never showed.
 

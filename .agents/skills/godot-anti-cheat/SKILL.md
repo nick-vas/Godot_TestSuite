@@ -26,6 +26,8 @@ server deciding everything that matters; client-side software is a later, costly
 - Speed and rate: the server grants one input per tick of real time. Breakout's `Server` does: a client that sends two
   inputs a tick moved twice as fast before the fix (3997 px where real time allows 2000); now it does not, and the extra
   inputs are counted in `InputsRejected`. Cooldowns and timers run on server time.
+- Progress lives with the authority. Destiny's raid boss had one critical step in client-side logic, and pulling the
+  host's network cable at the right moment beat it; it became the usual way to win (`godot-multiplayer`, sessions.md).
 - Hits: check range and line of sight on the server, rewound to what the shooter saw (`godot-multiplayer`), with a cap
   on how far back.
 - Hide what players should not know: the server sends an enemy's position only when the client needs to draw it (Riot's
@@ -85,7 +87,25 @@ leaks they stay vulnerable (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/denial-of-service-mi
   to ~10,000 packets a second, then collapses by ~50,000 (input loss ~38-57%, round trips into the seconds, dropped
   clients). Well-written transports cope to ~250,000; Godot's single-threaded ENet poll sits well below that.
 
-## 7. Prove it
+## 7. Evidence and bans
+
+From DayZ's and Valve's GDC talks (Eugen Harton, as transcribed; John McDonald on CS:GO's VACnet):
+
+- **Evidence is recorded by the server** (a replay or a shot log, with the match's players and time), never sent by the
+  client, which can lie. Valve put the recording, storage and retrieval at 95% of the work of any automated detection.
+- **The server decides; the client at most collects.** Detection logic on the player's PC is detection logic the cheat
+  makers can read. Log server sanity checks on game logic (rates, distances, impossible sequences), within the
+  server's frame budget.
+- **Ban after a random delay, in waves** (DayZ: 1 to 3 or 1 to 7 days), never at the moment of detection: the cheat's
+  maker cannot tell which check fired, and the buyers of a new cheat are caught together.
+- **Plan for false positives**: a high bar, an appeal path and support ready for each case. A small game may prefer
+  soft measures: match flagged players with each other (Valve's Trust Score did not lower cheating, it limited who
+  met it). If players review cases, weight each reviewer by how often they agree with the consensus.
+- **Never taunt cheaters in public.** DayZ's producer did; the studio got personal harassment and attacks on its services.
+- **Why a few percent matters:** with n players in a match and a share p cheating, a clean player meets at least one in
+  1 - (1 - p)^(n - 1) of matches. With 10 players: 17% at p = 2%, 48% at 7%.
+
+## 8. Prove it
 
 - [ ] a test client that lies (sends results instead of inputs, too many inputs, out-of-range or NaN values, actions
       for another player's units) changes nothing on the server, and each attempt is counted
@@ -93,3 +113,4 @@ leaks they stay vulnerable (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/denial-of-service-mi
 - [ ] a replayed score is accepted; a score with a changed input is refused (`DeterminismCheck.Verify` finds the tick)
 - [ ] an edited single-player save loads or is refused cleanly, never crashes (`godot-saves`)
 - [ ] no player address appears in rich presence, spectator data or a debug overlay; unauthenticated peers time out
+- [ ] every ban names a server-recorded replay or log as its evidence, and goes out after a random delay, not at detection

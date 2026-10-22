@@ -20,6 +20,7 @@ secondary source.
 | [BattlEye](https://www.battleye.com/) | No public prices; "License inquiries" by form |
 | [Compiling with an encryption key](https://github.com/godotengine/godot-docs/blob/master/engine_details/development/compiling/compiling_with_script_encryption_key.rst), [GDRE Tools](https://github.com/GDRETools/gdsdecomp) | PCK encryption needs a custom template; the key ships in the binary; projects are recoverable |
 | Fletcher Dunn (Valve), "Denial of Service Mitigation" ([GDC talk](https://www.youtube.com/watch?v=2CQ1sxPppV4); [notes](gdc/denial-of-service-mitigation.md)) | A process fails on packet rate (~250,000 a second well-written, 100 to 1,000 naive) before bandwidth; never reveal player IPs (peer-to-peer, listen servers and dev tools/rich presence/spectating leak them); relay and identify by Steam ID; backend over HTTP; bans need a re-entry cost. The denial-of-service section of the skill |
+| Eugen Harton (as transcribed; Bohemia Interactive), "How DayZ Deals With Cheaters", and John McDonald (Valve), "Robocalypse Now: Using Deep Learning to Combat Cheating in CS:GO" (GDC) ([notes](gdc/folds-l10n-audio-net.md)) | Evidence from server-recorded replays; detections kept off the client; random ban delays and ban waves; false positives; soft measures (Trust Score) for small games; reviewers weighted by agreement; never taunting cheaters. Valve's one-movement-packet-per-tick fix is independent confirmation of the speed check here. The skill's evidence and bans section |
 
 ## The server decides (doc, source)
 
@@ -52,6 +53,16 @@ The fix gives each player one input of credit per tick of real time, up to `MaxC
 after a stall), and spends one per input applied. Inputs queued beyond `MaxQueue` (60) are refused and counted in
 `InputsRejected`. A client sending faster than real time fills its queue and gains nothing.
 
+## Evidence and bans (two GDC talks; self-reported)
+
+- DayZ, at the time of the talk: 1.39% of sold licences banned, about 44,000 banned accounts, around 400 cheats
+  catalogued, and a 76% "bounce rate": most banned cheaters stopped playing rather than stopped cheating, so DayZ bans
+  permanently rather than for a time. One game's own figures, not a benchmark.
+- Valve (CS:GO): cases sent to human review by the model were convicted 80 to 95% of the time, player reports 15 to
+  30%; a conviction needs 99.8% likelihood from the reviewers.
+- Base rate, recomputed: a clean player in 10-player matches meets a cheater in 1 - (1 - p)^9 of them:
+  1 - 0.98^9 = 0.166 at 2% and 1 - 0.93^9 = 0.480 at 7% (the talk: "two out of 10" and "half"). The enemy team has 5
+  slots for a cheater and the player's own 4.
 ## Leaderboards, achievements and saves (doc)
 
 - Steam: "If this is set to Trusted, the leaderboard scores cannot be set by clients, and can only be set by via

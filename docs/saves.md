@@ -21,6 +21,7 @@ Linux (ext4, .NET 8.0, Godot 4.7.2 mono). Marks: **tested** means run here, **so
 | [Google Play Games saved games](https://developer.android.com/games/pgs/savedgames) | What a conflict screen shows: cover image, description, played time, progress |
 | [Xbox XR-001](https://devdocs.xbox.com/publishing/certification/xr/xr-001), [XR-003](https://devdocs.xbox.com/publishing/certification/xr/xr-003), [XGameSave](https://devdocs.xbox.com/build/core-features/common/game-save/xgamesave) | No loss of user data; saves survive updates and are not destroyed by the base version; no static screen over 20 seconds |
 | [git merge](https://git-scm.com/docs/git-merge), [Lamport 1978](https://lamport.azurewebsites.net/pubs/time-clocks.pdf) | Fast-forward by ancestry, ordering without physical clocks |
+| Leah Shinkiewski (as transcribed), "Connecting Players and Franchise Across Console Generations in the Dragon Age Keep" (BioWare, GDC; [notes](gdc/folds-l10n-audio-net.md)) | Save import between games broke and needed patches; key choices kept apart with their plot rules, repaired to the least-change valid state, and only the changes shown: the skill's sequel carry-over subsection |
 
 ## Measurements
 

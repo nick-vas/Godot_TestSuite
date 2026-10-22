@@ -107,6 +107,7 @@ public struct DeterministicRandom(ulong seed)
         return State * 2685821657736338717UL;
     }
 
-    /// <summary>0 &lt;= value &lt; <paramref name="max"/>, from integers only.</summary>
+    /// <summary>0 &lt;= value &lt; <paramref name="max"/>, from integers only. Always one draw, even when max is 1: a
+    /// shortcut that skips it puts one machine a draw behind the others.</summary>
     public int Next(int max) => (int)(NextULong() % (ulong)max);
 }

@@ -103,6 +103,7 @@ still arrived within 12 packets (10 uncapped).
 
 Halo: Reach's rules for each mechanic (predict the look and let the host decide the outcome; ask where the lag is
 hidden; change the mechanic when that hides it; warp the logic and blend the look): [halo-reach.md](halo-reach.md).
+Lobbies, linked state, host migration and crossplay: [sessions.md](sessions.md).
 
 ## 4. Godot 4.7 specifics
 - `ENetMultiplayerPeer.CreateServer(port, maxClients)`: the client limit defaults to **32**. Do not pass a channel
@@ -153,6 +154,7 @@ hidden; change the mechanic when that hides it; warp the logic and blend the loo
   in re-simulated frames). Particles, cloth and IK run on the rendered frame only; reuse an effect whose spawn
   situation matches instead of re-spawning it, or a non-deterministic effect pops. Snap to the corrected state:
   blending caused foot sliding.
+- Re-simulation budget, AI and bots, players' machines (For Honor, Spelunky 2): [rollback-field.md](rollback-field.md).
 
 ## 6. Prove it
 
@@ -173,7 +175,7 @@ never got ready, or memory that keeps growing (`soak-failed`, `engine-errors`, `
 - [ ] bandwidth per client is measured (`ENetConnection.PopStatistic`) and under a budget
 - [ ] `soak` with the expected number of players for 10 minutes on each change, and for hours on a schedule
       (a GitHub job runs at most 6 hours: split longer soaks, or use your own runner)
-- [ ] a 2 to 3 second blackout: clients recover without the server dropping them
+- [ ] a 5 second blackout: clients recover without the server dropping them (Spelunky 2: 8% had cuts over 3 s)
 
 On a 4-core runner, 50 clients as separate processes took about 8 GB and a core; the same 50 in one process (a
 `SceneMultiplayer` per branch) took 184 MB and a sixth of a core. Leave the first seconds after many clients connect
