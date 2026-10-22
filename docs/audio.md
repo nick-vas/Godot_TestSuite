@@ -19,6 +19,8 @@ None of the web pages states a licence, so they are summarised and linked here, 
 | [Sony ASWG-R001 v1.10](https://gameaudiopodcast.com/ASWG-R001.pdf) (2013) | Loudness targets and how to measure them |
 | [IESD Mix Recommendations v03.02](https://www.audiogang.org/wp-content/uploads/2015/04/IESD-Mix-Ref-Levels-v03.02.pdf) (G.A.N.G., 2015) | The same console target from the industry body; a different mobile target |
 | [EBU R128](https://tech.ebu.ch/publications/r128) and ITU-R BS.1770 | What integrated loudness, true peak and loudness range mean, and how they are gated |
+| [Godot 4.7, "Sync the gameplay with audio and music"](https://docs.godotengine.org/en/4.7/tutorials/audio/sync_with_audio.html) | The song clock: playback position plus time since the last mix minus output latency, discarding readings that go back; the system clock drifts over long songs |
+| [John Johanas, Hi-Fi Rush GDC talk](https://www.youtube.com/watch?v=pG4UxqRMNX0) ([notes](gdc/hi-fi-rush-rhythm-action.md)) | Landing each action's impact on the beat by changing its animation speed; rewarding on-beat play without punishing off-beat play |
 | [Xbox Accessibility Guideline 105](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/105) | Separate volume or mute for music, voice, effects, ambience and narration, and a mono option |
 
 ## Middleware ideas in Godot
