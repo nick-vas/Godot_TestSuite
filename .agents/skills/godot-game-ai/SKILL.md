@@ -48,10 +48,26 @@ three states (go to, animate, use object) with a planner choosing what to put in
 - Actions declare preconditions, effects and a cost; `GoapPlanner.Plan(state, goal, actions)` searches backwards from
   the goal, so actions irrelevant to it cost nothing. A forward search took 110 ms and gave up on a six-step plan hidden
   among 20 cheap irrelevant actions; backward, it plans in microseconds.
-- Cap the search (`maxExpanded`) and treat `null` as "no plan": fall back to a default behaviour.
+- Cap the search (`maxExpanded`) and treat `null` as "no plan": fall back to a default behaviour. `Plan(..., out int expanded)`
+  reports the work done; assert on it, not on wall time, which fails under load.
 - Replan on events (the goal changed, the plan failed or was invalidated), not every frame and not on the plan's own
   effects. F.E.A.R. kept one goal active at a time and spread expensive checks across frames as cached facts.
 - Checks that cost (line of sight, a path) belong in the action's run-time check, not the world state.
+- Price actions from the situation instead of writing range rules: `GoapPlanner.Plan(state, goal, actions, costOf: a => ...)`
+  with walking costing the distance. Chris Conway's Tomb Raider example: 20 m away, melee 1 + walk 20 = 21 loses to
+  ranged 10 + walk 1, and out of ammo the same actions run in to melee with no rule to change (`GoapCostsFollowTheSituation`).
+- Plans are short. Eric Jacopin's logs of F.E.A.R., Shadow of Mordor and a Rise of the Tomb Raider alpha: mostly one
+  or two actions, a few of three or four; he advises three at most. Shorten them by moving logic out of the planner:
+  Peter Higley's Mordor orcs drew their swords as an animation transition, not a planned action.
+- Planning cost grows with the number of world-state variables. Higley folded about 40 flags that were never true
+  together (cower and the like) into one enum and planned on about 10 variables.
+- Cap planning calls per frame. Mordor allowed up to 50 AIs to plan in a frame and did not throttle; Jacopin found one
+  session crossing 50 calls within 0.4 s (usually 2 to 3 s) with up to 150 active NPCs. Conway plans on-screen and
+  nearby NPCs more often than distant ones.
+- Group decisions belong to a separate role-assignment system, not every agent's goals. Mordor's investigation system
+  takes every orc that saw a body, picks who searches (closest, a captain) and hands out roles (lead, watch his back,
+  dismiss); each orc's planner only plans for its role. Tomb Raider lets only so many investigate and delays the event
+  by distance, so the closest NPC plans first.
 
 ## 5. Steering
 
@@ -107,7 +123,8 @@ Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness.
 (`godot-test-loop`), wait on conditions with a time-out, never on a fixed number of frames.
 
 - [ ] each structure's failure mode has a test: momentum stops flip-flopping, a higher branch interrupts and aborts,
-      GOAP finds the cheapest plan and gives up within its budget, arrive does not overshoot
+      GOAP finds the cheapest plan, changes it when the situation changes its costs and gives up within its budget,
+      arrive does not overshoot
 - [ ] a scenario test waits for navigation to be ready, then asserts the agent reaches its goal within N seconds and is
       never stuck (it moves more than a little over every half second)
 - [ ] every random choice comes from an injected `Random(seed)`; the same seed gives the same run
