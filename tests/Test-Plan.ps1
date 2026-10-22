@@ -1,7 +1,8 @@
 #!/usr/bin/env pwsh
-# Self-test of the plan's vertical-slice gates on a fresh plan: slice.debt is automatic and turns true when
-# docs/TECH-DEBT.md exists (and `plan -Do done` refuses it), slice.budget is manual and names a real `bench` command,
-# and every gate id and godot-ci.ps1 flag that the plan or any skill quotes exists. No Godot needed.
+# Self-test of the plan's gates on a fresh plan: slice.debt and prototype.trailer are automatic and turn true when
+# docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
+# `bench` command, the trailer template asks what its gate says, and every gate id, template and godot-ci.ps1 flag that
+# the plan or any skill quotes exists. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -40,6 +41,27 @@ foreach ($skillFile in @(Get-ChildItem -LiteralPath (Join-Path $root '.agents/sk
     }
 }
 
+# Templates the planning and store-page skills tell an agent to copy exist.
+foreach ($skillName in 'godot-game-plan', 'godot-store-page') {
+    $text = Get-Content -LiteralPath (Join-Path $root ".agents/skills/$skillName/SKILL.md") -Raw
+    foreach ($quoted in [regex]::Matches($text, 'ci/godot/templates/(?<file>[A-Za-z0-9._-]+)')) {
+        Assert-True (Test-Path -LiteralPath (Join-Path $templates $quoted.Groups['file'].Value)) "$skillName names templates/$($quoted.Groups['file'].Value), which exists"
+    }
+}
+$planSkill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-plan/SKILL.md') -Raw
+Assert-True ($planSkill -match 'prototype\.trailer') 'godot-game-plan explains prototype.trailer'
+
+# The trailer template asks what the gate promises, in the talk's order: genre, then hook, content last; three standout
+# moments; a feedback column for every mechanic.
+$trailerPath = Join-Path $templates 'TRAILER.md'
+$trailer = (Test-Path -LiteralPath $trailerPath) ? (Get-Content -LiteralPath $trailerPath -Raw) : ''
+Assert-True ($trailer -ne '') 'templates/TRAILER.md exists'
+$genre = $trailer.IndexOf('| Genre (first 5 seconds)'); $hook = $trailer.IndexOf('| Hook'); $content = $trailer.IndexOf('| Content (last')
+Assert-True ($genre -ge 0 -and $hook -gt $genre -and $content -gt $hook) 'the trailer template orders genre (first 5 seconds), hook, then content'
+$moments = [regex]::Match($trailer, '(?s)## Three standout moments\r?\n(?<body>.*?)(\r?\n## |\z)')
+Assert-True ($moments.Success -and @([regex]::Matches($moments.Groups['body'].Value, '(?m)^[1-3]\.')).Count -eq 3) 'the trailer template has three standout moments to fill'
+Assert-True ($trailer -match '(?m)^\| Mechanic \|.*\| On-screen feedback a viewer sees \|') 'the trailer template pairs each mechanic with its on-screen feedback'
+
 try {
     New-Item -ItemType Directory -Force $dir | Out-Null
     Set-Content -LiteralPath (Join-Path $dir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Plan Fixture""`n"
@@ -47,8 +69,31 @@ try {
     $planPath = Join-Path $dir 'plan/plan.json'
     Assert-True (Test-Path -LiteralPath $planPath) 'plan -Do init writes plan/plan.json'
 
+    $fresh = Get-Content -LiteralPath $planPath -Raw
+
+    # The prototype phase: concept dropped from this copy, so the prototype is the current phase.
+    $plan = $fresh | ConvertFrom-Json -Depth 10
+    $plan.phases = @($plan.phases | Where-Object id -eq 'prototype')
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+    $d = Invoke-PlanJson @()
+    $next = @($d.nextActions)
+    $ids = @($next | ForEach-Object id)
+    $trailerGate = $next | Where-Object id -eq 'prototype.trailer'
+    Assert-True ($d.ok -and $d.currentPhase.id -eq 'prototype') 'the prototype is the current phase'
+    Assert-True ($trailerGate -and $trailerGate.auto -and $trailerGate.check -eq 'file:docs/TRAILER.md') 'prototype.trailer is open and checked automatically from docs/TRAILER.md'
+    Assert-True ($trailerGate -and $trailerGate.text -match 'genre' -and $trailerGate.text -match 'hook' -and
+        $trailerGate.text -match 'standout moments' -and $trailerGate.text -match 'on-screen feedback') 'prototype.trailer names genre, hook, standout moments and on-screen feedback'
+    Assert-True ($trailerGate -and [array]::IndexOf($ids, 'prototype.trailer') -lt [array]::IndexOf($ids, 'prototype.loop') -and
+        [array]::IndexOf($ids, 'prototype.trailer') -lt [array]::IndexOf($ids, 'prototype.verdict')) 'the trailer is written before the loop is built and before the verdict'
+    $refused = Invoke-PlanJson @('-Do', 'done', '-Id', 'prototype.trailer')
+    Assert-True (-not $refused.ok -and $refused.error.code -eq 'auto-gate') 'plan -Do done refuses prototype.trailer (auto-gate)'
+    New-Item -ItemType Directory -Force (Join-Path $dir 'docs') | Out-Null
+    if ($trailer) { Set-Content -LiteralPath (Join-Path $dir 'docs/TRAILER.md') -Value $trailer.Replace('{{GAME}}', 'Plan Fixture') }
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'prototype.trailer' -notin @($d.nextActions | ForEach-Object id)) 'prototype.trailer is done once docs/TRAILER.md exists'
+
     # Earlier phases are the user's to finish; dropping them from this copy makes the slice the current phase.
-    $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10
+    $plan = $fresh | ConvertFrom-Json -Depth 10
     $plan.phases = @($plan.phases | Where-Object id -eq 'vertical-slice')
     $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
 
