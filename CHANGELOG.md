@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Fixes found by the first CI runs after the GDC work: `test -Filter` no longer fails when the filter leaves out every
+  gdUnit4 test (they were counted as found but not run); a successful command now exits 0 explicitly, instead of
+  leaving the exit code of its last `git` call (128 in a repository without commits), which GitHub's PowerShell steps
+  report as the step's result.
 - GDC talks: 45 talks turned into a pull request each and 76 folded in as a line or two, each read in full from its
   transcript; the index, with what the kit took from each, is `docs/gdc/README.md`.
   - `test`: `failureDelta` names failures that are new, still failing or fixed since the last run of the same scope;
