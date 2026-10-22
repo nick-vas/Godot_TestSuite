@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `test`: the `dotnet` runner no longer passes when gdUnit4Net found tests but ran none. When its in-Godot rebuild
+  failed or timed out (20 s by default, easily reached on a busy machine), the adapter exited 0 with no results, so a
+  green run hid a skipped engine suite. Found-but-not-run tests are now one failure, `gdUnit4 (tests not run)`, with the
+  cause; the generated `.runsettings` allows the rebuild 3 minutes.
 - Phones, tablets and browsers:
   - `layout` runner (`layout.json`): each screen laid out, headless, on a portrait and a landscape phone, a tablet, an
     ultrawide and custom profiles; controls off screen, under the notch or system bars, or under 48 dp (touch) or 24 CSS
