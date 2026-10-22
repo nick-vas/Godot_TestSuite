@@ -178,7 +178,7 @@ Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could cl
 | Feature | Why | Smallest change |
 |---|---|---|
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
-| Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
+| Re-run `Evals` after the sandbox fix | Run 4 confirmed the subscription token but scored a sandbox that refused every command (`docs/research.md`) | Run the workflow once with `runs` 1 on `fix-score-bug` and `explain-failure`, check that the bwrap step passes, and record the scores |
 
 ## To do: audio
 
