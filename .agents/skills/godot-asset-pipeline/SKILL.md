@@ -26,6 +26,9 @@ Commit every `.import` file (it holds the import settings and the asset's UID); 
 
 ### Pixel art
 
+Drawing it with an agent: `init -McpAseprite "C:\Program Files\Aseprite"` registers aseprite-mcp (`${CLAUDE_PLUGIN_ROOT}/docs/mcp.md`).
+Keep `.aseprite` sources out of `res://`, export PNGs or sheets into the project, and look at each pass with `view_sprite`.
+
 Texture filtering is not an import setting in Godot 4: it is the project's default plus each node's `TextureFilter`.
 
 ```ini

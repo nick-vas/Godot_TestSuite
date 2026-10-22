@@ -42,6 +42,7 @@ Branch on `error.code`; `message` can change.
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit`, `invalid-arguments` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
+| `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, or no result was printed | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
