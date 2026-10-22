@@ -111,3 +111,109 @@ function Test-PressKit([string]$Folder) {
     }
     return [ordered]@{ ok = ($problems.Count -eq 0); screenshots = $shots.Count; problems = @($problems) }
 }
+
+# Trailers in store/steam (trailer*), read with ffprobe. The limits are the ones godot-store-page quotes from Steamworks'
+# trailer page: H.264 video and AAC audio, 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080. The kit's sources state no
+# container, length or minimum size, so those are only reported.
+$script:TrailerExtensions = '.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi', '.wmv', '.mpg', '.mpeg'
+function Get-TrailerFiles([string]$Folder) {
+    return @(Get-ChildItem -LiteralPath $Folder -File | Where-Object { $_.BaseName -like 'trailer*' -and $_.Extension.ToLowerInvariant() -in $script:TrailerExtensions } | Sort-Object Name)
+}
+
+function Test-SteamTrailers([string]$Folder) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $trailers = [System.Collections.Generic.List[object]]::new()
+    $invariant = [cultureinfo]::InvariantCulture
+    foreach ($file in @(Get-TrailerFiles $Folder)) {
+        $output = @(& ffprobe -v error -show_entries 'format=format_name,duration:stream=codec_type,codec_name,width,height,avg_frame_rate,sample_rate' -of json $file.FullName 2>$null)
+        $data = $null
+        if ($LASTEXITCODE -eq 0) {
+            try { $data = ($output -join "`n") | ConvertFrom-Json -AsHashtable } catch { $data = $null }
+        }
+        $streams = @(if ($data -and $data['streams']) { $data['streams'] })
+        $video = @($streams | Where-Object { $_['codec_type'] -eq 'video' }) | Select-Object -First 1
+        if (-not $video) { $problems.Add([ordered]@{ code = 'trailer-unreadable'; asset = $file.Name; message = "ffprobe finds no video in $($file.Name)" }); continue }
+        $audio = @($streams | Where-Object { $_['codec_type'] -eq 'audio' }) | Select-Object -First 1
+        $fps = 0.0
+        if ("$($video['avg_frame_rate'])" -match '^(?<n>\d+)/(?<d>\d+)$' -and [double]$Matches.d -gt 0) { $fps = [math]::Round([double]$Matches.n / [double]$Matches.d, 3) }
+        $seconds = 0.0
+        if ($data['format'] -and $data['format'].ContainsKey('duration')) {
+            [void][double]::TryParse("$($data['format']['duration'])", [System.Globalization.NumberStyles]::Float, $invariant, [ref]$seconds)
+        }
+        $info = [ordered]@{ file = $file.Name; container = $file.Extension.TrimStart('.').ToLowerInvariant(); seconds = [math]::Round($seconds, 1)
+            videoCodec = "$($video['codec_name'])"; width = [int]$video['width']; height = [int]$video['height']; fps = $fps
+            audioCodec = ($audio ? "$($audio['codec_name'])" : $null); sampleRate = ($audio ? [int]$audio['sample_rate'] : $null) }
+        $trailers.Add($info)
+        if ($info.videoCodec -ne 'h264') { $problems.Add([ordered]@{ code = 'trailer-codec'; asset = $file.Name; message = "$($file.Name) is $($info.videoCodec) video; Steam's trailer page asks for H.264" }) }
+        if ($audio -and $info.audioCodec -ne 'aac') { $problems.Add([ordered]@{ code = 'trailer-audio'; asset = $file.Name; message = "$($file.Name) has $($info.audioCodec) audio; Steam's trailer page asks for AAC" }) }
+        if ($audio -and $info.sampleRate -notin 44100, 48000) { $problems.Add([ordered]@{ code = 'trailer-audio'; asset = $file.Name; message = "$($file.Name) has audio at $($info.sampleRate) Hz; Steam's trailer page asks for 44.1 or 48 kHz" }) }
+        $standard = @(30, 60 | Where-Object { [math]::Abs($fps - $_) -lt 0.1 })
+        if ($standard.Count -eq 0) { $problems.Add([ordered]@{ code = 'trailer-fps'; asset = $file.Name; message = "$($file.Name) runs at $fps fps; Steam's trailer page asks for 30 or 60" }) }
+        if ($info.width -gt 1920 -or $info.height -gt 1080) { $problems.Add([ordered]@{ code = 'trailer-size'; asset = $file.Name; message = "$($file.Name) is $($info.width)x$($info.height), larger than the 1920x1080 Steam's trailer page names" }) }
+    }
+    return [ordered]@{ ok = ($problems.Count -eq 0); trailers = @($trailers); problems = @($problems) }
+}
+
+# store/steam/tags.txt: one tag per line, as chosen on Steam. Steamworks' tags page: at least 5 before launch, up to 20;
+# Zukowski: the first 5 weigh most, so keep "Indie" out of them (godot-store-page).
+function Test-SteamTags([string]$Text) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $tags = @($Text -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    foreach ($tag in $tags | Where-Object { $_ -match '[,;|\t]' }) {
+        $problems.Add([ordered]@{ code = 'tags-format'; status = 'WARN'; message = "'$tag' looks like several tags on one line; write one tag per line" })
+    }
+    foreach ($group in @($tags | Group-Object { $_.ToLowerInvariant() } | Where-Object Count -gt 1)) {
+        $problems.Add([ordered]@{ code = 'tags-duplicate'; status = 'WARN'; message = "'$($group.Group[0])' is listed $($group.Count) times" })
+    }
+    if ($tags.Count -gt 20) { $problems.Add([ordered]@{ code = 'tags-count'; status = 'WARN'; message = "$($tags.Count) tags; Steam takes up to 20" }) }
+    if ($tags.Count -lt 5) { $problems.Add([ordered]@{ code = 'tags-count'; status = 'WARN'; message = "$($tags.Count) tag(s); Steam wants at least 5 before launch" }) }
+    if (@($tags | Select-Object -First 5 | Where-Object { $_ -eq 'Indie' }).Count -gt 0) {
+        $problems.Add([ordered]@{ code = 'tags-top'; status = 'INFO'; message = "'Indie' is in the first 5 tags, which weigh most, and says little about the game" })
+    }
+    return [ordered]@{ tags = $tags; problems = @($problems) }
+}
+
+# Privacy: Google Play and the App Store require a privacy policy for every app, and the law does whenever the game
+# handles personal data (godot-legal section 2). Signs that the game collects player data: Sentry (the addon, its
+# [sentry] settings or SentrySdk), the kit's TelemetryClient, GameAnalytics or Firebase Analytics in the code, or a
+# policyVersion (consent recorded against a privacy notice). The policy is store/privacy-policy.md (.txt or .html) or PRIVACY.md, and says the
+# version the code asks consent for ("Version 2"). Returns @(status, message, fix) triples.
+$script:PrivacyPolicyPaths = 'store/privacy-policy.md', 'store/privacy-policy.txt', 'store/privacy-policy.html', 'PRIVACY.md'
+function Get-PrivacyProblems([string]$ProjectDir, [string]$ProjectGodot, $Details) {
+    $problems = [System.Collections.Generic.List[object]]::new()
+    $reasons = [ordered]@{}
+    if ((Test-Path -LiteralPath (Join-Path $ProjectDir 'addons/sentry')) -or $ProjectGodot -match '(?m)^\[sentry\]') { $reasons['Sentry'] = 'Sentry' }
+    $signs = [ordered]@{ Sentry = '\bSentrySdk\b'; TelemetryClient = '\bTelemetryClient\b'; GameAnalytics = '\bGameAnalytics\b'; 'Firebase Analytics' = '\bFirebase\.?Analytics\b' }
+    $versions = [ordered]@{}
+    $files = @(@(Find-ProjectFiles -Root $ProjectDir -Filter '*.cs') + @(Find-ProjectFiles -Root $ProjectDir -Filter '*.gd'))
+    foreach ($file in $files) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        $where = ConvertTo-ResPath $ProjectDir $file.FullName
+        foreach ($name in $signs.Keys) {
+            if (-not $reasons.Contains($name) -and $text -match $signs[$name]) { $reasons[$name] = "$name in $where" }
+        }
+        foreach ($m in [regex]::Matches($text, '(?i)\bpolicy_?version\b\s*(?::\s*\w+\s*)?[:=]+\s*(?<v>\d+(?:\.\d+)*)\b')) {
+            if (-not $versions.Contains($m.Groups['v'].Value)) { $versions[$m.Groups['v'].Value] = $where }
+        }
+    }
+    if ($versions.Count -gt 0 -and $reasons.Count -eq 0) { $reasons['policyVersion'] = "a policyVersion in $(@($versions.Values)[0])" }
+    $mobile = @(@($Details.Values) | Where-Object { $_.Platform -in 'Android', 'iOS' } | ForEach-Object { "'$($_.Name)' ($($_.Platform))" })
+    $policy = $null
+    foreach ($path in $script:PrivacyPolicyPaths) {
+        if (Test-Path -LiteralPath (Join-Path $ProjectDir $path) -PathType Leaf) { $policy = $path; break }
+    }
+    if (-not $policy) {
+        $fix = 'Write store/privacy-policy.md: who you are, what data, why, how long, who receives it, the player''s rights; publish it and link it from the game and the store page (godot-legal)'
+        if ($reasons.Count -gt 0) { $problems.Add(@('WARN', "The game collects player data ($(@($reasons.Values) -join ', ')) but has no privacy policy ($($script:PrivacyPolicyPaths -join ', '))", $fix)) }
+        if ($mobile.Count -gt 0) { $problems.Add(@('WARN', "Export preset $($mobile -join ', ') goes to a phone store, which requires a privacy policy even from a game that collects nothing, and there is none ($($script:PrivacyPolicyPaths -join ', '))", $fix)) }
+        return , $problems.ToArray()
+    }
+    $text = Get-Content -LiteralPath (Join-Path $ProjectDir $policy) -Raw
+    $missing = @($versions.Keys | Where-Object { $text -notmatch "(?i)\bversion\s*:?\s*v?$([regex]::Escape($_))(?!\.?\d)" })
+    foreach ($version in $missing) {
+        $problems.Add(@('WARN', "The code asks consent for privacy policy version $version ($($versions[$version])), but $policy does not say 'Version $version'",
+            "Update $policy and write its version in it (Version $version), or correct policyVersion; a new version asks every player again (godot-telemetry)"))
+    }
+    if ($missing.Count -eq 0) { $problems.Add(@('OK', "Privacy policy: $policy$(if ($versions.Count) { " (version $(@($versions.Keys) -join ', '), as in the code)" })", '')) }
+    return , $problems.ToArray()
+}

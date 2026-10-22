@@ -42,6 +42,8 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
   under 13?", and sends younger players to a version that collects nothing; COPPA safe-harbor companies help.
 - The kit's telemetry model (`godot-telemetry`) is built for this: nothing sent before consent, per purpose, no free
   text, export and erase. The policy describes exactly that schema, and its version matches `policyVersion` in the code.
+  Keep it in `store/privacy-policy.md` saying "Version N": `doctor` warns when telemetry or a phone preset has no policy,
+  or the policy is not at the code's version.
   Never copy another game's policy: it describes someone else's practices, so it misleads players (Reed). Link it from the
   main menu or splash screen and from the website's footer.
 - Store forms (Google Play's Data safety, Apple's privacy details) must match the policy, including what third-party SDKs

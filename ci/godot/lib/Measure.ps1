@@ -92,7 +92,9 @@ function Add-BenchCsvRow([string]$Path, $Result) {
 
 function Invoke-Shot {
     param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo,
-        [string[]]$ColorVision)
+        [string[]]$ColorVision, [double]$MaxChangedPercent = -1)
+    if ($MaxChangedPercent -ge 0 -and -not $Baseline) { Stop-GodotCi '-MaxChangedPercent compares with -Baseline: give the folder of the earlier screenshots' 'invalid-arguments' }
+    if ($MaxChangedPercent -gt 100) { Stop-GodotCi "-MaxChangedPercent is a percentage of pixels (0 to 100), not $MaxChangedPercent" 'invalid-arguments' }
     $kinds = @($ColorVision | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ } | Select-Object -Unique)
     foreach ($kind in $kinds) {
         if ($kind -notin 'protan', 'deutan', 'tritan') { Stop-GodotCi "-ColorVision takes protan, deutan and tritan, not '$kind'" 'invalid-arguments' }
@@ -165,6 +167,16 @@ function Invoke-Shot {
     $textProblems = @(foreach ($shot in $shots) { foreach ($problem in $shot.text) { $problem } })
     if ($locales -and $textProblems) {
         Stop-GodotCi "$($textProblems.Count) text problem(s) in the screenshots: cut off, off screen or missing glyphs (see shots[].text)" 'shot-text'
+    }
+    # A visual regression: more of the picture changed than allowed, or its size changed. A shot with no baseline picture is
+    # new, not changed.
+    if ($MaxChangedPercent -ge 0) {
+        $changed = @(foreach ($shot in $shots) {
+            if (-not $shot.Contains('compare') -or -not $shot.compare.image) { continue }
+            if ($shot.compare.sizeChanged) { "$(Split-Path $shot.file -Leaf) changed size" }
+            elseif ($shot.compare.changedPercent -gt $MaxChangedPercent) { "$(Split-Path $shot.file -Leaf) $($shot.compare.changedPercent)% changed" }
+        })
+        if ($changed) { Stop-GodotCi "$($changed -join '; ') (allowed: $MaxChangedPercent%); see each shots[].compare.image, and update -Baseline if the change is wanted" 'shot-changed' }
     }
     # After reporting the pictures: a scene that printed errors while it ran still fails the run.
     Assert-GodotLogClean $log 'The screenshot run'

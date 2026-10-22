@@ -49,7 +49,8 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   an asset flip. `shot -Resolution 1920x1080` takes them from real scenes, and `shot -Locale` makes
   translated sets.
 - **Trailer:** gameplay in the first seconds, no studio or engine logos first; the first video makes Steam's 6-second
-  microtrailer, so it should be gameplay throughout. H.264 and AAC, up to 1920x1080, 30 or 60 fps, 44.1 or 48 kHz audio.
+  microtrailer, so it should be gameplay throughout. H.264 and AAC, up to 1920x1080, 30 or 60 fps, 44.1 or 48 kHz audio;
+  `doctor` reads `store/steam/trailer*` with ffprobe and names what differs.
   A release cannot go out while a trailer is still encoding. Capture its footage with the HUD, music and cursor off
   (capture mode and a free camera, `godot-debug-tools`); screenshots keep the UI. Edit it (Derek Lieu, "Trailer Made",
   GDC): open with the hook, and teach early, like a tutorial, the one idea the rest depends on; keep a shot if it is clear,
@@ -62,7 +63,8 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
 - **Accessibility:** a line in the description and the press kit naming the options (colour-blind mode, subtitles,
   remapping), and a page listing them, what is missing included (XAG 121). Hue's press-kit bullet reached the reviews
   that lifted it to a green Metacritic score; Dots and Flow Free had colour-blind options nobody found (Ian Hamilton, GDC).
-- **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep "Indie" and praise out of the top 5. List
+- **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep them in `store/steam/tags.txt`, one per
+  line, in order (`doctor` names duplicates and counts out of range). Keep "Indie" and praise out of the top 5. List
   the tags of three top games of the genre and keep those all three share that fit yours; a good change shows as a
   Discovery Queue spike in Steam's traffic report. Judge page changes by wishlists per day, with a diary of each change,
   not by click-through (Zukowski, about 2021).
@@ -71,6 +73,9 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   genre is not clear, the page fails, whatever else is true.
 
 ## 3. Dates on Steam
+
+Record them in plan.json's `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`,
+`buildSubmitted`, `nextFest`, `demoSubmitted`, `pressPreview`); `plan` and `status` warn when a rule below cannot be kept.
 
 | Step | Rule |
 |---|---|

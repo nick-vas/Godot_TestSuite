@@ -4,6 +4,53 @@
 - Evals: bwrap is allowed to make its sandbox on GitHub's Ubuntu 24.04 runners (AppArmor stopped bwrap from making user namespaces, so
   every command in run 4 failed and its scores measured that); the workflow checks the sandbox before any case and fails
   when a result reports a bwrap error. Run 4's scores and what they do and do not show are in `docs/research.md`.
+- Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
+  an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
+  `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the
+  fee, 2 weeks of Coming Soon, 7 business days per review with the page first, the Next Fest demo 3 or 5 weeks ahead);
+  `plan -Json` returns the timeline as `release`. `doctor` reads `store/steam/trailer*` with ffprobe (H.264, AAC, 30 or
+  60 fps, 44.1 or 48 kHz, up to 1920x1080) and `store/steam/tags.txt` (5 to 20, one per line, no duplicates); warns when
+  telemetry, a `policyVersion` or an Android or iOS preset has no privacy policy (`store/privacy-policy.md` or
+  `PRIVACY.md`; Breakout now has one, written from what its telemetry records), or the policy does not say the version the code asks consent for; and checks the Steamworks files a
+  game keeps in `steam/` against its code with a new VDF reader (`ci/godot/lib/Steam.ps1`): rich presence tokens set as
+  `steam_display`, achievement and stat names against `steam/achievements.json`, and steamcmd app build scripts (a
+  numeric `AppID`, a `FileMapping` per depot, no secrets, no `SetLive "default"`, no `steam_appid.txt` uploaded).
+- CI, more from GameCI's documentation: `export -GameVersion auto` reads the version from git (the nearest `v*` tag and
+  the commits since: `1.2.3.4`, `1.2.3+4.gabc1234`; `0.0.0.<commits>` without a tag) and stops with `shallow-checkout`
+  in a shallow clone, before Godot is set up. Any `-GameVersion` also sets Android presets' `version/code` for the export
+  only (major\*1,000,000 + minor\*1,000 + patch, `gameVersion.androidVersionCode`). The action outputs `version`,
+  `android-version-code` and `build-path`, keeps Git LFS objects (`lfs` input) and Android's Gradle caches in the Actions
+  cache, and finds export templates on macOS; `setup` downloads the macOS build of Godot instead of stopping. `godot.yml`
+  takes optional signing secrets (Android keystore, Windows certificate, macOS certificate and notarization key) and an
+  `environment` for its export jobs, a `game-version` for runs that are not for a tag, and sends iOS presets to
+  `macos-latest`. New page: `docs/self-hosted-runners.md`. Self-test: `Test-GameVersion.ps1`.
+- Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
+  makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
+  0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility
+  Guideline 105. Breakout.Core gains `VoiceBudget`: a global voice cap with categories, priorities, oldest-first stealing
+  and protected categories, the part Godot leaves to games.
+- From the roadmap's to-do list: Breakout.Core's steering gains `Alignment` and `Cohesion` (with `Separation`, a flock: 30
+  boids head the same way within ten seconds without overlapping), `FollowPath` (Reynolds' corridor following, stopping at
+  the end) and `AvoidObstacles`; and `LookTrigger` (Valve's look target with a fallback timer: fires when the player has
+  looked at a point long enough, or when time runs out). A new architecture rule, `nondeterministic-sim`, flags
+  platform maths, `System.Random`, global random, clocks, per-process hashes and `Dictionary` iteration in the folders
+  `architecture.json` lists as `simulation`. `validate` fails a `.tres` that keeps a key its class no longer has (a renamed
+  export, whose value Godot drops on load).
+- Valve, from its own public material (talk slides, the 2012 handbook, the Cabal article, seven games' developer
+  commentary; `docs/valve.md`, 115 quotes checked word for word): Breakout.Core gains `PacingDirector` and `Intensity`
+  (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and
+  `ResponseSystem` (the dialogue rule database of Left 4 Dead 2, Portal 2 and Dota 2: a flat query, most criteria wins,
+  random ties, memory that expires, follow-ups looked up when a line ends, rules that remove themselves). New skill
+  `godot-playtest`; Valve's process in `godot-game-plan`; story that serves play and dialogue rules in `godot-narrative`;
+  scarce-but-never-empty resources and worst-case drop streaks in `godot-progression`; readability rules in the `STYLE.md`
+  template.
+- The second-pass test features from Croteam's CI talk: a `playthrough` runner (`playthrough.json`: the game's bot plays at
+  a fixed 60 fps of game time and must log every milestone in order, the ending last; `smoke` passed a bot stuck in the first
+  room), and the plan gate `production.playthrough` is now checked by it (`runner:<name>`, a new gate check). `smoke
+  -FixedFps` runs smoke at fixed game time. `shot -Baseline -MaxChangedPercent` fails a changed screen with the new code
+  `shot-changed`. `status` reports `testDuration` (the median of recent passing full test runs against the ten before) and
+  warns over `testBudgetSeconds` in `plan.json` (900 in new plans) or when runs grow by half. `Test-LibNames.ps1` fails when
+  two lib files define the same function (status had called `Audio.ps1`'s `Get-Median` instead of its own).
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the
