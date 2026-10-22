@@ -10,6 +10,12 @@
 # permit them). A JSON table is an array of objects, or an object keyed by id. One JUnit case per table.
 # Godot imports every .csv as a translation unless told otherwise, and then the file itself is not exported: a CSV table
 # needs its .import committed with importer="keep" (Import dock: Import As > Keep File).
+# "totals" on a table: what its rows add up to per group must reach a number or another table's field, as the quests of a
+# zone must give the experience its next level needs (Mists of Pandaria shipped zones that fell 10% short):
+#   "quests": { ..., "totals": [ { "sum": "xp", "by": "zone", "atLeast": "zones.xpToNext" } ] }
+# "names" at the top level: proper nouns spelled one letter or two away from a canonical name, in the files given (a comic
+# and the game spelled the same character Belrysa and Belysra):
+#   "names": { "table": "characters", "field": "name", "files": ["dialogue/*.json", "translations/*.csv"], "allow": [] }
 
 function Read-DataTable([string]$Path) {
     if ($Path -match '\.csv$') {
@@ -194,9 +200,111 @@ function Get-DataCases([string]$ProjectDir) {
             }
         }
         foreach ($cycle in @(Find-DataCycles $edges)) { $problems.Add("$cycle is a cycle: none of them can come first") }
+        foreach ($problem in @(Test-DataTotals $name $spec $loaded $tables)) { $problems.Add($problem) }
         $cases.Add(@{ Name = "table $name"; Failure = (@($problems) | Select-Object -First 50) -join "`n" })
     }
+    if ($config -and $config.Contains('names')) { $cases.Add(@{ Name = 'names'; Failure = (@(Test-DataNames $ProjectDir $config['names'] $loaded $tables) | Select-Object -First 50) -join "`n" }) }
     return $cases.ToArray()
+}
+
+function ConvertTo-DataNumber($Value) {
+    if ($Value -is [double] -or $Value -is [long] -or $Value -is [int] -or $Value -is [decimal]) { return [double]$Value }
+    $parsed = 0.0
+    if ("$Value" -match '^-?\d+(\.\d+)?$' -and [double]::TryParse("$Value", [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$parsed)) { return $parsed }
+    return $null
+}
+
+# The "totals" of one table: per group ("by"), the sum of a field against what is needed to go on. A group's need comes from
+# a number, or from the row of another table whose id is the group ("zones.xpToNext"); a row without that field (the last
+# zone) needs nothing. Problems as text; configuration mistakes are reported here too, with the table they belong to.
+function Test-DataTotals([string]$Name, $Spec, $Loaded, $Tables) {
+    if (-not $Spec.Contains('totals')) { return @() }
+    $problems = @()
+    foreach ($total in @($Spec['totals'])) {
+        $sum = $total['sum']; $by = $total['by']; $need = $total['atLeast']
+        if (-not $sum -or -not $by -or $null -eq $need) { $problems += "totals needs sum, by and atLeast: $($total | ConvertTo-Json -Compress)"; continue }
+        $missing = @(foreach ($f in $sum, $by) { if (-not $Spec['fields'].Contains($f)) { $f } })
+        if ($missing) { $problems += "totals names $($missing -join ' and '), which the table does not list$(Format-DidYouMean $missing[0] @($Spec['fields'].Keys))"; continue }
+        $sums = [ordered]@{}
+        foreach ($record in $Loaded[$Name]) {
+            if (-not $record.Contains($by) -or "$($record[$by])" -eq '') { continue }
+            $n = ConvertTo-DataNumber $record[$sum]
+            if ($null -eq $n) { continue }   # the field rule reports it
+            $group = "$($record[$by])"
+            $sums[$group] = $n + $(if ($sums.Contains($group)) { $sums[$group] } else { 0 })
+        }
+        $needs = [ordered]@{}; $label = ''
+        if ($null -ne (ConvertTo-DataNumber $need)) { foreach ($group in $sums.Keys) { $needs[$group] = ConvertTo-DataNumber $need } }
+        else {
+            $targetTable, $targetField = "$need" -split '\.', 2
+            if (-not $targetField -or -not $Tables.Contains($targetTable)) { $problems += "totals atLeast '$need' is neither a number nor table.field$(Format-DidYouMean "$targetTable" @($Tables.Keys))"; continue }
+            if (-not $Loaded.Contains($targetTable)) { continue }   # data.json reports the missing file
+            $label = $targetField
+            $idField = $Tables[$targetTable]['id']
+            foreach ($row in $Loaded[$targetTable]) {
+                $id = if ($row.Contains('@key')) { $row['@key'] } elseif ($idField -and $row.Contains($idField)) { "$($row[$idField])" } else { '' }
+                $n = if ($id -and $row.Contains($targetField)) { ConvertTo-DataNumber $row[$targetField] } else { $null }
+                if ($null -ne $n) { $needs[$id] = $n }
+            }
+        }
+        foreach ($group in $needs.Keys) {
+            $got = if ($sums.Contains($group)) { $sums[$group] } else { 0 }
+            if ($got -lt $needs[$group]) {
+                $share = if ($needs[$group] -gt 0) { " ($([Math]::Floor(100 * $got / $needs[$group]))%)" } else { '' }
+                $problems += "$by '$group': $sum adds up to $got, short of $(if ($label) { "$label " })$($needs[$group])$share"
+            }
+        }
+    }
+    return $problems
+}
+
+# Proper nouns in the game's text that are one or two letters away from a canonical name but not one: the misspellings
+# players notice. Canonical words come from a table's field (default its id), split into words of four letters or more.
+# A word is suspect when Get-ClosestName finds a canonical word near it and no canonical word equals it, ignoring case.
+function Test-DataNames([string]$ProjectDir, $Spec, $Loaded, $Tables) {
+    $table = $Spec['table']
+    if (-not $table -or -not $Tables.Contains($table)) { return @("names: table '$table' is not in data.json$(Format-DidYouMean "$table" @($Tables.Keys))") }
+    if (-not $Loaded.Contains($table)) { return @() }
+    $field = if ($Spec.Contains('field')) { $Spec['field'] } else { $Tables[$table]['id'] }
+    $canonical = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($row in $Loaded[$table]) {
+        $value = if ($row.Contains('@key') -and $field -eq $Tables[$table]['id']) { $row['@key'] } elseif ($row.Contains($field)) { "$($row[$field])" } else { '' }
+        foreach ($word in @([regex]::Matches($value, '\p{L}{4,}') | ForEach-Object { $_.Value })) { [void]$canonical.Add($word) }
+    }
+    if ($canonical.Count -eq 0) { return @("names: table '$table' has no names in '$field'") }
+    $allowed = [System.Collections.Generic.HashSet[string]]::new([string[]]@($Spec['allow']), [StringComparer]::OrdinalIgnoreCase)
+    $words = [string[]]@($canonical)
+    $files = [System.Collections.Generic.List[string]]::new()
+    foreach ($pattern in @($Spec['files'])) {
+        $glob = ($pattern -replace '^res://', '') -replace '\\', '/'
+        $shallow = $glob -replace '\*\*/', ''   # "**/" also matches no folder at all: scenes/**/*.tscn finds scenes/a.tscn
+        $found = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+            $path = [System.IO.Path]::GetRelativePath($ProjectDir, $_.FullName) -replace '\\', '/'
+            $path -like $glob -or $path -like $shallow })
+        if (-not $found) { return @("names: no file matches '$pattern'") }
+        foreach ($f in $found) { if (-not $files.Contains($f.FullName)) { $files.Add($f.FullName) } }
+    }
+    $verdict = @{}   # word -> canonical word it misspells, or ''
+    $problems = @()
+    foreach ($file in $files) {
+        $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $file) -replace '\\', '/'
+        $lineNumber = 0
+        foreach ($line in [System.IO.File]::ReadLines($file)) {
+            $lineNumber++
+            foreach ($m in [regex]::Matches($line, '\p{Lu}\p{L}{3,}')) {
+                $word = $m.Value
+                if (-not $verdict.ContainsKey($word)) {
+                    $verdict[$word] = ''
+                    if (-not $canonical.Contains($word) -and -not $allowed.Contains($word)) {
+                        $near = Get-ClosestName $word $words
+                        if ($near) { $verdict[$word] = $near }
+                    }
+                }
+                if ($verdict[$word]) { $problems += "${relative}:$lineNumber '$word' is close to '$($verdict[$word])' (add it to allow if it is a different word)" }
+            }
+        }
+    }
+    return $problems
 }
 
 function Invoke-DataRunner([string]$ProjectDir, [string]$ResultsDir) {

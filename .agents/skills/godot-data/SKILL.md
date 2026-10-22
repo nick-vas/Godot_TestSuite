@@ -93,6 +93,8 @@ every row without Godot and writes one JUnit case per table:
 - Field rules: `type` (string, int, number, bool), `min`, `max`, `enum`, `pattern`, `ref`, `list` (`;` between values
   in a CSV cell), `optional`, `acyclic` (on a `ref` to its own table: prerequisites that loop, as in a tech tree,
   `godot-algorithms`); `"extra": "allow"` on a table permits unlisted columns.
+- Across rows: `"totals"` on a table (what a zone's quests give must reach its next level: `godot-progression`) and
+  `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`).
 - Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.
