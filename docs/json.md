@@ -70,7 +70,8 @@ Branch on `error.code`; `message` can change.
 **doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`.
 
 **build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
-or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one), `line`.
+or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
+under it), `line`, `key` (the error key, see the run history below).
 
 **test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
 
@@ -164,6 +165,15 @@ runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Fi
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
 It also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each). Lines only gain keys; a reader
 ignores the ones it does not know.
+Every line also has `commit` (the short hash checked out, without uncommitted changes; `null` outside git) and `errorKeys`:
+the distinct error keys of the run's log, passing or failing, in the order they first appear, up to 20. A key is one
+Godot error line (`ERROR:`, `SCRIPT ERROR:`, ... as for `engine-errors`, known noise left out) with what changes between
+runs taken out: numbers become `N` (line numbers, sizes, object ids, `@Node2D@23`), hex addresses `X`; `res://` and
+`user://` paths stay, without their line number, and a line that names no path gets the first project frame under it:
+`ERROR: Wave N spawned N enemies outside the arena at res://main.gd`. A Godot crash is `Program crashed with signal 11`
+and a program stopped at the time limit `<program> was still running at the time limit and was stopped`. `status`
+groups the history by key (`recurringErrors`), after Activision's error buckets for Call of Duty
+([gdc/call-of-duty-error-keys.md](gdc/call-of-duty-error-keys.md)).
 The plugin's Stop hook and the `retro` skill read it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
@@ -239,6 +249,10 @@ and `noticesFile`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/godot-ci-history.jsonl`.
 - `flakyTests`: `days` (30), `testRuns` (test runs in that time) and `tests[]` (`runner`, `name`, `count`: runs in which it
   passed only on a retry, `last`), the 10 most frequent first. A test flaky in 2 or more runs is also a warning.
+- `recurringErrors[]`: the error keys of the history that were in at least one failed run, the most recently seen first
+  (up to 10): `key`, `count` (runs whose line has it, passing ones included), `failedRuns`, `firstSeen` and `lastSeen`
+  (`time`, `commit`, `command`), `commands[]`. `count` 1 means it is new. When the latest run failed with a key first seen
+  at another commit (outside git: more than a day earlier), that is a warning: the error predates the current change.
 - `quarantine[]`: the entries of `quarantine.json` (`runner`, `name`, `owner`, `until`, `reason`, `expired`); an expired
   entry or a broken file is also a warning.
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
@@ -248,5 +262,5 @@ and `noticesFile`.
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
   unknown kind of fun, features with no plan task, tags or tasks naming
-  features the GDD does not have, a failed or missing latest test run, plan overruns, repeatedly flaky tests and ended
-  quarantines.
+  features the GDD does not have, a failed or missing latest test run, plan overruns, repeatedly flaky tests, ended
+  quarantines and a latest failure whose error predates the current commit.

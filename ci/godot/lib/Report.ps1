@@ -528,6 +528,53 @@ function Get-FlakyOffenders([object[]]$History, [int]$Days = 30, [datetime]$Now 
     return [ordered]@{ days = $Days; testRuns = $runs; tests = $tests }
 }
 
+# Activision's error buckets for Call of Duty (docs/gdc/call-of-duty-error-keys.md): every run whose history line has
+# errorKeys (Get-RunErrorKeys) is grouped by key, so a failure shows whether its error is new or has been seen before, how
+# often, since when and at which commit, and in which commands. Lists the keys that were in at least one failed run (a
+# key from passing runs only is background, never what failed), the most recently seen first; count includes passing
+# runs, so an error that also shows up when everything passes stands out as unlikely to be the cause.
+function Get-RecurringErrors([object[]]$History) {
+    $buckets = [System.Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    $n = 0
+    foreach ($entry in $History) {
+        $n++
+        if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['errorKeys'] -or -not $entry.PSObject.Properties['command']) { continue }
+        $time = if (-not $entry.PSObject.Properties['time']) { $null } elseif ($entry.time -is [datetime]) { $entry.time.ToUniversalTime().ToString('o') } else { [string]$entry.time }
+        $seen = [ordered]@{ time = $time; commit = $(if ($entry.PSObject.Properties['commit']) { $entry.commit } else { $null }); command = $entry.command }
+        $failed = -not ($entry.PSObject.Properties['ok'] -and $entry.ok)
+        foreach ($key in @($entry.errorKeys | Where-Object { $_ } | ForEach-Object { [string]$_ } | Select-Object -Unique)) {
+            if (-not $buckets.ContainsKey($key)) {
+                $buckets[$key] = [pscustomobject]@{ Key = $key; Count = 0; FailedRuns = 0; First = $seen; Last = $null; Order = 0
+                    Commands = [System.Collections.Generic.List[string]]::new() }
+            }
+            $b = $buckets[$key]
+            $b.Count++; $b.Last = $seen; $b.Order = $n
+            if ($failed) { $b.FailedRuns++ }
+            if (-not $b.Commands.Contains($entry.command)) { $b.Commands.Add($entry.command) }
+        }
+    }
+    return @($buckets.Values | Where-Object { $_.FailedRuns -gt 0 } |
+        Sort-Object @{ Expression = 'Order'; Descending = $true }, @{ Expression = 'Count'; Descending = $true }, @{ Expression = 'Key' } | ForEach-Object {
+            [ordered]@{ key = $_.Key; count = $_.Count; failedRuns = $_.FailedRuns; firstSeen = $_.First; lastSeen = $_.Last; commands = @($_.Commands) } })
+}
+
+# The keys the newest run failed with that are older than it: first seen at another commit (or, outside git, more than a
+# day before). Such an error was there before the change under test, so it may not be what the change broke.
+function Get-OlderErrors([object[]]$History, [object[]]$Recurring) {
+    $latest = @($History | Where-Object { $_ -is [psobject] -and $_.PSObject.Properties['command'] } | Select-Object -Last 1)
+    if (-not $latest -or ($latest[0].PSObject.Properties['ok'] -and $latest[0].ok) -or -not $latest[0].PSObject.Properties['errorKeys']) { return @() }
+    $run = $latest[0]
+    $commit = if ($run.PSObject.Properties['commit']) { $run.commit } else { $null }
+    $toTime = { param($t) try { [datetime]::Parse([string]$t, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal) } catch { $null } }
+    $now = if ($run.PSObject.Properties['time']) { & $toTime $(if ($run.time -is [datetime]) { $run.time.ToUniversalTime().ToString('o') } else { $run.time }) } else { $null }
+    $keys = @($run.errorKeys | ForEach-Object { [string]$_ })
+    return @($Recurring | Where-Object { $_.key -cin $keys -and $_.count -ge 2 } | Where-Object {
+            if ($commit -and $_.firstSeen.commit) { return $_.firstSeen.commit -ne $commit }
+            $first = & $toTime $_.firstSeen.time
+            $null -ne $first -and $null -ne $now -and ($now - $first).TotalHours -gt 24
+        })
+}
+
 # Installs a .NET global tool into the shared tools folder once; returns its path.
 function Get-DotnetTool([string]$Package, [string]$Command) {
     $dir = Join-Path (Get-ToolsDir) 'tools'

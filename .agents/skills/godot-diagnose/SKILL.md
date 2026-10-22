@@ -50,6 +50,23 @@ those first. The full output of the run is in the file the JSON's `log` field na
 search it for the test or file name instead of reading it whole. `summary.json`, `summary.md` and per-runner
 JUnit/TRX files stay in `test-results/`; coverage is in `test-results/coverage/index.html`.
 
+## Has this error happened before?
+
+Before debugging an engine error, look it up in the run history:
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 status -Json
+```
+`recurringErrors[]` groups past runs by error key (the error line with its numbers taken out, plus its `res://` file;
+`engineErrors[].key` is the same): `count`, `failedRuns`, `firstSeen` and `lastSeen` (`time`, `commit`, `command`).
+
+- `count` 1: the error is new, so the change under test is the first suspect.
+- First seen at an earlier commit, or seen for weeks: it predates your change (`warnings[]` says so). Report it, and
+  check that it really is what failed before changing code for it; `count` well above `failedRuns` means it also shows
+  up when everything passes.
+- `firstSeen.commit` is where it started: in that commit, or in uncommitted work on top of it (`git log <commit>..`
+  lists what came after).
+
 ## Keeping the session cheap
 
 - Screenshots, benchmarks and launching an export produce long logs and images: hand them to the `godot-verifier`
