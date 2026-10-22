@@ -13,6 +13,46 @@ ones) and starts only after the previous one is merged. This page is the plan; t
 | 3. Architecture | Built: the `architecture` runner (warnings by default), `godot-patterns`, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
 | 4. Look and feel | Built: `shot -Baseline` comparisons, `shot`'s palette check against `docs/STYLE.md` (`-MaxOffPalettePercent`), the `juice` runner and `juice.json`, the style guide template, the `look` and `godot-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with you, and its first `juice.json` |
 
+## 1.0: Hypedot
+
+Agreed in a question round with the owner on 2026-10-22. The kit becomes **Hypedot**, a Godot-specific game development
+interface, and ships as 1.0 once these steps are done, in this order. Each step is one or more pull requests.
+
+1. **Sanity check.** Every self-test, both examples, `doctor` and `plan` on both, the Windows job; an inventory of the
+   commands, skills, docs and library files, with what is dead, stale or contradictory.
+2. **Cleanup.** Merge or cut overlapping skills and docs (focused skills beat many big ones); clear finished roadmap
+   items; fix stale counts (the README still says eighteen skills).
+3. **Rename, clean break.** Repository `nick-vas/Godot_TestSuite` to `nick-vas/hypedot` (the owner renames it in GitHub's
+   settings once the code is ready), plugin `godot-agent-kit` to `hypedot`, `ci/godot/godot-ci.ps1` to `hypedot.ps1`,
+   `GODOT_CI_*` variables and the history and state file names, every doc and skill. No aliases. Error codes keep their
+   names (they are API). The README says the project is not affiliated with the Godot Foundation.
+4. **Fixes and features from the question round** (the notes below).
+5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
+   (costs money: confirm first) and `bench` on Breakout.
+6. **Retro** over all of the above.
+7. **Release 1.0**: changelog, version, tag `v1.0.0`, a start-here page for working on a game (first use: Breakout
+   Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat with the kit cloned beside it).
+
+Notes from the question round, each to be fixed, built or written down before 1.0:
+
+| # | Note | What to do |
+|---|---|---|
+| 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
+| 2 | The README says eighteen skills; there are 55 | Fix in the cleanup; count from the folder, not by hand |
+| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Test against a real board, or mark it experimental |
+| 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
+| 5 | `lost-in-level`: two of three answers left out testing with the minimap and markers off | Make that check a firm line in the level design skill |
+| 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
+| 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
+| 8 | The sandbox bug took three eval runs to find; one transcript showed it | Keep transcripts from every eval run (done in #119) |
+| 9 | (same as 5) | |
+| 10 | A game's CI workflow calls the kit's `@main`, so every kit change reaches every game at once | `init` writes `@v1`; games move up on purpose |
+| 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
+| 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hypedot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
+| 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
+| 14 | `/game` reports tests, not design or technical problems | `/game` adds a short design and architecture review |
+| 15 | Checking for the Steam Deck takes four commands | One Deck check: `textsize`, `layout`, `shot` at 1280x800 and `bench` with a Deck budget, one verdict |
+
 ## What was decided
 
 | Question | Answer | Consequence |
