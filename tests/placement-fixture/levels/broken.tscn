@@ -1,0 +1,67 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://zipline.gd" id="1_zip"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_ground"]
+vertices = PackedVector3Array(-20, 0, -20, 20, 0, -20, 20, 0, 20, -20, 0, 20)
+polygons = [PackedInt32Array(0, 1, 2, 3)]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(40, 1, 40)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_crate"]
+size = Vector3(2, 6, 2)
+
+[node name="Level" type="Node3D"]
+
+[node name="Ground" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.5, 0)
+
+[node name="Shape" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("BoxShape3D_ground")
+
+[node name="Navigation" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_ground")
+
+[node name="AiPoints" type="Node3D" parent="."]
+
+[node name="Guard" type="Marker3D" parent="AiPoints" groups=["ai_point"]]
+position = Vector3(-5, 0.2, -5)
+metadata/links = [NodePath("../Ballista")]
+
+[node name="Ballista" type="Marker3D" parent="AiPoints" groups=["ai_point"]]
+position = Vector3(5, 0.2, -5)
+metadata/links = [NodePath("../Guard")]
+
+[node name="Lookout" type="Marker3D" parent="AiPoints" groups=["ai_point"]]
+position = Vector3(0, 2, 5)
+
+[node name="Torches" type="Node3D" parent="."]
+
+[node name="TorchLow" type="Marker3D" parent="Torches" groups=["interactable"]]
+position = Vector3(-8, 2, 0)
+
+[node name="TorchHigh" type="Marker3D" parent="Torches" groups=["interactable"]]
+position = Vector3(8, 3.5, 0)
+
+[node name="ZipLines" type="Node3D" parent="."]
+
+[node name="ZipLineClear" type="Node3D" parent="ZipLines" groups=["zipline"]]
+position = Vector3(-15, 6, 12)
+script = ExtResource("1_zip")
+
+[node name="End" type="Marker3D" parent="ZipLines/ZipLineClear"]
+position = Vector3(10, -2, 0)
+
+[node name="ZipLineBlocked" type="Node3D" parent="ZipLines" groups=["zipline"]]
+position = Vector3(-15, 6, -12)
+script = ExtResource("1_zip")
+
+[node name="End" type="Marker3D" parent="ZipLines/ZipLineBlocked"]
+position = Vector3(10, -2, 0)
+
+[node name="Crate" type="StaticBody3D" parent="."]
+position = Vector3(-10, 3, -12)
+
+[node name="Shape" type="CollisionShape3D" parent="Crate"]
+shape = SubResource("BoxShape3D_crate")
