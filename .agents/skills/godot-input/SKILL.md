@@ -157,6 +157,7 @@ public override void _PhysicsProcess(double delta)
 - `IsActionJustPressed` read in `_PhysicsProcess` is true on one physics tick per press (a `ParseInputEvent` press
   shows on the next tick). `IsActionPressed` would refill the buffer on every held tick: holding jump would bounce.
 - Build the windows from `Engine.PhysicsTicksPerSecond`, so changing the physics rate keeps them in seconds.
+- Jump speed and gravity from a designed height and distance, and moving by them exactly: `godot-math`.
 - Not tested in Godot: fall-through as `SetCollisionMaskValue(ThinPlatformLayer, !_fall.Tick(Input.IsActionPressed(Down),
   onFloor, jumped))` with thin platforms on their own layer and one-way collision on; restart as
   `HoldToConfirm.Restart(...)` ticked with `Input.IsActionPressed(Restart)`, its `Progress` drawn as a fill on the prompt.
