@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `export` runs an export again, up to twice, when Godot crashed (an exit code of 128 or more, or a negative one on
+  Windows): Godot 4.7.2 headless aborted with 134 after finished exports 4 times in 23 runs. The crashed run's file is
+  deleted first and the entry gets `retried`; an ordinary failure, a hang and a crash on every run still fail. The import
+  and the Web debug export share the same `Invoke-GodotRetried` (`Test-CrashRetry.ps1`).
 - Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
   an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
   `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the

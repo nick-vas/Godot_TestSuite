@@ -291,7 +291,6 @@ From this pass (`docs/mobile-web.md`):
 | iOS exports | Need macOS and Xcode |
 | Audio unlock, Safari and WebKit | Automated Chromium did not block audio; WebKit was not installed (Playwright can install it) |
 | itch.io's SharedArrayBuffer checkbox | Only secondary sources; the headers it sends were not confirmed |
-| Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
 | Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
 | Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |

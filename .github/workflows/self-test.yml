@@ -71,6 +71,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: A crashed import or export is repeated, a failure or a hang is not
+        shell: pwsh
+        run: ./tests/Test-CrashRetry.ps1
       - name: Test failures are compared with the last run of the same scope (new, still failing, fixed)
         shell: pwsh
         run: ./tests/Test-FailureDelta.ps1
@@ -486,6 +489,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: A crashed import or export is repeated, a failure or a hang is not
+        shell: pwsh
+        run: ./tests/Test-CrashRetry.ps1
       - name: JSON output is one valid document
         shell: pwsh
         run: |

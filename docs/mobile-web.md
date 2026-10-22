@@ -95,4 +95,5 @@ The autoload also connects `GetTree().Root.SizeChanged` to its `Changed` signal 
 10. Treating `ScreenGetDpi()` on Android as exact, or the emulated mouse as multitouch.
 11. Expecting `low_processor_mode` to help a game that redraws every frame.
 12. Believing an automated browser proves the audio unlock.
-13. Trusting Godot's exit code alone: 4.7.2 headless can abort with 134 after finishing.
+13. Trusting Godot's exit code alone: 4.7.2 headless can abort with 134 after finishing. `export` runs a crashed export
+    again, up to twice, after deleting what it left (`exports[].retried`); a crash on every run still fails.
