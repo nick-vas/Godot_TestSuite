@@ -74,6 +74,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: A crashed import or export is repeated, a failure or a hang is not
+        shell: pwsh
+        run: ./tests/Test-CrashRetry.ps1
       - name: Test failures are compared with the last run of the same scope (new, still failing, fixed)
         shell: pwsh
         run: ./tests/Test-FailureDelta.ps1
@@ -127,6 +130,9 @@ jobs:
       - name: The playthrough check wants every milestone in order (log only; the Godot run is in measure)
         shell: pwsh
         run: ./tests/Test-Playthrough.ps1 -NoGodot
+      - name: The palette check reads docs/STYLE.md, passes anti-aliased edges and finds an extra colour (generated pictures; the Godot run is in measure)
+        shell: pwsh
+        run: ./tests/Test-Palette.ps1 -NoGodot
       - name: status measures how long passing test runs take
         shell: pwsh
         run: ./tests/Test-TestDuration.ps1
@@ -389,6 +395,9 @@ jobs:
       - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
         shell: pwsh
         run: ./tests/Test-Layout.ps1
+      - name: UI flows rotate the window with an action held, and name every bad resize, hold and release
+        shell: pwsh
+        run: ./tests/Test-Flows.ps1
       - name: soak runs a server and clients, and catches a leak and a crash
         shell: pwsh
         run: ./tests/Test-Soak.ps1
@@ -421,6 +430,9 @@ jobs:
       - name: shot -MaxChangedPercent fails a screen that changed against its baseline
         shell: pwsh
         run: ./tests/Test-ShotChanged.ps1
+      - name: shot -MaxOffPalettePercent fails a swatch that is not in docs/STYLE.md's palette
+        shell: pwsh
+        run: ./tests/Test-Palette.ps1
       - name: The playthrough runner passes a bot that finishes and fails one stuck in level 1
         shell: pwsh
         run: ./tests/Test-Playthrough.ps1
@@ -500,6 +512,9 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: A crashed import or export is repeated, a failure or a hang is not
+        shell: pwsh
+        run: ./tests/Test-CrashRetry.ps1
       - name: JSON output is one valid document
         shell: pwsh
         run: |

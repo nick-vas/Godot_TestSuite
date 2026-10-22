@@ -102,6 +102,9 @@ tool or the editor and commit it. Check the result with `bench`: `drawCalls` bef
 - Write it into `docs/STYLE.md` (the `look` skill's palette table) with one line on why it fits the game's mood and
   contrast needs (`godot-ui-accessibility`: text and its background at 4.5:1).
 - Palette bloat: every new colour needs a reason. Ramps of three to five shades per hue cover most sprites.
+- `shot` checks each screenshot against that table (CIEDE2000; anti-aliased edges and blends of two palette colours pass):
+  `shots[].palette.offPalettePercent` and `colours[]` name what is off, and `<name>.palette.png` shows it in magenta.
+  Gate it in CI with `-MaxOffPalettePercent 1`; lit 3D shading is off-palette by nature, so gate flat-shaded and UI screens.
 
 ## 5. Free libraries, and where each asset came from
 
