@@ -93,7 +93,7 @@ the scenes and code), `proposed` (see the end of this page). 4.1.1 Parsing is ob
 | 2.3.3 Animation from Interactions | AAA | Transformed | A reduce-motion setting turns off button bounce, shake, parallax and camera sway; on by default when the system asks | `DisplayServer.AccessibilityShouldReduceAnimation() == 1` (Windows and macOS only; -1 elsewhere) | review |
 | 2.4.1 Bypass Blocks | A | Transformed | Skippable logos (after the first run) and cutscenes; menus remember the last selected item | | flows |
 | 2.4.2 Page Titled | A | Transformed | Every screen shows its title ("Settings: Audio"), and names its window for screen readers | `Window.accessibility_name` | look |
-| 2.4.3 Focus Order | A | Applies | Focus starts on the likely choice when a screen opens and moves in visual order; linear menus loop, grids do not (XAG 112) | `grab_focus()`, `focus_neighbor_*`, `focus_next` | flows, review |
+| 2.4.3 Focus Order | A | Applies | Focus starts on the likely choice when a screen opens and moves in visual order; linear menus loop only with a sound and a rumble on the wrap, grids do not (XAG 112) | `grab_focus()`, `focus_neighbor_*`, `focus_next` | flows, review |
 | 2.4.4 Link Purpose (In Context) | A | Transformed | Button text says what happens: "Delete save 2", not "OK" | | look |
 | 2.4.5 Multiple Ways | AA | Transformed | Settings open from the title screen and from the pause menu | | flows |
 | 2.4.6 Headings and Labels | AA | Applies | Labels name what they change: "Music volume" | | look |
@@ -167,7 +167,8 @@ say they are not a compliance checklist.
   flashes (R / (R + G + B) of 0.8 or more) fail at a lower luminance change; high-contrast striped patterns over 20%
   of the screen fail too.
 - **Menus (112, 113).** Linear menus loop from the last item to the first; grid menus do not; an option turns looping
-  on or off. A dialog takes focus on its first control and keeps it inside until closed. Every submenu has a constant way
+  on or off. A GDC talk adds that a wrap needs a cue, a sound or a rumble, or blind players lose their place, and that
+  menus keep the same items every time ([AAA gaming while blind](gdc/aaa-gaming-while-blind.md)). A dialog takes focus on its first control and keeps it inside until closed. Every submenu has a constant way
   back. The way to the accessibility settings is accessible from the first launch.
 - **Touch (107).** Touch targets at least 15 mm on phones (59 px at 100 DPI) and 24 mm on tablets, resizable and
   movable by the player; activation on release.
@@ -184,7 +185,7 @@ say they are not a compliance checklist.
 | 107 Input | Menus work with single, non-simultaneous presses, digital and analog, and keyboard only; full in-game remapping including each stick's axis inversion, with prompts updated; no required holds, mashing or chords; pointer actions on release; analog sensitivity at least plus or minus 50% | 2.1.1, 2.1.4, 2.5.1, 2.5.2, 2.5.4, 2.5.7 |
 | 108 Difficulty | Ideally four or more presets, described respectfully; changeable at any time without losing progress; per-mechanic assists; manual and automatic saves; pause at any time, cinematics included | 2.2.1, 2.2.2 |
 | 109 Objective clarity | Current objectives reviewable at any time, a log of completed ones, numeric progress ("3 of 5"), optional hints after no progress, descriptive saves (screenshot, time, place, summary), tutorials available on demand | 2.4.8, 3.3.5 |
-| 110 Haptic feedback | Can be turned off and scaled; never the only channel | 2.5.4 (partly) |
+| 110 Haptic feedback | Can be turned off and scaled; never the only channel. A GDC talk adds patterns that each mean one thing, told apart by count, motor or length, and settings per player: [docs/gdc/aaa-gaming-while-blind.md](gdc/aaa-gaming-while-blind.md), `examples/breakout/src/Breakout.Core/Controls/Haptics.cs` | 2.5.4 (partly) |
 | 111 Audio description | Described cinematics, or a full transcript | 1.2.3, 1.2.5, 1.2.7 |
 | 112 UI navigation | Consistent order and button prompts on every screen; digital-only navigation; looping rules above; more than one way to find things in large sets (filters and search in inventories); a constant way back | 2.4.3, 2.4.5, 3.2.3, 2.1.2 |
 | 113 UI focus handling | A highly visible focus indicator that never disappears or moves off screen; dialogs trap focus until closed | 2.4.7, 2.4.11, 2.4.13 |
