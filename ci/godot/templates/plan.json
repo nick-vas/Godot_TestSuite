@@ -108,8 +108,18 @@
           "check": "manual"
         },
         {
+          "id": "slice.debt",
+          "text": "Tech debt listed in docs/TECH-DEBT.md: every system the slice hacked, stubbed or never started, the work it needs at the size of the whole game, and the total you accept",
+          "check": "file:docs/TECH-DEBT.md"
+        },
+        {
+          "id": "slice.budget",
+          "text": "Frame budget met on the busiest slice scene filled as the finished game will be (draw distance, level of detail, crowds, effects), not on showcase assets: godot-ci.ps1 bench -Scene <that scene> -BudgetMs <budget> passes",
+          "check": "manual"
+        },
+        {
           "id": "slice.verdict",
-          "text": "Slice verdict recorded: PROCEED, PIVOT or KILL; scope ladder re-sized from real velocity",
+          "text": "Slice verdict recorded: PROCEED, PIVOT or KILL. PROCEED only if it plays as the intended experience (not a feature list or a tech demo), core gameplay is settled and the tech debt fits; otherwise take more slice time. Scope ladder re-sized from real velocity",
           "check": "manual"
         }
       ]

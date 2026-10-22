@@ -1,6 +1,6 @@
 ---
 name: godot-input
-description: Use when a Godot game takes keyboard, mouse or controller input, when adding a controls or rebinding menu, button prompts or icons, controller support, Steam Deck or Steam Input support, local multiplayer, or when a binding, prompt or controller misbehaves.
+description: Use when a Godot game takes keyboard, mouse or controller input, when adding a controls or rebinding menu, button prompts or icons, controller support, Steam Deck or Steam Input support, local multiplayer, or when a binding, prompt or controller misbehaves or controls feel unresponsive (coyote time, jump buffering, accidental restarts).
 ---
 
 # Input in Godot 4 (C#)
@@ -60,6 +60,7 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
   `res://prompts` and record it in `assets.json` (`godot-asset-pipeline`). Fall back to text (`InputBindings.Label`).
 - `Input.JoyConnectionChanged` fires on plug and unplug. Pause the game when the controller in use disconnects.
   `input_devices/joypads/ignore_joypad_on_unfocused_application` stops a pad driving a game in the background.
+- Touch (fingers by index, the mouse Godot fakes from the first finger, on-screen sticks, target sizes): `godot-mobile-web`.
 
 ## 4. Godot 4.7 specifics
 
@@ -89,7 +90,55 @@ configuration reaches every function, and an on-screen keyboard for text fields 
 - No action that needs two buttons at once without an alternative; menus usable with single presses on the same device
   as the game (`godot-ui-accessibility`).
 
-## 8. Prove it
+## 8. Forgiveness
+
+Players press late, press early, forget they are holding a button and squeeze the pad in a panic; the rules should
+accept what they meant (Seth Coster on Levelhead, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/forgiveness-mechanics.md`). The rules
+are tested in `examples/breakout/src/Breakout.Core/Platformer/Forgiveness.cs` and count physics ticks, never seconds.
+Levelhead's values are starting points; export them so the user can tune them in play:
+
+| Rule | Levelhead | At 60 Hz |
+|---|---|---|
+| Coyote time: a jump stays allowed after the last tick it was valid (on the floor, on an enemy's head) | 0.1 s | 6 ticks |
+| Input buffer: a press is kept and performed on the first tick the action is valid | 0.2 s | 12 ticks |
+| Speed bump: a destructive button (restart, quit) fires only after a continuous hold | 0.3 s | 18 ticks |
+| Fall-through: holding down on the ground drops through thin platforms | 0.2 s | 12 ticks |
+
+- A jump spends both the coyote window and the buffered press: no second jump in mid-air, one press is one jump.
+  Buffer the other actions too (grab, shoot, dash), not only jump.
+- Input reset: a jump turns fall-through off, and the hold only counts while standing, so a player still holding down
+  from the last move lands on the platform instead of dropping through it.
+- Hazards get hit shapes smaller than the art and round (a toe through a spike's corner is a close call); pickups get
+  larger, square ones. On contact, test the outcome good for the player first (a stomp box larger than the enemy,
+  while falling), and harm only after it fails, with a smaller circle (`Contact.Resolve`).
+
+Wiring on a `CharacterBody2D`, tested in `examples/breakout/game/test/gdunit4/ForgivenessWiringTest.cs` (a body
+dropped onto a floor: a press 5 ticks before landing jumps on the landing tick, once; a press held from 25 ticks
+before landing never jumps):
+
+```csharp
+readonly JumpForgiveness _jump = JumpForgiveness.Levelhead(Engine.PhysicsTicksPerSecond);
+
+public override void _PhysicsProcess(double delta)
+{
+    bool onFloor = IsOnFloor();                                   // what the previous MoveAndSlide found
+    bool jumped = _jump.Tick(onFloor, Input.IsActionJustPressed(Jump));
+    var velocity = Velocity;
+    if (!onFloor) velocity += GetGravity() * (float)delta;
+    if (jumped) velocity.Y = -JumpVelocity;
+    Velocity = velocity;
+    MoveAndSlide();
+}
+```
+
+- `IsActionJustPressed` read in `_PhysicsProcess` is true on one physics tick per press (a `ParseInputEvent` press
+  shows on the next tick). `IsActionPressed` would refill the buffer on every held tick: holding jump would bounce.
+- Build the windows from `Engine.PhysicsTicksPerSecond`, so changing the physics rate keeps them in seconds.
+- Not tested in Godot: fall-through as `SetCollisionMaskValue(ThinPlatformLayer, !_fall.Tick(Input.IsActionPressed(Down),
+  onFloor, jumped))` with thin platforms on their own layer and one-way collision on; restart as
+  `HoldToConfirm.Restart(...)` ticked with `Input.IsActionPressed(Restart)`, its `Progress` drawn as a fill on the prompt.
+
+## 9. Prove it
 
 Tests that run inside Godot (`godot-test-loop`), with input sent through `Input.ParseInputEvent` and a frame waited:
 
@@ -99,3 +148,4 @@ Tests that run inside Godot (`godot-test-loop`), with input sent through `Input.
 - [ ] the prompt family follows a pad press, ignores mouse motion and small stick values, and switches back on a key
 - [ ] vendor ids and names map to the right family, and Nintendo's bottom button shows "B"
 - [ ] `doctor` lists no action without both a keyboard and a controller binding
+- [ ] each forgiveness window checked to the tick (its last tick works, the next does not); one press, one jump
