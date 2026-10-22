@@ -102,6 +102,58 @@ objects or an object keyed by id. A CSV table without `importer="keep"` in its c
 not ship. Numbers in CSV cells are parsed with the invariant culture. One JUnit case per table;
 `tests/Test-Data.ps1` checks it against `tests/data-fixture`.
 
+### Dialogue tables (`"kind": "responses"`)
+
+A JSON table of `"kind": "responses"` holds the rules of Breakout.Core's `ResponseSystem` (Valve's dialogue rule
+database, [valve.md](valve.md) item 48), one row per rule; `ResponseTable.Load` in
+`examples/breakout/src/Breakout.Core/Narrative/ResponseTable.cs` builds the rules from the same file, so what the runner
+passed is what the game loads:
+
+```json
+{ "tables": { "barks": { "file": "data/barks.json", "kind": "responses", "facts": ["lives", "combo"], "voiced": false } } }
+```
+
+| Column | Rule | Required |
+|---|---|---|
+| `id` | `Rule.Name`, unique | yes |
+| `who` | the speaker; absent means anyone | no |
+| `concept` | what happened (`LifeLost`, `Idle`) | yes |
+| `criteria` | text in the grammar below: `lives>0;!cheer_cooldown` | no |
+| `lines` | text, or `{ "text", "voice" }` with the voice file (`res://` or relative to the project); one is picked at random | yes, at least one |
+| `then` | `{ "who", "concept" }`: the follow-up, looked up when the line ends; no `who` asks everyone in earshot | no |
+| `remember` | `[{ "fact", "value", "world", "for" }]`: `value` a number, true, false or a name (1 if absent), `world` for everyone, `for` seconds above 0 | no |
+| `once` | the rule removes itself after it plays | no |
+
+The columns come predefined (a table's own `fields` add more, with `"extra": "allow"` as usual; `ResponseTable.Load`
+takes their names as `extraColumns`). Besides the field rules the runner fails: a criteria syntax error, with the column
+(`'coach_hurt' criteria column 8: '<' needs a number, not 'lots'`); a `then` naming a concept no rule of any responses
+table has (with the near name), or sent to a speaker with no rule for it; a voice file that does not exist; with
+`"voiced": true`, a line without one; two rules with the same who, concept and criteria in any order (they tie, and one
+is drawn at random each time: one rule with all the lines says the same); and criteria that no facts can satisfy together
+(`health<10;health>20`, `weapon=axe;weapon=bow`, `!seen;seen=1`). A fact read in criteria that no rule remembers and the
+table's `facts` (those the game supplies: health, the event's facts) does not list is a warning, `fact-never-written`,
+with the near name (`gag_cooldow` for `gag_cooldown`). Lines are one language: translate them as keys through
+`godot-localization`, since the runner has no per-locale columns. `tests/data-fixture` has a broken table for each
+check, `examples/breakout/game/data/barks.json` a green one that `ResponseTableTests` plays.
+
+`"type": "criteria"` checks the same grammar in any table (quest conditions, unlock rules). The grammar, one for both
+parsers (`CriteriaSyntax` in `ResponseRules.cs`, `Read-ResponseCriteria` in `ci/godot/lib/Data.ps1`):
+
+```
+criteria  = blank | criterion { ";" criterion }
+criterion = blank ( "!" name | name blank op blank value ) blank
+op        = "<=" | ">=" | "<" | ">" | "="
+value     = number | "true" | "false" | name      after <, <=, >, >=: a number only
+number    = [ "-" ] digit { digit } [ "." digit { digit } ]      ASCII digits; no exponent, NaN or Infinity
+name      = ( letter | "_" ) { letter | digit | "_" | "." | "-" }
+blank     = { " " | "\t" }
+```
+
+`!key` passes when the fact is missing or 0; true is 1 and false 0; a name is a symbol, equal only to itself; `x<n` is
+the interval up to the double just below n. Errors name the 1-based column in the whole text. Both parsers run the 37
+cases of `examples/breakout/tests/Breakout.Core.Tests/criteria-examples.json` (`ResponseTableTests` in C#,
+`tests/Test-Data.ps1` in PowerShell) and must give the same criteria and the same message for every error.
+
 ## Placed objects in levels
 
 `ci/godot/templates/placement_check.gd`, copied into a game's tests, checks every node of the groups `ai_point`,

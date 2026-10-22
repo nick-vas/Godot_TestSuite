@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- Dialogue tables, from the roadmap's Valve list: a `data.json` table of `"kind": "responses"` holds `ResponseSystem`'s
+  rules (id, who, concept, criteria, lines with optional voice files, then, remember, once), and the `data` runner fails
+  criteria syntax errors with the column, a `then` no rule answers (across all responses tables, with the near name),
+  voice files that do not exist (and lines without one when `"voiced": true`), rules with the same who, concept and
+  criteria, and criteria that contradict each other; a fact read but never remembered nor listed in `facts` is a
+  `fact-never-written` warning. `"type": "criteria"` checks the grammar in any table. Breakout.Core gains
+  `ResponseTable.Load` (rules from the same JSON, every bad row reported at once), `Rule.Voices` and `Rule.VoiceOf`, and
+  one strict criteria grammar, `CriteriaSyntax` (`Criterion.Parse` no longer accepts `a=` or `a=1;b=2` as one
+  criterion); 37 shared cases in `criteria-examples.json` keep the C# and PowerShell parsers in agreement. Breakout has a
+  green dialogue table (`game/data/barks.json`), and `tests/data-fixture` a broken one per check.
 - Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
   an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
   `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the

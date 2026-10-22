@@ -200,7 +200,10 @@ never as much as you’d like" (Walker).
     existence are no longer true." In hindsight a response should "remove itself from the database after" playing (Ruskin).
     Godot: `ResponseSystem` in Breakout.Core, with tests built on the talk's own examples. Writers author rows (who,
     concept, criteria such as `health<25;weapon=shotgun`, lines, follow-up); the kit adds `!key` (a fact missing or 0),
-    without which an expiring memory cannot say "not yet".
+    without which an expiring memory cannot say "not yet". Writers keep the rows in a `data.json` table of
+    `"kind": "responses"`, which the `data` runner checks (criteria syntax with the column, follow-ups no rule answers,
+    missing voice files, rules that tie, contradictory criteria, facts nothing writes) and `ResponseTable.Load` turns
+    into rules ([data.md](data.md#dialogue-tables-kind-responses)).
 
 ## 6. Art that reads
 

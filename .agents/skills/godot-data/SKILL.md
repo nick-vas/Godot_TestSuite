@@ -96,6 +96,8 @@ every row without Godot and writes one JUnit case per table:
   `godot-algorithms`); `"extra": "allow"` on a table permits unlisted columns.
 - Across rows: `"totals"` on a table (what a zone's quests give must reach its next level: `godot-progression`) and
   `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`).
+- Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4); `"type": "criteria"` checks the same
+  criteria grammar (`health<25;!seen_tank`) in any table, such as quest or unlock conditions.
 - Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.

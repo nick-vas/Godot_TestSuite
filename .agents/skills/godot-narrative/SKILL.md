@@ -80,6 +80,23 @@ of four letters or more are checked; the same word in capitals is fine.
 
   A follow-up is looked up when the line ends, so a conversation stops by itself when danger returns; a rule can be
   `Once`, removing itself after it plays. `!key` (missing or 0) is the kit's addition for "not yet".
+- **Keep the rows in a checked table.** In `data.json`, `"barks": { "file": "data/barks.json", "kind": "responses",
+  "facts": ["health", "danger"] }`; one JSON object per rule, as in
+  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/data/barks.json`:
+
+  ```json
+  { "id": "nick_plan", "who": "nick", "concept": "Idle", "criteria": "danger=false;!gag_cooldown",
+    "lines": ["Anyone got a plan?", { "text": "Plan, anyone?", "voice": "res://voice/nick_plan_2.ogg" }],
+    "then": { "who": "ellis", "concept": "AnswerPlan" },
+    "remember": [{ "fact": "gag_cooldown", "for": 30 }, { "fact": "plan_asked", "world": true }], "once": false }
+  ```
+
+  The `data` runner fails criteria syntax errors (with the column), a `then` that no rule answers, voice files that do
+  not exist (every line needs one with `"voiced": true`, at content lock), two rules with the same who, concept and
+  criteria, and criteria that can never hold together; it warns on a fact read but never remembered and not in `facts`
+  (the facts the game supplies), which is usually a typo. The game loads the same file with `ResponseTable.Load` in
+  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Narrative/ResponseTable.cs`; the grammar is in
+  `${CLAUDE_PLUGIN_ROOT}/docs/data.md`. Lines are one language: make them translation keys for other languages.
 
 ## 5. Voice
 
