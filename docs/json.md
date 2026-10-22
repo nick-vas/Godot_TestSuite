@@ -98,9 +98,34 @@ and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames i
 `details` holds up to six meaningful lines. When the report itself is vague, the runner's log is searched for the test.
 The same data is in `test-results/summary.json`.
 
+`failureDelta` says what changed since the previous run, so a failure the latest change caused stands apart from one that
+was already there. It compares this run with the newest earlier `test` run in the project's history that had the **same
+scope**: the same runners and the same `-Filter` (a run that stopped before its tests, such as `build-failed`, is not a
+baseline). A filtered run is therefore never compared with a full one, and never reports the tests it skipped as fixed.
+
+```json
+"failureDelta": { "comparedWith": "2026-10-21T09:00:00.0000000Z",
+  "new": [ { "runner": "gut", "name": "test/test_score.gd.test_x" } ], "stillFailing": [], "fixed": [], "truncated": false }
+```
+- `comparedWith`: the time (UTC) of the run compared with, or `null` when there is none (the first run, or the first with
+  this scope). Then `new`, `stillFailing` and `fixed` are `null` too: nothing is called new without a baseline.
+- `new`: failing now, not then. `stillFailing`: failing in both. `fixed`: failing then, not now. Items are `runner` and
+  `name` (the test's name as in `failures[]`; the message is left out because it can hold numbers that change).
+- A runner that failed without naming a failing test (it crashed, timed out or found no tests) counts as one failure
+  named `(runner)`.
+- Each side keeps at most 200 failures (the first 200 in ordinal order of `runner|name`); `truncated` is `true` when either
+  side had more. A failure beyond the other side's cut is then in none of the lists.
+
+Each `runnerResults[].failures[]` item also has `new`: `true` when it is in `failureDelta.new`, `false` when it is in
+`stillFailing`, `null` without a baseline (or beyond a cut). The console shows the same as one line, e.g. `Since the run of
+<time> with the same runners and filter: 1 new (gut: test_x), 2 still failing, 0 fixed`. The idea comes from Media
+Molecule's test reports ([gdc/media-molecule-open-bug-count.md](gdc/media-molecule-open-bug-count.md)).
+
 Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one line to `.godot/godot-ci-history.jsonl` in the
-project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. The plugin's Stop hook and the
-`retro` skill read it.
+project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
+runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
+`<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
+The plugin's Stop hook and the `retro` skill read it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
