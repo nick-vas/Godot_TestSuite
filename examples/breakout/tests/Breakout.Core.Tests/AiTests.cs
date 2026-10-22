@@ -262,6 +262,143 @@ public sealed class AiTests
         Assert.NotEqual(Wander(5), Wander(6));
     }
 
+    // "A House Built on Sand" (GDC): each enemy of a squad attacks only if it is closer to the player than its squadmates.
+    // Deciding alone, each measures in its own frame (its transform, as Node2D.ToLocal does), so near-equal distances get
+    // different answers in different frames: both wait, or both attack. Far from the origin the transform's rounding is
+    // about the float spacing there, and it happens all the time. A tolerance band with an ID tiebreak (the talk's first
+    // fix) moves the disagreement to the band's edge, and with three members "too close to call" is not even transitive.
+    // One decision for the squad cannot disagree with itself. Measured: deciding alone, 2 of 10,000 near the origin and
+    // 3,384 far away; banded, 260 near (all three-member squads) and 1,761 far.
+    [Fact]
+    public void ExactlyOneSquadMemberAttacks()
+    {
+        static int AttackersDecidingAlone((int Id, Vector2 Position)[] squad, Vector2 target, float band)
+        {
+            int attackers = 0;
+            foreach (var (id, position) in squad)
+            {
+                Matrix3x2.Invert(Matrix3x2.CreateRotation(0.3f + id * 0.7f) * Matrix3x2.CreateTranslation(position), out var toLocal);
+                Vector2 targetHere = Vector2.Transform(target, toLocal);
+                float mine = targetHere.Length();
+                bool attack = true;
+                foreach (var (mateId, matePosition) in squad)
+                {
+                    if (mateId == id) continue;
+                    float mate = (targetHere - Vector2.Transform(matePosition, toLocal)).Length();
+                    bool closer = band == 0 ? mine < mate
+                        : mine * (1 + band) < mate ? true      // definitely closer
+                        : mate * (1 + band) < mine ? false     // definitely farther
+                        : id < mateId;                          // too close to call: the lower ID goes
+                    attack &= closer;
+                }
+                if (attack) attackers++;
+            }
+            return attackers;
+        }
+
+        // Two or three members around the target; the first at r, the others at r * ratio, each within 1 cm of it.
+        static (Vector2 Target, (int Id, Vector2 Position)[] Squad) NearTie(int seed, Vector2 origin, double ratio)
+        {
+            var random = new Random(seed);
+            var target = origin + new Vector2(random.NextSingle() * 100 - 50, random.NextSingle() * 100 - 50);
+            double r = 0.5 + random.NextDouble() * 30;
+            int[] ids = Enumerable.Range(0, 2 + seed % 2).OrderBy(_ => random.Next()).ToArray();
+            var squad = ids.Select((id, i) =>
+            {
+                double radius = (i == 0 ? r : r * ratio) + (random.NextDouble() - 0.5) * 0.02;
+                double angle = random.NextDouble() * Math.PI * 2;
+                return (id, new Vector2((float)(target.X + radius * Math.Cos(angle)), (float)(target.Y + radius * Math.Sin(angle))));
+            }).ToArray();
+            return (target, squad);
+        }
+
+        var counts = new Dictionary<string, int>();
+        foreach (var (where, origin) in new[] { ("origin", Vector2.Zero), ("far", new Vector2(100000, 100000)) })
+        {
+            int alone = 0, banded = 0;
+            double worstMiss = 0;
+            for (int seed = 0; seed < 10000; seed++)
+            {
+                var (target, squad) = NearTie(seed, origin, 1);
+                int? pick = SquadTurns.PickAttacker(target, squad);
+                Assert.Contains(squad, m => m.Id == pick);
+                Assert.Equal(pick, SquadTurns.PickAttacker(target, squad.Reverse().ToArray()));
+                if (AttackersDecidingAlone(squad, target, 0) != 1) alone++;
+
+                // When the squad's pick is not the truly closest, the two were closer than rounding can tell apart.
+                double Exact(Vector2 p) => Math.Sqrt(Math.Pow((double)p.X - target.X, 2) + Math.Pow((double)p.Y - target.Y, 2));
+                double closest = squad.Min(m => Exact(m.Position));
+                worstMiss = Math.Max(worstMiss, Exact(squad.Single(m => m.Id == pick).Position) - closest);
+
+                var (bandTarget, bandSquad) = NearTie(seed, origin, 1.1);
+                if (AttackersDecidingAlone(bandSquad, bandTarget, 0.1f) != 1) banded++;
+            }
+            counts[$"{where} alone"] = alone;
+            counts[$"{where} banded"] = banded;
+            float spacing = MathF.BitIncrement(Math.Abs(origin.X) + 80) - (Math.Abs(origin.X) + 80);
+            Assert.True(worstMiss <= spacing, $"{where}: the squad's pick was {worstMiss} farther than the closest; float spacing {spacing}");
+        }
+        string report = string.Join(", ", counts.Select(c => $"{c.Key} {c.Value}"));
+        // Tested in a small level near the origin, deciding alone looks fine; far away it breaks.
+        Assert.True(counts["origin alone"] < 20, report);
+        Assert.True(counts["far alone"] > 1000, report);
+        Assert.True(counts["far banded"] > 100, report);
+
+        // Exact ties go to the lowest ID, whatever the order.
+        var tie = new[] { (7, new Vector2(3, 4)), (2, new Vector2(4, 3)), (5, new Vector2(0, -5)) };
+        Assert.Equal(2, SquadTurns.PickAttacker(Vector2.Zero, tie));
+        Assert.Equal(2, SquadTurns.PickAttacker(Vector2.Zero, tie.Reverse().ToArray()));
+        Assert.Null(SquadTurns.PickAttacker(Vector2.Zero, Array.Empty<(int, Vector2)>()));
+    }
+
+    // Melee range 1 (the talk's one metre). Navigation sent to a stand point one unit short of the target, "arrived"
+    // within 0.001 of it and "in range" within 1.001: tuned near the origin, it works there. At (100000, 100000), where
+    // floats are 0.0078 apart, the stand point rounds off the range and Arrive's last steps are smaller than the spacing,
+    // so the agent freezes short of it and never attacks. One distance to the target, arrival inside the range, agrees.
+    [Fact]
+    public void ArrivalAndAttackRangeAgreeFarFromOrigin()
+    {
+        Assert.Equal(0.0078125f, MathF.BitIncrement(100000f) - 100000f);
+
+        static (bool Arrived, bool InRange, float Distance) Approach(Vector2 target, Vector2 start, Vector2 goal,
+            Func<Vector2, bool> arrived, Func<Vector2, bool> inRange)
+        {
+            var agent = new SteeringAgent { Position = start };
+            for (int frame = 0; frame < 1200 && !arrived(agent.Position); frame++)
+                agent.Step(Steering.Arrive(agent, goal, 100), 1 / 60f);
+            return (arrived(agent.Position), inRange(agent.Position), Vector2.Distance(agent.Position, target));
+        }
+
+        var reach = new AttackReach(Range: 1, Margin: 0.05f);
+        var failures = new Dictionary<string, int>();
+        float farthestStop = 0;
+        foreach (var (where, origin) in new[] { ("origin", Vector2.Zero), ("far", new Vector2(100000, 100000)) })
+        {
+            int standPointFailures = 0, reachFailures = 0;
+            var random = new Random(11);
+            for (int run = 0; run < 100; run++)
+            {
+                var target = origin + new Vector2(random.NextSingle() * 100 - 50, random.NextSingle() * 100 - 50);
+                float angle = random.NextSingle() * MathF.Tau;
+                var start = target + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * (5 + random.NextSingle() * 40);
+
+                var standPoint = target + Vector2.Normalize(start - target) * 1;
+                var two = Approach(target, start, standPoint, p => Vector2.Distance(p, standPoint) <= 0.001f, p => Vector2.Distance(p, target) <= 1.001f);
+                if (!(two.Arrived && two.InRange)) standPointFailures++;
+                if (where == "far") farthestStop = Math.Max(farthestStop, two.Distance);
+
+                var one = Approach(target, start, target, p => reach.Arrived(p, target), p => reach.InRange(p, target));
+                if (!(one.Arrived && one.InRange)) reachFailures++;
+            }
+            failures[$"{where} stand point"] = standPointFailures;
+            failures[$"{where} reach"] = reachFailures;
+        }
+        string report = string.Join(", ", failures.Select(f => $"{f.Key} {f.Value}")) + $"; farthest stop {farthestStop} from the target";
+        Assert.True(failures["origin stand point"] == 0, report);
+        Assert.True(failures["far stand point"] > 50, report);
+        Assert.True(failures["origin reach"] == 0 && failures["far reach"] == 0, report);
+    }
+
     // A guard at the origin looking along +X, seeing 300 units within 0.6 rad either side, nothing closer than 10.
     static VisionSensor Eyes() => new(new VisionPie(HalfAngle: 0.6f, Far: 300, Near: 10));
 
