@@ -135,6 +135,8 @@ The most important sound must always be heard: dialogue over music, UI over ambi
   game with an `AudioEffectLowPassFilter` on its buses, switched on with `AudioServer.SetBusEffectEnabled`, and duck it.
   A `Tween` that must run in the pause menu needs `SetPauseMode(Tween.TweenPauseMode.Process)`.
 - Cinematic: lower Ambience and SFX together as one snapshot.
+- Voice lines have a priority too: a story or tutorial line is never cut or covered by a systemic bark ("Reloading!");
+  the bark waits or is dropped, and its subtitle yields the same way. Evolve had to retrofit both (Tara Voelker, GDC).
 - Master ends with an `AudioEffectHardLimiter` (`CeilingDb = -1`): it catches stacked peaks, it does not fix a loud mix.
 
 ## 6. Sounds for the player's own actions

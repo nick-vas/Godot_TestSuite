@@ -42,3 +42,4 @@ engineering research, not legal advice.
 
 - Which test to run on these events, and why: [Three Statistical Tests Every Game Developer Should Know](gdc/three-statistical-tests.md).
 - Which runs to compare an upgrade's win rate with, and why per-run averages mislead: [Slay the Spire: Metrics Driven Design and Balance](gdc/slay-the-spire-metrics-driven-balance.md).
+- A/A runs, independent samples, when to assign a variant, downstream metrics and audience mix (Swrve, Kongregate and SocialPoint talks): [gdc/folds-procgen-balance-store.md](gdc/folds-procgen-balance-store.md).

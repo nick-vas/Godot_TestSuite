@@ -76,9 +76,15 @@ have a lawyer read the privacy notice and the consent flow before release.
 - A failed send keeps the events; events older than a week are dropped unsent. Sample whole sessions
   (`analyticsSampleRate`), never single events, so funnels stay whole; never sample crashes.
 - Comparing two versions from these events (an A/B test): `godot-automation-hooks`, "Comparing two versions".
+- Ship a change you want to measure on its own, away from events and seasonal peaks. Brawl Stars (Supercell, GDC 2024)
+  removed loot boxes alongside an event, an anniversary, a free character, a new legendary and the Q4 peak: daily
+  players rose 60% and nobody could say why. Report returning players' retention apart from new players'.
 - For balance, send one summary per run on victory or death, so quiet players count too: the floor reached, the result,
   the difficulty and the floor each option was taken on (Breakout's `run_end`, `RunSummary`). Reading it without being
   fooled: `godot-automation-hooks`, "Reading balance from run data".
+- Puzzle and level games also send `level_opened` and `level_solved` with the level id: the share opened but never
+  solved ("bounce", Zachtronics' difficulty measure) per level, in game order, shows which one stops players
+  (`godot-game-design`).
 - With `using Godot;` and `using System.Net.Http;` in one file, `HttpClient` is ambiguous (CS0104): keep the transport in
   a file without `using Godot;`, or name `System.Net.Http.HttpClient` in full.
 

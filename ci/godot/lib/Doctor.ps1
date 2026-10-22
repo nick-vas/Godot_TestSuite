@@ -178,10 +178,11 @@ function Invoke-Doctor($Info) {
     # Store art for Steam, if the project keeps it in store/steam: sizes, formats, screenshots, the short description.
     $storeDir = Join-Path $project 'store'
     $steamDir = Join-Path $storeDir 'steam'
+    $pressDir = Join-Path $storeDir 'press'
+    if (((Test-Path -LiteralPath $steamDir) -or (Test-Path -LiteralPath $pressDir)) -and -not (Test-Path -LiteralPath (Join-Path $storeDir '.gdignore'))) {
+        Add-Check WARN 'store/ has no .gdignore: Godot imports the store art and ships it inside the game' 'Add an empty store/.gdignore'
+    }
     if (Test-Path -LiteralPath $steamDir) {
-        if (-not (Test-Path -LiteralPath (Join-Path $storeDir '.gdignore'))) {
-            Add-Check WARN 'store/ has no .gdignore: Godot imports the store art and ships it inside the game' 'Add an empty store/.gdignore'
-        }
         $store = Test-SteamStoreAssets $steamDir
         foreach ($p in $store.problems) {
             $status = if ($p.code -eq 'asset-missing') { 'WARN' } else { 'FAIL' }
@@ -192,6 +193,12 @@ function Invoke-Doctor($Info) {
             $descriptionProblems = Test-SteamShortDescription (Get-Content -LiteralPath $description.FullName -Raw).Trim()
             foreach ($p in $descriptionProblems) { Add-Check WARN "Steam $($description.Name): $p" 'Genre, hook and what the player does, in plain text (godot-store-page)' }
         }
+    }
+    # Press kit, if the project keeps one in store/press: warnings only, a game can ship without one.
+    if (Test-Path -LiteralPath $pressDir) {
+        $press = Test-PressKit $pressDir
+        foreach ($p in $press.problems) { Add-Check WARN "Press kit: $($p.message)" 'Key art with and without the title, 6 to 10 screenshots, a fact sheet with a contact address (godot-store-page)' }
+        if (-not $press.problems) { Add-Check OK "Press kit: key art with and without the title, $($press.screenshots) screenshots, a fact sheet with a contact address" }
     }
 
     # A game playable with a keyboard and with a gamepad needs both kinds of binding on every action (Crashlands
@@ -237,6 +244,18 @@ function Invoke-Doctor($Info) {
             'Project Settings > Audio > General > Text to Speech on ([audio] general/text_to_speech=true in project.godot; godot-ui-accessibility)'
     } elseif ($ttsCalls) { Add-Check OK 'Text-to-speech: started at launch (audio/general/text_to_speech)' }
     elseif ($ttsOn) { Add-Check INFO 'audio/general/text_to_speech is on but no script calls tts_speak or TtsSpeak; Godot says it costs idle CPU' 'Turn it off unless an add-on speaks' }
+
+    # Screen readers: Godot 4.7.2 saves Disabled as accessibility/general/accessibility_support=2 (0 is Auto, the default,
+    # 1 Always Active), and the dummy driver has the same effect. Either one hides every menu from blind players
+    # (WCAG 4.1.2; a BBC game shipped without VoiceOver because the last build went unchecked,
+    # docs/gdc/folds-accessibility.md).
+    $a11yOff = @()
+    if ((Get-GodotProjectSetting $projectGodot 'accessibility/general/accessibility_support') -eq '2') { $a11yOff += 'accessibility_support is Disabled' }
+    if ((Get-GodotProjectSetting $projectGodot 'accessibility/general/accessibility_driver') -eq '"dummy"') { $a11yOff += 'accessibility_driver is dummy' }
+    if ($a11yOff) {
+        Add-Check WARN "Screen readers cannot read the game: $($a11yOff -join ' and ')" `
+            'Project Settings > Accessibility > General: Accessibility Support on Auto and the driver on accesskit (godot-ui-accessibility)'
+    }
 
     # Crash reporting: the Sentry addon starts before game code and attaches the Godot log unless told otherwise
     # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (godot-telemetry).

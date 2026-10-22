@@ -1,7 +1,9 @@
 #!/usr/bin/env pwsh
 # Self-test of the Steam store art checks (Store.ps1) without Godot: images are made with just the header bytes the check
 # reads. A correct set passes; old sizes, a JPEG hero, a logo without alpha, too few screenshots and a bad short description
-# are each named; doctor reports them for a project with a store/steam folder.
+# are each named; doctor reports them for a project with a store/steam folder. The press kit in store/press: a complete one
+# passes; missing key art without the title, a screenshot count outside 6 to 10 and a fact sheet with no contact address
+# are each named, and doctor warns about them.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -63,16 +65,48 @@ try {
     Assert-True (@($problems | Where-Object { $_ -match '^short-description-link' }).Count -eq 1) 'links are named'
     Assert-True ((Test-SteamShortDescription 'A roguelike breakout where every brick fights back: smash, upgrade, survive.').Count -eq 0) 'a plain description passes'
 
+    # Press kit: key art with and without the title, 6 to 10 screenshots, a fact sheet with a contact address.
+    $kit = Join-Path $work 'press'
+    New-Item -ItemType Directory -Force $kit | Out-Null
+    New-Png (Join-Path $kit 'key_art.png') 1920 1080
+    New-Jpeg (Join-Path $kit 'key_art_notitle.jpg') 1920 1080
+    for ($i = 1; $i -le 6; $i++) { New-Png (Join-Path $kit "screenshot$i.png") 1920 1080 }
+    Set-Content (Join-Path $kit 'fact_sheet.txt') "Brickfall: a roguelike breakout.`nContact: press@example.com"
+    $r = Test-PressKit $kit
+    Assert-True ($r.ok -and $r.screenshots -eq 6) "a complete press kit passes: $(@($r.problems | ForEach-Object message) -join ' | ')"
+    for ($i = 7; $i -le 11; $i++) { New-Png (Join-Path $kit "screenshot$i.png") 1920 1080 }
+    $codes = @((Test-PressKit $kit).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'press-screenshots-count screenshot*' -and $codes.Count -eq 1) "11 screenshots are named: $($codes -join ' | ')"
+
+    $thin = Join-Path $work 'press-thin'
+    New-Item -ItemType Directory -Force $thin | Out-Null
+    New-Png (Join-Path $thin 'key_art.png') 1920 1080
+    for ($i = 1; $i -le 4; $i++) { New-Png (Join-Path $thin "screenshot$i.png") 1920 1080 }
+    Set-Content (Join-Path $thin 'press_release.txt') 'Brickfall releases today. Find us on our website.'
+    $codes = @((Test-PressKit $thin).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    foreach ($expected in 'press-missing key_art_notitle', 'press-screenshots-count screenshot*', 'press-contact press_release.txt') {
+        Assert-True ($codes -contains $expected) "press kit names $expected"
+    }
+    Assert-True ($codes.Count -eq 3) "nothing else in the press kit: $($codes -join ' | ')"
+    Remove-Item (Join-Path $thin 'press_release.txt')
+    $codes = @((Test-PressKit $thin).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+    Assert-True ($codes -contains 'press-missing fact_sheet') 'a press kit with no fact sheet or press release is named'
     # doctor, on a project keeping its store art in store/steam without a .gdignore
     $project = Join-Path $work 'game'
     New-Item -ItemType Directory -Force $project | Out-Null
     Set-Content (Join-Path $project 'project.godot') "config_version=5`n[application]`nconfig/name=`"Store`""
     Copy-Item -Recurse $bad (Join-Path $project 'store/steam')
+    Copy-Item -Recurse $thin (Join-Path $project 'store/press')
+    Set-Content (Join-Path $project 'store/press/fact_sheet.txt') 'Brickfall, a roguelike breakout. Out on Steam.'
     $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') doctor -Json -Project $project 2>$null | ConvertFrom-Json
     $messages = @($d.checks | ForEach-Object { "$($_.status) $($_.message)" })
     Assert-True (@($messages | Where-Object { $_ -match '^WARN store/ has no \.gdignore' }).Count -eq 1) 'doctor warns that Godot would import the store art'
     Assert-True (@($messages | Where-Object { $_ -match '^FAIL Steam store art: header_capsule must be 920x430, is 460x215' }).Count -eq 1) 'doctor fails an old capsule size'
     Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam store art: vertical_capsule is required' }).Count -eq 1) 'a missing image is a warning while the page is in progress'
+    Assert-True (@($messages | Where-Object { $_ -match '^WARN Press kit: key_art_notitle \(key art without the title\) is missing' }).Count -eq 1) 'doctor warns about key art without the title'
+    Assert-True (@($messages | Where-Object { $_ -match '^WARN Press kit: 6 to 10 screenshots, found 4' }).Count -eq 1) 'doctor warns about the press screenshot count'
+    Assert-True (@($messages | Where-Object { $_ -match '^WARN Press kit: no contact email address in fact_sheet\.txt' }).Count -eq 1) 'doctor warns about a fact sheet with no contact address'
+    Assert-True (@($messages | Where-Object { $_ -match '^FAIL Press kit' }).Count -eq 0) 'press kit problems never fail doctor'
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }

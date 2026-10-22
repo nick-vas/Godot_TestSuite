@@ -16,6 +16,13 @@ function Save-Download([string]$Url, [string]$Destination) {
     }
 }
 
+# Godot and its templates exist only behind this download. When it gives up, the failure is the network's or the
+# server's, not the project's: its own code tells an agent to retry rather than change the game.
+function Save-RequiredDownload([string]$Url, [string]$Destination) {
+    try { Save-Download $Url $Destination }
+    catch { Stop-GodotCi "Could not download $Url after 4 attempts ($($_.Exception.Message.TrimEnd("."))). Retry later or check the network; the project is not at fault." 'download-failed' }
+}
+
 function Expand-Zip([string]$Archive, [string]$Destination) {
     # ZipFile instead of Expand-Archive: it accepts any extension (.tpz) and is much faster on large files.
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -111,7 +118,7 @@ function Install-GodotTools {
     } else {
         $zip = Join-Path (Get-ToolsDir) "$($paths.Package).zip"
         New-Item -ItemType Directory -Force (Get-ToolsDir) | Out-Null
-        Save-Download "$($paths.BaseUrl)/$($paths.Package).zip" $zip
+        Save-RequiredDownload "$($paths.BaseUrl)/$($paths.Package).zip" $zip
         Expand-Zip $zip $paths.ToolsDir
         Remove-Item -Force $zip
         if (-not $IsWindows) { Invoke-Checked chmod @('+x', $paths.Bin) }
@@ -122,7 +129,7 @@ function Install-GodotTools {
             Write-CiLog "Export templates already installed"
         } else {
             $tpz = Join-Path (Get-ToolsDir) $paths.TemplatesFile
-            Save-Download "$($paths.BaseUrl)/$($paths.TemplatesFile)" $tpz
+            Save-RequiredDownload "$($paths.BaseUrl)/$($paths.TemplatesFile)" $tpz
             $tmp = Join-Path ([IO.Path]::GetTempPath()) "godot-templates-$([guid]::NewGuid())"
             Expand-Zip $tpz $tmp
             New-Item -ItemType Directory -Force $paths.TemplatesDir | Out-Null

@@ -76,6 +76,17 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
   anomalies, not fine balance.
 - Test every level or encounter end to end with the bot at two skill levels and several seeds. In one project this found five
   bugs that unit tests and solvers never showed.
+- The bot presses InputMap actions, never calls the player's methods, so the player code is what gets tested and edits to
+  it do not break the bot (Battlefield V's bots, Jonas Gillberg, EA, GDC): `Input.ActionPress`/`ActionRelease` for
+  code that polls `IsActionPressed`, `Input.ParseInputEvent` for code in `_UnhandledInput` (`godot-input`). A bot that
+  never opens menus does not test them (UI crashes, 13% of a playtest's, were all missed by those bots); `flows` does.
+- Unstick, then report: no progress toward the next waypoint for a set time means jump or interact, then teleport,
+  and log `[Stuck] pos=x,y,z level=<name>`. Grepped over many runs, those lines map where players get trapped in
+  collision.
+- On spawn the bot picks a random loadout, weighted toward the default one, so it covers the combinations testers skip.
+- Before trusting a balance change, run the unchanged build on two separate seed sets (an A/A run): their gap is the noise a
+  change must beat. SocialPoint's A/A splits of real players differed by 5 to 10% (Aviv Stern, GDC). With few runs, judge
+  yes/no outcomes (cleared, won), which need far fewer runs than amounts (gold, seconds).
 
 ## Comparing two versions
 
@@ -96,11 +107,18 @@ test decide. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytic
   mean says. A real difference can still be too small to be worth its cost.
 - Bots: run both versions on the same seeds and pair them. On the same data, pairing turned no result into p = 0.003.
 - One question per test: twenty metrics at 5% each find a "difference" by chance. Balancing many PvP classes is beyond this.
+- The tests assume independent samples with final outcomes: players in one multiplayer match affect each other (compare per
+  match), and an outcome that can still happen (a purchase on day 3) is read only once its running total flattens (Swrve's
+  A/B testing talk, GDC).
+- With real players (Emily Greer, Kongregate, GDC): assign the variant when a player first meets the feature (opens the
+  shop), not at launch; run long enough for less engaged players to arrive, since the first days bring the best ones; read
+  every downstream metric, not only the target (a simpler shop raised buyers 9% and cut revenue 11%; a flash sale read +8%
+  revenue at 10 days and -2% at 30); judge spend with medians and `Stats.MannWhitney`, as one big buyer moves a mean.
 
 ## Reading balance from run data
 
 Pick and win rates per card, relic or upgrade, from one summary per finished run (bots or players): `BalanceReport` in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie three ways:
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie four ways:
 
 - **Late options flatter themselves.** An option found near the end is seen mostly in runs that were already winning (Slay the
   Spire's Madness, from an event just before the last boss). Compare its runs only with all runs that reached the floor where
@@ -108,6 +126,9 @@ Pick and win rates per card, relic or upgrade, from one summary per finished run
 - **Heavy players drown out everyone.** Two testers with 500 runs each made a 23% win rate (per player) read 84% (per run).
   Weigh each player, or each session when there is no player id, once (`PerSession`).
 - **Difficulties differ.** Report each difficulty apart; pooled, a neutral option favoured on the hard one looked 16 points worse.
+- **The audience shifts.** A total moves more often because who plays changed (where players came from, platform, days
+  since install) than because the game did (Greer). Split by those, show each group's sample size, and ignore groups too
+  small to mean anything.
 - The goal is not equal power: every option should be worth taking some of the time, so look for pick rates near 0 or 1 when
   offered. Rare, hard-to-assemble combos may be strong. Metrics do not show what is boring (slow, grindy, optimal loops): watch
   play for that. Decide whether a change helped with the tests above, not by eye.
@@ -122,6 +143,9 @@ Pick and win rates per card, relic or upgrade, from one summary per finished run
   order: add seeded random-input and long soak runs, and jump the clock.
 - **Why players fail.** Log every death or quit with its cause (`[Death] cause=fall level=3 t=212.4`); a heat map of deaths
   and movement shows where the design does not work as planned (GSC on S.T.A.L.K.E.R. 2, DayZ).
+- **Questions, not personas.** Horizon Zero Dawn's testers playing a "hoarder" for four or five days found what a
+  four-hour inventory stress task found. Give each exploratory session one question to answer (the charter), a time box,
+  the results, and follow-up questions as new sessions (Guerrilla's QA manager, GDC).
 - **Which build.** Stamp the commit and build time on screen and in every log, so a report or screenshot names its build.
 - **A feedback key.** One key and one typed line ("these rocks look wrong") save a screenshot, the log, the save file and
   a `user://reports/<time>.json` with the scene path, the player's and camera's `GlobalTransform`, the seed and the
@@ -139,8 +163,17 @@ or physics change was known safe within the hour. Its recordings survived level 
 - A `smoke` run passes on a bot stuck in the first room. Until the kit checks for an ending, give it enough frames
   (`test -Runners smoke -Frames 216000 -GameArgs '--replay=all','--no-save'`; smoke counts frames, not game time, so
   size `-Frames` from a local run) and fail CI yourself: `grep -q '\[Run\] ending reached' test-results/smoke/smoke.log`.
+- Let small content changes through (Final Fantasy VII Remake's replays, Square Enix, GDC): a step marked `optional` (a
+  first-time tutorial) is dropped when it never comes, an unexpected scene the game can skip (a new cutscene or fight) is
+  skipped instead of failing, and a step times out at a multiple of its recorded duration, not a fixed limit. When the
+  game is not where the recording expects, try the other legal steps for a while before failing, and log
+  `[Run] step=N repaired` (NetEase's quest bot fell back to searching that way).
+- Fail a level whose replay runs far past its budget even without an error: it would stall a player too (NetEase flagged
+  any quest not done in 15 minutes).
 - It proves the game can be finished, not that it has no bugs (their door stopped opening after a texture change).
-  People still play it.
+  People still play it. It proves one route: NetEase's shortest path never jumped down the cliff that players could not
+  climb back up, so add the seeded random bot. It proves nothing about pictures: Square Enix's passed on a black
+  screen, so save `--shot` pictures at named steps and look at them.
 - A hung run (a deadlock, an `await` that never resumes) is stopped after `GODOT_CI_TIMEOUT` seconds (default 1800) and
   fails; set it a little above the run's real length so a hang is caught early.
 

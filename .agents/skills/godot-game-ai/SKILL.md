@@ -32,6 +32,8 @@ three states (go to, animate, use object) with a planner choosing what to put in
   `Sequence` do this; a "passive" selector that only resumes the running child does not react.
 - Every long action handles abort. Abrupt aborts have side effects: a reload interrupted half-way needs a rule.
 - Keep leaves small and data in the context object, not a stringly-typed blackboard for everything.
+- A tree runs a decided behaviour; a state machine above it switches modes. Retries, cooldowns, utility logs, disabled
+  data: [pitfalls.md](pitfalls.md).
 
 ## 3. Utility AI
 
@@ -129,8 +131,8 @@ and the fallbacks: [aiming.md](aiming.md).
 
 Perception answers "is the target there?"; what it means is the decision layer's job (`Ai/Perception.cs`). Test shape and
 range before casting a ray, sample several points on the target, see from the muzzle once the weapon is out, stack
-modifiers with handles, and decide from a `TargetMemory`, not this frame's ray. Rules, Godot ray wiring and budgets:
-[perception.md](perception.md).
+modifiers with handles, and decide from a `TargetMemory`, not this frame's ray, after a human reaction delay. Rules,
+Godot ray wiring and budgets: [perception.md](perception.md).
 
 ## 7. Navigation (Godot 4.7)
 

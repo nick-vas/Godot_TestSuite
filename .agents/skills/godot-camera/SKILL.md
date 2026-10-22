@@ -1,6 +1,6 @@
 ---
 name: godot-camera
-description: Use when a Godot game needs a following, orbiting or third-person 3D camera, or when its camera clips through walls, cuts or jerks, hides the player, fights the player's stick, or makes players feel sick.
+description: Use when a Godot game needs a following, orbiting or third-person 3D camera or a 2D side-scrolling camera, or when its camera clips through walls, cuts or jerks, hides the player, fights the player's stick, or makes players feel sick.
 ---
 
 # Third-person 3D camera
@@ -156,3 +156,26 @@ C# unit tests on the math (`godot-test-loop`), like `OrbitCameraTests`:
 - [ ] turning toward an obstacle the whiskers report gives the player's turn unchanged and a gradual squeeze
 - [ ] zero velocity leaves yaw alone; 170 to -170 degrees turns 20 degrees, not 340
 - [ ] a jump in place keeps the camera's height; a fast avatar never passes the lag limit
+
+## 9. 2D side-scrollers
+
+Vocabulary from "How Cameras in Side-Scrollers Work" (the Mushroom 11 developer, GDC), mapped to Godot 4.7.2's
+`Camera2D` (a child of the player, or moved by follow code). Scrolling follows what the player controls: fast motion
+they did not cause, in the corner of the eye, makes some players sick.
+
+| Behaviour | Godot |
+|---|---|
+| Camera window: the player moves freely inside it and pushes the camera at its edge | `DragHorizontalEnabled`, `DragVerticalEnabled`, `DragLeftMargin`/`Top`/`Right`/`Bottom` |
+| Edge snapping at the level's ends | `LimitLeft`/`Top`/`Right`/`Bottom`, `LimitSmoothed` |
+| Platform snapping: follow vertically only after landing (Super Mario World) | move the follow target's Y only when `IsOnFloor()`, or leaves a band (section 6) |
+| Forward focus: look ahead in the facing direction | `DragHorizontalOffset` (-1 to 1) or the follow target's offset |
+| Smoothing | `PositionSmoothingEnabled` (a linear weight, `godot-math`), or your own exponential follow |
+
+- Dual forward focus switches the look-ahead side only after the player has walked back a set distance (Super Mario
+  World, Cave Story), so turning round to dodge does not swing the screen.
+- With tall jumps, a tall vertical window that slowly re-centres; for a very fast character, a narrow one.
+- Cues: inside an outer ring round a point of interest, the camera aims at a distance-weighted average of player and
+  cue, inside an inner ring at the cue; overlapping rings average.
+- Several players: average their positions and zoom to fit (Super Smash Bros.), or follow one player (Spelunky).
+- Smoothing time can follow speed: Mushroom 11 aimed for about 0.5 s when moving fast and up to 2.5 to 3 s when
+  exploring slowly.

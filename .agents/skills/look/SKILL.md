@@ -31,7 +31,10 @@ outside the safe area, colours off the palette, screens that disagree with each 
 Name the WCAG criterion with each accessibility problem. Take the design resolution again with
 `-ColorVision protan,deutan,tritan` and ask it to compare each `shots[].colorVision` picture with the original: team colours,
 health bars, map markers, selected or locked states and must-not-confuse pairs that become the same colour there, and
-markers that sink into the background (1.4.1). Report the problems as a table:
+markers that sink into the background (1.4.1). For each gameplay screen, also ask it to name the first, second and
+third read (what the eye finds first, next, last; Zach Gage, GDC): flag state the player needs all the time (status
+effects, the current goal) drawn smaller than decoration, and screens where the second and third reads are the same size.
+Report the problems as a table:
 screen | resolution | problem | rule it breaks | screenshot path. Do not fix anything the user has not chosen to fix.
 
 ## 3. Before and after
