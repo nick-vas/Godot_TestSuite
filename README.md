@@ -127,6 +127,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-localization` | translations, plurals, right-to-left, fonts for every script, and screens that still fit in every language |
 | `godot-input` | rebinding, keyboard and controller at once, button prompts that follow the device, Steam Input, accessibility |
 | `godot-game-ai` | enemies and companions that decide and move: state machines, behaviour trees, utility, GOAP, steering, navigation that is ready |
+| `godot-algorithms` | paths for crowds, fleeing, connected regions, prerequisites that loop, sorting that keeps ties, "did you mean"; what textbook code costs at game sizes, and why GPL code stays out |
 | `godot-multiplayer` | online play: prediction, reconciliation, interpolation, lag compensation, rollback, dedicated servers, soak tests |
 | `godot-steam` | Steam: choosing a C# binding that works, start-up without Steam, achievements, stats, leaderboards, rich presence, Cloud conflicts, DLC, demos, servers, branches |
 | `godot-steam-deck` | Steam Deck Verified: input, text size measured at 1280x800, defaults per device, text entry, sleep and resume |
@@ -243,6 +244,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | [docs/audio.md](docs/audio.md) | Game audio: what FMOD, Wwise and Unreal teach about buses, adaptive music, variation, 3D sound and ducking, mapped to Godot; Godot facts checked in the source; ASWG and IESD loudness targets |
 | [docs/mobile-web.md](docs/mobile-web.md) | Phones, tablets and browsers: what Godot 4.7.2 did when exported to Android and the web and run in Chromium, sources, and the mistakes agents make |
 | [docs/store-and-legal.md](docs/store-and-legal.md) | Store pages, ratings, privacy, licences and credits: Steamworks, Zukowski, IARC, PEGI, GDPR, SPDX and IGDA sources, what was tested, what agents get wrong |
+| [docs/algorithms.md](docs/algorithms.md) | TheAlgorithms (GPL code, MIT explanations): what a game needs from them, measured against Godot's built-ins and the kit's helpers |
 | [docs/gdc/README.md](docs/gdc/README.md) | GDC talks read in full from their transcripts: what the kit took from each (a check, a tested core, a skill rule), and what it did not |
 | [docs/studio-lessons.md](docs/studio-lessons.md) | What studios say worked and failed: Nintendo, Japanese developers, Eastern European and simulation studios, 20 postmortems, talks; each lesson quoted and linked |
 | [docs/wcag-ui.md](docs/wcag-ui.md) | Every WCAG 2.2 success criterion read as a rule for game menus and UI, with the Godot 4.7 API for each |

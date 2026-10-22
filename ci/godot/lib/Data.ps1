@@ -35,6 +35,13 @@ function Read-DataTable([string]$Path) {
     return , $records
 }
 
+# "; did you mean 'x'?" when one of the names is a likely typo of the value, else nothing.
+function Format-DidYouMean([string]$Typed, [string[]]$Names) {
+    $near = Get-ClosestName $Typed $Names
+    if ($near) { return "; did you mean '$near'?" }
+    return ''
+}
+
 # One value against its field rule; the problem as text, or $null.
 function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
     $type = if ($Rule.Contains('type')) { $Rule['type'] } else { $null }
@@ -59,9 +66,48 @@ function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
         if ($Rule.Contains('min') -and $number -lt [double]$Rule['min']) { return "is $number, below the minimum $($Rule['min'])" }
         if ($Rule.Contains('max') -and $number -gt [double]$Rule['max']) { return "is $number, above the maximum $($Rule['max'])" }
     }
-    if ($Rule.Contains('enum') -and "$Value" -notin @($Rule['enum'])) { return "is '$Value', not one of: $(@($Rule['enum']) -join ', ')" }
+    if ($Rule.Contains('enum') -and "$Value" -notin @($Rule['enum'])) { return "is '$Value', not one of: $(@($Rule['enum']) -join ', ')$(Format-DidYouMean "$Value" @($Rule['enum']))" }
     if ($Rule.Contains('pattern') -and "$Value" -notmatch $Rule['pattern']) { return "'$Value' does not match $($Rule['pattern'])" }
     return $null
+}
+
+# Cycles among rows that name each other in acyclic fields (a tech that needs itself through three others can never be
+# researched). Rows with no names left to wait for are peeled off until none remain; every row still standing then names
+# another one still standing, so following those names from it must come back round. Each cycle is reported once, as the
+# ids in order with the first repeated at the end ('a -> b -> a'); at most five. No recursion: a ten-thousand-row chain is fine.
+function Find-DataCycles([System.Collections.IDictionary]$Edges) {
+    $waiting = @{}; $neededBy = @{}
+    foreach ($id in $Edges.Keys) {
+        foreach ($to in $Edges[$id]) {
+            if (-not $Edges.Contains($to)) { continue }   # a row that names nothing cannot be on a cycle
+            $waiting[$id] = 1 + $(if ($waiting.ContainsKey($id)) { $waiting[$id] } else { 0 })
+            if (-not $neededBy.ContainsKey($to)) { $neededBy[$to] = [System.Collections.Generic.List[string]]::new() }
+            $neededBy[$to].Add($id)
+        }
+    }
+    $free = [System.Collections.Generic.Queue[string]]::new()
+    foreach ($id in $Edges.Keys) { if (-not $waiting.ContainsKey($id)) { $free.Enqueue($id) } }
+    $done = [System.Collections.Generic.HashSet[string]]::new()
+    while ($free.Count) {
+        $id = $free.Dequeue(); [void]$done.Add($id)
+        if (-not $neededBy.ContainsKey($id)) { continue }
+        foreach ($by in $neededBy[$id]) { if (--$waiting[$by] -eq 0) { $free.Enqueue($by) } }
+    }
+    $cycles = [System.Collections.Generic.List[string]]::new()
+    $reported = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($start in $Edges.Keys) {
+        if ($done.Contains($start) -or $reported.Contains($start) -or $cycles.Count -ge 5) { continue }
+        $path = [System.Collections.Generic.List[string]]::new(); $at = @{}; $id = $start
+        while (-not $at.ContainsKey($id) -and -not $reported.Contains($id)) {
+            $at[$id] = $path.Count; $path.Add($id)
+            $id = @($Edges[$id] | Where-Object { $Edges.Contains($_) -and -not $done.Contains($_) })[0]
+        }
+        if ($reported.Contains($id)) { continue }   # led into a cycle already reported
+        $cycle = @($path.GetRange($at[$id], $path.Count - $at[$id])) + @($id)
+        foreach ($c in $cycle) { [void]$reported.Add($c) }
+        $cycles.Add($(if ($cycle.Count -le 12) { $cycle -join ' -> ' } else { "$($cycle[0..5] -join ' -> ') -> ... ($($cycle.Count - 1) rows) -> $($cycle[-1])" }))
+    }
+    return $cycles.ToArray()
 }
 
 function Get-DataCases([string]$ProjectDir) {
@@ -83,15 +129,17 @@ function Get-DataCases([string]$ProjectDir) {
     foreach ($name in $tables.Keys) {
         foreach ($field in $tables[$name]['fields'].Keys) {
             $ref = $tables[$name]['fields'][$field]['ref']
-            if ($ref -and -not $tables.Contains($ref)) { $configProblems += "table '$name' field '$field' refers to table '$ref', which data.json does not list" }
+            if ($ref -and -not $tables.Contains($ref)) { $configProblems += "table '$name' field '$field' refers to table '$ref', which data.json does not list$(Format-DidYouMean $ref @($tables.Keys))" }
+            if ($tables[$name]['fields'][$field]['acyclic'] -and $ref -ne $name) { $configProblems += "table '$name' field '$field' is acyclic, which needs a ref to its own table ('$name')" }
         }
     }
     $cases.Add(@{ Name = 'data.json'; Failure = ($configProblems -join "`n") })
 
-    $ids = @{}
+    $ids = @{}; $idOrder = @{}
     foreach ($name in $loaded.Keys) {
         $idField = $tables[$name]['id']
-        $ids[$name] = [System.Collections.Generic.HashSet[string]]::new([string[]]@(foreach ($r in $loaded[$name]) { if ($r.Contains('@key')) { $r['@key'] } elseif ($idField -and $r.Contains($idField)) { "$($r[$idField])" } }))
+        $idOrder[$name] = [string[]]@(foreach ($r in $loaded[$name]) { if ($r.Contains('@key')) { $r['@key'] } elseif ($idField -and $r.Contains($idField)) { "$($r[$idField])" } })
+        $ids[$name] = [System.Collections.Generic.HashSet[string]]::new($idOrder[$name])
     }
 
     foreach ($name in $loaded.Keys) {
@@ -101,6 +149,7 @@ function Get-DataCases([string]$ProjectDir) {
         $allowExtra = $spec.Contains('extra') -and $spec['extra'] -eq 'allow'
         $problems = [System.Collections.Generic.List[string]]::new()
         $seen = @{}
+        $edges = [ordered]@{}   # id -> ids it names in acyclic fields
         if ($fromCsv) {
             $import = (Join-Path $ProjectDir ($spec['file'] -replace '^res://', '')) + '.import'
             if (-not ((Test-Path -LiteralPath $import) -and (Get-Content -LiteralPath $import -Raw) -match '(?m)^importer="keep"')) {
@@ -116,7 +165,10 @@ function Get-DataCases([string]$ProjectDir) {
             }
             foreach ($key in $record.Keys) {
                 if ($key -in '@line', '@key' -or $key -eq $idField) { continue }
-                if (-not $fields.Contains($key) -and -not $allowExtra) { $problems.Add("$where has '$key', which data.json does not list (a typo?)") }
+                if (-not $fields.Contains($key) -and -not $allowExtra) {
+                    $near = Get-ClosestName $key @($fields.Keys)
+                    $problems.Add("$where has '$key', which data.json does not list $(if ($near) { "(a typo of '$near'?)" } else { '(a typo?)' })")
+                }
             }
             foreach ($field in $fields.Keys) {
                 $rule = $fields[$field]
@@ -132,11 +184,16 @@ function Get-DataCases([string]$ProjectDir) {
                     $problem = Test-DataValue $value $rule $fromCsv
                     if ($problem) { $problems.Add("$where $field $problem"); continue }
                     if ($rule.Contains('ref') -and $ids.ContainsKey($rule['ref']) -and -not $ids[$rule['ref']].Contains("$value")) {
-                        $problems.Add("$where $field names '$value', which is not in $($rule['ref'])")
+                        $problems.Add("$where $field names '$value', which is not in $($rule['ref'])$(Format-DidYouMean "$value" $idOrder[$rule['ref']])")
+                    }
+                    elseif ($rule.Contains('acyclic') -and $rule['acyclic'] -and $rule['ref'] -eq $name -and $id) {
+                        if (-not $edges.Contains($id)) { $edges[$id] = [System.Collections.Generic.List[string]]::new() }
+                        $edges[$id].Add("$value")
                     }
                 }
             }
         }
+        foreach ($cycle in @(Find-DataCycles $edges)) { $problems.Add("$cycle is a cycle: none of them can come first") }
         $cases.Add(@{ Name = "table $name"; Failure = (@($problems) | Select-Object -First 50) -join "`n" })
     }
     return $cases.ToArray()

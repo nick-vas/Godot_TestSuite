@@ -1,5 +1,6 @@
 {
   "tables": {
+    "techs": { "file": "data/techs.json", "id": "id", "fields": { "requires": { "ref": "techs", "list": true, "optional": true, "acyclic": true } } },
     "items": { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 } } },
     "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true, "optional": true } } },
     "mechanics": { "file": "data/mechanics.json", "id": "id", "fields": {} },

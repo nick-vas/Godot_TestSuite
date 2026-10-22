@@ -1,0 +1,7 @@
+[
+  { "id": "steam", "requires": ["forge", "physics"] },
+  { "id": "forge", "requires": ["smelting", "mining"] },
+  { "id": "mining", "requires": [] },
+  { "id": "smelting", "requires": ["mining"] },
+  { "id": "physics", "requires": [] }
+]

@@ -160,7 +160,8 @@ Godot ray wiring and budgets: [perception.md](perception.md).
 - Set `TargetPosition` when the target moves meaningfully, not every frame: re-pathing each frame makes agents dance.
 - Avoidance (`AvoidanceEnabled`): set `Velocity` every physics frame and move the body in `VelocityComputed`. It does
   not change the path.
-- A path query costs about 40 µs on a 300-polygon 2D mesh; spread hundreds of agents' re-paths over frames.
+- A path query costs about 40 µs on a 300-polygon 2D mesh; spread hundreds of agents' re-paths over frames, or give a
+  crowd chasing one target a single Dijkstra map (`godot-algorithms`).
 - Bake at run time from collision shapes or outlines; `AddMesh` reads meshes back from the GPU and stalls. Free the RIDs
   you create (`NavigationServer2D.FreeRid`) or they leak at exit.
 

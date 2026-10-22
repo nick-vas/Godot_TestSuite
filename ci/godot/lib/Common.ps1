@@ -460,3 +460,38 @@ function Get-FailureLocation([string]$Text) {
     }
     return $null
 }
+
+# Edits (insert, delete, substitute, swap two neighbours) between two names, ignoring case; anything above $Max comes back
+# as $Max + 1. The same measure as Breakout.Core's Suggest.Distance (docs/algorithms.md).
+function Get-EditDistance([string]$A, [string]$B, [int]$Max = 1000) {
+    $A = $A.ToUpperInvariant(); $B = $B.ToUpperInvariant()
+    $Max = [Math]::Min($Max, [Math]::Max($A.Length, $B.Length))
+    if ([Math]::Abs($A.Length - $B.Length) -gt $Max) { return $Max + 1 }
+    $before = [int[]]::new($B.Length + 1); $previous = [int[]]::new($B.Length + 1); $current = [int[]]::new($B.Length + 1)
+    for ($j = 0; $j -le $B.Length; $j++) { $previous[$j] = $j }
+    for ($i = 1; $i -le $A.Length; $i++) {
+        $current[0] = $i; $rowBest = $i
+        for ($j = 1; $j -le $B.Length; $j++) {
+            $d = [Math]::Min([Math]::Min($previous[$j] + 1, $current[$j - 1] + 1), $previous[$j - 1] + [int]($A[$i - 1] -cne $B[$j - 1]))
+            if ($i -gt 1 -and $j -gt 1 -and $A[$i - 1] -ceq $B[$j - 2] -and $A[$i - 2] -ceq $B[$j - 1]) { $d = [Math]::Min($d, $before[$j - 2] + 1) }
+            $current[$j] = $d
+            if ($d -lt $rowBest) { $rowBest = $d }
+        }
+        if ($rowBest -gt $Max) { return $Max + 1 }
+        $before, $previous, $current = $previous, $current, $before
+    }
+    return [Math]::Min($previous[$B.Length], $Max + 1)
+}
+
+# "Did you mean": the candidate closest to a mistyped name, or $null when none is near enough to be the same word (one edit
+# up to six letters, two up to nine, ...). The first of equally close candidates wins.
+function Get-ClosestName([string]$Typed, [string[]]$Candidates) {
+    $max = [Math]::Max(1, [Math]::Floor(($Typed.Length - 1) / 3))
+    $best = $null; $bestDistance = $max + 1
+    foreach ($candidate in $Candidates) {
+        $d = Get-EditDistance $Typed $candidate ([Math]::Min($max, $bestDistance))
+        if ($d -lt $bestDistance) { $best = $candidate; $bestDistance = $d }
+        if ($bestDistance -eq 0) { break }
+    }
+    return $best
+}

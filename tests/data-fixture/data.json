@@ -1,5 +1,7 @@
 {
   "tables": {
+    "techs": { "file": "data/techs.json", "id": "id", "fields": { "requires": { "ref": "techs", "list": true, "optional": true, "acyclic": true } } },
+    "recipes": { "file": "data/techs.json", "id": "id", "fields": { "requires": { "ref": "itemz", "list": true, "optional": true, "acyclic": true } } },
     "items": { "file": "data/items.json", "id": "id",
       "fields": { "price": { "type": "int", "min": 0, "max": 9999 }, "rarity": { "enum": ["common", "rare"] } } },
     "enemies": { "file": "res://data/enemies.csv", "id": "id",
