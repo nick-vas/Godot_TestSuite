@@ -144,7 +144,9 @@ Generate data first (a grid, a graph, a list), with no nodes; build the scene fr
   hard rules for each, naming the first failing seed.
 - **Every piece can appear**: furnish a seed sweep and count each hand-made module or chunk; one placed 0 times is
   over-constrained by its rules or cannot occur, and is work no player sees (XCOM 2). The census flags it before it is built.
-- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within a tolerance.
+- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within
+  `Stats.BinomialTolerance(p, rolls, groups: n)` (Breakout's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
+  30% chance, failing a correct generator once in 1,000; more rolls to catch smaller errors (four times the rolls, half the tolerance).
 - **One vocabulary**: placement labels (usage, tier, category) are declared once; a test loads every item and place
   (`DirAccess.GetFilesAt`, `ResourceLoader.Load<T>`) and fails on a label that is not declared.
 - **A pinned seed**: one seed's fingerprint is written into a test, so an unintended change to the generator shows up. When the

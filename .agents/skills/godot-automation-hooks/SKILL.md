@@ -64,6 +64,26 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
 - Test every level or encounter end to end with the bot at two skill levels and several seeds. In one project this found five
   bugs that unit tests and solvers never showed.
 
+## Comparing two versions
+
+Did the change help (a new jump, an easier puzzle, a shop coupon)? Two averages from a few runs differ by chance alone, so let a
+test decide. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/Stats.cs` has them, engine-free, with
+`StatsTests`; pick by what is measured:
+
+| Outcome | Test |
+|---|---|
+| a number with a real mean (seconds to clear, damage taken) | `Stats.WelchTTest`; `Stats.PairedTTest` when the same seeds or players saw both versions |
+| yes or no (cleared, bought, quit) | `Stats.RelativeRisk` ("2.4 times as likely", to convince others), `Stats.ProportionDifference` (points, to decide) |
+| skewed (a few marathon players), a 1 to 5 rating, a ranking | `Stats.MannWhitney`; for ratings, do not pick the test after seeing the data |
+
+- Fix the metric, the threshold (5%) and the number of runs first, then read the result once. Stopping the first time p
+  drops under 5% gave 19% false positives over ten looks (`StatsTests`). Several variants share that 5%: divide it.
+- Every p-value is two-tailed: a change can make things worse too.
+- Read the interval, not only p. When it straddles zero (one for a ratio), `IsResult` is false: no result, whatever the
+  mean says. A real difference can still be too small to be worth its cost.
+- Bots: run both versions on the same seeds and pair them. On the same data, pairing turned no result into p = 0.003.
+- One question per test: twenty metrics at 5% each find a "difference" by chance. Balancing many PvP classes is beyond this.
+
 ## What studios test
 
 - **The whole game, every build.** Croteam ran a bot that solved all of The Talos Principle on every build; Dragon Quest III
