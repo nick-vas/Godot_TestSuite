@@ -6,7 +6,8 @@ $root = Split-Path $PSScriptRoot
 $game = Join-Path ([System.IO.Path]::GetTempPath()) "assets-fixture-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
 Copy-Item -Recurse (Join-Path $PSScriptRoot 'assets-fixture') $game
 foreach ($file in 'art/kenney/button.png', 'art/kenney/sub/panel.svg', 'art/borrowed/hero.png', 'art/player/idle.png',
-    'shaders/dissolve.gdshader', 'models/gpl_tree.glb', 'fonts/pixel.ttf', 'audio/rain.ogg', 'audio/unlisted.wav') {
+    'shaders/dissolve.gdshader', 'models/gpl_tree.glb', 'fonts/pixel.ttf', 'audio/rain.ogg', 'audio/unlisted.wav',
+    'art/enemy/bat.png', 'art/boss/ogre.png', 'art/logo.png', 'music/theme.ogg', 'music/menu.ogg') {
     $path = Join-Path $game $file
     New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
     New-Item -ItemType File $path | Out-Null
@@ -30,14 +31,19 @@ $expected = [ordered]@{
     'mipmaps'        = '^WARN Pixel art textures with mipmaps.*: art/kenney/button\.png$'
     'vram'           = '^WARN Pixel art textures with VRAM or Basis compression.*: art/player/idle\.png$'
     'integer scale'  = '^INFO Pixel art: window/stretch/scale_mode is not integer'
+    'no agreement'   = '^WARN Commissioned work with no signed agreement.*: art/boss/\*\*$'
+    'no rights'      = '^WARN Commissioned work whose rights.*: art/logo\.png$'
+    'no uses'        = '^WARN Commissioned work licensed with no uses.*: music/theme\.ogg$'
+    'licensed uses'  = '^INFO Commissioned work licensed, not owned.*: music/menu\.ogg \(game, store\)$'
 }
 $failures = @(foreach ($name in $expected.Keys) { if (-not ($checks -match $expected[$name])) { $name } })
 if ($checks -match '^(WARN|INFO) (Asset|Non|GPL|Licence).*(kenney|player)') { $failures += 'CC0 or own files were reported' }
+if ($checks -match '^(WARN|INFO) Commissioned.*art/enemy') { $failures += 'commissioned work with its agreement was reported' }
 Remove-Item -Recurse -Force $game
 if ($failures) {
     Write-Host "FAIL $($failures -join ', ')"
     $checks | ForEach-Object { Write-Host "  $_" }
     exit 1
 }
-Write-Host 'doctor reports assets with no entry, non-commercial, GPL and unrecognised licences, credits owed, and pixel art imports that blur'
+Write-Host 'doctor reports assets with no entry, non-commercial, GPL and unrecognised licences, credits owed, commissioned work without its agreement, rights or uses, and pixel art imports that blur'
 exit 0

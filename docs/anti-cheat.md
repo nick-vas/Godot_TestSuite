@@ -19,6 +19,7 @@ secondary source.
 | [EOSG](https://github.com/3ddelano/epic-online-services-godot) (community, Godot 4.2+) | Anti-cheat client and server interfaces "Completed without sample" |
 | [BattlEye](https://www.battleye.com/) | No public prices; "License inquiries" by form |
 | [Compiling with an encryption key](https://github.com/godotengine/godot-docs/blob/master/engine_details/development/compiling/compiling_with_script_encryption_key.rst), [GDRE Tools](https://github.com/GDRETools/gdsdecomp) | PCK encryption needs a custom template; the key ships in the binary; projects are recoverable |
+| Fletcher Dunn (Valve), "Denial of Service Mitigation" ([GDC talk](https://www.youtube.com/watch?v=2CQ1sxPppV4); [notes](gdc/denial-of-service-mitigation.md)) | A process fails on packet rate (~250,000 a second well-written, 100 to 1,000 naive) before bandwidth; never reveal player IPs (peer-to-peer, listen servers and dev tools/rich presence/spectating leak them); relay and identify by Steam ID; backend over HTTP; bans need a re-entry cost. The denial-of-service section of the skill |
 
 ## The server decides (doc, source)
 
@@ -45,6 +46,7 @@ secondary source.
 | The same, after the fix (`AClientSendingExtraInputsDoesNotMoveFaster` in `NetcodeTests.cs`) | No more than 2% over 2000 px (the test's bound); the extra inputs counted in `InputsRejected` |
 | An honest client whose packets are held for half a second (`AnHonestClientCatchesUpAfterAStall`) | Catches up to the exact distance; `InputsRejected` stays 0 |
 | A `.tres` with an embedded GDScript, loaded with `ResourceLoader.load` (standard 4.7.2) | The script ran: an edited save in that format is code execution |
+| A junk-UDP flood against a Godot 4.7.2 ENet server's own port on 127.0.0.1 (`soak -JunkPps`, standard 4.7.2, 4 cores); full table in [multiplayer.md](multiplayer.md) | No effect to ~10,000 packets a second; collapse by ~50,000 (input loss ~38-57%, round trips into the seconds, dropped clients). The talk's "naive 100 to 1,000" and "well-written ~250,000" bracket it |
 
 The fix gives each player one input of credit per tick of real time, up to `MaxCredit` (60, one second of catching up
 after a stall), and spends one per input applied. Inputs queued beyond `MaxQueue` (60) are refused and counted in

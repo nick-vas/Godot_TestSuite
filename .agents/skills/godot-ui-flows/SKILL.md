@@ -52,6 +52,28 @@ Condition: `node` (path from the scene root, `.` for the root, or absolute `/roo
 3. Prefer `wait_until` over a long `wait`: it is faster and does not break when timings change.
 4. Keep each flow to one behaviour. Name the file for it (`pause_menu_resumes.flow.json`).
 
+## Tutorials and notices
+
+Rules from God of War Ragnarok's UI (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/building-the-ui-for-a-aaa-single-player-game.md`):
+
+- Tutorial prompts appear in the same place and style every time, so players learn where to look, and teach one thing each.
+  Hold a prompt back a moment and drop it if the player does the action first.
+- An in-menu tutorial takes over input: only the action it teaches moves it on, with an arrow to where to look. At most
+  seven steps; past that, players mash buttons to get back to the game.
+- Notices (pickups, quest updates) never share one global queue that shows one at a time: Ragnarok's made players wait.
+  Give each screen region its own queue, and hold the others back only for a message that must stand alone (an area name).
+
+Test both with a flow: a wrong action leaves the tutorial on its step and the taught one advances it, and its step count
+is at most 7; two notices for different regions are both visible a few frames after they are queued.
+
+```json
+{ "action": "ui_cancel" },
+{ "assert": { "node": "Tutorial", "prop": "Step", "equals": 1 } },
+{ "action": "ui_accept" },
+{ "assert": { "node": "Tutorial", "prop": "Step", "equals": 2 } },
+{ "assert": { "node": "Tutorial", "prop": "StepCount", "le": 7 } }
+```
+
 ## Failures
 
 `tests-failed` with `runner: flows`; each failure's `name` is the flow file and `message` is `step N (<the step>): <reason>`, for

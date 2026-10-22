@@ -19,7 +19,8 @@ What you are asked to check decides the command:
   contrast, inconsistency between screens. With `-Baseline <folder of earlier shots>` each shot also gets
   `compare.changedPercent` and `compare.image` (before | after | changes in red); open the comparison image.
 - Frame pacing: `bench -Json -Quiet` with the scene, `-GameArgs` and budget you were given. Report avg FPS, 1% and
-  0.1% lows, p99 and max frame time, frames over 33 ms, the first hitches, and custom-monitor deltas (GC counts).
+  0.1% lows, p99 and max frame time, frames over 33 ms, the first hitches, the worst three `hotspots` (where the camera
+  was: `centre`, `p99Ms`, `frames`), and custom-monitor deltas (GC counts).
 - Exported build: `export -Json -Quiet -Preset <name> -Run`.
 
 Reply in at most 15 lines:
