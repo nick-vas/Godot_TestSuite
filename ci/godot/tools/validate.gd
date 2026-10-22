@@ -58,6 +58,12 @@ func _check(path: String) -> String:
 		if node == null:
 			return "scene does not instantiate"
 		node.free()
+	elif path.get_extension() == "tres":
+		# A key the class no longer has (a renamed or removed export) is dropped on load without an error, and the value
+		# is lost the next time the file is saved.
+		var unknown := _unknown_keys(path, resource)
+		if not unknown.is_empty():
+			return "keeps %s, which %s no longer has (a renamed or removed export?): the value is dropped on load and lost on the next save" % [", ".join(unknown), _class_of(resource)]
 	elif resource is Shader:
 		# Loading does not compile a shader headless; asking for its uniforms does, and prints SHADER ERROR if it is broken.
 		# A fresh Shader with the same code compiles here, between this file's markers, even if Godot already compiled (and
@@ -66,3 +72,36 @@ func _check(path: String) -> String:
 		fresh.code = (resource as Shader).code + "\n// validate\n"  # different text, so no compile cache can skip it
 		fresh.get_shader_uniform_list()
 	return ""
+
+
+# The keys under [resource] in a text resource that are not stored properties of the loaded object.
+func _unknown_keys(path: String, resource: Resource) -> PackedStringArray:
+	var stored := {}
+	for property in resource.get_property_list():
+		if property["usage"] & PROPERTY_USAGE_STORAGE:
+			stored[property["name"]] = true
+	var unknown := PackedStringArray()
+	var key_line := RegEx.create_from_string("^([A-Za-z_][A-Za-z0-9_/]*) = ")
+	var inside := false
+	for line in FileAccess.get_file_as_string(path).split("\n"):
+		if line.begins_with("["):
+			inside = line.strip_edges() == "[resource]"
+			continue
+		if not inside:
+			continue
+		var found := key_line.search(line)
+		if found == null:
+			continue
+		var key := found.get_string(1)
+		if key.begins_with("metadata/") or stored.has(key):
+			continue
+		unknown.append(key)
+	return unknown
+
+
+func _class_of(resource: Resource) -> String:
+	var script: Script = resource.get_script()
+	if script:
+		var name := script.get_global_name()
+		return name if name != "" else script.resource_path.get_file()
+	return resource.get_class()

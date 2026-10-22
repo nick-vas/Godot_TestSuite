@@ -171,15 +171,12 @@ Kenney, OpenGameArt, Fast WFC add-on, WaveFunctionCollapse and MarkovJunior lice
 
 ## To do: kit features from the second pass
 
-Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. The hang time limit was done in that
-pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contract or needs its own fixture and review:
+Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. Done: the hang time limit
+(`GODOT_CI_TIMEOUT`), the `playthrough` runner and its `runner:playthrough` gate, `smoke -FixedFps`, `shot -MaxChangedPercent`
+(`shot-changed`) and test duration in `status` (`testDuration`, `testBudgetSeconds`). Still open:
 
 | Feature | Why | Smallest change |
 |---|---|---|
-| A `playthrough` runner | `production.playthrough` is a manual gate, and `smoke` passes on a bot stuck in the first room | Built from the `juice` runner: run the main scene with `--headless --fixed-fps 60` and the game's flags, fail unless every expected log line (`[Run] ending reached`) appears; a `runner:playthrough` gate check; a fixture whose bot never finishes |
-| `--fixed-fps` for `smoke` | `-Frames` counts frames, not game time, so a long bot run is neither fast-forwarded nor reproducible | Opt-in switch, so existing smoke runs keep their meaning |
-| `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
-| Test duration in `status` | Croteam steered by submit-to-verdict time; Rare sped up Sea of Thieves' commit stage, stopped watching, and was back where it started within months (`docs/gdc/folds-testing-misc.md`); the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
 | Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
 
@@ -190,8 +187,6 @@ From the audio pass (`docs/audio.md`):
 | Item | Why it is open |
 |---|---|
 | Learn FMOD's Skill Tree (adaptive music lessons) | Needs a sign-in; the landing page and course list were read |
-| A mono option | Xbox Accessibility Guideline 105 asks for one. Godot has no mono switch, and no bus effect that folds stereo to mono was confirmed |
-| A voice budget helper (categories, priorities, oldest-first stealing across players) | Godot has only per-player `MaxPolyphony`; the skill describes the pattern, but a tested C# helper would make it reusable |
 | `audio -Mix` on Windows | Tested on Linux under Xvfb; Movie Maker should work the same on Windows with a desktop session |
 
 ## To do: art and technical art
@@ -234,7 +229,6 @@ From this pass (`docs/game-ai.md`, `docs/multiplayer.md`, `docs/telemetry.md`):
 | Sentry's addon end to end | Its release binaries could not be downloaded here; the settings `doctor` checks were read from its source |
 | Valve's networking articles, the Overwatch and Sea of Thieves GDC talks, EUR-Lex, gdpr-info.eu, cnil.fr | Behind a proof-of-work wall, a login, or unreachable from this session |
 | Whether crash reports may rest on legitimate interest, and access requests with random ids | Legal questions for the owner's lawyer |
-| Steering: obstacle avoidance, path following, alignment and cohesion | Not in Breakout's `Steering.cs` yet |
 
 ## To do: data, determinism, modding, anti-cheat, consoles, debug tools and builds
 
@@ -245,8 +239,6 @@ From this pass (`docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/
 |---|---|
 | PlayStation TRC and Nintendo Lotcheck requirements | Under NDA; the skill uses Xbox's public list as a stand-in. The owner would need developer access to compare |
 | W4 Games and Godot 4.7 | W4 listed 4.4 to 4.6 in October 2026; check again before a console port |
-| A check that every key in a `.tres` is a stored property of its class | Renamed `[Export]` properties lose data silently; needs a GDScript tool run inside Godot. A kit feature for the `data` runner |
-| Static determinism checks (`Math.Sin`, `System.Random`, `DateTime.Now`, `Dictionary` iteration in simulation folders) | Candidate `architecture` rules; needs a way to mark which folders are simulation |
 | Floats on Arm64 and across operating systems, and Godot physics across machines | No Arm64 hardware or second OS here; a GitHub matrix job printing a replay checksum on Windows, Linux and macOS would answer it |
 | Unloading C# mods from a collectible load context | Untested; the skill tells games to restart instead |
 | Steam Workshop, mod.io, Easy Anti-Cheat and BattlEye in a Godot game | Need accounts and keys; only documentation was read |
@@ -268,7 +260,7 @@ From this pass (`docs/steam.md`):
 | GodotSteam 4.23.2 on macOS (its `.gdextension` names files the zip lacks) | No macOS; `doctor` reports the missing files |
 | Whether Valve's 9 px means the font size or the letters' height | Valve does not say; `textsize` fails the first and warns on the second |
 | `SteamDeck=1`, `OS.GetDistributionName()` on a Deck, focus events in gamescope, real sleep | No Deck |
-| Rich presence token file and achievement-name lint, build VDF lint | Proposed checks, not built yet |
+| Achievement, stat and rich presence names held in constants (as Breakout's `BreakoutProgress` does) or in code outside the Godot project (`Breakout.Core`) | `doctor`'s Steamworks checks read string literals in the project's own `.cs` and `.gd` files; following constants needs a C# and GDScript parser |
 
 ## To do: store pages, legal basics and credits
 
@@ -278,9 +270,9 @@ From this pass (`docs/store-and-legal.md`):
 |---|---|
 | Steam's short description limit, capsule file formats and size caps; whether a trailer is still required for review; custom EULA setup; whether Steam wants a game privacy policy | Not in Steamworks' public pages; the owner's partner account (no app yet) would show the real forms |
 | IARC's questions | Only inside a store's portal; a `ratings.json` answers file with a plan gate is the planned check once they are seen |
-| A release timeline check in `plan` (fee + 21 days, Coming Soon + 14 days, 7 business days per review, date freeze, Next Fest deadlines) | Needs dates in `plan.json`; a kit feature for a later pass |
-| A privacy check in `doctor` (telemetry or an Android/iOS preset without a policy; `policyVersion` not found in the policy) | A kit feature for a later pass |
-| Trailer and tag checks (`ffprobe` on `store/steam/trailer*`, `tags.txt`) | A kit feature for a later pass |
+| Next Fest registration deadlines in the release timeline (February 2027: register by January 10) | Valve publishes them per edition; the timeline checks only the demo review lead, which the Next Fest page states |
+| Public holidays in the timeline's business days | Valve does not say whose holidays count; the timeline counts Monday to Friday |
+| A trailer's container, length and minimum size | No source the kit read states them; `doctor` reports them as INFO |
 | A flow test that the credits screen is reachable from the main menu | Game-specific; the skill tells games to add one |
 | GodotSteam's licence, the Steamworks SDK redistribution terms, FMOD's credit terms, GOG's asset specs | 403, 404 or JavaScript-only pages from the cloud session, or partner-only |
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
@@ -309,20 +301,37 @@ From this pass (`docs/mobile-web.md`):
 GameCI (Unity's CI, `docs/` of game-ci/documentation, MIT) was read in October 2026. Done: cache keys per Godot build
 flavour and asset content, caches kept when tests fail, job timeouts, pre-release tags, no misleading PR-comment
 warning on forks, a pinned actionlint, `doctor`'s repository checks (`Test-RepoHygiene.ps1`), a link checker
-(`Test-DocLinks.ps1`), and Steam, Play and TestFlight notes in `godot-export-release`. Still to do:
+(`Test-DocLinks.ps1`), Steam, Play and TestFlight notes in `godot-export-release`, `-GameVersion auto` (git's tags;
+`shallow-checkout` for a shallow clone) with the Android `version/code` set for the export only and the action's
+`version`, `android-version-code` and `build-path` outputs (`Test-GameVersion.ps1`), Git LFS and Gradle caches in the
+action, `setup` on macOS, optional signing secrets and an `environment` input on `godot.yml`, and
+[self-hosted-runners.md](self-hosted-runners.md). Still to do:
 
-- [ ] Versions from git: `-GameVersion auto` (latest tag plus commits since, `git describe`; needs a full-history
-      checkout) and the Android preset's `version/code` set for the export only (GameCI: major*1,000,000 + minor*1,000 +
-      patch). The action would output `version`, `android-version-code` and `build-path`.
-- [ ] Cache Git LFS objects (`.git/lfs`, keyed on a hash of `git lfs ls-files -l`) and Gradle's caches for Android
-      exports.
-- [ ] macOS: download the macOS build of Godot in `setup` (it stops on macOS today), so iOS and macOS exports can run on
-      `macos-latest`.
-- [ ] Optional secrets and an `environment` input on `godot.yml`, so callers can sign Windows, macOS and Android builds
-      through it.
 - [ ] A GitLab CI template using the JUnit and Cobertura files the kit already writes; a container image with Godot,
       templates, PowerShell and .NET, refreshed by the canary.
 - [ ] Tag the kit's releases and keep a moving `v1` tag, so callers stop pinning `@main`.
-- [ ] A short page on self-hosted runners (labels, one workspace per runner, disk clean-up; `~/.godot-ci` persists
-      there, so the cache steps are redundant).
+- [ ] Run on a real runner what could not be run here: `setup` and an export on `macos-latest` (the macOS download was
+      written from the release's asset names and tested only as names and paths), a signed Android, Windows and macOS
+      export through the workflow's secrets, the LFS and Gradle caches, and `environment:` left empty (GitHub runs the
+      job without one). The session that wrote these could not start PowerShell (its sandbox refused it), so
+      `Test-GameVersion.ps1`, PSScriptAnalyzer and the example exports were first run by the self-test, not locally.
 
+
+## To do: from Valve's public material
+
+Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
+`PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
+`godot-playtest` skill, and Valve's process in `godot-game-plan`. Still to do:
+
+- [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
+      scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
+      page is "Under Construction"), *Game Developer* November 2005 ("Scaling the Cabal": the GDC Vault serves a login
+      page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
+- [ ] A dialogue authoring path: a `data.json` table for `ResponseSystem` rows (who, concept, criteria, lines, then,
+      remember), so the `data` runner checks criteria syntax, follow-up targets and missing voice files.
+- [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
+      `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
+- [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
+      from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
+- [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
+      use up every key item, then check progress is still possible), both from the commentaries.

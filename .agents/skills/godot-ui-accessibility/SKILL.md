@@ -87,7 +87,7 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   `DisplayServer.AccessibilityShouldIncreaseContrast() == 1`. They return 1, 0, or -1 when the system does not say (the
   first is only implemented on Windows and macOS), so the settings must exist either way.
 - Separate volume and mute for music, voice-over, gameplay effects, ambient effects and narration (one `AudioServer` bus
-  each), apart from the master, and a mono option (XAG 105).
+  each), apart from the master, and a mono option (XAG 105; how: `godot-audio`).
 - Subtitles for all voiced dialogue, the opening cinematic included, on at first start or offered before the first line
   (1.2.2, XAG 104). Size: design to 46 px at 1080p, never under 28 px, and offer a size setting. Put subtitle labels (or
   their container) in the `subtitles` node group: the `textsize` runner fails them under 28 px and warns under 46 px,

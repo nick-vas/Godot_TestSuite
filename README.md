@@ -90,6 +90,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Play it in browsers** | `export -Preset Web -Run -Browser chromium,firefox,msedge` | a debug build of each Web preset opened in real browsers through Playwright; script errors, failed requests and engines that never start fail; the download size raw and gzipped |
 | **Credit everyone** | `credits` | `CREDITS.md`, `credits.json` for a credits screen and `THIRD-PARTY-NOTICES.txt` (assets, Godot and its components, .NET) from `assets.json`; fails when a licence's credit or notice is missing |
 | **Feel the game** | `juice` runner, `juice.json` | an autoplay run in which every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
+| **Finish the game** | `playthrough` runner, `playthrough.json` | the game's bot plays at fixed game time and must log every milestone, the ending last; `smoke` would pass a bot stuck in the first room |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; add `-McpDiagnostics` for fast GDScript checks and the game console |
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
@@ -118,6 +119,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-architecture` | structuring a game or system so it stays deterministic and testable |
 | `godot-game-design` | deciding what a game or feature is for, whether it is fun, and what to cut: MDA's kinds of fun, design rules of thumb, gameplay patterns |
 | `godot-math` | vectors, angles, rotations, bounces and oscillation in Godot, and where textbook formulas and the engine disagree |
+| `godot-playtest` | running and reading playtests Valve's way, the fixes for what testers keep doing, and the telemetry that finds it |
 | `godot-progression` | rewards, loot, experience and unlocks, difficulty tuning, side systems and updates after launch, with a check that rewards add up to the next step |
 | `godot-narrative` | story, lore and voice: a bible, a timeline and canon in the repository, one spelling per name (checked), voice recorded last |
 | `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
@@ -235,7 +237,8 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | | |
 |---|---|
 | [docs/usage.md](docs/usage.md) | Ten usage scenarios |
-| [docs/reference.md](docs/reference.md) | Parameters, workflow inputs, cost |
+| [docs/reference.md](docs/reference.md) | Parameters, workflow inputs and secrets, the action's outputs, cost |
+| [docs/self-hosted-runners.md](docs/self-hosted-runners.md) | Running the workflow on your own machines: labels, workspaces, disk, what persists |
 | [docs/json.md](docs/json.md) | The `-Json` contract and error codes |
 | [docs/godot-pipelines.md](docs/godot-pipelines.md) | Test frameworks, versions, release-safe packaging |
 | [docs/plan.md](docs/plan.md) | The A-to-Z plan, tasks and Trello sync, and where it comes from |

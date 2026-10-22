@@ -92,9 +92,9 @@ Repetition is what makes game audio sound cheap; unlimited voices are what make 
   foreach (var sample in footstepSamples) steps.AddStream(-1, sample);
   ```
 - `MaxPolyphony` (default 1) caps voices per player; past it the **oldest** voice is cut, with a short fade. Godot has no
-  global voice limit and no priorities: give each category a budget in code (for example, at most six gunshots, oldest
-  first; footsteps beyond 20 m not started at all), and let important sounds (voice, UI, the player's own weapon) never be
-  stolen.
+  global voice limit and no priorities: `VoiceBudget` (next to `VoiceLimiter`, below) gives each category a cap and a
+  priority, steals the oldest voice of the lowest priority when the total is reached, and never steals protected
+  categories (voice, UI, the player's own weapon); the caller fades out what it returns as stolen.
 - Cap by place as well as by count: per kind, at most two or three voices within a radius of a new one ("max within
   radius", Guy Somberg's rule on Hellgate: London and BioShock 2; past two sources, people hear "footsteps", not steps).
   Ten bricks breaking in one corner play two voices, bricks breaking on both sides still sound from both sides, and the
@@ -190,6 +190,9 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Mix -Seconds 120 -GameAr
   minutes of representative play; a two-minute bot run is a check, not a certificate.
 - Listen at a very low volume too: what still sticks out is too loud, what disappears is too quiet (a tip from the
   "How to Make Things Pop" GDC talk, in the same doc). It is a check by ear, not a substitute for the meter.
+- A mono option (Xbox Accessibility Guideline 105): an `AudioEffectStereoEnhance` with `pan_pullout = 0` on Master, toggled
+  with `AudioServer.SetBusEffectEnabled`. Measured on 4.7.2 (`tests/Test-MonoAudio.ps1`): each side becomes (L+R)/2, so a
+  left-only sound plays on both sides at half level, a centred one is unchanged, and opposite-phase stereo cancels.
 - Fix a loud or quiet mix with bus volumes, not by re-exporting files. A mono file played centred measures about 3 LU
   louder in the stereo mix than on its own.
 - Web exports play audio as samples by default: bus effects (ducking compressor, low-pass, limiter), reverb and doppler do

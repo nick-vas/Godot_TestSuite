@@ -58,7 +58,30 @@ of four letters or more are checked; the same word in capitals is fine.
 - **One owner for all the words.** Story, cinematics, tooltips, item text and barks pass one style and one string table
   (`docs/STYLE.md`), so the game sounds like one voice, AI-drafted text included.
 
-## 4. Voice
+## 4. Story that serves play, and dialogue as rules (Valve)
+
+- **Story solves gameplay problems.** Portal's testers asked "when does the game start?" after a year of narrator-less
+  puzzles, and GLaDOS was the answer; Episode Two needed the Hunters introduced and Alyx hurt, so the Hunters hurt her. A
+  beat that does a gameplay job (introduce an enemy, teach, give a reason to go on) stays; one that only tells is cut first.
+- **Give goals where there is nothing to touch.** Alyx's testers remembered "the actions they took but not the critical
+  gameplay information": important lines play in rooms without toys.
+- **A slow burn survives replays.** Portal 2 rewrote GLaDOS's early abuse into "more of a slow burn"; write a hostile
+  character's arc as a curve across the acts.
+- **Co-op and busy scenes**: repeat the key point, keep beats short, and leave silence for players to talk.
+- **Barks and conversations as rules, not trees** (Left 4 Dead 2, Portal 2, Dota 2). `ResponseSystem` in
+  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Narrative/ResponseRules.cs`: each line is a rule over one flat
+  query of facts (the event, the speaker, the speaker's memory, the world's); the rule with most criteria wins, ties are
+  drawn at random, a rule naming a fact the query lacks rejects. Writers add rows, never code:
+
+  | who | concept | criteria | lines | then | remember |
+  |---|---|---|---|---|---|
+  | coach | SeeWitch | `lights=off` | "Lights off, and don't startle her." | | `seen_witch=1` (world) |
+  | nick | Idle | `danger=false;!gag_cooldown` | "Anyone got a plan?" | ellis AnswerPlan | `gag_cooldown=1` for 30 s |
+
+  A follow-up is looked up when the line ends, so a conversation stops by itself when danger returns; a rule can be
+  `Once`, removing itself after it plays. `!key` (missing or 0) is the kit's addition for "not yet".
+
+## 5. Voice
 
 - **Record last.** "The voice is often one of the last things done on the game" (Glynnis Talken). Lines change until
   content locks: use placeholder or synthetic voice until then, and book actors only when line ids are stable. Make

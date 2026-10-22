@@ -1,0 +1,23 @@
+// Rich presence localization, all languages in one file as Steamworks takes it. Deliberately broken for
+// tests/Test-Steam.ps1: Status_NoHash has no '#', #Status_Combo refers to a token nobody defined, and the code sets
+// #Status_Lobby, which is missing here.
+"lang"
+{
+	"english"
+	{
+		"tokens"
+		{
+			"#Status_Menu"	"In the menu"
+			"#Status_Floor"	"Floor %floor%"
+			"#Status_Combo"	"{#Status_Floor}, {#Status_Missing}"
+			"Status_NoHash"	"Somewhere"
+		}
+	}
+	"french"
+	{
+		"tokens"
+		{
+			"#Status_Menu"	"Dans le menu"
+		}
+	}
+}

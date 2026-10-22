@@ -226,6 +226,9 @@ function Invoke-Doctor($Info) {
     }
     $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
     foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
+    # Steamworks files in steam/ against the code: rich presence tokens, achievement and stat names, app build scripts.
+    $steamworksProblems = Get-SteamworksProblems $project
+    foreach ($problem in $steamworksProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # Store art for Steam, if the project keeps it in store/steam: sizes, formats, screenshots, the short description.
     $storeDir = Join-Path $project 'store'
@@ -244,6 +247,26 @@ function Invoke-Doctor($Info) {
         foreach ($description in @(Get-ChildItem -LiteralPath $steamDir -File -Filter 'short_description*.txt')) {
             $descriptionProblems = Test-SteamShortDescription (Get-Content -LiteralPath $description.FullName -Raw).Trim()
             foreach ($p in $descriptionProblems) { Add-Check WARN "Steam $($description.Name): $p" 'Genre, hook and what the player does, in plain text (godot-store-page)' }
+        }
+        # Trailers: warnings only, Steam re-encodes what it accepts.
+        if (@(Get-TrailerFiles $steamDir).Count -gt 0) {
+            if (-not (Get-Command ffprobe -CommandType Application -ErrorAction SilentlyContinue)) {
+                $how = if ($IsWindows) { 'winget install Gyan.FFmpeg' } elseif ($IsMacOS) { 'brew install ffmpeg' } else { 'sudo apt-get install ffmpeg' }
+                Add-Check WARN 'Steam trailers in store/steam were not checked: ffprobe is not installed' "Install ffmpeg, which brings ffprobe ($how)"
+            } else {
+                $trailerCheck = Test-SteamTrailers $steamDir
+                foreach ($p in $trailerCheck.problems) { Add-Check WARN "Steam trailer: $($p.message)" 'H.264 and AAC, 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080 (godot-store-page)' }
+                foreach ($t in $trailerCheck.trailers) {
+                    $sound = $t.audioCodec ? "$($t.audioCodec) $($t.sampleRate) Hz" : 'no audio'
+                    Add-Check INFO "Steam trailer $($t.file): $($t.container), $($t.videoCodec) $($t.width)x$($t.height) at $($t.fps) fps, $sound, $($t.seconds) s"
+                }
+            }
+        }
+        $tagsFile = Join-Path $steamDir 'tags.txt'
+        if (Test-Path -LiteralPath $tagsFile) {
+            $tagCheck = Test-SteamTags (Get-Content -LiteralPath $tagsFile -Raw)
+            foreach ($p in $tagCheck.problems) { Add-Check $p.status "Steam tags.txt: $($p.message)" 'One tag per line, 5 to 20, the 5 that describe the game best first (godot-store-page)' }
+            if (-not @($tagCheck.problems | Where-Object { $_.status -eq 'WARN' })) { Add-Check OK "Steam tags.txt: $($tagCheck.tags.Count) tags, the first $(@($tagCheck.tags | Select-Object -First 5) -join ', ')" }
         }
     }
     # Press kit, if the project keeps one in store/press: warnings only, a game can ship without one.
@@ -320,6 +343,9 @@ function Invoke-Doctor($Info) {
             Add-Check WARN "Sentry $($sentry -join '; ')" 'Project Settings > Sentry > Options: auto_init off and SentrySdk.Init after the player agrees; attach_log off; send_default_pii off (godot-telemetry)'
         } else { Add-Check OK 'Sentry: started by the game after consent, no log attached' }
     }
+    # A privacy policy when the game collects player data or goes to a phone store, naming the version the code asks consent for.
+    $privacyProblems = Get-PrivacyProblems $project $projectGodot (Get-ExportPresetDetails $project)
+    foreach ($problem in $privacyProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # Assets: every image, sound, model, font and shader has a source and a licence in assets.json (godot-asset-pipeline).
     $assets = Get-AssetManifestReport $project

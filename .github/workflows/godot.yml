@@ -77,10 +77,51 @@ on:
         description: Longest each job may run before it is cancelled (GitHub's own limit is 6 hours)
         type: number
         default: 60
+      game-version:
+        description: "Exports' version on runs that are not for a tag (tag runs use the tag): e.g. 1.2.3, or auto to read it from git's v* tags (the whole history is fetched)"
+        type: string
+        default: ""
+      environment:
+        description: "GitHub environment for the export jobs, e.g. one whose secrets and protection rules guard the signing keys (empty - none)"
+        type: string
+        default: ""
     outputs:
       presets:
         description: JSON array of the presets that were exported
         value: ${{ jobs.test.outputs.presets }}
+    # Signing material, all optional (pass them one by one or with secrets: inherit). Godot signs during the export when
+    # they are set; files are written from base64 to the runner's temporary folder and deleted at the end of the job.
+    secrets:
+      GODOT_ANDROID_KEYSTORE_RELEASE_BASE64:
+        description: "Android release keystore, base64 (becomes GODOT_ANDROID_KEYSTORE_RELEASE_PATH)"
+        required: false
+      GODOT_ANDROID_KEYSTORE_RELEASE_USER:
+        description: Android release key alias
+        required: false
+      GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD:
+        description: Android keystore password (Godot needs the key password to be the same)
+        required: false
+      GODOT_WINDOWS_CODESIGN_CERTIFICATE_BASE64:
+        description: "Windows code signing certificate, PKCS#12 (.pfx), base64 (becomes GODOT_WINDOWS_CODESIGN_IDENTITY, type 1: a file)"
+        required: false
+      GODOT_WINDOWS_CODESIGN_PASSWORD:
+        description: Password of the Windows certificate
+        required: false
+      GODOT_MACOS_CODESIGN_CERTIFICATE_BASE64:
+        description: "macOS signing certificate, PKCS#12 (.p12), base64 (becomes GODOT_MACOS_CODESIGN_CERTIFICATE_FILE)"
+        required: false
+      GODOT_MACOS_CODESIGN_CERTIFICATE_PASSWORD:
+        description: Password of the macOS certificate
+        required: false
+      GODOT_MACOS_NOTARIZATION_API_KEY_BASE64:
+        description: "App Store Connect API key (.p8), base64, for notarization (becomes GODOT_MACOS_NOTARIZATION_API_KEY)"
+        required: false
+      GODOT_MACOS_NOTARIZATION_API_KEY_ID:
+        description: App Store Connect API key id
+        required: false
+      GODOT_MACOS_NOTARIZATION_API_UUID:
+        description: App Store Connect issuer id
+        required: false
   # The same inputs by hand (Actions > Godot > Run workflow), so the workflow has runs of its own: with no inputs it
   # tests the shallowest project here, examples/gdscript, as the self-test's zero-config job does.
   workflow_dispatch:
@@ -149,6 +190,14 @@ on:
         description: Longest each job may run before it is cancelled (GitHub's own limit is 6 hours)
         type: number
         default: 60
+      game-version:
+        description: "Exports' version on runs that are not for a tag (tag runs use the tag): e.g. 1.2.3, or auto to read it from git's v* tags (the whole history is fetched)"
+        type: string
+        default: ""
+      environment:
+        description: "GitHub environment for the export jobs, e.g. one whose secrets and protection rules guard the signing keys (empty - none)"
+        type: string
+        default: ""
 
 jobs:
   test:
@@ -160,9 +209,9 @@ jobs:
       presets: ${{ steps.exports.outputs.presets }}
       targets: ${{ steps.exports.outputs.targets }}
     steps:
+      # LFS files are pulled by the action, which keeps them in the Actions cache.
       - uses: actions/checkout@v7
         with:
-          lfs: ${{ inputs.lfs }}
           submodules: ${{ inputs.submodules }}
 
       # This workflow's own repository at the exact commit the caller pinned, so the scripts always
@@ -181,6 +230,7 @@ jobs:
         uses: ./.godot-pipelines/.github/actions/godot
         with:
           command: test
+          lfs: ${{ inputs.lfs }}
           project: ${{ inputs.project }}
           godot-version: ${{ inputs.godot-version }}
           runners: ${{ inputs.runners }}
@@ -222,10 +272,12 @@ jobs:
           )
           $missing = @($presets | Where-Object { $_ -notin $detected })
           if ($missing) { Write-Host "::error::Unknown export presets $($missing -join ', '); the project has $($detected -join ', ')"; exit 1 }
-          # To launch a build, export it on a runner of its own OS; otherwise use the default runner.
+          # To launch a build, export it on a runner of its own OS; otherwise use the default runner. iOS always goes to
+          # macOS, where Xcode is.
           $targets = @($presets | ForEach-Object {
             $os = $env:DEFAULT_RUNNER
-            if ($env:RUN_EXPORTS -eq 'true') {
+            if ($platforms[$_] -eq 'iOS') { $os = 'macos-latest' }
+            elseif ($env:RUN_EXPORTS -eq 'true') {
               if ($platforms[$_] -eq 'Windows Desktop') { $os = 'windows-latest' }
               elseif ($platforms[$_] -match '^Linux') { $os = 'ubuntu-latest' }
             }
@@ -239,16 +291,19 @@ jobs:
     needs: test
     if: needs.test.outputs.targets != '[]'
     runs-on: ${{ matrix.target.os }}
+    # Empty: no environment. Named: its protection rules apply, and its secrets of the names below are the ones used.
+    environment: ${{ inputs.environment }}
     timeout-minutes: ${{ inputs.timeout-minutes }}
     strategy:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.test.outputs.targets) }}
     steps:
+      # game-version auto counts commits since the last tag, so it needs the whole history and the tags.
       - uses: actions/checkout@v7
         with:
-          lfs: ${{ inputs.lfs }}
           submodules: ${{ inputs.submodules }}
+          fetch-depth: ${{ inputs.game-version == 'auto' && '0' || '1' }}
 
       - uses: actions/checkout@v7
         with:
@@ -259,16 +314,60 @@ jobs:
       - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
         shell: pwsh
 
+      # Signing files from the caller's secrets, when given: decoded into the runner's temporary folder, their paths
+      # (never their contents) put in the environment under Godot's names, and deleted in the last step.
+      - name: Signing files
+        shell: pwsh
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.GODOT_ANDROID_KEYSTORE_RELEASE_BASE64 }}
+          WINDOWS_CERTIFICATE: ${{ secrets.GODOT_WINDOWS_CODESIGN_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE: ${{ secrets.GODOT_MACOS_CODESIGN_CERTIFICATE_BASE64 }}
+          MACOS_API_KEY: ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_BASE64 }}
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'godot-signing'
+          $files = [ordered]@{
+            ANDROID_KEYSTORE    = @('release.keystore', 'GODOT_ANDROID_KEYSTORE_RELEASE_PATH')
+            WINDOWS_CERTIFICATE = @('windows.pfx', 'GODOT_WINDOWS_CODESIGN_IDENTITY')
+            MACOS_CERTIFICATE   = @('macos.p12', 'GODOT_MACOS_CODESIGN_CERTIFICATE_FILE')
+            MACOS_API_KEY       = @('notarization.p8', 'GODOT_MACOS_NOTARIZATION_API_KEY')
+          }
+          foreach ($name in $files.Keys) {
+            $value = [Environment]::GetEnvironmentVariable($name)
+            if (-not $value) { continue }
+            $file = $files[$name][0]; $variable = $files[$name][1]
+            New-Item -ItemType Directory -Force $dir | Out-Null
+            $path = Join-Path $dir $file
+            try { [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String(($value -replace '\s', ''))) }
+            catch { Write-Host "::error::The secret for $variable is not valid base64"; exit 1 }
+            "$variable=$path" >> $env:GITHUB_ENV
+            # 1: the identity is a PKCS#12 file (0 would pick one automatically, 2 from the certificate store).
+            if ($name -eq 'WINDOWS_CERTIFICATE') { 'GODOT_WINDOWS_CODESIGN_IDENTITY_TYPE=1' >> $env:GITHUB_ENV }
+            Write-Host "$variable set"
+          }
+
       - uses: ./.godot-pipelines/.github/actions/godot
+        env:
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.GODOT_ANDROID_KEYSTORE_RELEASE_USER }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD }}
+          GODOT_WINDOWS_CODESIGN_PASSWORD: ${{ secrets.GODOT_WINDOWS_CODESIGN_PASSWORD }}
+          GODOT_MACOS_CODESIGN_CERTIFICATE_PASSWORD: ${{ secrets.GODOT_MACOS_CODESIGN_CERTIFICATE_PASSWORD }}
+          GODOT_MACOS_NOTARIZATION_API_KEY_ID: ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }}
+          GODOT_MACOS_NOTARIZATION_API_UUID: ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
         with:
           command: export
+          lfs: ${{ inputs.lfs }}
           project: ${{ inputs.project }}
           godot-version: ${{ inputs.godot-version }}
           runners: none
           preset: ${{ matrix.target.preset }}
           run-exports: ${{ inputs.run-exports }}
-          game-version: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          game-version: ${{ github.ref_type == 'tag' && github.ref_name || inputs.game-version }}
           retention-days: ${{ inputs.retention-days }}
+
+      - name: Delete the signing files
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'godot-signing')
 
   release:
     name: Release
