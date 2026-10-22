@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `docs/publisher-contracts.md` now covers a second public sample agreement, cited by name with the owner's permission:
+  Whitethorn Games' "Generic Whitethorn Service Contract" (2020), shared by its CEO for comments. What it does that the
+  Raw Fury draft does not (services not recouped, no markup, a 24-month income term with the rights returning,
+  ownership from inception), what to read twice (a share of gross, the pro-rata exit cost, exclusivity scope, soft
+  words), and the developer's share at 10%, 20% and 25% of gross next to the Raw Fury draft and Nijman's benchmark.
+  `godot-legal` gains the gross-to-net rule (20% of gross is 29% of net after a 30% store cut). The roadmap drops the
+  rest of *The Untold History of Japanese Game Developers*, at the owner's request.
 - From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Breakout.Core gains `SoftLockCheck`.
   A level is written down as areas, passages (one-way, needing an item held, or using items up once: a key, three
   rounds for a cracked wall), one-time pickups, supplies that top an item back up (Portal's box delivery tubes), items
