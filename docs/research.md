@@ -61,6 +61,22 @@ The Evals workflow now lets bwrap make namespaces (an AppArmor profile for bwrap
 checks that the sandbox can run a command before any case, and fails when a result mentions a bwrap error. Only
 `lost-in-level` and `review-publishing-deal` count from run 4.
 
+Run 5 (2026-10-22, after the sandbox fix, all four cases, 1 run per arm, $0.73): bwrap started, but every write a
+command made failed with `Read-only file system`, the run's workspace and `$TMPDIR` included, although the evals page
+says writes are confined to the workspace, not refused there. Both `explain-failure` runs said so and diagnosed the
+failure from the code alone, so the command cases still measured the sandbox.
+
+| Case | With | Without | What it measured |
+|---|---:|---:|---|
+| explain-failure | 1.00 | 0.67 | Neither arm could run the tests (read-only); both found the test and the cause; without the plugin the line number was not next to the file name, so the `location` regex missed it |
+| fix-score-bug | 0.67 | 0.67 | Fixed in both, `result.txt` written in neither; with the plugin no Bash call at all (`used-kit` failed) |
+| lost-in-level | 1.00 | 0.00 | As in run 4: the skill fired, and the answer without it failed all three judges |
+| review-publishing-deal | 0.33 | 1.00 | The answer with the plugin flags clauses 2, 7 and 10 with reasons, yet all three judges failed `flags-three`; the result keeps no judge reasoning, so one run cannot tell a regression from a judge misreading |
+
+The workflow now probes a writable mount over the read-only root before any case, fails when a result mentions
+`Read-only file system`, and uploads every run's transcript (`--keep-temp`, `traces/` in the artifact), so the next
+run shows the failing command. Only `lost-in-level` counts from run 5; `review-publishing-deal` needs 3 runs per arm.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 

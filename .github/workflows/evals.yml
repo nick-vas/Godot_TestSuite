@@ -38,7 +38,14 @@ jobs:
           # "loopback: Failed RTM_NEWADDR: Operation not permitted" and every Bash call in a case fails with it: run 4
           # scored a sandbox that could not run a command. An AppArmor profile lets bwrap alone make them; the sysctl,
           # which lifts the restriction for every program, is the fallback on this throwaway runner.
-          function Test-Sandbox { bwrap --ro-bind / / --dev /dev --proc /proc --unshare-net --unshare-user true *> $null; return $LASTEXITCODE -eq 0 }
+          # Run 5 got past bwrap but every write in a case failed with "Read-only file system", the workspace included, so
+          # the probe also needs a writable mount over the read-only root, as Claude Code's sandbox makes one.
+          function Test-Sandbox {
+            $probe = Join-Path $env:RUNNER_TEMP 'bwrap-probe'
+            New-Item -ItemType Directory -Force $probe | Out-Null
+            bwrap --ro-bind / / --bind $probe $probe --dev /dev --proc /proc --unshare-net --unshare-user touch (Join-Path $probe 'written') *> $null
+            return $LASTEXITCODE -eq 0
+          }
           if (-not (Test-Sandbox)) {
             "abi <abi/4.0>,`ninclude <tunables/global>`nprofile bwrap /usr/bin/bwrap flags=(unconfined) {`n  userns,`n}" | sudo tee /etc/apparmor.d/bwrap | Out-Null
             sudo apparmor_parser -r /etc/apparmor.d/bwrap
@@ -68,8 +75,11 @@ jobs:
         run: |
           $caseArgs = if ($env:CASE) { @('--case', $env:CASE) } else { @() }
           New-Item -ItemType Directory -Force evals/results | Out-Null
-          claude plugin eval . --runs $env:RUNS @caseArgs --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish --json evals/results/result.json
+          claude plugin eval . --runs $env:RUNS @caseArgs --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish --keep-temp --json evals/results/result.json
           $result = Get-Content evals/results/result.json -Raw | ConvertFrom-Json
+          # Each run's transcript, uploaded with the result: the scores alone do not say why a command failed.
+          New-Item -ItemType Directory -Force evals/results/traces | Out-Null
+          foreach ($case in $result.cases) { foreach ($arm in $case.arms.PSObject.Properties) { $i = 0; foreach ($run in $arm.Value) { $i++; if ($run.tracePath -and (Test-Path -LiteralPath $run.tracePath)) { Copy-Item -LiteralPath $run.tracePath "evals/results/traces/$($case.name)-$($arm.Name)-$i.jsonl" } } } }
           $lines = @('| Case | With | Without | Delta |', '|---|---:|---:|---:|')
           foreach ($case in $result.cases) {
             $a = $case.aggregates
@@ -81,7 +91,7 @@ jobs:
           $errors = @(foreach ($case in $result.cases) { foreach ($arm in $case.arms.PSObject.Properties) { foreach ($run in $arm.Value) { if ($run.error) { "$($case.name) ($($arm.Name)): $($run.error)" } } } })
           if ($result.partial -or $errors.Count) { throw "The evals did not finish: $($result.partialReason) $($errors -join '; ')" }
           # A run whose commands the sandbox refused graded the environment, not the plugin.
-          if ((Get-Content evals/results/result.json -Raw) -match 'bwrap: ') { throw 'A case reports bwrap errors: the sandbox refused its commands, so these scores do not measure the plugin' }
+          if ((Get-Content evals/results/result.json -Raw) -match 'bwrap: |Read-only file system') { throw 'A case reports bwrap or read-only file system errors: the sandbox refused its commands, so these scores do not measure the plugin' }
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()

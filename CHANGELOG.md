@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Evals: run 5 (after the bwrap fix) found every write in a case refused as `Read-only file system`, the workspace
+  included. The setup step's sandbox probe now also needs a writable mount, the run fails when a result mentions a
+  read-only file system, and each run's transcript is uploaded with the result (`--keep-temp`). `docs/research.md`
+  records run 5.
 - `docs/publisher-contracts.md` now covers a second public sample agreement, cited by name with the owner's permission:
   Whitethorn Games' "Generic Whitethorn Service Contract" (2020), shared by its CEO for comments. What it does that the
   Raw Fury draft does not (services not recouped, no markup, a 24-month income term with the rights returning,
