@@ -59,6 +59,9 @@ jobs:
       - name: Test failures are compared with the last run of the same scope (new, still failing, fixed)
         shell: pwsh
         run: ./tests/Test-FailureDelta.ps1
+      - name: gdUnit4 tests that were found but never ran fail the dotnet runner
+        shell: pwsh
+        run: ./tests/Test-TestsNotRun.ps1
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
