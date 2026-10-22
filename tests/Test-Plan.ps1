@@ -2,7 +2,8 @@
 # Self-test of the plan's gates on a fresh plan: slice.debt and prototype.trailer are automatic and turn true when
 # docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
 # `bench` command, the trailer template asks what its gate says, and every gate id, template and godot-ci.ps1 flag that
-# the plan or any skill quotes exists. No Godot needed.
+# the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
+# cannot be kept, and `plan -Json` reports it. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -61,6 +62,48 @@ Assert-True ($genre -ge 0 -and $hook -gt $genre -and $content -gt $hook) 'the tr
 $moments = [regex]::Match($trailer, '(?s)## Three standout moments\r?\n(?<body>.*?)(\r?\n## |\z)')
 Assert-True ($moments.Success -and @([regex]::Matches($moments.Groups['body'].Value, '(?m)^[1-3]\.')).Count -eq 3) 'the trailer template has three standout moments to fill'
 Assert-True ($trailer -match '(?m)^\| Mechanic \|.*\| On-screen feedback a viewer sees \|') 'the trailer template pairs each mechanic with its on-screen feedback'
+
+# The release timeline (plan.json "release"), on fixed days: Steam's 21 days after the fee, 2 weeks of Coming Soon,
+# 7 business days per review (the store page before the build), the date lock, and the Next Fest demo deadline.
+foreach ($lib in 'Common', 'Plan') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+$fields = @($template.release.PSObject.Properties.Name)
+Assert-True (@($script:ReleaseDateFields | Where-Object { $_ -notin $fields }).Count -eq 0 -and $fields -contains 'pressPreview') "the plan template has every release field: $($fields -join ', ')"
+Assert-True ((Get-BusinessDayCount ([datetime]'2027-03-04') ([datetime]'2027-03-15')) -eq 7 -and (Get-BusinessDayBefore ([datetime]'2027-03-15') 7) -eq [datetime]'2027-03-04') 'business days skip the weekend'
+
+$onTime = Get-ReleaseTimeline ([pscustomobject]@{ date = '2027-03-15'; steamFeePaid = '2027-01-04'; comingSoon = '2026-12-01'; storePageSubmitted = '2026-11-16'
+        buildSubmitted = $null; nextFest = '2027-02-22'; demoSubmitted = '2027-01-25'; pressPreview = $false }) ([datetime]'2027-01-04')
+$t = $onTime.timeline
+Assert-True ($onTime.warnings.Count -eq 0) "a timeline that keeps every rule has no warnings: $($onTime.warnings -join ' | ')"
+Assert-True ($t.date -eq '2027-03-15' -and $t.daysLeft -eq 70 -and $t.businessDaysLeft -eq 50 -and -not $t.dateLocked) "days and business days left: $($t | ConvertTo-Json -Compress)"
+Assert-True ($t.deadlines.steamFee -eq '2027-02-22' -and $t.deadlines.comingSoon -eq '2027-03-01' -and $t.deadlines.buildReview -eq '2027-03-04' -and
+    $t.deadlines.storePageReview -eq '2026-11-20' -and $t.deadlines.dateLock -eq '2027-03-01' -and $t.deadlines.demoReview -eq '2027-02-01') "deadlines: $($t.deadlines | ConvertTo-Json -Compress)"
+
+$late = Get-ReleaseTimeline ([pscustomobject]@{ date = '2027-03-15'; steamFeePaid = '2027-03-01'; comingSoon = '2027-03-05'; storePageSubmitted = '2027-03-01'
+        nextFest = '2027-02-22'; demoSubmitted = '2027-02-10' }) ([datetime]'2027-03-08')
+foreach ($expected in @(
+        @('app fee was paid on 2027-03-01, 14 days before release.*at least 21 days', 'a fee paid 14 days before release warns'),
+        @('Coming Soon page goes live on 2027-03-05, 10 days before release.*at least 2 weeks', 'Coming Soon 10 days before release warns'),
+        @('store page was submitted for review 4 business day\(s\) before its Coming Soon date', 'a store page submitted 4 business days ahead warns'),
+        @('^5 business day\(s\) left before release and release\.buildSubmitted is not set', 'no build submitted with 5 business days left warns'),
+        @('Next Fest demo was submitted on 2027-02-10, after the 2027-02-01 deadline \(3 weeks', 'a demo submitted after the 3-week deadline warns'))) {
+    Assert-True (@($late.warnings | Where-Object { $_ -match $expected[0] }).Count -eq 1) $expected[1]
+}
+Assert-True ($late.warnings.Count -eq 5) "nothing else: $($late.warnings -join ' | ')"
+Assert-True ($late.timeline.dateLocked -and @($late.notes | Where-Object { $_ -match 'is locked' }).Count -eq 1) 'a week before release the date is locked (a note, not a warning)'
+
+$unset = Get-ReleaseTimeline ([pscustomobject]@{ date = '2027-03-15'; comingSoon = 'next week' }) ([datetime]'2027-03-08')
+foreach ($expected in "release.comingSoon 'next week' is not a date", 'release.steamFeePaid is not set', 'release.comingSoon is not set', 'release.buildSubmitted is not set') {
+    Assert-True (@($unset.warnings | Where-Object { $_.Contains($expected) }).Count -eq 1) "unset dates close to release warn: $expected"
+}
+Assert-True ($unset.warnings.Count -eq 4) "nothing else when dates are unset: $($unset.warnings -join ' | ')"
+
+$order = Get-ReleaseTimeline ([pscustomobject]@{ date = '2027-06-01'; steamFeePaid = '2027-01-04'; comingSoon = '2027-02-01'; storePageSubmitted = '2027-05-03'
+        buildSubmitted = '2027-04-01'; nextFest = '2027-06-14'; pressPreview = $true }) ([datetime]'2027-01-04')
+Assert-True (@($order.warnings | Where-Object { $_ -match 'build was submitted for review before the store page' }).Count -eq 1) 'a build submitted before the store page warns'
+Assert-True (@($order.warnings | Where-Object { $_ -match 'Next Fest \(2027-06-14\) is on or after release' }).Count -eq 1) 'a Next Fest after release warns'
+Assert-True ($order.timeline.deadlines.demoReview -eq '2027-05-10') 'the press preview moves the demo deadline to 5 weeks before'
+$none = Get-ReleaseTimeline ([pscustomobject]@{ date = $null }) ([datetime]'2027-01-04')
+Assert-True ($null -eq $none.timeline -and $none.warnings.Count -eq 0) 'no release date, no timeline'
 
 try {
     New-Item -ItemType Directory -Force $dir | Out-Null
@@ -121,6 +164,15 @@ try {
 
     $d = Invoke-PlanJson @('-Do', 'done', '-Id', 'slice.budget')
     Assert-True ($d.ok -and 'slice.budget' -notin @($d.nextActions | ForEach-Object id)) 'slice.budget is marked done by hand'
+
+    # plan -Json reports the release timeline; five days out with no other date, the app fee is flagged and the date locked.
+    Assert-True ($null -eq $d.release) 'a plan without a release date reports no release'
+    $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10
+    $plan.release.date = [datetime]::UtcNow.Date.AddDays(5).ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture)
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and $d.release.daysLeft -eq 5 -and $d.release.dateLocked -eq $true -and $d.release.deadlines.steamFee) "plan -Json reports the release: $($d.release | ConvertTo-Json -Compress)"
+    Assert-True (@($d.warnings | Where-Object { $_ -match 'release\.steamFeePaid is not set' }).Count -eq 1) "plan warns that the app fee is not recorded five days before release: $($d.warnings -join ' | ')"
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }

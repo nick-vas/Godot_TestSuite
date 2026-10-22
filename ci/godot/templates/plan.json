@@ -4,6 +4,16 @@
   "pitch": "",
   "weeklyHours": 10,
   "wipLimit": 2,
+  "release": {
+    "date": null,
+    "steamFeePaid": null,
+    "comingSoon": null,
+    "storePageSubmitted": null,
+    "buildSubmitted": null,
+    "nextFest": null,
+    "demoSubmitted": null,
+    "pressPreview": false
+  },
   "phases": [
     {
       "id": "concept",

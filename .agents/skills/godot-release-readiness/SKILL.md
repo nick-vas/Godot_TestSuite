@@ -20,8 +20,8 @@ results in the plan's launch gates (`godot-game-plan`), and answer with what pas
 
 ## 2. Platform
 
-- [ ] store page live long enough (Steam: 2 weeks minimum), store art passes `doctor`, trailer uploaded and encoded
-      (`godot-store-page`)
+- [ ] store page live long enough (Steam: 2 weeks minimum; `plan` warns from plan.json's `release` dates), store art,
+      trailer and tags pass `doctor`, trailer uploaded and encoded (`godot-store-page`)
 - [ ] Steam Cloud tested on two devices with a conflict (`godot-steam`)
 - [ ] Steam Deck: `textsize` passes at 1280x800, controls complete, sleep and resume (`godot-steam-deck`)
 - [ ] build uploaded to a beta branch and tested from Steam before going live
