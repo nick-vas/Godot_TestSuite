@@ -1,0 +1,10 @@
+{
+  "name": "a loading screen that picks its layout before a rotation is caught",
+  "scene": "res://rotation.tscn",
+  "steps": [
+    { "call": ".", "method": "start_loading", "args": [30, true] },
+    { "resize": [720, 1280] },
+    { "wait_until": { "node": ".", "prop": "loading", "equals": false }, "timeout": 120 },
+    { "assert": { "node": ".", "prop": "loaded_layout", "equals": "portrait" } }
+  ]
+}
