@@ -34,6 +34,7 @@
 | `-MaxOnsetMs` | `20` | `audio`: warn when an `sfx` or `ui` file takes longer than this to come within 10 dB of its loudest 10 ms (`onsetMs`) |
 | `-Clients` | `4` | `soak`: headless clients started next to the one server |
 | `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows faster than this |
+| `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `<Results>/godot-ci.log`, not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |

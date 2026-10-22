@@ -165,6 +165,12 @@ window whose RMS level comes within 10 dB of the file's loudest 10 ms window (0 
 silence and a slow fade-in raise it; `null` for silence), also a column of `loudness.csv`. `onsetMaxMs` (20, `-MaxOnsetMs`) is
 the bound for `sfx` and `ui` files: one that starts later adds a warning.
 
+**soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
+`memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
+`fails[]`, `log`), `clientMemoryMb` (`average`), and, with `-JunkPps`, `junk` (`pps`, `packetsSent`: the loopback junk
+flood's requested rate and how many packets it sent). Written to `soak-results/soak.json`. Fails as `soak-failed`
+(a process crashed, never became ready, or printed `[soak] fail`) or `soak-leak`.
+
 **credits**: `credits` with `ok`, `credits` (entries whose licence requires a visible credit), `thanks` (entries credited as a
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`
 (`CREDITS.md`, `credits.json`, `THIRD-PARTY-NOTICES.txt`), `errors[]` and `warnings[]` (`code`, `path`, `message`).
