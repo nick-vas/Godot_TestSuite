@@ -69,40 +69,14 @@ player only what matters to them, as partial updates. Breakout's `Net/Replicatio
 | Soonest possible | Every packet | inputs (3 copies), the player's own state | in every snapshot |
 | Static | Once, at connection | weapon and vehicle definitions | the game's data; send its id |
 
-- `OnChange` replication sends "using reliable transfer mode when its value changes" (Godot's class reference): good
-  for values that change rarely (team, name, score), wrong for ones that change all the time. Under loss a reliable
-  channel resends every stale value, in order, and newer values wait behind them. `Always` sends unreliably, but every
-  property every interval.
-- **Notify, never resend.** The connection layer numbers unreliable packets, and the acknowledgements tell the sender,
-  packet by packet and in order, what arrived (a packet arriving after a newer one counts as lost and is discarded, so
-  old state never overwrites new). It retransmits nothing; each kind of data decides what a loss means.
-- **State masks.** Each object has state groups (position, health, animation...), one dirty bit each, per client. A
-  packet takes the dirty groups' current values and clears the bits. On a loss, a bit is set again only if no later
-  packet carried that group: a newer value is already on its way, so the old one is never resent.
-- **Scope and priority.** Each client gets only the objects in its scope (in view, near, relevant), most important
-  first, within a byte budget per packet. Godot's visibility filters (`PublicVisibility = false`,
-  `AddVisibilityFilter`, `SetVisibilityFor`) give the scope; nothing in Godot gives priority or a budget. Rank by
-  distance, size on screen and heading towards the player, and let waiting raise an object's rank, so bandwidth is
-  shared in proportion to priority and nothing starves.
-- **Cap what jumps the queue.** Creations, deletions and anything overdue go ahead of priority order; a burst of them
-  (200 objects entering scope, a pile of crates disturbed together and ageing in step) fills whole packets while the
-  player being fought gets nothing. Let a fixed number jump per packet (`GhostReplicator.MaxOverridesPerPacket`,
-  default 4), the rest wait their turn by priority, and give background data (end-of-match statistics) at most a share
-  of each packet (Halo: Reach: 10%).
-- **Inputs.** TRIBES first resent every unacknowledged move in each packet: on a slow link a lost packet made the next
-  one bigger, which got lost too. TRIBES II capped it; Breakout sends each input in 3 packets.
-- **Static data by id.** Each vehicle sent the id of its definition (TRIBES' datablocks), loaded once at connection,
-  not the definition itself (`godot-data`).
-
-Measured with `ReplicationTests` (80 objects, 4 groups each, 8 changes a tick, 30 packets a second of at most 400 bytes,
-20% loss and 120 ± 30 ms each way): the client ends with exactly the objects in its scope and their current values,
-never applies an older value over a newer one, and partial updates use 5% of the bytes full snapshots would; 151 lost
-values were not resent because newer ones were already sent. When 200 objects entered scope at once, the uncapped
-replicator sent the opponent nothing for 10 packets in a row; capped at 4, it missed at most 1, and all 200 objects
-still arrived within 12 packets (10 uncapped).
+The rules, in short (detail and measurements in [tribes.md](tribes.md)): `OnChange` sends reliably, so use it only for
+values that rarely change; number unreliable packets and resend nothing, each kind of data deciding what a loss means;
+keep a dirty bit per state group per client; send each client only its scope, most important first within a byte
+budget, and cap how many creations or overdue objects jump the queue per packet (`GhostReplicator.MaxOverridesPerPacket`).
 
 Halo: Reach's rules for each mechanic (predict the look and let the host decide the outcome; ask where the lag is
 hidden; change the mechanic when that hides it; warp the logic and blend the look): [halo-reach.md](halo-reach.md).
+Lobbies, linked state, host migration and crossplay: [sessions.md](sessions.md).
 
 ## 4. Godot 4.7 specifics
 - `ENetMultiplayerPeer.CreateServer(port, maxClients)`: the client limit defaults to **32**. Do not pass a channel
@@ -116,6 +90,8 @@ hidden; change the mechanic when that hides it; warp the logic and blend the loo
   does no prediction, interpolation or input acknowledgement: build those on top, or use netfox (MIT; GDScript,
   Netfox Sharp for C# is experimental). Resources and other objects cannot be synchronised.
 - `SceneMultiplayer.AllowObjectDecoding` stays false: decoded objects can run code.
+- In the `AuthCallback` (`SendAuth`/`CompleteAuth`) the client sends its build id and sorted enabled feature toggles;
+  the server drops a peer whose list differs, saying why (Sea of Thieves, Rare, GDC 2018).
 - Headless Godot runs at about 144 frames a second unless capped: set `Engine.MaxFps` on a server to its tick rate
   (about a third less CPU). A dedicated-server export adds the `dedicated_server` feature tag
   (`OS.HasFeature("dedicated_server")`).
@@ -125,6 +101,10 @@ hidden; change the mechanic when that hides it; warp the logic and blend the loo
   unreliable packets (in C#, override `_PutPacketScript` and `_GetPacketScript`), or Linux `tc qdisc ... netem` where
   the kernel has it (GitHub's Ubuntu runners, with sudo; not every container). Keep game logic testable without Godot,
   like Breakout's `SimulatedLink`.
+
+**Chat players can all use:** one window for typed and transcribed messages, quick messages and pings beside text
+chat, a speaking icon per player, incoming lines optionally read aloud; in the US, the CVAA (`godot-legal`):
+[chat.md](chat.md).
 
 ## 5. Rollback and lockstep
 
@@ -153,6 +133,7 @@ hidden; change the mechanic when that hides it; warp the logic and blend the loo
   in re-simulated frames). Particles, cloth and IK run on the rendered frame only; reuse an effect whose spawn
   situation matches instead of re-spawning it, or a non-deterministic effect pops. Snap to the corrected state:
   blending caused foot sliding.
+- Re-simulation budget, AI and bots, players' machines (For Honor, Spelunky 2): [rollback-field.md](rollback-field.md).
 
 ## 6. Prove it
 
@@ -173,7 +154,7 @@ never got ready, or memory that keeps growing (`soak-failed`, `engine-errors`, `
 - [ ] bandwidth per client is measured (`ENetConnection.PopStatistic`) and under a budget
 - [ ] `soak` with the expected number of players for 10 minutes on each change, and for hours on a schedule
       (a GitHub job runs at most 6 hours: split longer soaks, or use your own runner)
-- [ ] a 2 to 3 second blackout: clients recover without the server dropping them
+- [ ] a 5 second blackout: clients recover without the server dropping them (Spelunky 2: 8% had cuts over 3 s)
 
 On a 4-core runner, 50 clients as separate processes took about 8 GB and a core; the same 50 in one process (a
 `SceneMultiplayer` per branch) took 184 MB and a sixth of a core. Leave the first seconds after many clients connect

@@ -87,6 +87,18 @@ public sealed class DeterminismTests
     }
 
     [Fact]
+    public void ARangeOfOneValueStillAdvancesTheGenerator()
+    {
+        // Spelunky 2 desynced online because its range helper returned the minimum without drawing when max <= min: the
+        // machine whose range collapsed fell one draw behind. A one-value range must cost exactly one draw.
+        var rng = new DeterministicRandom(42);
+        var reference = rng;
+        Assert.Equal(0, rng.Next(1));
+        reference.NextULong();
+        Assert.Equal(reference.State, rng.State);
+    }
+
+    [Fact]
     public void TheChecksumIgnoresTheProcess()
     {
         // HashCode is seeded per process; FNV-1a of the same bytes is the same everywhere (the published test vector for "a").

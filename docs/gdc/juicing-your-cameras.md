@@ -68,4 +68,4 @@
   check them without a camera scene. Left for a later camera skill.
 - Voronoi split screen. Its construction is on the slides, not in the transcript.
 - Side-scroller camera vocabulary (camera window, platform snapping, forward focus) from another talk (pdvCO97jOQk). It
-  belongs to a separate change.
+  belongs to a separate change: now `godot-camera` section 9 ([notes](folds-ai-design-math.md)).

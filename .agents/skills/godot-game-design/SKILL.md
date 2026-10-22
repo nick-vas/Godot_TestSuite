@@ -97,35 +97,22 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
 - **Be the generous judge.** Forgiving hitboxes and timing windows by default (Levelhead's numbers and tested code:
   `godot-input`, Forgiveness); find what really makes a part hard (often the controls) before lowering difficulty.
 - **Readable opponents.** An enemy that always picks the best move is not fun; give it habits and mistakes. Do not add moves
-  the AI cannot use and tests cannot cover: cut them.
+  the AI cannot use and tests cannot cover: cut them. Escalate a fight each phase (new attacks, faster reactions), not
+  only by removing weak points (Jan Muller, Insomniac, GDC).
+- **One role per companion**: teacher, VIP or soldier, never a VIP who fights ([pacing.md](pacing.md)).
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
 
-## 6. Puzzles and quests (Croteam, LineLight, CD Projekt Red)
+## 6. Puzzles and quests (Croteam, LineLight, Patrick's Parabox, CD Projekt Red)
 
-Puzzles, as Croteam tuned The Talos Principle's 200 gray rooms:
+Read [puzzles.md](puzzles.md) before designing puzzles or quests: how Croteam ordered The Talos Principle from testers'
+difficulty and fun ratings, taught each mechanic alone first and used hubs instead of one path; Patrick's Parabox's five
+ordering moves and narrated playtests; LineLight's one solution sentence per level (anything it does not mention is
+noise, every level has a purpose, action or puzzle but not both); and six questions for every quest (Sasko).
 
-- Testers rate each puzzle for difficulty and fun and are timed; order levels from that data, and put a less fun
-  teaching puzzle between two favourites.
-- Every mechanic gets one or two simpler puzzles that teach it before any puzzle combines it with others.
-- Never one linear path: hubs with several puzzles open, gates that count solved puzzles, so a stuck player goes elsewhere.
-- Rewards for explorers stay off counters and achievements; only count what takes skill to get.
-- Hints are tuned with stuck players, not by the designer who knows the answer.
-
-Puzzle levels, as Brett Taylor cut and rebuilt LineLight's (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/puzzle-game-magic-secrets.md`):
-
-- **One solution sentence per level.** The best levels turn on a single moment. Write that moment as one sentence ("park
-  the crate on the switch before the bridge drops") and build the simplest level whose solution it is. A level the player
-  chips away at, with no such moment, is the first to cut.
-- **What the sentence does not mention is noise**: it takes up the player's working memory without being part of the
-  puzzle. Cut it, and vet every level at least twice. Add noise back only on purpose, such as a dead end that stops
-  players solving a level by accident without knowing how.
-- **Every level has a purpose or is cut**: it teaches, reinforces a skill, gives a moment the player has not had, or is a
-  breather after hard levels. A run of near-identical layouts on one idea bores players; keep about three.
-- **Action or puzzle, not both** (in single-solution puzzles): on entering, the player knows which skill the level asks
-  for, and action levels are optional. A few timing puzzles make players think every puzzle needs reflexes.
-- **Unambiguous solutions.** "Was that right?", brute-forcing switches and retrying an impossible move are red flags: move
-  elements apart, cut extras, make every jump obviously possible or obviously impossible. Test the controls handicapped
-  (Taylor played with his non-dominant foot), and keep easing a timing players still complain about.
+Zachtronics' measure (Zach Barth): **bounce**, the share of players who open a puzzle and never solve it, logged per
+puzzle (`godot-telemetry`); a spike against its neighbours marks a puzzle to replace. The first puzzles work for nearly
+everyone, the last is not the hardest; teach with a working solution beside an empty one; cut limits that were never
+meant as difficulty. Details: [pacing.md](pacing.md).
 
 Hold every level to this with a `levels` table for the `data` runner (`godot-data`):
 
@@ -143,16 +130,6 @@ A level fails with no `solution` or an empty one, with a second sentence (`.`, `
 no abbreviations), or with a `purpose` or `kind` not in the list. Run it alone with
 `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`. The `mechanics` column also shows which pairs of mechanics
 no level combines yet.
-
-Quests, from Sasko's ten lessons (The Witcher 3, Cyberpunk 2077). For each quest ask:
-
-1. Which key fact is held back, so the player wants the next scene?
-2. Which emotional beat does it build to, and which earlier scenes set up the people it depends on?
-3. Is anything said twice, or is there busy work a cut would remove?
-4. Is each choice a dilemma, with both sides given equal screen time and writing?
-5. Where does the player see each consequence? One they never notice does not exist for them.
-6. Does each detail mean something to the player? Key facts come when the player is focused, not in a walk-and-talk.
-7. Is it as new as it can be while staying familiar, and are a rule's normal uses taught before a quest breaks it?
 
 ## 7. Levels players find their way in
 
@@ -176,6 +153,20 @@ it is not one yet, so make it clearer.
   `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
+Pacing (Dan Taylor, "Ten Principles for Good Level Design"): each level introduces, showcases or subverts a mechanic;
+the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first; the
+way back plays differently. Details: [pacing.md](pacing.md).
+
+## 8. Tutorials (Nicolae Berbece, GDC 2016)
+
+- Teach gradually through play: each mechanic first met where it is safe to watch it work (Half-Life 2 shows a barnacle
+  catching a bird before it can catch you); menus can be driven with the game's own moves.
+- No controls diagram before play, no pop-ups that stop the game, no walls of text; never hand out a mechanic in the
+  opening and then take it away. Show a panel only once it is used.
+- Rules on a timer show the time left by motion (Move or Die's rule text slowly scrolls up, then leaves), not a
+  countdown bar that pulls the eye off the words.
+- Test with people who have never played, and stay silent while they play.
+
 ## In a review
 
 1. Say the core loop in one sentence. If it needs two, it is two loops; find which one the game is about.
@@ -183,8 +174,16 @@ it is not one yet, so make it clearer.
 3. For each `must` feature: which pillar it serves, which kind of fun, and how a player would notice it is missing.
 4. Look for choices that are not choices, goals the player cannot see, and failures they cannot read. Players can review
    the current objective and see progress in numbers ("3 of 5"), and change difficulty at any time without losing
-   progress (Xbox Accessibility Guidelines 108 and 109, in `docs/wcag-ui.md`).
-5. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
+   progress (Xbox Accessibility Guidelines 108 and 109, in `docs/wcag-ui.md`). Check access before challenge: in
+   AbleGamers' player panel, a game players could not play almost always lacked an access option (remapping, subtitles,
+   clear text, recolouring, a second channel), not an assist. Then: quick-time events and mashing can be skipped, the
+   skipped part still shown (Spider-Man plays the ideal run); a practice space to try remapped controls; skip offers
+   worded without mockery (Chris Power and Mark Barlet, GDC).
+5. A problem every fix brings back: name the player promises it touches. If tuning or content could remove it, it is
+   only hard. If none could, two promises conflict (a "cursed problem", Alex Jaffe, GDC): weaken one with a barrier
+   (remove the move), a gate (make it costly), a carrot (reward something else) or a s'more (make it the fun), and
+   write in the ADR which promise gives way and what is lost.
+6. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
    people; ask the user to play, and record what they said in the GDD.
 
 Write conclusions into `docs/GDD.md` (with the user's confirmation, as `/game` does), never only into the conversation.

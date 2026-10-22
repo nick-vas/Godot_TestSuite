@@ -21,6 +21,7 @@ and **unconfirmed** means not verified.
 | Hades data tables ([Nexus](https://www.nexusmods.com/hades/mods/52/), [sgg-mod-format](https://github.com/MagicGonads/sgg-mod-format/wiki/Import-Type:-LUA)) | Data as Lua tables that mods patch by merging |
 | Factorio [FFF #55](https://factorio.com/blog/post/fff-55), [FFF #47](https://factorio.com/blog/post/fff-47) | A checksum of the state every tick; desyncs are "typically just a value of one variable" |
 | Asset Library: [Edit Resources as Table 2](https://godotengine.org/asset-library/asset/edit/16000), [CSV Data Importer](https://godotengine.org/asset-library/asset/1120) | Editor tools for tables (not tested) |
+| A Sony online consultant, "Crash Course in Online Features for Programmers" (GDC; [notes](gdc/folds-l10n-audio-net.md)) | Balance config from a server: no code in it, the game playable with any local version, no rebalancing mid-mission, its version in saves |
 
 ## Custom Resources (tested)
 

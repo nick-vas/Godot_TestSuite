@@ -170,6 +170,11 @@ optional `page_background` 1438x810), at least five `screenshot*` files at 1920x
 `short_description.txt` (plain text, no links or time-limited wording, 300 characters at most). Wrong sizes and formats FAIL;
 missing files and short description problems WARN.
 
+**`store/press/`** (optional, next to `store/steam/`) holds the press kit. `doctor` warns when `key_art` or
+`key_art_notitle` (key art with and without the title) is missing, when there are fewer than 6 or more than 10
+`screenshot*` images, and when neither `fact_sheet.txt` nor `press_release.txt` (or `.md`) exists or none gives a contact
+email address. It never fails on the press kit. The contents: the `godot-store-page` skill.
+
 **`juice.json`** (optional, in the Godot project folder) turns on the `juice` runner: Godot plays the game headless at a fixed
 60 fps for `frames` frames (default 1800) with `args` (plus `-GameArgs`), and each rule checks that every `event` was followed
 by each `feedback` within `withinMs` (default 100) of game time:

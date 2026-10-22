@@ -44,6 +44,9 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
   down in `Step`, and fire your own event at zero.
 - One random stream for the simulation (in its state), and separate ones for ambient audio and effects, outside it:
   more sparks or a new ambient sound then leave old replays playing (`CosmeticRandomDrawsDoNotChangeTheReplay`).
+- Every call to the simulation's generator advances it, even for a range of one value. Spelunky 2's returned the
+  minimum without drawing when max <= min: an online desync QA could not reproduce for a month, found in six hours from
+  a player's replay (`ARangeOfOneValueStillAdvancesTheGenerator`).
 
 ## 3. Godot's physics
 
@@ -87,7 +90,8 @@ ulong h = DeterminismCheck.Fnv1a(DeterminismCheck.Fnv1a(14695981039346656037, x)
 ```
 
 - A replay holds the seed, the inputs and checkpoints; ship the build id and a digest of the game data with it, or an
-  old replay against new balance numbers diverges.
+  old replay against new balance numbers diverges. Add the list of mods (or its digest) to replays and to the session
+  handshake: mods caused two of Spelunky 2's first three long hard-desync hunts.
 - Record every session, always (Retro City Rampage): `InputLog` (`Determinism/InputLog.cs`) keeps a header, one
   run-length stream per button and per axis and a checksum byte, under zlib. Ten busy minutes took 9,651 bytes (25,139 as
   raw frames under the same zlib), small enough to attach to a bug report or a leaderboard entry.

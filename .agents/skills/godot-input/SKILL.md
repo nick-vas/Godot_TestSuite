@@ -61,7 +61,8 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
 - `JoyButton` is a position: `A` is the bottom button, labelled Cross on PlayStation and **B** on Nintendo. Map
   (family, button) to the picture; offer a "swap confirm and cancel" option rather than swapping on your own.
 - Prompts come from the current bindings (`PromptGlyphs.ForAction(action, family)`), so a rebind changes every hint,
-  tutorial and button label at once, as Xbox Accessibility Guideline 107 asks.
+  tutorial and button label at once, as Xbox Accessibility Guideline 107 asks. Never put a button's name in recorded
+  voice or painted into a texture: it cannot follow (a Sonic voice line named the wrong button; Nicolae Berbece, GDC 2016).
 - Kenney's Input Prompts (CC0) has Xbox, PlayStation, Switch, Steam Deck, keyboard and mouse sets; unpack it under
   `res://prompts` and record it in `assets.json` (`godot-asset-pipeline`). Fall back to text (`InputBindings.Label`).
 - `Input.JoyConnectionChanged` fires on plug and unplug. Pause the game when the controller in use disconnects.
@@ -110,6 +111,13 @@ Mobility settings (Karen Stevens, EA, GDC 2021; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/
   and one button.
 - Options that turn off button mashing, quick-time events and hold-to-confirm meters (a single press instead), and
   automatic actions where they fit: jump up a step, grab a ledge, aim assist.
+- Combat assists (God of War Ragnarök, Santa Monica Studio, GDC; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/folds-testing-misc.md`)
+  are opt-in and leave the defaults alone. Widen a window instead of removing it (a few more invulnerable frames on an
+  evade; timing and direction still count). Lock-on that retargets after a kill, holds while aiming and allows enemies
+  off screen; a camera that turns to the target when an attack starts, for players who cannot attack and steer the
+  camera at once. An action that carries intent moves to the stick already in use (push toward a stunned enemy to grab
+  it) rather than happening by itself. An assist that undoes a difficulty's intent is locked on that difficulty, sits in
+  the accessibility menu, and the game names it on each death while it is on.
 - Vibration off, important only, or all: give each rumble a category and route every call through one helper that
   scales or drops `Input.StartJoyVibration(device, weak, strong, duration)` by the player's level; never the only cue.
 

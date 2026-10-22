@@ -37,7 +37,31 @@ $clean = @(Get-TranslationCases (Join-Path $fixture 'clean') | Where-Object { $_
 if ($clean) { $failures += "the clean project reported: $(($clean | ForEach-Object { "$($_.Name): $($_.Failure)" }) -join ' | ')" }
 
 $sources = Get-TranslationSources $fixture
-if ($sources.Csv.Count -ne 6 -or $sources.Po.Count -ne 1) { $failures += "detection found $($sources.Csv.Count) CSV and $($sources.Po.Count) PO files" }
+if ($sources.Csv.Count -ne 7 -or $sources.Po.Count -ne 1) { $failures += "detection found $($sources.Csv.Count) CSV and $($sources.Po.Count) PO files" }
+
+# A plain "zh" column is one table for Simplified and Traditional readers alike: a warning naming that column, not zh_TW.
+$zh = @(Get-TranslationWarnings $fixture)
+if ($zh.Count -ne 1 -or $zh[0].rule -ne 'chinese-without-script' -or $zh[0].message -notlike "res://locale/chinese.csv: column 'zh' *") {
+    $failures += "one chinese-without-script warning for chinese.csv's zh column expected, got: $($zh | ConvertTo-Json -Compress)"
+}
+if (@(Get-TranslationWarnings (Join-Path $fixture 'clean')).Count) { $failures += 'the clean project has no Chinese column, yet warned' }
+
+# Encodings Godot cannot read (measured on 4.7.2: UTF-16 imports no translation, Big5 imports U+FFFD), which PowerShell
+# would decode without complaint. Made here, so no binary table is committed. A UTF-8 BOM is fine: Godot skips it.
+$encodings = Join-Path ([System.IO.Path]::GetTempPath()) "l10n-encodings-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+New-Item -ItemType Directory -Force (Join-Path $encodings 'locale') | Out-Null
+Copy-Item (Join-Path $fixture 'project.godot') $encodings
+$table = "keys,en,zh_TW`nMENU_TITLE,Menu,選單`n"
+[System.IO.File]::WriteAllText((Join-Path $encodings 'locale/utf16.csv'), $table, [System.Text.UnicodeEncoding]::new($false, $true))
+[System.IO.File]::WriteAllBytes((Join-Path $encodings 'locale/big5.csv'), [byte[]](@([System.Text.Encoding]::ASCII.GetBytes("keys,en,zh_TW`nMENU_TITLE,Menu,")) + @(0xBF, 0xEF, 0xB3, 0xE6, 0x0A)))
+[System.IO.File]::WriteAllText((Join-Path $encodings 'locale/bom.csv'), $table, [System.Text.UTF8Encoding]::new($true))
+[System.IO.File]::WriteAllText((Join-Path $encodings 'locale/zh_TW.po'), "msgid `"`"`nmsgstr `"`"`n`"Language: zh_TW\n`"`n`nmsgid `"Menu`"`nmsgstr `"選單`"`n", [System.Text.UnicodeEncoding]::new($false, $true))
+$encoded = "$(@(Get-TranslationCases $encodings | Where-Object { $_.Name -eq 'untranslated' } | ForEach-Object { $_.Failure }))"
+foreach ($line in 'res://locale/utf16.csv is UTF-16', 'res://locale/big5.csv is not UTF-8', 'res://locale/zh_TW.po is UTF-16') {
+    if (-not ($encoded -split "`n" | Where-Object { $_.StartsWith($line) })) { $failures += "untranslated should report: $line`n  got: $encoded" }
+}
+if ($encoded -match 'bom\.csv') { $failures += "a UTF-8 table with a BOM was reported: $encoded" }
+Remove-Item -Recurse -Force $encodings
 
 # Localized voice: a copy of the voice sub-project, with its sounds made at known rates, lengths and loudness.
 $voice = Join-Path ([System.IO.Path]::GetTempPath()) "l10n-voice-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
@@ -106,5 +130,5 @@ $detected = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') d
 if ('l10n' -notin @($detected.runners)) { $failures += "detect did not pick l10n for a project with translation remaps: $(@($detected.runners) -join ', ')" }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" }; exit 1 }
-Write-Host 'l10n reports duplicate, untranslated (empty, fuzzy, short of plurals), missing and too long keys, broken remaps and mismatched localized voice, and nothing on a clean project'
+Write-Host 'l10n reports duplicate, untranslated (empty, fuzzy, short of plurals), missing and too long keys, broken remaps, mismatched localized voice, tables that are not UTF-8 and a plain zh locale, and nothing on a clean project'
 exit 0

@@ -76,6 +76,16 @@ public static readonly IReadOnlyDictionary<int, Func<JsonObject, JsonObject>> Mi
 - A save from before envelopes existed (v1) is recognised only when no envelope field is present, so a damaged
   envelope is never mistaken for an old save.
 
+### Choices carried into a sequel or New Game+
+
+Importing a whole old save broke for Dragon Age: dead characters came back, choices were overturned, and each fix
+needed a client patch. BioWare's Dragon Age Keep kept only the key choices, with the plot rules between them:
+
+- Export the key choices to a small versioned file of their own, not the save; each game reads only the ones it uses.
+- Keep the rules between choices as data (a hero who died had no child), with a test that each can be met.
+- On import, validate; if rules conflict, repair to the nearest valid state (fewest choices changed) and show the
+  player only what changed and why. Never refuse the whole file, and never trust it unchecked.
+
 ## 5. Two devices: cloud conflicts
 
 Steam Cloud (and Epic, GOG) sync files at launch and exit; when both sides changed, Steam shows only file dates and

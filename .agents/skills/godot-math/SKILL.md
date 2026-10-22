@@ -1,6 +1,6 @@
 ---
 name: godot-math
-description: Use when game code works with positions, directions, angles, distances, rotations, bounces, jump height and gravity, oscillation or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
+description: Use when game code works with positions, directions, angles, distances, rotations, bounces, jump height and gravity, oscillation, easing curves or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
 ---
 
 # Game math in Godot 4
@@ -58,6 +58,17 @@ wall: `(p - p.Project(wallDir)).Length()`. For movement, Godot does the decompos
   to.Normalized())` gives the rotation itself.
 - Prefer `Basis` and `Quaternion` over hand-built 3 x 3 matrices; interpolate rotations with `Quaternion.Slerp`, never by
   interpolating angles past 180 degrees (`Mathf.LerpAngle` wraps correctly in 2D).
+- Interpolation traps, from "A Visual Guide to Quaternions and Dual Quaternions" (GDC), checked in Godot 4.7.2:
+  - `q` and `-q` are the same orientation, one the long way round. `Slerp` flips the sign itself (10 to -(80) degrees
+    gives 45 halfway); `Slerpni` and hand-written lerps do not (135): check `a.Dot(b) < 0` and negate first.
+  - Never lerp a `Basis` or matrix component by component: halfway through a 162 degree turn the object is squashed to
+    0.16 of its width (determinant 0.02). Use `Basis.Slerp` or `Transform3D.InterpolateWith`, which keep scale 1.
+  - Normalised lerp is not constant-speed (a quarter of a 160 degree turn gives 34.5 degrees; `Slerp` 40).
+  - Normalise before rotating a vector: in C# a debug build throws "Quaternion is not normalized."; a release build
+    silently stretches the vector. Build rotations with `new Quaternion(axis, angle)` (it halves the angle for you) or
+    `Basis.FromEuler(angles, EulerOrder.Yxz)` with the order named, never with sin and cos by hand.
+  - Skinned characters whose forearms twist flat (the candy wrapper) need dual-quaternion or "preserve volume" skinning
+    in the 3D tool; whether Godot's `Skeleton3D` offers it was not checked.
 
 ## Trigonometry (chapter 5)
 
@@ -85,6 +96,24 @@ at rate 5. `weight = Rate * delta` is only a linear approximation (99.58 at 30 f
 `Rate * delta` exceeds 1; Godot 4.7.2's `Camera2D` position smoothing computes `PositionSmoothingSpeed * delta` that way.
 Each axis or direction may use its own rate: follow vertically only once `IsOnFloor()`, or catch up faster when falling.
 The `architecture` runner warns about a fixed weight in `_Process` (`frame-dependent-lerp`).
+
+## Easing: bend t, not the value
+
+Any lerp, fade, slide or response curve gets its feel from a function of the 0..1 parameter t with f(0) = 0 and
+f(1) = 1, applied before the lerp ("Math for Game Programmers: Fast and Funky 1D Nonlinear Transformations", GDC):
+
+| Name in the talk | Formula | Godot 4.7.2 (checked headless) |
+|---|---|---|
+| smooth start n (ease-in) | `t * t` (n = 2), `t * t * t`; not `Mathf.Pow` | `Tween.TransitionType.Quad` (2), `Cubic` (3), `Quart` (4), `Quint` (5) with `EaseType.In`; `Mathf.Ease(t, 2)` |
+| smooth stop n (ease-out) | flip, power, flip: `1 - (1 - t) * (1 - t)`; not a square root | the same types with `EaseType.Out`; `Mathf.Ease(t, 0.5f)` |
+| crossfade start into stop by t | `(1 - t) * start + t * stop` | exactly `Mathf.SmoothStep(0, 1, t)`, 3t² - 2t³ (`Quad` with `InOut` is a different curve) |
+| arch, bell (out and back to 0) | `4 * t * (1 - t)`; smooth start times smooth stop | |
+
+- "Quad" is the second power, smaller than "Cubic": name curves by their power, not by the prefix.
+- A higher n arrives more gently: smooth stop 2 ends at zero speed but brakes abruptly, 3 also ends at zero
+  acceleration. Smoothstep still brakes abruptly at the ends.
+- `Mathf.Pow` with a fractional power is slow (the speaker measured it about ten times slower, some 200 cycles); between two
+  integer powers, blend them: `0.8f * t * t + 0.2f * t * t * t` is within 0.008 of t^2.2 on 0..1.
 
 ## Jumps designed by height and distance
 
