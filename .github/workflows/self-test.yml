@@ -47,12 +47,17 @@ jobs:
           if (-not ($messages -match "^application/config/version is '1\.2\.3-rc\.1\+g1a2b3c'")) { throw "version: $($messages -join ' | ')" }
           # narrator.gd calls tts_speak with audio/general/text_to_speech at its default (off); turning it on clears the warning.
           if (-not ($messages -match 'audio/general/text_to_speech is off, so the first line is late or lost: res://narrator\.gd$')) { throw "tts off: $($messages -join ' | ')" }
+          # accessibility_support=2 is Disabled, so screen readers get nothing; the copy below sets it back to Auto (0).
+          if (-not ($messages -match '^Screen readers cannot read the game: accessibility_support is Disabled$')) { throw "screen reader off: $($messages -join ' | ')" }
           $copy = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'doctor-tts-on')
           Copy-Item tests/doctor-fixture/* $copy
-          Add-Content (Join-Path $copy 'project.godot') "`n[audio]`n`ngeneral/text_to_speech=true"
+          $godotFile = Join-Path $copy 'project.godot'
+          Set-Content $godotFile ((Get-Content $godotFile -Raw).Replace('accessibility_support=2', 'accessibility_support=0')) -NoNewline
+          Add-Content $godotFile "`n[audio]`n`ngeneral/text_to_speech=true"
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project $copy 2>$null | ConvertFrom-Json
           $messages = @($d.checks | ForEach-Object message)
           if ($messages -match 'text_to_speech is off' -or -not ($messages -match '^Text-to-speech: started at launch')) { throw "tts on: $($messages -join ' | ')" }
+          if ($messages -match '^Screen readers') { throw "screen reader on Auto: $($messages -join ' | ')" }
       - name: A failed Godot download stops with download-failed
         shell: pwsh
         run: ./tests/Test-DownloadFailed.ps1

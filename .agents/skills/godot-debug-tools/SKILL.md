@@ -50,6 +50,9 @@ foreach (var arg in OS.GetCmdlineUserArgs())
   graph from a ring buffer of `delta` drawn in `_Draw`.
 - Game state worth showing: the AI's current goal and target (`godot-game-ai`), network round trip and corrections
   (`godot-multiplayer`), the random seed and the data digest (`godot-determinism`, `godot-data`).
+- Commands for generated levels (`godot-procgen`): `rebuild` regenerates the current area from its derived seed, so a
+  player's save plus one command replays a bad generation under the debugger (Caves of Qud); a slot swap puts any piece
+  eligible there into a slot, instead of reloading until it comes up (XCOM 2's Tactical Quick Launch).
 
 ## 4. Debug drawing
 

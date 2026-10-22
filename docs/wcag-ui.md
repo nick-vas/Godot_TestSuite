@@ -38,7 +38,7 @@ games.
 
 Kind: **Applies** (as written), **Transformed** (the same need, in game terms), **Not applicable** (nothing like it in game
 UI). Checked by: `look` (screenshot critique against `docs/STYLE.md`), `flows` (a UI flow), `review` (an agent reading
-the scenes and code), `proposed` (see the end of this page). 4.1.1 Parsing is obsolete in WCAG 2.2 and left out.
+the scenes and code), `doctor` (a project setting it reads), `proposed` (see the end of this page). 4.1.1 Parsing is obsolete in WCAG 2.2 and left out.
 
 ### 1 Perceivable
 
@@ -67,7 +67,7 @@ the scenes and code), `proposed` (see the end of this page). 4.1.1 Parsing is ob
 | 1.4.5 Images of Text | AA | Applies | Menu text is `Label`s with a font, not text painted into textures (scales, translates, can be read aloud); logos excepted | | look, review |
 | 1.4.6 Contrast (Enhanced) | AAA | Transformed | A high-contrast option at 7:1, on by default when the system asks for it | `DisplayServer.AccessibilityShouldIncreaseContrast() == 1` (-1: unknown) | review |
 | 1.4.7 Low or No Background Audio | AAA | Transformed | Music ducks under dialogue (WCAG: 20 dB) or the player can lower it | a compressor sidechain on the music bus | review |
-| 1.4.8 Visual Presentation | AAA | Transformed | Long text (codex, tutorials): at most 80 characters a line, not justified, line spacing 1.5, a subtitle background the player can darken | `Label` theme constant `line_spacing` | look |
+| 1.4.8 Visual Presentation | AAA | Transformed | Long text (codex, tutorials): at most 80 characters a line (inkle aims at 5 to 15 words: `godot-ui-accessibility/in-game.md`), not justified, line spacing 1.5, a subtitle background the player can darken | `Label` theme constant `line_spacing` | look |
 | 1.4.9 Images of Text (No Exception) | AAA | Applies | As 1.4.5, without the exceptions | | look |
 | 1.4.10 Reflow | AA | Transformed | At 200% UI scale and the smallest listed resolution, lists scroll one way only and nothing is cut off | containers, `ScrollContainer` | look |
 | 1.4.11 Non-text Contrast | AA | Applies | Focus ring, slider track and handle, checkbox, toggle state, health bars and HUD icons: 3:1 against what is next to them | | look, proposed |
@@ -143,7 +143,7 @@ the scenes and code), `proposed` (see the end of this page). 4.1.1 Parsing is ob
 
 | SC | Level | Kind | For menus and UI | Godot 4.7 | Checked by |
 |---|---|---|---|---|---|
-| 4.1.2 Name, Role, Value | A | Transformed | Screen readers can name every control, its kind and its value | Godot's own controls report role and value through AccessKit; set `accessibility_name` on icon-only and custom controls; keep `accessibility/general/accessibility_support` on Auto, not Disabled | review, proposed |
+| 4.1.2 Name, Role, Value | A | Transformed | Screen readers can name every control, its kind and its value | Godot's own controls report role and value through AccessKit; set `accessibility_name` on icon-only and custom controls; keep `accessibility/general/accessibility_support` on Auto, not Disabled (`doctor` warns) | review, doctor |
 | 4.1.3 Status Messages | AA | Transformed | Toasts and notices are announced without taking focus | `AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite` (Assertive for errors) | review |
 
 **Count:** of the 86 criteria, 31 apply as written, 49 apply in game terms, and 6 have no game UI counterpart.
@@ -195,7 +195,7 @@ say they are not a compliance checklist.
 | 117 Visual distractions and motion | Moving or auto-updating UI can be stopped; camera shake, bob, motion blur avoidable or adjustable; field of view and camera sensitivity settings | 2.2.2, 2.3.3 |
 | 118 Photosensitivity | Flash, red flash and pattern limits above | 2.3.1, 2.3.2 |
 | 119 Chat | Speech-to-text and text-to-speech chat, narrated incoming messages and emotes | 1.2.4 |
-| 120 Communication experiences | The whole path to chatting (menus, matchmaking, friends, muting, reporting) meets the other XAGs | (none) |
+| 120 Communication experiences | The whole path to chatting (menus, matchmaking, friends, muting, reporting) meets the other XAGs. In the US the CVAA requires it for chat between people (`godot-legal` section 7); what accessible chat looks like: `.agents/skills/godot-multiplayer/chat.md` | (none) |
 | 121 Accessible feature documentation | A web page per game describing its accessibility features, before purchase, in every shipped language | (none) |
 | 122 Accessible customer support | Support reachable by more than one accessible channel | (none) |
 | 123 Mental health best practices | Content warnings before purchase and in game, an advisory at launch, options to reduce or skip sensitive content, helplines reachable from anywhere | (none) |
@@ -247,15 +247,16 @@ From the full list of W3C Recommendations (318 when checked) and the related Not
 
 ## Checks the kit could add
 
-None of these exist yet; each is small.
+Each is small. Item 2 now exists in `doctor`; the others do not yet.
 
 1. **Flash limit** (2.3.1). The `juice` runner already has a timestamp for every `[juice] feedback flash` line: fail any
    one-second window with more than three. For recorded footage (Movie Maker, a trailer capture), EA's IRIS
    (github.com/electronicarts/IRIS, BSD 3-Clause, C++ built with CMake and vcpkg, with an example console app) reads a
    video and writes a per-frame CSV of luminance flashes, red flashes and harmful patterns; recommended by the cognitive
    accessibility panel at GDC 2024 (`docs/gdc/folds-testing-misc.md`). Not tried here: it needs a native build.
-2. **Gamepad can press and go back** (2.1.1). `doctor`: `ui_accept` and `ui_cancel` have a joypad button in
-   `project.godot`, and `accessibility/general/accessibility_support` is not Disabled (4.1.2).
+2. **Gamepad can press and go back** (2.1.1), **screen readers on** (4.1.2). Done: `doctor` warns when `ui_accept` or
+   `ui_cancel` has no joypad button in `project.godot`, and when `accessibility/general/accessibility_support` is
+   Disabled or the accessibility driver is `dummy`.
 3. **A UI scan inside Godot** (1.1.1, 1.4.3, 1.4.11, 2.4.7, 2.4.11, 2.5.2, 2.5.8). Load each UI scene at the design
    resolution and walk its controls: icon-only buttons without a name or tooltip, focusable controls under 24 x 24 px,
    an empty `focus` stylebox, buttons acting on press, scroll containers that do not follow focus, and the contrast of

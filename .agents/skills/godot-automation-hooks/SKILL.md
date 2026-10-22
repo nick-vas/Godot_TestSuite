@@ -78,6 +78,9 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
   and log `[Stuck] pos=x,y,z level=<name>`. Grepped over many runs, those lines map where players get trapped in
   collision.
 - On spawn the bot picks a random loadout, weighted toward the default one, so it covers the combinations testers skip.
+- Before trusting a balance change, run the unchanged build on two separate seed sets (an A/A run): their gap is the noise a
+  change must beat. SocialPoint's A/A splits of real players differed by 5 to 10% (Aviv Stern, GDC). With few runs, judge
+  yes/no outcomes (cleared, won), which need far fewer runs than amounts (gold, seconds).
 
 ## Comparing two versions
 
@@ -98,11 +101,18 @@ test decide. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytic
   mean says. A real difference can still be too small to be worth its cost.
 - Bots: run both versions on the same seeds and pair them. On the same data, pairing turned no result into p = 0.003.
 - One question per test: twenty metrics at 5% each find a "difference" by chance. Balancing many PvP classes is beyond this.
+- The tests assume independent samples with final outcomes: players in one multiplayer match affect each other (compare per
+  match), and an outcome that can still happen (a purchase on day 3) is read only once its running total flattens (Swrve's
+  A/B testing talk, GDC).
+- With real players (Emily Greer, Kongregate, GDC): assign the variant when a player first meets the feature (opens the
+  shop), not at launch; run long enough for less engaged players to arrive, since the first days bring the best ones; read
+  every downstream metric, not only the target (a simpler shop raised buyers 9% and cut revenue 11%; a flash sale read +8%
+  revenue at 10 days and -2% at 30); judge spend with medians and `Stats.MannWhitney`, as one big buyer moves a mean.
 
 ## Reading balance from run data
 
 Pick and win rates per card, relic or upgrade, from one summary per finished run (bots or players): `BalanceReport` in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie three ways:
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie four ways:
 
 - **Late options flatter themselves.** An option found near the end is seen mostly in runs that were already winning (Slay the
   Spire's Madness, from an event just before the last boss). Compare its runs only with all runs that reached the floor where
@@ -110,6 +120,9 @@ Pick and win rates per card, relic or upgrade, from one summary per finished run
 - **Heavy players drown out everyone.** Two testers with 500 runs each made a 23% win rate (per player) read 84% (per run).
   Weigh each player, or each session when there is no player id, once (`PerSession`).
 - **Difficulties differ.** Report each difficulty apart; pooled, a neutral option favoured on the hard one looked 16 points worse.
+- **The audience shifts.** A total moves more often because who plays changed (where players came from, platform, days
+  since install) than because the game did (Greer). Split by those, show each group's sample size, and ignore groups too
+  small to mean anything.
 - The goal is not equal power: every option should be worth taking some of the time, so look for pick rates near 0 or 1 when
   offered. Rare, hard-to-assemble combos may be strong. Metrics do not show what is boring (slow, grindy, optimal loops): watch
   play for that. Decide whether a change helped with the tests above, not by eye.

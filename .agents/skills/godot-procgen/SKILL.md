@@ -52,9 +52,10 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
 | Content | Technique | Where it comes from |
 |---|---|---|
 | Terrain, caves, height, biome blends | noise | Godot's `FastNoiseLite` (`Seed`, `Frequency`, `GetNoise2D`) |
-| Cave systems | cellular automata: random fill, then a few smoothing passes | a dozen lines; no library |
+| Cave rooms | cellular automata: about 50% random fill, then about 10 smoothing passes; the fill sets how open it is. Whole levels of it cannot be controlled or populated: use it inside fixed-size rooms with open exits (Galak-Z) | a dozen lines; no library |
 | Rooms and corridors | binary space partition, or place rooms and join them with a spanning tree | a few dozen lines |
 | Levels assembled from hand-made rooms | a grid maze grown room by room, each cell filled by a module | below (Eldritch) |
+| A room-grid path with dead ends | walk a Hilbert curve one power of two larger than the grid, at a random offset, keeping the cells inside it: an orthogonal path that never backtracks; free cells touching it become dead ends for loot (Galak-Z) | a few dozen lines |
 | Tile maps that follow adjacency rules learned from a sample | Wave Function Collapse | Maxim Gumin's [WaveFunctionCollapse](https://github.com/mxgmn/WaveFunctionCollapse) (C#, MIT); the [Fast WFC](https://godotengine.org/asset-library/asset/4149) add-on (MIT, built for Godot 4.4) wraps a C++ port |
 | Dungeons, mazes, towns from rewrite rules | MarkovJunior | Maxim Gumin's [MarkovJunior](https://github.com/mxgmn/MarkovJunior) (C#, MIT) |
 | Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (Apache 2.0) grammars, expanded by the seeded expander below |
@@ -68,9 +69,16 @@ and its `[actions]` need code of their own). In a web export only, where reprodu
 can run in the page: add `<script src="tracery.min.js"></script>` to the preset's `html/head_include`, ship the file next to
 the exported page, and call it with `JavaScriptBridge.Eval("tracery.createGrammar(...).flatten('#origin#')")`.
 
+**WFC for maps** (Brian Bucklew, Caves of Qud): small samples (8x8 to 16x16, N = 3; bigger ones mostly repeat and cost
+memory and time); symmetry 1 when up matters, 8 for top-down buildings. A third "interior" colour beside wall and floor gives
+closed rooms and tells later passes what is inside. Large outputs look the same everywhere: split the map into regions first
+and fill each from its own sample. Keep doors and props out of the sample (each extra colour cuts the overlaps, and the output
+repeats): generate walls, then join separate regions with A\* and put a door where a path crosses a wall.
+
 Both of Gumin's projects are C#, so their source can sit in a C# Godot project; keep their MIT licence text with it. Hand-made
 pieces arranged by a generator (rooms, chunks, set pieces) usually play better than everything generated: the generator
-supplies variety, a designer supplies the moments.
+supplies variety, a designer supplies the moments. Author them on one grid module: XCOM 2's parcels became 16x16, 16x32 and
+32x32 and its roads base 8, which made asymmetric layouts possible.
 
 ```csharp
 // Weighted pick: Pick(rng, ("sword", 5), ("shield", 3), ("relic", 1)).
@@ -84,16 +92,31 @@ public static T Pick<T>(RandomNumberGenerator rng, params (T Item, int Weight)[]
 }
 
 // A tiny grammar: Expand(rng, rules, "#name# the #title#"); each #key# picks one of rules[key] and expands it in turn.
-public static string Expand(RandomNumberGenerator rng, Dictionary<string, string[]> rules, string text, int depth = 0)
+// A key the entity's state holds (its ally, its domain) takes that value first: Expand(rng, rules, text, sultan.State).
+public static string Expand(RandomNumberGenerator rng, Dictionary<string, string[]> rules, string text,
+    Dictionary<string, string> state = null, int depth = 0)
 {
     if (depth > 20) throw new InvalidOperationException("grammar loops");
     return Regex.Replace(text, "#(\\w+)#", m =>
     {
-        string[] options = rules[m.Groups[1].Value];
-        return Expand(rng, rules, options[rng.RandiRange(0, options.Length - 1)], depth + 1);
+        string key = m.Groups[1].Value;
+        if (state != null && state.TryGetValue(key, out string known)) return known;
+        string[] options = rules[key];
+        return Expand(rng, rules, options[rng.RandiRange(0, options.Length - 1)], state, depth + 1);
     });
 }
 ```
+
+**Tables of tables** (Caves of Qud's population tables, kept as data): an entry is an item or another table; a table picks
+one entry by weight or takes each entry; each entry has a count (`1-2`) and a chance (`50%`), so one roll gives a boar or a
+whole goatfolk camp. Placement hints on an entry (`outside the door, radius 2`) are read by spatial callers and ignored by
+others. Look tables up from specific to general (this faction's, this region's, the default) and specialise only the ones
+that matter.
+
+**Histories** (Caves of Qud's sultans): an entity is a bag of properties (name, birthplace, one domain such as ice) and
+events change them. Pick events at random and write the cause afterwards from the state (`the persecution of #ally#` when
+it has an ally); an event with no state to use sets some (treated with cats: cats are now friendly) for later events. Start
+with little state: one recurring domain threads a life together, and players infer the causes.
 
 ## Mazes of hand-made rooms
 
@@ -124,15 +147,26 @@ module per cell, then spawns. The tested version is `${CLAUDE_PLUGIN_ROOT}/examp
 
 ## Valid, then fun
 
-Generate data first (a grid, a graph, a list), with no nodes; build the scene from the data after. Then check the data:
+Generate data first (a grid, a graph, a list), with no nodes, in one coordinate convention (Godot's y down; Galak-Z lost
+time flipping between two); build the scene from the data after. Then check the data:
 
-- Hard rules: every room reachable from the start (a flood fill), an exit exists, counts within bounds, the start is safe.
+- Hard rules: every room reachable from the start (a flood fill), an exit exists, counts within bounds, the start is safe,
+  clusters of objects kept apart (XCOM 2 keeps two empty tiles between cover clusters, so movement and the camera stay
+  clear at full density).
 - On failure, try the next derived seed (`Seeds.Derive(runSeed, floor, attempt)`), a bounded number of times, and log it:
   `[gen] floor 3 seed 1234 valid after 2 attempts`. A generator that often needs retries has a bug worth fixing.
 - Soft goals (path length, enemy density, treasure spread) are measured and logged, and balanced with the bot
-  (`godot-automation-hooks`), not guessed.
+  (`godot-automation-hooks`), not guessed. They rank, never reject: generate K candidates from derived seeds and keep the
+  best score. Rejecting until one passes a strict soft test can loop for ever (Kate Compton, GDC).
+- A hand-picked list of known-good seeds in a data file is a fair stopgap when the generator has no time left (Compton
+  did so for Spore's planets).
+- Scatter decoration with spacing and clusters, never uniform random positions (they clump): a grid with a random offset
+  per cell, or a minimum distance; smaller things around big ones, something at the base where two meet, surface detail
+  on top (Compton's barnacling, footing and greebling).
 - Which kind of fun it serves, usually discovery (`godot-game-design`): if every seed feels the same, more randomness is not
-  the fix; more distinct hand-made pieces are.
+  the fix; more distinct hand-made pieces are. Decide per kind of content how different it must look: background things only
+  must not look cloned, one region's must differ from another's, a few need a character of their own (Compton's "10,000
+  bowls of oatmeal").
 - Loot and spawns roll in two seeded stages, as DayZ's economy does: first what spawns and where (N of M candidate
   `Marker3D` spots, never two inside each other's safe radius), then its condition and contents from shared presets
   ("an optic 50% of the time, then this one 30%, that one 20%"). Each stage gets its own derived seed.
@@ -143,7 +177,8 @@ Generate data first (a grid, a graph, a list), with no nodes; build the scene fr
 - **Every seed valid**: a test runs the generator for seeds 1 to 1000 (it is pure data, so this takes moments) and asserts the
   hard rules for each, naming the first failing seed.
 - **Every piece can appear**: furnish a seed sweep and count each hand-made module or chunk; one placed 0 times is
-  over-constrained by its rules or cannot occur, and is work no player sees (XCOM 2). The census flags it before it is built.
+  over-constrained by its rules or cannot occur, and is work no player sees (XCOM 2: a parcel needing both a facing and
+  several driveways fitted one or two plots). The census flags it before it is built.
 - **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within
   `Stats.BinomialTolerance(p, rolls, groups: n)` (Breakout's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
   30% chance, failing a correct generator once in 1,000; more rolls to catch smaller errors (four times the rolls, half the tolerance).

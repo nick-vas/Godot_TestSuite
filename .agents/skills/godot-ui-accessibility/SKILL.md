@@ -81,7 +81,8 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
 - Menus never time out. Auto-advancing dialogue and timed prompts can be turned off or slowed ten times.
 - At most three flashes a second over about 20% of the screen, with a lower limit for saturated red (XAG 118): menu transitions, hit flashes, lightning (2.3.1, a seizure risk). Check it
   against the hit rate, not one hit: a flash per hit at five hits a second fails (`godot-juice`).
-- A reduce-motion setting turns off button bounce, screen shake, parallax and camera sway. Default it to on when
+- A reduce-motion setting turns off button bounce, screen shake, parallax and camera sway; head bob and sway also get a
+  0 to 100% slider. Default it to on when
   `DisplayServer.AccessibilityShouldReduceAnimation() == 1`, and a high-contrast theme when
   `DisplayServer.AccessibilityShouldIncreaseContrast() == 1`. They return 1, 0, or -1 when the system does not say (the
   first is only implemented on Windows and macOS), so the settings must exist either way.
@@ -95,8 +96,9 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   allows 40), broken where the sense breaks; one sentence per subtitle; on screen long enough for 180 words a minute.
   Several at once: a new one enters at the bottom and pushes the oldest off the top, never a fixed row per speaker.
   Tested splitting and reading time: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ui/Subtitles.cs`.
-- The speaker's name in text, even when colour tells speakers apart. Important sounds as captions in brackets, short
-  subject and verb ("[door slams]"), with an arrow for off-screen speakers and sounds.
+- The speaker's name in text, even when colour tells speakers apart. Every sound the player must react to (hazards and
+  ordinary enemies too, not only bosses) as captions in brackets, short subject and verb ("[door slams]"), with an arrow
+  for off-screen speakers and sounds. A story line outranks a combat bark and is never pushed off by one.
 - A solid box behind subtitles with adjustable opacity (an outline or shadow alone breaks up over busy scenes), a sans
   serif in sentence case, a live preview at the real size in the settings, and presets once the options are many.
 
@@ -115,7 +117,7 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
 
 - Every setting survives a restart (`ConfigFile` under `user://`); the subtitle choice comes before the first sound.
 - A game-speed setting (`Engine.TimeScale`), a display mode that includes Windowed on PC, and a field of view that suits
-  the platform by default.
+  the platform by default. Debug switches such as invincibility and slow motion stay in, as assist options.
 - Continue or Play has focus on the title screen; the pause menu has a controls page built from the input map, so it
   follows remapping; an accessibility page explains each option.
 - Buttons never move while they can be clicked; warnings and short prompts sit near the centre or the action; instructions
@@ -186,6 +188,11 @@ Tested core: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Access/N
 - The mode can be turned on without sight, by a gesture or button press that needs no menu, and the game says how at
   first start.
 
+## In play
+
+Long text (5 to 15 words a line, reveal speed), which sounds to caption, subtitle channels, rarity and colour fixes, a
+high-contrast layer, world-space HUD, debug switches as assists and self-narrated menus: [in-game.md](in-game.md).
+
 ## Prove it
 
 - A UI flow per menu (`godot-ui-flows`): drive it with `ui_down`, `ui_accept` and `ui_cancel` actions only, no `press`
@@ -194,6 +201,7 @@ Tested core: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Access/N
 - Screenshots at every resolution in `docs/STYLE.md` and at 200% UI scale, critiqued with `/look` against this list.
 - The same screens as people with colour blindness see them: `shot -ColorVision protan,deutan,tritan` saves
   `<name>.protan.png`, `.deutan.png` and `.tritan.png` next to each picture. Two states that look the same there need a
-  second cue, or other colours; ask a colour-blind player too, since they cannot report a cue they never see. The research:
+  second cue, or other colours; ask a colour-blind player too, since they cannot report a cue they never see, and ask
+  without hints how many colours they see, and where. The research:
   `${CLAUDE_PLUGIN_ROOT}/docs/gdc/designing-for-color-blindness.md`.
 - Flows cannot yet assert which control has focus; check focus order by reading the scene until they can.

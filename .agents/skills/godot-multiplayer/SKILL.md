@@ -128,6 +128,10 @@ hidden; change the mechanic when that hides it; warp the logic and blend the loo
   the kernel has it (GitHub's Ubuntu runners, with sudo; not every container). Keep game logic testable without Godot,
   like Breakout's `SimulatedLink`.
 
+**Chat players can all use:** one window for typed and transcribed messages, quick messages and pings beside text
+chat, a speaking icon per player, incoming lines optionally read aloud; in the US, the CVAA (`godot-legal`):
+[chat.md](chat.md).
+
 ## 5. Rollback and lockstep
 
 - Determinism first: integer or fixed-point state, seeded random numbers kept in the state, no wall-clock time, no

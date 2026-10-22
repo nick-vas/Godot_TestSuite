@@ -285,6 +285,7 @@ From this pass (`docs/store-and-legal.md`):
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
 | Whether an export template lists only the components it compiles in (`Engine.get_copyright_info()`) | Not tested; `credits` lists every component, which over-credits but never under-credits |
 | Whether a store's DRM counts as a "technological measure" under CC BY | A legal question; the skill flags it |
+| The CVAA's games waiver (ended 1 January 2019) and grandfathering of older games, in an FCC source (`godot-legal` section 7) | fcc.gov and ecfr.gov were unreachable from the cloud session; only the talk and 47 CFR Part 14 (2023, govinfo.gov) were read |
 
 ## To do: phones, tablets and browsers
 
@@ -300,3 +301,4 @@ From this pass (`docs/mobile-web.md`):
 | Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
 | Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
+| Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |
