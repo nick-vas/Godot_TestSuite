@@ -1,0 +1,38 @@
+name: ffmpeg
+description: >-
+  Installs ffmpeg on an Ubuntu runner from the distribution's packages, keeping the downloaded .deb files in the Actions
+  cache. Ubuntu's mirror served the 94 MB of ffmpeg and its dependencies at 128 kB/s in one self-test run (12 minutes of a
+  lint job) and stalled for longer in another; from the cache, the install needs only apt's index.
+runs:
+  using: composite
+  steps:
+    - id: restore
+      if: runner.os == 'Linux'
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.cache/apt-ffmpeg
+        key: apt-ffmpeg-${{ runner.os }}-${{ runner.arch }}-${{ env.ImageOS }}-v1
+
+    - if: runner.os == 'Linux'
+      shell: pwsh
+      run: |
+        if (Get-Command ffmpeg -ErrorAction SilentlyContinue) { Write-Host "ffmpeg is already installed"; exit 0 }
+        $debs = Join-Path $HOME '.cache/apt-ffmpeg'
+        New-Item -ItemType Directory -Force $debs | Out-Null
+        $cached = @(Get-ChildItem -LiteralPath $debs -Filter '*.deb' -ErrorAction SilentlyContinue)
+        if ($cached) { sudo cp $cached.FullName /var/cache/apt/archives/ }
+        sudo apt-get update -q
+        # No recommended extras (about a third of the packages); retries and a timeout per connection for a slow mirror.
+        sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=30 ffmpeg
+        if ($LASTEXITCODE) { throw "apt-get install ffmpeg failed ($LASTEXITCODE)" }
+        Copy-Item /var/cache/apt/archives/*.deb $debs -Force
+        Write-Host "ffmpeg installed ($($cached.Count) package(s) came from the cache)"
+        ffmpeg -version | Select-Object -First 1
+        exit 0
+
+    - if: runner.os == 'Linux' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: ~/.cache/apt-ffmpeg
+        key: ${{ steps.restore.outputs.cache-primary-key }}

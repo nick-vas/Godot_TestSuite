@@ -3,7 +3,8 @@
 .SYNOPSIS
     Posts (or updates) one comment per game on a pull request with the test summary, and coverage
     compared with the latest run on the base branch. Used by .github/workflows/godot.yml.
-    Needs GITHUB_TOKEN with pull-requests: write; without it, it warns instead of failing the run.
+    Needs GITHUB_TOKEN with pull-requests: write; without it, it warns instead of failing the run. Pull requests from
+    forks get a notice instead: their token is read-only.
 #>
 param(
     [Parameter(Mandatory)][string]$ResultsDir,
@@ -20,6 +21,20 @@ $repo = $env:GITHUB_REPOSITORY
 $headers = @{ Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
 $runUrl = "$env:GITHUB_SERVER_URL/$repo/actions/runs/$env:GITHUB_RUN_ID"
 $marker = "<!-- godot-test-suite:$Name -->"
+
+# A pull request from a fork runs with a read-only token, whatever the workflow's permissions say: the comment would
+# fail with a misleading hint. Say so once and leave the job summary, which forks do get, to carry the results.
+function Test-ForkPullRequest {
+    if (-not $env:GITHUB_EVENT_PATH -or -not (Test-Path -LiteralPath $env:GITHUB_EVENT_PATH)) { return $false }
+    $eventData = Get-Content -LiteralPath $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json -AsHashtable
+    if (-not $eventData.Contains('pull_request')) { return $false }
+    $head = $eventData['pull_request']['head']['repo']
+    return $null -ne $head -and $head['full_name'] -ne $repo
+}
+if (Test-ForkPullRequest) {
+    Write-Host "::notice title=No PR comment::This pull request comes from a fork, whose token cannot comment; the results are in the job summary."
+    return
+}
 
 # Coverage of the newest run on the base branch, from its summary.json, for the comparison line.
 function Get-BaselineCoverage {
