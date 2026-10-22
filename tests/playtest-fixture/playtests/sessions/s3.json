@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "session": "s3",
+  "build": "0.3.1-art",
+  "consent": { "policy": 1, "diagnostics": "NotAsked", "analytics": "Granted" },
+  "events": [
+    { "event": "item_found", "v": 1, "seq": 1, "t": "2026-10-21T09:00:40.0000000Z", "fields": { "level": "hub", "x": 40, "y": 40, "z": 0, "level_seconds": 40, "item": 1 } },
+    { "event": "item_found", "v": 1, "seq": 2, "t": "2026-10-21T09:02:30.0000000Z", "fields": { "level": "hub", "x": 60, "y": 150, "z": 0, "level_seconds": 150, "item": 2 } },
+    { "event": "hint_requested", "v": 1, "seq": 3, "t": "2026-10-21T09:05:00.0000000Z", "fields": { "level": "hub", "x": 200, "y": 200, "z": 0, "level_seconds": 300 } },
+    { "event": "level_time", "v": 1, "seq": 4, "t": "2026-10-21T09:06:40.0000000Z", "fields": { "level": "hub", "seconds": 400, "result": "quit" } },
+    { "event": "level_time", "v": 1, "seq": 5, "t": "2026-10-21T09:07:10.0000000Z", "fields": { "level": "secret", "seconds": 30, "result": "finished" } }
+  ]
+}

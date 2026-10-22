@@ -18,7 +18,7 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `godot-ci/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
@@ -52,6 +52,8 @@ Branch on `error.code`; `message` can change.
 | `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
 | `shot-changed` | `shot -Baseline -MaxChangedPercent <n>`: a picture differs from its baseline by more than n% of pixels, or changed size | `shots[].compare` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
+| `shot-off-palette` | `shot -MaxOffPalettePercent <n>`: more than n% of a picture is in colours off the palette in `docs/STYLE.md` | `shots[].palette` |
+| `no-palette` | `shot -MaxOffPalettePercent`: the project has no `docs/STYLE.md`, or its `## Palette` table has no `#RRGGBB` colours; checked before Godot starts | `palette.problem` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
 | `audio-failed` | `audio`: ffmpeg could not read a sound file, or Godot exited non-zero while recording the mix | `error.message` |
@@ -60,6 +62,8 @@ Branch on `error.code`; `message` can change.
 | `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `no-asset-manifest` | `credits`: the project has no `assets.json` | - |
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
+| `no-playtest-sessions` | `playtest`: the sessions folder (`-Sessions`, default `<project>/playtests/sessions`) does not exist or holds no telemetry batch | `error.message` |
+| `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
@@ -202,7 +206,7 @@ groups the history by key (`recurringErrors`), after Activision's error buckets 
 ([gdc/call-of-duty-error-keys.md](gdc/call-of-duty-error-keys.md)).
 The plugin's Stop hook and the `retro` skill read it.
 
-**export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
+**export**: `exports[]`: `preset`, `platform`, `file`, `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
 release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
@@ -243,6 +247,18 @@ is new, not changed. With `-ColorVision protan,deutan,tritan`, each shot also ha
 for (`<name>.protan.png`, `<name>.deutan.png`, `<name>.tritan.png`), the picture as a protanope, deuteranope or tritanope sees
 it (Machado, Oliveira and Fernandes 2009, severity 1.0, in linear RGB). An unknown kind is `invalid-arguments`; a picture that
 could not be made is `shot-failed`.
+Every shot also has `palette` when the project's `docs/STYLE.md` has a palette (every `#RRGGBB` in the table rows under
+`## Palette`): `onPalettePercent` (within `-PaletteTolerance`, CIEDE2000, of a palette colour), `blendPercent` (within it of
+a mix of two palette colours that are both on screen, in sRGB or linear light: anti-aliasing, filtering, translucency),
+`offPalettePercent` (off-palette colours, grouped with the colours within the tolerance of them, that cover at least 0.1%
+of the picture each), `scatteredPercent` (smaller groups: noise, grain), `offPaletteColours` (how many groups count),
+`distinctColours`, `colours[]` (the five largest groups: `hex`, the group's most common colour; `percent`; `counted`;
+`nearest`, the closest palette colour, and `deltaE` to it) and `image` (`<name>.palette.png`, the counted pixels in magenta
+over a dimmed copy, or `null` when none count). The four percentages add up to 100, give or take rounding. The top-level `palette` says what was
+checked: `source` (the style guide's path, or `null`), `colours[]`, `toleranceDeltaE` (3), `minColourPercent` (0.1),
+`maxOffPalettePercent` (`null` without the flag) and `problem` (why there is no check, or `null`). Without
+`-MaxOffPalettePercent` an off-palette share is a warning in the log; with it, `shot-off-palette`. The method and its
+measurements are in [art.md](art.md#palette-check-shot).
 
 **audio**: `audio` with `targetLufs`, `toleranceLu` (2), `truePeakMaxDbtp` (-1), `files[]` (`file`, `category`: music, voice,
 ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `truePeakDbtp`, `rangeLu`; `integratedLufs` is
@@ -259,6 +275,24 @@ parameters, which bfxr2's editor and library open), `sound` (the preset, or the 
 `seconds`, `peakDb`), and `assetsEntry` (the `assets.json` entry for the output folder, added to the project's
 `assets.json` when it has one and not already there; `null` when the output is outside the project). An unknown
 `-Sound` is `invalid-arguments`, with the nearest name.
+
+**playtest**: `playtest` with `sessionsDir`, `resultsDir`, `files` (`.json` and `.jsonl` files read), `batches`, `sessions`
+(distinct session ids), `builds[]`, `events` (playtest events counted), `otherEvents` (events that are not playtest events,
+such as `run_end`, ignored), `duplicates` (the same session and `seq` seen again: a batch sent twice), `invalidEvents` and
+`invalid[]` (up to 20: `file`, `session`, `event`, `seq`, `reason`: an event that does not fit
+`ci/godot/templates/playtest-events.json`, left out), `skipped[]` (`file`, `reason`: a file or `.jsonl` line that is not JSON
+or not a batch), `unknownLevels[]` (levels with events that `playtest.json` does not list, when it lists any), `levels[]`
+and `heatmaps[]`, `report` (the same document, `<Results>/playtest.json`) and `summary` (`<Results>/playtest.md`, a table and
+the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any event in it), `levelTime` (`count`, `median`,
+`min`, `max` seconds of its `level_time` events, and how many `finished`, `quit`, `failed`), `deaths` (`total`,
+`medianPerSession`, `maxPerSession`), `stuck` (`total`, `sessions` with one, `medianPerSession`, `medianSeconds`,
+`maxSeconds`), `revisits`, `solvedButStayed` (`total`, `medianSeconds`), `hints`, `items[]` (`item`, `sessions` that found it,
+`share` of the level's sessions). Per-session medians count sessions with none as 0; a median of nothing is `null`. Each
+`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`),
+`width`, `height`, `background` (the screenshot, or `null`), `plane` (`xy` or `xz`), `cell`, `origin` (the grid's corner), `cols`,
+`rows`, `count`, `outside` (events outside `bounds`, not drawn), `maxCount` and `hotCells[]` (up to 5, most events first, then
+by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in the plane's coordinates). Only reports: no
+counts fail the run.
 
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
 `memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),

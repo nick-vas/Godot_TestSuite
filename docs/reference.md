@@ -1,7 +1,7 @@
 # Reference
 
 **Script** (`ci/godot/godot-ci.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak` and `credits`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx` and `playtest`.
 
 | Parameter | Default | |
 |---|---|---|
@@ -18,7 +18,7 @@
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `GODOT_CI_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `GODOT_CI_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
 | `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
@@ -26,12 +26,15 @@
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
 | `-Label` | | `bench`: the run's name in `bench.csv` |
-| `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow) |
+| `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow). `playtest`: the heat maps' cell, over `playtest.json`'s (default 2 m on the `xz` plane, 64 px on `xy`) |
+| `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
 | `-MaxChangedPercent` | | `shot -Baseline`: fail with `shot-changed` when a picture differs by more than this percentage of pixels, or changed size; without it `-Baseline` only reports |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
 | `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
+| `-MaxOffPalettePercent` | | `shot`: fail with `shot-off-palette` when more than this percentage of a picture is in colours off the palette table in `docs/STYLE.md` (`shots[].palette`, `<name>.palette.png`); without it the check only warns, and there is none without a palette. With the flag and no palette: `no-palette` |
+| `-PaletteTolerance` | `3` | `shot`: how far (CIEDE2000) a colour may be from a palette colour, or from a blend of two, and still count as on the palette; 0.5 to 50 ([art.md](art.md#palette-check-shot)) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Sound` | all | `sfx`: which sounds: `coin`, `laser`, `explosion`, `powerup`, `hit`, `jump`, `blip` (or bfxr's names, `pickup_coin`...) |
@@ -305,3 +308,20 @@ translation otherwise, and the exported game cannot read the file.
     "items":   { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 }, "rarity": { "enum": ["common", "rare"] } } },
     "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true } } } } }
 ```
+
+**`playtest.json`** (optional, in the Godot project folder) tells `playtest` how to draw each level's heat maps. Without it,
+a level's grid covers where its events are, on the `xy` plane (2D) unless an event has a `z`, then `xz` (3D seen from above,
+Godot's y up), with 64 px or 2 m cells, 16 pixels a cell (fewer for a grid over 64 cells a side):
+
+```json
+{ "cell": 64,
+  "levels": {
+    "hub":  {},
+    "cave": { "plane": "xz", "cell": 2, "bounds": [0, 0, 20, 10], "image": "playtests/cave.png" } } }
+```
+
+`bounds` is the world rectangle `[minU, minV, maxU, maxV]` the grid covers (u is x; v is y, or z on `xz`); events outside it
+are counted as `outside`. `image` is a screenshot of exactly that rectangle (a PNG, 8-bit, not interlaced, such as `shot`
+saves from a top-down or 2D camera); the maps are then drawn over it at its size, at 65% opacity, and empty cells keep the
+picture. Listing levels also makes `playtest` name levels it did not expect (`unknownLevels`). The events and their fields are
+`ci/godot/templates/playtest-events.json`; `tests/playtest-fixture` is a minimal example.

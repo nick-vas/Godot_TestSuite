@@ -228,6 +228,26 @@ function Invoke-Logged {
     return $process.ExitCode
 }
 
+# Runs Godot for a job that is safe to repeat (an import, an export) and runs it again, up to twice, when Godot crashed:
+# an exit code of 128 and up is a signal (observed: 134, an abort, on 4.7.2 when the import cache is stale and, 4 times
+# in 23 headless runs, at shutdown after a finished export: `Parameter "singleton" is null`); on Windows a crash is a
+# negative NTSTATUS code (observed: -1073741819, an access violation). An ordinary failure is never repeated, and a
+# crash that happens every time still fails after the third run. -Output, the file the job writes, is deleted before a
+# repeat, so a file left by the crashed run is never mistaken for the repeat's. Returns the last exit code and how many
+# repeats ran.
+function Invoke-GodotRetried {
+    param([string[]]$ArgumentList, [string]$LogFile, [string]$What, [string]$Output, [string]$FilePath = $env:GODOT_BIN)
+    $code = Invoke-Logged $FilePath $ArgumentList $LogFile
+    $retries = 0
+    while (($code -ge 128 -or $code -lt 0) -and $retries -lt 2) {
+        $retries++
+        Write-CiLog "Godot crashed during $What (exit $code); retry $retries of 2"
+        if ($Output -and (Test-Path -LiteralPath $Output)) { Remove-Item -LiteralPath $Output -Recurse -Force }
+        $code = Invoke-Logged $FilePath $ArgumentList $LogFile
+    }
+    return [pscustomobject]@{ Code = $code; Retries = $retries }
+}
+
 # Runs a program and stops the whole run if it fails.
 function Invoke-Checked {
     param([string]$FilePath, [string[]]$ArgumentList = @())

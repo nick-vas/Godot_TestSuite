@@ -1,0 +1,14 @@
+{
+  "name": "after flows that rotated, the next flow starts at the project's window size with nothing held",
+  "scene": "res://rotation.tscn",
+  "steps": [
+    { "wait": 2 },
+    { "assert": { "node": "/root", "prop": "size:x", "equals": 1280 } },
+    { "assert": { "node": "/root", "prop": "size:y", "equals": 720 } },
+    { "assert": { "node": "Panel", "prop": "size:y", "equals": 720 } },
+    { "assert": { "node": ".", "prop": "resizes", "equals": 0 } },
+    { "action": "jump" },
+    { "assert": { "node": ".", "prop": "presses", "equals": 1 } },
+    { "assert": { "node": ".", "prop": "releases", "equals": 1 } }
+  ]
+}

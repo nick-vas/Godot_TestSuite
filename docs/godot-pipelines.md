@@ -33,7 +33,7 @@ WAT (~310 stars) only supports Godot 3.
 | `gdunit4` | never: select it explicitly | `dotnet test` on the Godot project's csproj only | `dotnet test --filter` | ✅ needs `coverlet.collector` |
 | `godottest` | the Godot csproj references `Chickensoft.GoDotTest` | the scene whose script calls `GoTest.RunTests`, else the main scene | suite name | ✅ via coverlet |
 | `gut` | a `.gd` file `extends GutTest` | `.gutconfig.json` if present, else `test_*.gd` in those folders | test name | – |
-| `flows` | a `*.flow.json` file exists | plays each UI flow in the real engine, headless: presses, input actions, waits, asserts on node properties; one case per flow ([format](../.agents/skills/godot-ui-flows/SKILL.md)) | path contains the text | – |
+| `flows` | a `*.flow.json` file exists | plays each UI flow in the real engine, headless: presses, input actions (also held across steps), window resizes, waits, asserts on node properties; one case per flow ([format](../.agents/skills/godot-ui-flows/SKILL.md)) | path contains the text | – |
 | `smoke` | `project.godot` has a main scene | the main scene for N frames | – | – |
 | `validate` | always | loads every script, scene and resource (outside `addons/`) and instantiates each scene; one test case per file | – | – |
 
@@ -115,10 +115,12 @@ ci/godot/lib/Doctor.ps1             `doctor`: tool and project checks with fixes
 ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export filters, CI workflow, agent files, MCP config
 ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, Trello sync
 ci/godot/lib/Measure.ps1            `bench` and `shot`
+ci/godot/lib/Palette.ps1            `shot`'s palette check against docs/STYLE.md
 ci/godot/tools/validate.gd          the load check Godot runs for the validate runner
 ci/godot/tools/flows.gd             the UI-flow player Godot runs for the flows runner
 ci/godot/tools/bench.gd             frame-pacing measurement for bench
 ci/godot/tools/shot.gd              screenshots for shot
+ci/godot/tools/Palette.cs           PNG reader and CIEDE2000 palette check for shot (Add-Type)
 ci/godot/tools/Test-Skills.ps1      checks the agent skills (structure, budgets, real commands and versions)
 ci/godot/tools/Publish-PrComment.ps1  the pull request summary comment (workflow only)
 ci/godot/tools/Publish-Release.ps1    zips exports into a GitHub Release (workflow only)

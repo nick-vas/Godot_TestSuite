@@ -1,0 +1,25 @@
+; A landscape game (1280x720, canvas_items and expand, as a phone game would set it) whose scene records what a phone
+; rotation looks like from inside: each size_changed, whether "jump" was held at that moment, the press and release
+; events, and the layout a loading screen picks when it finishes. test/flows/good holds rotation flows that pass;
+; test/flows/broken holds flows that fail on purpose. tests/Test-Flows.ps1 runs the flows runner on both.
+config_version=5
+
+[application]
+
+config/name="flows-fixture"
+run/main_scene="res://rotation.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[input]
+
+jump={
+"deadzone": 0.2,
+"events": []
+}

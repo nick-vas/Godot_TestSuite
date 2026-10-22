@@ -8,6 +8,41 @@
   words), and the developer's share at 10%, 20% and 25% of gross next to the Raw Fury draft and Nijman's benchmark.
   `godot-legal` gains the gross-to-net rule (20% of gross is 29% of net after a 30% store cut). The roadmap drops the
   rest of *The Untold History of Japanese Game Developers*, at the owner's request.
+- `export` runs an export again, up to twice, when Godot crashed (an exit code of 128 or more, or a negative one on
+  Windows): Godot 4.7.2 headless aborted with 134 after finished exports 4 times in 23 runs. The crashed run's file is
+  deleted first and the entry gets `retried`; an ordinary failure, a hang and a crash on every run still fail. The import
+  and the Web debug export share the same `Invoke-GodotRetried` (`Test-CrashRetry.ps1`).
+- Rotation as a UI flow, from the roadmap (Elder Scrolls: Blades tested rotating mid-action, during loading and between
+  a press and its release): `flows` gains `resize: [width, height]` (sets the root window's size, which headless Godot
+  4.7.2 handles as an OS resize: the stretch mode and aspect apply, the viewport's `size_changed` fires once and anchored
+  Controls resize; `DisplayServer.window_set_size` does nothing headless), `hold: "action"` (pressed until a later
+  step) and `release: "action"`. A flow that ends with an action still held fails, and an `action` step on a held
+  action is refused. Each flow now starts at the project's window size: headless Godot opened a 64x64 window, so a
+  game with the `expand` aspect saw a square screen, and a resize leaked into the next flow. Bad sizes, an unknown or
+  numeric `hold` and a `release` of an action not held fail with their reason. Self-test: `Test-Flows.ps1`
+  (`tests/flows-fixture`, needs Godot).
+- From the roadmap's art to-do list: `shot` checks every screenshot against the palette table in `docs/STYLE.md`
+  (every `#RRGGBB` in its rows). Distances are CIEDE2000 (checked against Sharma, Wu and Dalal's test pairs) with a
+  tolerance of 3 (`-PaletteTolerance`; one 8-bit level moves a colour by at most 2.40); anti-aliased edges, filtering
+  and translucency pass as blends of two palette colours, in sRGB or linear light; off-palette colours are grouped and
+  only groups over 0.1% of the picture count, so noise does not. Each shot gets `palette` (`offPalettePercent`,
+  `blendPercent`, `scatteredPercent`, the largest off colours with their nearest palette colour, and
+  `<name>.palette.png` with them in magenta); it warns, and `-MaxOffPalettePercent <n>` fails with `shot-off-palette`
+  (`no-palette` when there is nothing to check against). The pixels are read by `ci/godot/tools/Palette.cs`, compiled
+  with `Add-Type` (no Godot, no Python; about 0.3 s a 1080p picture). The style guide template says the table is read.
+  Self-test: `Test-Palette.ps1` (`-NoGodot` for its synthetic part); method and measurements in `docs/art.md`.
+- Playtest telemetry, from the roadmap's Valve list: the events `godot-playtest` names (`stuck`, `revisit`,
+  `solved_but_stayed`, `item_found`, `death`, `hint_requested`, `level_time`, each with level, position and level time)
+  as a ready schema, `ci/godot/templates/playtest-events.json`, and in Breakout.Core as `PlaytestEvents` for the existing
+  `TelemetrySchema` (consent, no free text). `PlaytestTracker` raises them from the player's position and the game's
+  progress calls: a stall is no progress and no new ground for 120 s, a revisit is re-entering a cell after 10 s away,
+  solved-but-stayed is still near a solved puzzle 30 s later (`PlaytestTests`, with a fake clock). New command
+  `playtest -Sessions <folder>`: reads the session files playtest builds wrote (`.json`, `.jsonl`; repeated batches
+  counted once, broken files and events that do not fit listed) and writes per-level counts and medians (level time,
+  deaths and stalls per session, items found) and a PNG heat map per level and event type, alone or over a level
+  screenshot that the new `playtest.json` places in the world. The PNGs are drawn by `ci/godot/tools/Heatmap.cs`, compiled
+  with `Add-Type`, so no Godot is needed. New error codes `no-playtest-sessions` and `invalid-playtest-config`;
+  `-HotspotCell` also sets the maps' cell. Self-test: `Test-Playtest.ps1` with `tests/playtest-fixture`.
 - From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Breakout.Core gains `SoftLockCheck`.
   A level is written down as areas, passages (one-way, needing an item held, or using items up once: a key, three
   rounds for a cracked wall), one-time pickups, supplies that top an item back up (Portal's box delivery tubes), items

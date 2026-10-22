@@ -22,6 +22,8 @@
     ./ci/godot/godot-ci.ps1 soak -Clients 10 -Seconds 600 -MaxGrowthMbPerHour 50   # a headless server and 10 clients for 10 minutes
 .EXAMPLE
     ./ci/godot/godot-ci.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
 #>
 [CmdletBinding()]
 param(
@@ -34,8 +36,9 @@ param(
     # soak: one headless server and -Clients headless clients of the game, run together; fails on crashes, errors and leaks.
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
+    # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -85,7 +88,8 @@ param(
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
     [double]$BudgetMs = 0,
     # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
-    # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D.
+    # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D. playtest: the heat maps' cell (0: playtest.json's, else
+    # 2 m in 3D, 64 px in 2D).
     [double]$HotspotCell = 0,
     # bench: a name for this run in bench.csv, e.g. 'vsync-off 1080p'.
     [string]$Label = '',
@@ -102,6 +106,11 @@ param(
     [switch]$Pseudo,
     # shot: also save each picture as people with colour blindness see it: protan, deutan, tritan (scene.<kind>.png).
     [string[]]$ColorVision,
+    # shot: every picture is checked against the palette table in docs/STYLE.md when there is one (a warning only); fail
+    # (shot-off-palette) when more than this share of a picture is in colours off the palette. -PaletteTolerance: how far
+    # (CIEDE2000) a colour may be from a palette colour, or from a blend of two, and still count as on it.
+    [double]$MaxOffPalettePercent = -1,
+    [double]$PaletteTolerance = 3,
     # soak: how many headless clients to start next to the one server.
     [int]$Clients = 4,
     # sfx: which sounds (coin, laser, explosion, powerup, hit, jump, blip; default all), how many of each from consecutive
@@ -113,6 +122,8 @@ param(
     [string]$Vary,
     [double]$Amount = 0.05,
     [double]$PeakDb = -6,
+    # playtest: the folder of session files (telemetry batches, .json or .jsonl) to read. Default: <project>/playtests/sessions.
+    [string]$Sessions,
     # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
     [double]$MaxGrowthMbPerHour = 0,
     # soak: flood the server's own port on 127.0.0.1 with this many junk UDP packets a second (loopback only), to measure
@@ -172,7 +183,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -267,16 +278,10 @@ function Invoke-Build {
     }
     Start-LogGroup 'Godot import'
     $log = [System.IO.Path]::GetTempFileName()
-    $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
-    # Exit codes of 128 and up mean Godot was killed by a signal (observed: 134, an abort, now and then on 4.7.2 when
-    # the import cache is stale, and once again on the retry); on Windows a crash is a negative NTSTATUS code (observed:
-    # -1073741819, an access violation, 0xC0000005). That is the engine crashing, not a project error, so try again, up
-    # to twice. An ordinary failure is never retried.
-    for ($attempt = 1; ($code -ge 128 -or $code -lt 0) -and $attempt -le 2; $attempt++) {
-        Write-CiLog "Godot crashed during import (exit $code); retry $attempt of 2"
-        Set-JsonField importRetried $attempt
-        $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--import') $log
-    }
+    # Godot crashes now and then during the import (Invoke-GodotRetried); a crash is repeated, a failure is not.
+    $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--import') $log 'import'
+    $code = $run.Code
+    if ($run.Retries) { Set-JsonField importRetried $run.Retries }
     Stop-LogGroup
     if ($code -ne 0) {
         Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
@@ -454,11 +459,13 @@ function Invoke-ExportPresets {
 
         Start-LogGroup "Export '$name' -> $file"
         $log = [System.IO.Path]::GetTempFileName()
-        $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-release', $name, $file) $log
+        # Godot 4.7.2 headless sometimes aborts (134) at shutdown after a finished export; the export is repeated then.
+        $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--export-release', $name, $file) $log "export '$name'" $file
+        $code = $run.Code
         Stop-LogGroup
         if ($code -ne 0) {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
-            Stop-GodotCi "Export '$name' exited with $code" 'export-failed'
+            Stop-GodotCi "Export '$name' exited with $code$(if ($run.Retries) { " after $($run.Retries) retries of a crash" })" 'export-failed'
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" }
         Assert-GodotLogClean $log "Export '$name'"
@@ -474,6 +481,7 @@ function Invoke-ExportPresets {
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
 
         $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        if ($run.Retries) { $entry.retried = $run.Retries }
         if ($preset.Platform -eq 'Web') {
             $entry.web = Get-WebBuildSize $dir
             Write-CiLog "Web build: $($entry.web.rawMb) MB, $($entry.web.gzipMb) MB gzipped"
@@ -492,7 +500,8 @@ function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
     New-Item -ItemType Directory -Force $debugDir | Out-Null
     $log = [System.IO.Path]::GetTempFileName()
     Start-LogGroup "Export '$Name' (debug, for the browser run)"
-    $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-debug', $Name, (Join-Path $debugDir (Split-Path $Preset.ExportPath -Leaf))) $log
+    $debugFile = Join-Path $debugDir (Split-Path $Preset.ExportPath -Leaf)
+    $code = (Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--export-debug', $Name, $debugFile) $log "debug export '$Name'" $debugFile).Code
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "Debug export of '$Name' exited with $code" 'export-failed' }
     $threads = "$($Preset.Options['variant/thread_support'])" -eq 'true'
@@ -557,7 +566,7 @@ switch ($Command) {
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
     }
     'soak' {
         Invoke-Setup; Invoke-Build
@@ -567,6 +576,10 @@ switch ($Command) {
     'sfx' {
         Invoke-Sfx -Info $info -Sound $Sound -Count $Count -Seed $Seed -Vary $Vary -Amount $Amount -PeakDb $PeakDb `
             -OutputDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { Join-Path $info.ProjectDir 'sounds/sfx' })))
+    }
+    'playtest' {
+        Invoke-Playtest -Info $info -Cell $HotspotCell -SessionsDir $(if ($Sessions) { $Sessions } else { Join-Path $info.ProjectDir 'playtests/sessions' }) `
+            -ResultsDir $(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'playtest-results' })
     }
     'credits' {
         Invoke-Setup

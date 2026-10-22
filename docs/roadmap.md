@@ -11,7 +11,7 @@ ones) and starts only after the previous one is merged. This page is the plan; t
 | 1. Self-improvement | Plugin packaging, `retro`, run history and `kit-review` done, plus the ten agent-efficiency items in [research.md](research.md) (`-Quiet`, failure details, verifier subagent, Stop hook, evals). The weekly canary runs Fridays 18:47 UTC. Open: scheduling the monthly review, and the first eval numbers from a machine where the eval sandbox can run Godot |
 | 2. `/game` | Built: `status`, the GDD format and feature tags, plan links to features and cards, the `game` and `weekly-review` skills. Open: scheduling the Friday review on your machine, and a first real run on Breakout Roguelike |
 | 3. Architecture | Built: the `architecture` runner (warnings by default), `godot-patterns`, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
-| 4. Look and feel | Built: `shot -Baseline` comparisons, the `juice` runner and `juice.json`, the style guide template, the `look` and `godot-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with you, and its first `juice.json` |
+| 4. Look and feel | Built: `shot -Baseline` comparisons, `shot`'s palette check against `docs/STYLE.md` (`-MaxOffPalettePercent`), the `juice` runner and `juice.json`, the style guide template, the `look` and `godot-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with you, and its first `juice.json` |
 
 ## What was decided
 
@@ -126,7 +126,8 @@ matches it.
 1. **Style guide.** `docs/STYLE.md`, written once with the owner: palette, fonts and minimum sizes, target resolutions,
    contrast rule, motion rules.
 2. **Screenshot critique.** `/look` runs `shot` at each target resolution and critiques each screen against the style guide:
-   readability, contrast, overlap, safe areas, consistency between screens.
+   readability, contrast, overlap, safe areas, consistency between screens. `shot` measures each screen's share of colours
+   off the palette itself (`docs/art.md`).
 3. **Before and after in chat.** A visual change produces screenshots before and after; Claude shows both and asks a
    multiple-choice question: keep before, take after, or a named tweak. The choice is recorded with the task.
 4. **Juice checklist.** A `godot-juice` skill (hit-stop, screen shake, squash and stretch, feedback within 100 ms, a sound
@@ -201,7 +202,6 @@ From the art pass (`docs/art.md`):
 | Forward+ and Mobile numbers (particles, LODs, batching, post-processing cost) | This machine has no Vulkan; everything rendered used Compatibility |
 | Sonniss bundle licence, Freesound FAQ | Both sites returned 403; the owner should read the bundle's License.pdf and https://freesound.org/help/faq/ |
 | Godot's Texture Atlas importer headless | It wrote no atlas and once hung; the cause is not known, so the skill packs sheets another way |
-| Palette check | `shot` could count colours outside the palette in `docs/STYLE.md` to catch palette bloat; not built yet |
 | A `bench` sweep helper for particle counts and quality tiers | The skill shows the manual way (`-GameArgs`); a built-in sweep would save runs |
 
 ## To do: saves, localization and input
@@ -292,10 +292,12 @@ From this pass (`docs/mobile-web.md`):
 | iOS exports | Need macOS and Xcode |
 | Audio unlock, Safari and WebKit | Automated Chromium did not block audio; WebKit was not installed (Playwright can install it) |
 | itch.io's SharedArrayBuffer checkbox | Only secondary sources; the headers it sends were not confirmed |
-| Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
 | Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
-| Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |
+| A rotation on a device (Android's configuration change, iOS) against the flow's `resize` | Flows set the root window's size, which headless Godot 4.7.2 handles as an OS resize; no device was available |
+
+Done since: rotation as a flow (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`): `resize`, `hold` and
+`release` steps, each flow starting at the project's window size, and `tests/Test-Flows.ps1`.
 
 ## To do: add-ons and GDExtensions
 
@@ -334,9 +336,11 @@ action, `setup` on macOS, optional signing secrets and an `environment` input on
 Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
 `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
 `godot-playtest` skill, Valve's process in `godot-game-plan`, a dialogue authoring path (`"kind": "responses"` tables
-in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `docs/data.md`), and from the commentaries
+in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `docs/data.md`), from the commentaries
 `LookTrigger` (a look target with a fallback timer) and `SoftLockCheck` (every order of using up or losing key items
-searched, the shortest path into a dead end reported). Still to do:
+searched, the shortest path into a dead end reported), and playtest telemetry: the skill's events as a ready schema
+(`ci/godot/templates/playtest-events.json`, `PlaytestEvents`), `PlaytestTracker`'s detectors in Breakout.Core, and the
+`playtest` command's per-level medians and PNG heat maps from a folder of sessions ([telemetry.md](telemetry.md)). Still to do:
 
 - [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
       scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
@@ -344,8 +348,8 @@ searched, the shortest path into a dead end reported). Still to do:
       page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
 - [ ] Dialogue tables in more than one language: per-locale lines (and voice files) in a responses table, checked for
       lines missing in a locale. The `data` runner has no locales today, so lines are translated as keys.
-- [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
-      `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
+- [ ] Playtest telemetry in a real game: Breakout has no levels to walk, so nothing raises `PlaytestTracker`'s events
+      yet, and there is no file sink for playtest builds or GDScript tracker.
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 - [ ] Soft-lock levels as data: read a `SoftLockLevel` from a `data.json` table (areas, passages, pickups, supplies,
