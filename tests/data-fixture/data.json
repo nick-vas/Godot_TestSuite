@@ -6,6 +6,11 @@
       "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true }, "speed": { "type": "number", "min": 0 } } },
     "levels": { "file": "data/levels.json",
       "fields": { "enemies": { "ref": "enemies", "list": true }, "boss": { "type": "bool" }, "music": { "type": "string", "pattern": "^res://", "optional": true } } },
-    "quests": { "file": "data/quests.json", "id": "id", "fields": { "reward": { "ref": "loot" } } }
+    "quests": { "file": "data/quests.json", "id": "id", "fields": { "reward": { "ref": "loot" } } },
+    "mechanics": { "file": "data/mechanics.json", "id": "id", "fields": {} },
+    "puzzles": { "file": "data/puzzles.json", "id": "id",
+      "fields": { "kind": { "enum": ["puzzle", "action"] }, "purpose": { "enum": ["teach", "reinforce", "moment", "breather"] },
+                  "mechanics": { "ref": "mechanics", "list": true },
+                  "solution": { "type": "string", "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$" } } }
   }
 }

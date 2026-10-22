@@ -81,8 +81,18 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   first is only implemented on Windows and macOS), so the settings must exist either way.
 - Separate volume and mute for music, voice-over, gameplay effects, ambient effects and narration (one `AudioServer` bus
   each), apart from the master, and a mono option (XAG 105).
-- Subtitles for voiced dialogue and cutscenes, on at first start, with speaker names, at most 40 characters a line and two
-  lines, on an adjustable background (1.2.2, XAG 104).
+- Subtitles for all voiced dialogue, the opening cinematic included, on at first start or offered before the first line
+  (1.2.2, XAG 104). Size: design to 46 px at 1080p, never under 28 px, and offer a size setting. Put subtitle labels (or
+  their container) in the `subtitles` node group: the `textsize` runner fails them under 28 px and warns under 46 px,
+  scaled to each resolution's height.
+- Subtitle layout: bottom centre, in one place, inside a 5% safe margin; at most two lines of 38 characters (BBC; XAG 104
+  allows 40), broken where the sense breaks; one sentence per subtitle; on screen long enough for 180 words a minute.
+  Several at once: a new one enters at the bottom and pushes the oldest off the top, never a fixed row per speaker.
+  Tested splitting and reading time: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ui/Subtitles.cs`.
+- The speaker's name in text, even when colour tells speakers apart. Important sounds as captions in brackets, short
+  subject and verb ("[door slams]"), with an arrow for off-screen speakers and sounds.
+- A solid box behind subtitles with adjustable opacity (an outline or shadow alone breaks up over busy scenes), a sans
+  serif in sentence case, a live preview at the real size in the settings, and presets once the options are many.
 
 ## Predictable and forgiving (2.5.2, 3.2.2, 3.2.3, 3.3.1, 3.3.4)
 

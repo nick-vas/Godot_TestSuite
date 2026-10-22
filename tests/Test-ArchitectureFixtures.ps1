@@ -17,6 +17,17 @@ foreach ($fixture in $expected.Keys) {
     else { Write-Host "MISSED   $fixture should trigger $($expected[$fixture]) (got: $($rules -join ', '))" -ForegroundColor Red; $failed++ }
     $others = @($rules | Where-Object { $_ -ne $expected[$fixture] })
     if ($others) { Write-Host "EXTRA    $fixture also triggered $($others -join ', ')" -ForegroundColor Red; $failed++ }
+    # A fixture that mixes flagged and clean code lists the exact lines its rule must report, and no others.
+    $linesFile = Join-Path $dir 'expected-lines.json'
+    if (Test-Path -LiteralPath $linesFile) {
+        $want = @(Get-Content -LiteralPath $linesFile -Raw | ConvertFrom-Json | Sort-Object)
+        $got = @($findings | Where-Object Rule -eq $expected[$fixture] | ForEach-Object { "$($_.File):$($_.Line)" } | Sort-Object)
+        $diff = @(Compare-Object $want $got)
+        if ($diff.Count -gt 0) {
+            Write-Host "LINES    $fixture missed: $(@($diff | Where-Object SideIndicator -eq '<=' | ForEach-Object InputObject) -join ', '); flagged clean code: $(@($diff | Where-Object SideIndicator -eq '=>' | ForEach-Object InputObject) -join ', ')" -ForegroundColor Red
+            $failed++
+        } else { Write-Host "lines    $fixture exactly $($want.Count) line(s)" }
+    }
 }
 
 $clean = Join-Path $fixtures 'clean'

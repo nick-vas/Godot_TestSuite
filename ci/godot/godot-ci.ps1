@@ -41,7 +41,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data, textsize (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data, textsize, layout (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -53,6 +53,8 @@ param(
     [string[]]$Preset,
     # export: also launch each build this machine can run (e.g. Windows builds on Windows) and fail on errors.
     [switch]$Run,
+    # export -Run of a Web preset: the browsers to open it in (chromium, chrome, msedge, firefox, webkit), through Playwright.
+    [string[]]$Browser = @('chromium'),
     # export: the game's version, e.g. a tag such as v1.2.3-rc.1. Its numbers (1.2.3) become config/version for this export
     # only (the Windows file version, macOS and Android versions); all of it becomes the C# assembly's InformationalVersion.
     [string]$GameVersion,
@@ -95,6 +97,8 @@ param(
     [switch]$Mix,
     # audio -Mix: integrated loudness the mix must reach, within 2 LU. -24 for console and PC, -18 for phones and handhelds (ASWG-R001).
     [double]$TargetLufs = -24,
+    # audio: warn when an sfx or ui file takes longer than this many ms to reach its level (leading silence, a slow fade-in).
+    [double]$MaxOnsetMs = 20,
     # setup: also install export templates.
     [switch]$Templates,
     # detect: also write the values to $GITHUB_OUTPUT.
@@ -134,7 +138,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Credits', 'Store') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -281,12 +285,21 @@ function Invoke-Tests {
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
+    # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
+    $scope = Get-TestScope $info.Runners $Filter
+    $failing = Get-FailureIds $runs
+    $delta = Get-FailureDelta $failing.Ids $failing.Truncated $scope @(Read-RunHistory $info.ProjectDir)
+    Set-TestRunHistory $scope $failing @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
+    $deltaLine = Format-FailureDelta $delta
+    if ($deltaLine) { Write-CiLog $deltaLine }
     Set-JsonField resultsDir $resultsDir
     Set-JsonField coverage ([ordered]@{ linePercent = $percent; minimum = $MinCoverage })
-    Set-JsonField runnerResults @($runs | ForEach-Object {
-        [ordered]@{ runner = $_.Runner; ok = $_.Ok; total = $_.Total; passed = $_.Passed; failed = $_.Failed
-            skipped = $_.Skipped; failures = @($_.Failures | ForEach-Object { [ordered]@{ name = $_.Name; message = $_.Message; file = $_.File; line = $_.Line; details = $_.Details } })
-            warnings = @($_.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } }) } })
+    Set-JsonField failureDelta $delta
+    Set-JsonField runnerResults @(foreach ($result in $runs) {
+        [ordered]@{ runner = $result.Runner; ok = $result.Ok; total = $result.Total; passed = $result.Passed; failed = $result.Failed
+            skipped = $result.Skipped; failures = @(foreach ($f in $result.Failures) {
+                [ordered]@{ name = $f.Name; message = $f.Message; file = $f.File; line = $f.Line; details = $f.Details; new = (Get-FailureNewFlag $delta $result.Runner $f.Name) } })
+            warnings = @($result.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } }) } })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }
@@ -330,6 +343,16 @@ function Invoke-Export {
 function Invoke-ExportPresets {
     $exports = @()
     $details = Get-ExportPresetDetails $info.ProjectDir
+    # Godot imports whatever lands inside the project, and the next export packs it (a web export's icons, a whole
+    # previous build): an output folder inside the project gets a .gdignore first.
+    $outputRoot = [System.IO.Path]::GetFullPath($Output)
+    $relative = [System.IO.Path]::GetRelativePath($info.ProjectDir, $outputRoot)
+    if ($relative -ne '.' -and -not $relative.StartsWith('..') -and -not [System.IO.Path]::IsPathRooted($relative) -and
+        -not (Test-Path -LiteralPath (Join-Path $outputRoot '.gdignore'))) {
+        New-Item -ItemType Directory -Force $outputRoot | Out-Null
+        New-Item -ItemType File -Path (Join-Path $outputRoot '.gdignore') | Out-Null
+        Write-CiLog "Added $(Join-Path $outputRoot '.gdignore'): the output folder is inside the project"
+    }
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
@@ -359,10 +382,40 @@ function Invoke-ExportPresets {
         if (Test-Path -LiteralPath $notices) { Copy-Item -LiteralPath $notices -Destination $dir -Force }
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
 
-        $exports += [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        if ($preset.Platform -eq 'Web') {
+            $entry.web = Get-WebBuildSize $dir
+            Write-CiLog "Web build: $($entry.web.rawMb) MB, $($entry.web.gzipMb) MB gzipped"
+        }
+        $exports += $entry
         Set-JsonField exports $exports
-        if ($Run) { Test-ExportedBuild $name $preset.Platform $file }
+        if ($Run -and $preset.Platform -eq 'Web') { Test-WebExport $name $preset $dir }
+        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file }
     }
+}
+
+# Opens a web export in real browsers. Release builds skip script errors silently (a call on null just does nothing),
+# so a debug export of the same preset is what gets played; a threads build is served with the headers it needs.
+function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
+    $debugDir = "$ReleaseDir-debug"
+    New-Item -ItemType Directory -Force $debugDir | Out-Null
+    $log = [System.IO.Path]::GetTempFileName()
+    Start-LogGroup "Export '$Name' (debug, for the browser run)"
+    $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-debug', $Name, (Join-Path $debugDir (Split-Path $Preset.ExportPath -Leaf))) $log
+    Stop-LogGroup
+    if ($code -ne 0) { Stop-GodotCi "Debug export of '$Name' exited with $code" 'export-failed' }
+    $threads = "$($Preset.Options['variant/thread_support'])" -eq 'true'
+    $runs = Invoke-WebSmoke $debugDir @($Browser | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) $threads (Join-Path $debugDir 'screenshot')
+    $all = @($script:JsonDoc['webRuns'] | Where-Object { $_ }) + @(foreach ($r in $runs) { $r.preset = $Name; $r })
+    Set-JsonField webRuns $all
+    foreach ($r in $runs) {
+        Write-CiLog "$Name in $($r.browser): $(if ($r.ok) { "started in $($r.startMs) ms" } else { 'FAILED' })$(if ($r.renderer) { ", $($r.renderer)" })"
+        foreach ($e in @($r.errors)) { Write-CiLog "  $e" }
+    }
+    $setup = @($runs | Where-Object { "$($_.errors)" -match '\[setup\]' })
+    if ($setup) { Stop-GodotCi "Could not open '$Name' in $(@($setup | ForEach-Object browser) -join ', '): $(@($setup[0].errors) -join '; ')" 'no-browser' }
+    $failed = @($runs | Where-Object { -not $_.ok })
+    if ($failed) { Stop-GodotCi "The web build '$Name' failed in $(@($failed | ForEach-Object browser) -join ', '): $(@($failed[0].errors | Select-Object -First 3) -join '; ')" 'web-run-failed' }
 }
 
 # Launches the exported game headless, as a player would get it, and fails on any engine error. This catches
@@ -425,7 +478,7 @@ switch ($Command) {
     }
     'audio' {
         if ($Mix) { Invoke-Setup; Invoke-Build }
-        Invoke-Audio -Info $info -TargetLufs $TargetLufs -Mix:$Mix -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 60 }) `
+        Invoke-Audio -Info $info -TargetLufs $TargetLufs -MaxOnsetMs $MaxOnsetMs -Mix:$Mix -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 60 }) `
             -Scene @($Scene)[0] -GameArgs $GameArgs `
             -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'audio-results' })))
     }
