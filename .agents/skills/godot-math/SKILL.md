@@ -1,6 +1,6 @@
 ---
 name: godot-math
-description: Use when game code works with positions, directions, angles, distances, rotations, bounces or oscillation in Godot, or when a textbook formula and the engine disagree.
+description: Use when game code works with positions, directions, angles, distances, rotations, bounces, oscillation or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
 ---
 
 # Game math in Godot 4
@@ -67,6 +67,24 @@ wall: `(p - p.Project(wallDir)).Length()`. For movement, Godot does the decompos
   `offset = A * Mathf.Sin(Mathf.Tau * time / T)`. A bobbing pickup: A = 4 px, T = 1.5 s.
 - `Mathf.Atan2(y, x)` (or `v.Angle()`) turns a direction back into an angle, in all four quadrants.
 - Keep `time` as the sum of `delta` (game time), so motion stays deterministic for tests and bots (`godot-automation-hooks`).
+
+## Smoothing toward a target, at any frame rate
+
+`x = Mathf.Lerp(x, target, 0.1f)` (or `x += (target - x) * 0.1f`) in `_Process` closes 10% of the gap per *frame*: after
+one second it has closed 95.8% at 30 fps and all of it at 144 fps, and slow motion does not slow it. Give the speed per
+second instead:
+
+```csharp
+// rate per second: 10% a frame at 60 fps is -ln(0.9) * 60, about 6.3; a half-life of h seconds is ln 2 / h.
+float weight = 1f - Mathf.Exp(-Rate * (float)delta);   // or 1f - Mathf.Pow(leftAfterOneSecond, (float)delta)
+GlobalPosition = GlobalPosition.Lerp(target.GlobalPosition, weight);
+```
+
+Two frames of half the delta land where one full frame does, so 30, 60 and 144 fps all reach 99.33 of 100 after one second
+at rate 5. `weight = Rate * delta` is only a linear approximation (99.58 at 30 fps, 99.38 at 144) and passes the target once
+`Rate * delta` exceeds 1; Godot 4.7.2's `Camera2D` position smoothing computes `PositionSmoothingSpeed * delta` that way.
+Each axis or direction may use its own rate: follow vertically only once `IsOnFloor()`, or catch up faster when falling.
+The `architecture` runner warns about a fixed weight in `_Process` (`frame-dependent-lerp`).
 
 ## Test it
 

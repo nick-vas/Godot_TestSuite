@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[node name="Dialogue" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Score" type="Label" parent="."]
+layout_mode = 0
+theme_override_font_sizes/font_size = 24
+text = "Score 1200"
+
+[node name="Small" type="Label" parent="." groups=["subtitles"]]
+layout_mode = 0
+offset_top = 100.0
+theme_override_font_sizes/font_size = 24
+text = "Kyra: Too small to read from the sofa."
+
+[node name="Medium" type="Label" parent="." groups=["subtitles"]]
+layout_mode = 0
+offset_top = 200.0
+theme_override_font_sizes/font_size = 36
+text = "Kyra: Readable, if a size option exists."
+
+[node name="Big" type="Label" parent="." groups=["subtitles"]]
+layout_mode = 0
+offset_top = 300.0
+theme_override_font_sizes/font_size = 52
+text = "Kyra: Big enough on a Deck too."
+
+[node name="Panel" type="VBoxContainer" parent="." groups=["subtitles"]]
+visible = false
+layout_mode = 0
+offset_top = 500.0
+
+[node name="Line" type="Label" parent="Panel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "[door slams]"

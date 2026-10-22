@@ -268,6 +268,13 @@ function Invoke-Doctor($Info) {
             if ($kinds.Contains('shareAlike')) { Add-Check INFO "Share-alike licence, so changed versions of these keep it: $(& $list $kinds.shareAlike)" }
             if ($kinds.Contains('custom')) { Add-Check INFO "Custom licence terms to read before release: $(& $list $kinds.custom)" }
             if ($kinds.Contains('attribution')) { Add-Check INFO "$($kinds.attribution.Count) file(s) need a credit in the game (CC-BY, MIT and similar); build the credits screen from assets.json" }
+            # Commissioned work belongs to whoever made it until a signed agreement says otherwise (godot-legal).
+            $made = $assets.commissioned
+            $paperwork = 'A signed work-for-hire or IP assignment (or a licence) from whoever made it, owners included; its reference in ''agreement'', ''rights'' assigned or licensed (godot-legal)'
+            if ($made.noAgreement) { Add-Check WARN "Commissioned work with no signed agreement recorded, so whoever made it may still own it: $(& $list $made.noAgreement)" $paperwork }
+            if ($made.noRights) { Add-Check WARN "Commissioned work whose rights are not 'assigned' or 'licensed': $(& $list $made.noRights)" $paperwork }
+            if ($made.noUses) { Add-Check WARN "Commissioned work licensed with no uses saying where it may appear: $(& $list $made.noUses)" 'List them in ''uses'' as the agreement states them (game, trailer, store, soundtrack, merchandise...)' }
+            if ($made.licensed) { Add-Check INFO "Commissioned work licensed, not owned; anything outside its uses needs a new agreement: $(& $list $made.licensed)" }
             if (-not $assets.uncovered -and -not $assets.invalid) { Add-Check OK "Assets: $($assets.files) file(s), each with a source and licence in assets.json" }
         }
     }
@@ -350,6 +357,9 @@ function Invoke-Doctor($Info) {
             Add-Check OK "Export preset '$($preset.Name)' ($($preset.Platform))"
         }
     }
+
+    $platformProblems = Get-PlatformPresetProblems $project $projectGodot $gameCsproj $details
+    foreach ($problem in $platformProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # --- Report -----------------------------------------------------------------------------------
     $colors = @{ OK = 'Green'; INFO = 'Cyan'; WARN = 'Yellow'; FAIL = 'Red' }

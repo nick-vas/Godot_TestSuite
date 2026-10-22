@@ -29,12 +29,14 @@ function Get-WindowArgs([string]$Resolution, [switch]$Uncapped, [int]$MaxFps) {
 
 function Invoke-Bench {
     param($Info, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
-        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs)
+        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell)
+    if ($HotspotCell -lt 0) { Stop-GodotCi "-HotspotCell must be a size above 0 (or 0 for the default), not $HotspotCell" 'invalid-arguments' }
     if (-not $Headless) { Assert-Display 'bench' }
     $tool = (Join-Path $PSScriptRoot '../tools/bench.gd' | Resolve-Path).Path -replace '\\', '/'
     $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps)
     if ($Headless) { $engine = @('--headless') + $engine }
-    $user = @("--bench-seconds=$Seconds", "--bench-warmup=$Warmup") + $(if ($Scene) { "--bench-scene=$Scene" }) + @(Split-GameArgs $GameArgs)
+    $user = @("--bench-seconds=$Seconds", "--bench-warmup=$Warmup") + $(if ($Scene) { "--bench-scene=$Scene" }) +
+        $(if ($HotspotCell -gt 0) { "--bench-cell=$HotspotCell" }) + @(Split-GameArgs $GameArgs)
 
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
     $log = Join-Path $ResultsDir 'bench.log'
@@ -57,6 +59,14 @@ function Invoke-Bench {
         $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, @($result.hitches).Count
     Write-CiLog $summary
     if ($result.display -eq 'headless') { Write-CiLog 'Headless: nothing was drawn, so these are CPU timings only' }
+    if ($result.camera -eq 'none') {
+        Write-CiLog 'No active Camera3D or Camera2D in the root viewport, so no hotspots: frame times have no place'
+    } else {
+        Write-CiLog "Slowest places ($($result.camera) camera, cells of $($result.hotspotCell)):"
+        foreach ($spot in @($result.hotspots) | Select-Object -First 3) {
+            Write-CiLog "  around ($($spot.centre -join ', ')): p99 $($spot.p99Ms) ms, max $($spot.maxMs) ms over $($spot.frames) frames"
+        }
+    }
     foreach ($monitor in $result.customMonitors.GetEnumerator()) { Write-CiLog "  $($monitor.Key): +$($monitor.Value.delta)" }
     # After the numbers are saved and reported: errors the game printed while measured still fail the run.
     Assert-GodotLogClean $log 'The benchmark'
@@ -81,7 +91,12 @@ function Add-BenchCsvRow([string]$Path, $Result) {
 }
 
 function Invoke-Shot {
-    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo)
+    param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo,
+        [string[]]$ColorVision)
+    $kinds = @($ColorVision | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ } | Select-Object -Unique)
+    foreach ($kind in $kinds) {
+        if ($kind -notin 'protan', 'deutan', 'tritan') { Stop-GodotCi "-ColorVision takes protan, deutan and tritan, not '$kind'" 'invalid-arguments' }
+    }
     Assert-Display 'shot'
     $tool = (Join-Path $PSScriptRoot '../tools/shot.gd' | Resolve-Path).Path -replace '\\', '/'
     $dir = [System.IO.Path]::GetFullPath($OutputDir)
@@ -98,6 +113,7 @@ function Invoke-Shot {
         $(if ($baselineDir) { "--shot-baseline=$($baselineDir -replace '\\', '/')" }) + @(Split-GameArgs $GameArgs)
     $locales = @(@($Locale | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) + @(if ($Pseudo) { 'pseudo' }))
     if ($locales) { $user = @("--shot-locales=$($locales -join ',')") + @($user) }
+    if ($kinds) { $user = @("--shot-colorvision=$($kinds -join ',')") + @($user) }
 
     $log = Join-Path $dir 'shot.log'
     Start-LogGroup "Screenshots after $Frames frames$(if ($Resolution) { " at $Resolution" })"
@@ -112,6 +128,10 @@ function Invoke-Shot {
         } elseif ($line -match '^@@shot text (?<node>[^|]+)\|(?<kind>[^|]+)\|(?<detail>.*)$' -and $shots) {
             # Printed right after the picture it belongs to.
             $shots[-1].text += [ordered]@{ node = $Matches.node; problem = $Matches.kind; detail = $Matches.detail }
+        } elseif ($line -match '^@@shot vision (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<kind>\w+)$' -and $shots) {
+            # Also printed right after its picture: the same picture as a protanope, deuteranope or tritanope would see it.
+            if (-not $shots[-1].Contains('colorVision')) { $shots[-1]['colorVision'] = [ordered]@{} }
+            $shots[-1].colorVision[$Matches.kind] = [System.IO.Path]::GetFullPath($Matches.file)
         } elseif ($line -match '^@@shot compare (?<scene>[^|]+)\|(?<file>[^|]+)\|(?<pct>-?[\d.]+)\|(?<size>[01])$') {
             $shot = $shots | Where-Object { $_.scene -eq $Matches.scene } | Select-Object -Last 1
             if ($shot) {
@@ -131,11 +151,14 @@ function Invoke-Shot {
     foreach ($shot in $shots) {
         Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))$(if ($shot.locale) { " in $($shot.locale)" })"
         foreach ($problem in $shot.text) { Write-CiLog "  text $($problem.problem): $($problem.node): $($problem.detail)" }
+        if ($shot.Contains('colorVision')) { foreach ($kind in $shot.colorVision.Keys) { Write-CiLog "  as $kind vision -> $($shot.colorVision[$kind])" } }
         if ($shot.Contains('compare')) {
             if ($shot.compare.image) { Write-CiLog "  $($shot.compare.changedPercent)% changed$(if ($shot.compare.sizeChanged) { ', size changed' }) -> $($shot.compare.image)" }
             else { Write-CiLog '  no baseline picture to compare with' }
         }
     }
+    $missing = @(foreach ($shot in $shots) { foreach ($kind in $kinds) { if (-not $shot.Contains('colorVision') -or -not $shot.colorVision.Contains($kind)) { "$($shot.file) has no $kind picture" } } })
+    $problems += $missing
     if ($problems.Count -gt 0 -or $shots.Count -eq 0) {
         Stop-GodotCi "Screenshots failed: $(if ($problems) { $problems -join '; ' } else { 'no scene produced an image' })" 'shot-failed'
     }
