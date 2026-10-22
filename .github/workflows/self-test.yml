@@ -395,6 +395,9 @@ jobs:
       - name: shot -ColorVision saves each screen as protanopes, deuteranopes and tritanopes see it
         shell: pwsh
         run: ./tests/Test-ColorVision.ps1
+      - name: validate fails a .tres that keeps a renamed export's old key
+        shell: pwsh
+        run: ./tests/Test-StaleTres.ps1
       - name: shot -MaxChangedPercent fails a screen that changed against its baseline
         shell: pwsh
         run: ./tests/Test-ShotChanged.ps1

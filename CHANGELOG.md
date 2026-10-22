@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- From the roadmap's to-do list: Breakout.Core's steering gains `Alignment` and `Cohesion` (with `Separation`, a flock: 30
+  boids head the same way within ten seconds without overlapping), `FollowPath` (Reynolds' corridor following, stopping at
+  the end) and `AvoidObstacles`; and `LookTrigger` (Valve's look target with a fallback timer: fires when the player has
+  looked at a point long enough, or when time runs out). A new architecture rule, `nondeterministic-sim`, flags
+  platform maths, `System.Random`, global random, clocks, per-process hashes and `Dictionary` iteration in the folders
+  `architecture.json` lists as `simulation`. `validate` fails a `.tres` that keeps a key its class no longer has (a renamed
+  export, whose value Godot drops on load).
 - Valve, from its own public material (talk slides, the 2012 handbook, the Cabal article, seven games' developer
   commentary; `docs/valve.md`, 115 quotes checked word for word): Breakout.Core gains `PacingDirector` and `Intensity`
   (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and

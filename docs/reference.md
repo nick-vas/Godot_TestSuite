@@ -97,7 +97,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 **`architecture.json`** (optional, in the Godot project folder) configures the `architecture` runner:
 
 ```json
-{ "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6 }
+{ "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6, "simulation": ["sim", "src/Rules"] }
 ```
 
 | Rule | Warns when |
@@ -115,6 +115,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `steam-removed-api` | a call to `IsSteamRunningOnSteamDeck` or `RequestCurrentStats` (either casing): removed or deprecated in Steamworks SDK 1.65, and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 |
 | `steam-env-dotnet` | C# `Environment.SetEnvironmentVariable("SteamAppId"` or `SteamGameId`: on Linux and macOS .NET keeps its own copy of the environment, so the native Steam API never sees it; `OS.SetEnvironment` works |
 | `frame-dependent-lerp` | `_Process`/`_process` lerps a value toward a target and assigns it back to the same value, with a weight that has no `delta` in it: `Position = Position.Lerp(target, 0.1f)`, `x = Mathf.Lerp(x, target, 0.1f)`, `x += (target - x) * 0.1f`, GDScript `lerp`, `lerpf`, `lerp_angle`, `.lerp`, `.slerp`. A fixed fraction per frame converges faster at 144 fps than at 30 and ignores time scale; `1 - Mathf.Exp(-rate * delta)` does not. Not flagged: a weight that names `delta` (or a variable assigned from it), a lerp between two other values, `_physics_process` (a fixed rate), a call split over lines or made from a helper method ([why](gdc/juicing-your-cameras.md)) |
+| `nondeterministic-sim` | Only in the folders `simulation` lists (prefixes or globs, from the project folder): C# `Math`/`MathF`/`Mathf` `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`, `Exp`, `Log`, `Pow`, `Cbrt` (each OS's C library; `Sqrt` and `+ - * /` are exact), `new Random(`/`Random.Shared`, `GD.Randf`/`Randi`/`RandRange`, clocks (`DateTime.Now`, `Stopwatch`, `Time.GetTicksMsec`), `HashCode.Combine` and `.GetHashCode()`, and `foreach` over a `Dictionary` or `HashSet` the file declares; GDScript `sin`, `pow` and the like, the global `randf`/`randi`, `Time.get_ticks_*`. Not flagged: `SortedDictionary`, a seeded `RandomNumberGenerator` (`rng.randf()`), anything outside the folders (`godot-determinism`) |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
