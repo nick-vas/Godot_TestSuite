@@ -83,9 +83,10 @@ The `juice` runner has one case named `run` (Godot's exit and engine errors) and
 `<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
 case `table <name>` per table, each listing up to 50 problems, one per line.
-The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum and,
-when integer scaling cuts the game off, that; a case `run` when Godot fails or finds no visible text. Text under the
-recommended size is a warning (`text-below-recommended`) in `runnerResults[].warnings`; its log is `textsize.log`.
+The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,
+subtitles under the subtitle minimum and, when integer scaling cuts the game off, that; a case `run` when Godot fails or
+finds no visible text. Text under the recommended size is a warning (`text-below-recommended`), subtitles under theirs
+another (`subtitle-below-recommended`), in `runnerResults[].warnings`; its log is `textsize.log`.
 The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
 (`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
 `unsafe-area`, `small-target`), separated by `; `; a case `run` when Godot fails, a scene cannot be loaded, a profile is
