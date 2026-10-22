@@ -46,6 +46,8 @@ Branch on `error.code`; `message` can change.
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
+| `web-run-failed` | `export -Run`: a Web build did not start in a browser, or printed a page error, failed request, console error or Godot `ERROR`/`SCRIPT ERROR` | `webRuns[]` |
+| `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
@@ -84,6 +86,10 @@ case `table <name>` per table, each listing up to 50 problems, one per line.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum and,
 when integer scaling cuts the game off, that; a case `run` when Godot fails or finds no visible text. Text under the
 recommended size is a warning (`text-below-recommended`) in `runnerResults[].warnings`; its log is `textsize.log`.
+The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
+(`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
+`unsafe-area`, `small-target`), separated by `; `; a case `run` when Godot fails, a scene cannot be loaded, a profile is
+not understood, or nothing was found to check. Its log is `layout.log`.
 The `l10n` runner has three cases, `duplicate keys`, `untranslated` and `missing keys`; a failure's message lists up to
 50 entries, one per line, as `res://file: 'KEY' reason`.
 
@@ -121,7 +127,10 @@ runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Fi
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
 The plugin's Stop hook and the `retro` skill read it.
 
-**export**: `exports[]`: `preset`, `platform`, `file`; with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
+**export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
+folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
+(Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
+release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`; a hitch is a frame longer than twice the median and
@@ -144,7 +153,10 @@ ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `
 `null` for silence), `warnings[]` (`file`, `message`: a file whose true peak is over -1 dBTP, or a voice or music file more than
 3 LU from its category's median; warnings never fail the run), `mix` (`null` without `-Mix`; else `file` (the recorded
 `mix.wav`), `scene`, `gameArgs`, and the same four measurements), `csv`. Written to `audio-results/audio.json` and
-`audio-results/loudness.csv`.
+`audio-results/loudness.csv`. Each `files[]` entry also has `onsetMs`: the start, in ms, of the first 10 ms
+window whose RMS level comes within 10 dB of the file's loudest 10 ms window (0 for a sound that starts on its hit; leading
+silence and a slow fade-in raise it; `null` for silence), also a column of `loudness.csv`. `onsetMaxMs` (20, `-MaxOnsetMs`) is
+the bound for `sfx` and `ui` files: one that starts later adds a warning.
 
 **credits**: `credits` with `ok`, `credits` (entries whose licence requires a visible credit), `thanks` (entries credited as a
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`

@@ -19,18 +19,36 @@ public sealed record GoapAction(string Name, float Cost, IReadOnlyDictionary<str
 /// actions irrelevant to this goal cost nothing. (A forward search from the current state expands every cheap action
 /// that happens to be runnable; with a dozen of them it took milliseconds or gave up.) The search is uniform-cost, so
 /// the first plan found is the cheapest for any positive costs, and each plan is replayed forward before it is returned.
+/// Costs can follow the situation (Chris Conway, Tomb Raider, in "GOAP: Ten Years of AI Programming"): pass
+/// <c>costOf</c> to price an action from the world as it is now, so walking costs the distance and the attack chosen
+/// up close (melee) differs from the one chosen far away (ranged) without a hard range rule. Each action is priced
+/// once per call, before the search, so the search still sees fixed, non-negative costs.
 /// </summary>
 public static class GoapPlanner
 {
+    /// <param name="costOf">The action's cost in the current situation; null uses each action's fixed <see cref="GoapAction.Cost"/>.</param>
     /// <returns>The cheapest plan, an empty list when the goal already holds, or null when none is found within <paramref name="maxExpanded"/> searched states.</returns>
     public static List<GoapAction>? Plan(IReadOnlyDictionary<string, bool> start, IReadOnlyDictionary<string, bool> goal,
-        IReadOnlyList<GoapAction> actions, int maxExpanded = 2000)
+        IReadOnlyList<GoapAction> actions, int maxExpanded = 2000, Func<GoapAction, float>? costOf = null) =>
+        Plan(start, goal, actions, out _, maxExpanded, costOf);
+
+    /// <param name="expanded">How many states the search expanded, never more than <paramref name="maxExpanded"/>: the
+    /// planner's work, to log or budget per frame, and what a test asserts instead of wall time.</param>
+    public static List<GoapAction>? Plan(IReadOnlyDictionary<string, bool> start, IReadOnlyDictionary<string, bool> goal,
+        IReadOnlyList<GoapAction> actions, out int expanded, int maxExpanded = 2000, Func<GoapAction, float>? costOf = null)
     {
+        var costs = new float[actions.Count];
+        for (int i = 0; i < actions.Count; i++)
+        {
+            costs[i] = costOf?.Invoke(actions[i]) ?? actions[i].Cost;
+            if (!(costs[i] >= 0)) throw new ArgumentOutOfRangeException(nameof(costOf), $"{actions[i].Name} costs {costs[i]}; costs must be zero or more");
+        }
+
         // A node is what must still be true before the plan so far runs; the plan so far is its actions, last first.
         var open = new PriorityQueue<(SortedDictionary<string, bool> Needed, List<GoapAction> Plan, float Cost), float>();
         var best = new Dictionary<string, float>();
         open.Enqueue((new SortedDictionary<string, bool>(goal.ToDictionary(g => g.Key, g => g.Value)), new List<GoapAction>(), 0), 0);
-        int expanded = 0;
+        expanded = 0;
 
         while (open.TryDequeue(out var node, out _))
         {
@@ -40,9 +58,11 @@ public static class GoapPlanner
                 if (Replays(start, goal, plan)) return plan;
                 continue;
             }
-            if (++expanded > maxExpanded) return null;
-            foreach (var action in actions)
+            if (expanded >= maxExpanded) return null;
+            expanded++;
+            for (int i = 0; i < actions.Count; i++)
             {
+                var action = actions[i];
                 bool achieves = false, undoes = false;
                 foreach (var e in action.Effects)
                 {
@@ -59,7 +79,7 @@ public static class GoapPlanner
                     needed[p.Key] = p.Value;
                 }
                 if (contradicts) continue;
-                float cost = node.Cost + action.Cost;
+                float cost = node.Cost + costs[i];
                 string key = string.Join(",", needed.Select(p => p.Value ? p.Key : "!" + p.Key));
                 if (best.TryGetValue(key, out float known) && known <= cost) continue;
                 best[key] = cost;

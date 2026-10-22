@@ -83,6 +83,32 @@ function Measure-Loudness([string]$File) {
     }
 }
 
+# When the sound arrives, in ms: the start of the first 10 ms window whose RMS level comes within 10 dB of the file's
+# loudest 10 ms window (ffmpeg's astats, reset every window, on a mono 48 kHz copy). Leading silence and a slow fade-in both
+# delay it; a sound that starts on its hit reads 0. Returns $null for silence or when ffmpeg cannot read the file.
+function Measure-Onset([string]$File) {
+    $filter = 'aformat=sample_rates=48000:channel_layouts=mono,asetnsamples=n=480:p=0,astats=metadata=1:reset=1,' +
+        'ametadata=mode=print:key=lavfi.astats.Overall.RMS_level'
+    $output = @(& ffmpeg -hide_banner -nostats -i $File -af $filter -f null - 2>&1 | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -ne 0) { return $null }
+    # One line per window, in order. A silent window prints -inf, which does not parse: it counts as silence.
+    $levels = [System.Collections.Generic.List[double]]::new()
+    foreach ($line in $output) {
+        if ($line -notmatch 'RMS_level=(?<db>\S+)') { continue }
+        $db = 0.0
+        if (-not [double]::TryParse($Matches['db'], [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$db) -or
+            [double]::IsNaN($db)) { $db = [double]::NegativeInfinity }
+        $levels.Add($db)
+    }
+    if ($levels.Count -eq 0) { return $null }
+    $loudest = [System.Linq.Enumerable]::Max($levels)
+    if ([double]::IsInfinity($loudest)) { return $null }
+    for ($i = 0; $i -lt $levels.Count; $i++) {
+        if ($levels[$i] -ge $loudest - 10) { return $i * 10 }
+    }
+    return $null
+}
+
 function Get-Median([double[]]$Values) {
     $sorted = @($Values | Sort-Object)
     $middle = [int][math]::Floor($sorted.Count / 2)
@@ -91,7 +117,7 @@ function Get-Median([double[]]$Values) {
 }
 
 function Invoke-Audio {
-    param($Info, [double]$TargetLufs, [switch]$Mix, [double]$Seconds, [string]$Scene, [string[]]$GameArgs, [string]$ResultsDir)
+    param($Info, [double]$TargetLufs, [double]$MaxOnsetMs = 20, [switch]$Mix, [double]$Seconds, [string]$Scene, [string[]]$GameArgs, [string]$ResultsDir)
     $toleranceLu = 2.0; $truePeakMax = -1.0
     Assert-Ffmpeg
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
@@ -103,11 +129,15 @@ function Invoke-Audio {
         $relative = ConvertTo-ResPath $project $file.FullName
         $measured = Measure-Loudness $file.FullName
         if (-not $measured) { Stop-GodotCi "ffmpeg cannot read $relative" 'audio-failed' }
-        [ordered]@{ file = $relative; category = Get-AudioCategory ($relative -replace '^res://', '') } + $measured
+        [ordered]@{ file = $relative; category = Get-AudioCategory ($relative -replace '^res://', '') } + $measured + [ordered]@{ onsetMs = Measure-Onset $file.FullName }
     })
     foreach ($asset in $assets) {
         if ($null -ne $asset.truePeakDbtp -and $asset.truePeakDbtp -gt $truePeakMax) {
             $warnings.Add([ordered]@{ file = $asset.file; message = "peaks at $($asset.truePeakDbtp) dBTP, over ${truePeakMax}: played at full volume it can clip" })
+        }
+        # A sound for the player's own action should start on its hit (Joonas Turner's GDC talk, docs/gdc/game-feel-with-sound.md).
+        if ($asset.category -in 'sfx', 'ui' -and $null -ne $asset.onsetMs -and $asset.onsetMs -gt $MaxOnsetMs) {
+            $warnings.Add([ordered]@{ file = $asset.file; message = "starts $($asset.onsetMs) ms late, over $MaxOnsetMs ms (leading silence or a slow fade-in): the player hears the action after the press" })
         }
     }
     # Lines of dialogue, and music tracks, should sit at one level, so the player never reaches for the volume between them.
@@ -147,7 +177,7 @@ function Invoke-Audio {
     }
 
     $result = [ordered]@{
-        targetLufs = $TargetLufs; toleranceLu = $toleranceLu; truePeakMaxDbtp = $truePeakMax
+        targetLufs = $TargetLufs; toleranceLu = $toleranceLu; truePeakMaxDbtp = $truePeakMax; onsetMaxMs = $MaxOnsetMs
         files = $assets; warnings = @($warnings); mix = $mixResult; csv = Join-Path $ResultsDir 'loudness.csv'
     }
     $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir 'audio.json') -Encoding utf8

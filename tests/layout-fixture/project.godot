@@ -1,0 +1,20 @@
+; A menu designed at 1280x720 (ui/menu.tscn: a top bar in the notch, 32 px buttons, unsafe on phones) and the same
+; menu fixed (ui/good.tscn: inside the safe area, touch-sized buttons). tests/Test-Layout.ps1 runs the layout runner on it.
+config_version=5
+
+[application]
+
+config/name="layout-fixture"
+run/main_scene="res://ui/menu.tscn"
+config/features=PackedStringArray("4.7")
+
+[autoload]
+
+SafeArea="*res://ui/safe_area.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"

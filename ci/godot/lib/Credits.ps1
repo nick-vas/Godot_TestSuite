@@ -7,6 +7,9 @@
 #   noticeFile   Apache-2.0 only: the upstream NOTICE file, whose attribution notices must ship
 # What a licence asks for: a credit players can see (Title, Author, Source, Licence: CC BY and similar), or the copyright
 # line and licence text shipped with the game (MIT, BSD, ISC, Apache, OFL), or nothing (CC0). Engineering, not legal advice.
+# Commissioned work (source "commissioned", made for the game under a signed agreement, see Assets.ps1) is treated like the
+# game's own 'proprietary' work: no third-party credit and no bought-asset warning, unless its licence asks for a credit,
+# which then names no source URL.
 # What each licence asks of a shipped game. Credit: required (shown to players, TASL), courtesy (nice, not required), none.
 # Notice: required (copyright line + licence text ship with the game), sourceOnly (only source distributions), none.
 $script:CreditPolicy = @{
@@ -80,7 +83,8 @@ function Format-TaslLine([hashtable]$Entry, [hashtable]$Policy) {
     $author = Get-EntryValue $Entry 'author'
     $work = if ($title) { "`"$title`"" } else { 'Asset' }
     if (-not $author) { $author = '[AUTHOR MISSING]' }
-    $line = "$work by $author ($($Entry['source'])), licensed under $($Policy.Name)"
+    $from = if ($Entry['source'] -eq 'commissioned') { '' } else { " ($($Entry['source']))" }
+    $line = "$work by $author$from, licensed under $($Policy.Name)"
     if ($Policy.Url) { $line += " ($($Policy.Url))" }
     $modified = Get-EntryValue $Entry 'modified'
     if ($modified -is [bool] -and $modified) { $line += '; modified' } elseif ($modified -and $modified -isnot [bool]) { $line += "; modified: $modified" }
@@ -129,7 +133,7 @@ function New-GameCredits {
 
         if ($policy.Credit -eq 'required') {
             if (-not $author) { Add-CreditProblem $errors 'credit-author-missing' $path "$licence requires the author's name: add 'author'" }
-            if ($source -notmatch '^https?://') { Add-CreditProblem $errors 'credit-source-not-url' $path "${licence}: 'source' should be the URL where the work was found" }
+            if ($source -notmatch '^https?://' -and $source -ne 'commissioned') { Add-CreditProblem $errors 'credit-source-not-url' $path "${licence}: 'source' should be the URL where the work was found" }
             if ($policy['TitleRequired'] -and -not $item.title) { Add-CreditProblem $warnings 'credit-title-missing' $path "$licence names the title of the work when the licensor gave one: add 'title'" }
             if ($policy['NoDerivs'] -and $item.modified) { Add-CreditProblem $errors 'noderivs-modified' $path "$licence forbids sharing modified versions" }
             $item.text = Format-TaslLine $entry $policy
@@ -138,7 +142,7 @@ function New-GameCredits {
             $item.text = "$((Get-EntryValue $entry 'title') ?? ($path -replace '/?\*.*$', '')) by $author ($($policy.Name))"
             $courtesy.Add($item)
         }
-        if ($licence -eq 'proprietary') { Add-CreditProblem $warnings 'licence-proprietary' $path "'proprietary' bought assets: keep the purchase licence on file and check whether it asks for credit (consider LicenseRef-<vendor>)" }
+        if ($licence -eq 'proprietary' -and $source -ne 'commissioned') { Add-CreditProblem $warnings 'licence-proprietary' $path "'proprietary' bought assets: keep the purchase licence on file and check whether it asks for credit (consider LicenseRef-<vendor>)" }
 
         if ($policy.Notice -eq 'required' -or ($policy.Notice -eq 'sourceOnly' -and ((Get-EntryValue $entry 'copyright') -or (Get-EntryValue $entry 'licenceFile')))) {
             $text = Get-NoticeText $entry $manifestDir $LicenceTextDir $errors
