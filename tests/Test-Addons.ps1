@@ -116,3 +116,5 @@ linux.release.x86_64 = {
 
 if ($failures.Count) { throw "$($failures.Count) add-on check(s) failed" }
 Write-Host 'add-on self-test passed'
+# The doctor run above failed on purpose; GitHub's pwsh wrapper would exit with its code.
+exit 0
