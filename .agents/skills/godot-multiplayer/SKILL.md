@@ -40,6 +40,13 @@ claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and lo
   player on 500 ms kills people half a second after they reached cover.
 - **Checksums.** Server and clients hash the state they agree on every so often; a mismatch is a desync found early.
 
+### Fast objects: extrapolate along a curve
+
+Cars and anything fast that collides (Watch Dogs 2; tested in `Net/DeadReckoning.cs`): draw it at the owner's time minus
+one offset, interpolating inside the snapshot buffer and extrapolating past it along the yaw rate, not a straight line;
+blend corrections in (projective velocity blending) instead of snapping. Numbers, the offset rule and collisions:
+[fast-objects.md](fast-objects.md).
+
 ## 3. Sending state to many players (the TRIBES model)
 
 Starsiege TRIBES (1998) ran 128 players over modems by sorting data by what its delivery needs, and sending each
@@ -68,6 +75,11 @@ player only what matters to them, as partial updates. Breakout's `Net/Replicatio
   `AddVisibilityFilter`, `SetVisibilityFor`) give the scope; nothing in Godot gives priority or a budget. Rank by
   distance, size on screen and heading towards the player, and let waiting raise an object's rank, so bandwidth is
   shared in proportion to priority and nothing starves.
+- **Cap what jumps the queue.** Creations, deletions and anything overdue go ahead of priority order; a burst of them
+  (200 objects entering scope, a pile of crates disturbed together and ageing in step) fills whole packets while the
+  player being fought gets nothing. Let a fixed number jump per packet (`GhostReplicator.MaxOverridesPerPacket`,
+  default 4), the rest wait their turn by priority, and give background data (end-of-match statistics) at most a share
+  of each packet (Halo: Reach: 10%).
 - **Inputs.** TRIBES first resent every unacknowledged move in each packet: on a slow link a lost packet made the next
   one bigger, which got lost too. TRIBES II capped it; Breakout sends each input in 3 packets.
 - **Static data by id.** Each vehicle sent the id of its definition (TRIBES' datablocks), loaded once at connection,
@@ -76,7 +88,12 @@ player only what matters to them, as partial updates. Breakout's `Net/Replicatio
 Measured with `ReplicationTests` (80 objects, 4 groups each, 8 changes a tick, 30 packets a second of at most 400 bytes,
 20% loss and 120 ± 30 ms each way): the client ends with exactly the objects in its scope and their current values,
 never applies an older value over a newer one, and partial updates use 5% of the bytes full snapshots would; 151 lost
-values were not resent because newer ones were already sent.
+values were not resent because newer ones were already sent. When 200 objects entered scope at once, the uncapped
+replicator sent the opponent nothing for 10 packets in a row; capped at 4, it missed at most 1, and all 200 objects
+still arrived within 12 packets (10 uncapped).
+
+Halo: Reach's rules for each mechanic (predict the look and let the host decide the outcome; ask where the lag is
+hidden; change the mechanic when that hides it; warp the logic and blend the look): [halo-reach.md](halo-reach.md).
 
 ## 4. Godot 4.7 specifics
 - `ENetMultiplayerPeer.CreateServer(port, maxClients)`: the client limit defaults to **32**. Do not pass a channel
@@ -104,9 +121,29 @@ values were not resent because newer ones were already sent.
 
 - Determinism first: integer or fixed-point state, seeded random numbers kept in the state, no wall-clock time, no
   `Dictionary` iteration order. .NET floats can differ between machines; on one machine and build they repeat.
-- GGPO's test: every frame, roll back one frame, re-simulate and compare checksums (SyncTest). Run it in CI.
-- Prediction depth is limited (GGPO: 8 frames); beyond it the game waits. Choose an input delay of 1 to 3 frames to
-  keep rollbacks short.
+- GGPO's test (SyncTest): every frame, roll back, re-simulate and compare checksums. Run it at the full rollback depth,
+  `DeterminismCheck.SyncTest(sim, inputs, depth: 7)`, in CI and as everyone's debug mode (NetherRealm's main tool from
+  day one: correct code looks unchanged). Depth 1 misses state that goes stale over several frames.
+- A fixed input delay plus a rollback window. NetherRealm (Mortal Kombat X, Injustice 2) shipped 3 frames of delay and
+  7 of rollback: 10 frames, 333 ms of round trip at 60 Hz, over 99% of their matches; beyond it the game pauses. Keep
+  the delay constant: their lockstep's 5 to 20 frames of varying delay broke combo timing. GGPO predicts at most 8.
+- Tested session: `Net/Rollback.cs` (`RollbackSession`, `RollbackSettings`, `SavePolicy`) with `RollbackTests.cs`;
+  it predicts the last remote input received, so it rolls back only where the other player changed input.
+- **Time sync.** Nothing pulls two peers' clocks together: the one ahead rolls back the most, every frame (NetherRealm's
+  beta: most matches had one player at 7 frames every frame). Slow the peer ahead by more than about 1.5 frames, at
+  most about 2 ms a frame; a net pause felt far worse. Measured at 190 ms, 4 frames ahead: mean depth 7.0 without,
+  3.0 with.
+- **Saves.** Every frame (GGPO), or only the confirmed frame, the last with everyone's input (NetherRealm): one save a
+  tick instead of up to 8, but each rollback goes back to it, and when it is about to leave the window the game rolls
+  back with nothing wrong. At 250 ms: 2.40 re-simulated frames a tick against 0.41, worst tick 9 steps and saves
+  against 14; at 150 ms the worst tick is heavier. Extra saves between the confirmed frame and now cut their rollbacks
+  by 30%.
+- **Boundaries.** Never roll back across a camera cut, a cinematic or a finishing move. Act on anything that cannot be
+  rolled back (pause menu, cinematics) only once it is older than the window, when both machines have it.
+- **Visuals.** Gameplay drives visual state and never reads it back (IK joint positions desynced once IK stopped running
+  in re-simulated frames). Particles, cloth and IK run on the rendered frame only; reuse an effect whose spawn
+  situation matches instead of re-spawning it, or a non-deterministic effect pops. Snap to the corrected state:
+  blending caused foot sliding.
 
 ## 6. Prove it
 

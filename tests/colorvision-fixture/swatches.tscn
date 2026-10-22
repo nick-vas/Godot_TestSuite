@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[node name="Swatches" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.501961, 0.501961, 0.501961, 1)
+
+[node name="Red" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_left = 0.04
+anchor_top = 0.3
+anchor_right = 0.24
+anchor_bottom = 0.7
+color = Color(0.784314, 0.27451, 0.0627451, 1)
+
+[node name="Green" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_left = 0.28
+anchor_top = 0.3
+anchor_right = 0.48
+anchor_bottom = 0.7
+color = Color(0.196078, 0.509804, 0, 1)
+
+[node name="Blue" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_left = 0.52
+anchor_top = 0.3
+anchor_right = 0.72
+anchor_bottom = 0.7
+color = Color(0.215686, 0.494118, 0.721569, 1)
+
+[node name="Orange" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_left = 0.76
+anchor_top = 0.3
+anchor_right = 0.96
+anchor_bottom = 0.7
+color = Color(1, 0.498039, 0, 1)

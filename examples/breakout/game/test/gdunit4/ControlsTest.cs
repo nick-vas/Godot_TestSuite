@@ -3,6 +3,7 @@ namespace Breakout.Tests;
 using System.Linq;
 using System.Threading.Tasks;
 using Breakout.Controls;
+using Breakout.Core.Controls;
 using GdUnit4;
 using Godot;
 using static GdUnit4.Assertions;
@@ -93,17 +94,22 @@ public class ControlsTest
     {
         InputBindings.Rebind("move_left", Key(Godot.Key.J));
         InputBindings.Rebind("move_right", new InputEventJoypadMotion { Axis = JoyAxis.RightX, AxisValue = 0.9f });
+        var sticks = new StickLayout { Move = new StickSettings { DeadZone = 0.35f, AxialDeadZone = 0.2f }, SwapSticks = true };
+        InputBindings.Sticks = sticks;
         string saved = InputBindings.Serialize();
         InputBindings.Save();
 
         InputMap.LoadFromProjectSettings();   // a new session starts from the defaults
+        InputBindings.Sticks = StickLayout.Default;
         InputBindings.Load();
         AssertThat(InputBindings.Serialize()).IsEqual(saved);
+        AssertThat(InputBindings.Sticks).IsEqual(sticks);
         AssertThat(saved).Contains("\"code\": \"J\"").Contains("\"code\": \"RightX\"");
 
         InputBindings.ResetToDefaults();
         AssertThat(System.IO.File.Exists(ProjectSettings.GlobalizePath(InputBindings.SavePath))).IsFalse();
         AssertThat(InputMap.ActionGetEvents("move_left").Any(e => e is InputEventKey { PhysicalKeycode: Godot.Key.A })).IsTrue();
+        AssertThat(InputBindings.Sticks).IsEqual(StickLayout.Default);
     }
 
     [TestCase]

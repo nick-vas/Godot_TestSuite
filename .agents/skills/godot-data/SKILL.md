@@ -1,6 +1,6 @@
 ---
 name: godot-data
-description: Use when a Godot game defines items, enemies, levels, spells, dialogue or balance numbers as data, when choosing between custom Resources and JSON or CSV tables, when designers tune values in a spreadsheet, or when game data loads wrong, changes by itself or is missing from an exported build.
+description: Use when a Godot game defines items, enemies, levels, spells, dialogue or balance numbers as data, when choosing between custom Resources and JSON or CSV tables, when designers tune values in a spreadsheet, when objects placed in level scenes (AI points, interactables, zip lines) must keep obeying gameplay rules, or when game data loads wrong, changes by itself or is missing from an exported build.
 ---
 
 # Data-driven design in Godot 4 (C#)
@@ -87,6 +87,8 @@ every row without Godot and writes one JUnit case per table:
 - Field rules: `type` (string, int, number, bool), `min`, `max`, `enum`, `pattern`, `ref`, `list` (`;` between values
   in a CSV cell), `optional`; `"extra": "allow"` on a table permits unlisted columns.
 - Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
+- Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
+  for every level.
 
 ## 5. Spreadsheets
 
@@ -94,3 +96,38 @@ every row without Godot and writes one JUnit case per table:
   game. Never hand-edit the export; commit it so a review shows every balance change.
 - Keep derived columns (damage per second, time to kill) in the sheet; export only the inputs.
 - Print a digest of all data tables in the game's log and in bug reports, so a report says which balance it ran.
+
+## 6. Placed objects: every one, every run
+
+Anyone breaks placed content, often far from where they worked: a prop's collision fix moves AI points off the navmesh
+in every level that uses the prop, a navmesh change drops the slopes, a code change lowers a limit. Check every placed
+node of every level in each test run instead of by hand (Assassin's Creed Origins: 228 zip lines at two minutes each is
+a tester's full day; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/assassins-creed-origins-world-data.md`).
+
+Copy `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/placement_check.gd` into the game's test folder and call it from a GUT
+test (its header has the code; a C# game ports the rules). It loads each level, waits for navigation, checks nodes by
+group and fails once, one line per finding: scene, node path, position, rule, measured value and limit.
+
+| Group | Rule | Passes when |
+|---|---|---|
+| `ai_point` | `navmesh_below` | navmesh is at most 0.5 m straight below |
+| | `path_to_link` | a path reaches each node in its `links` metadata |
+| `interactable` | `ground_in_reach` | a ray down hits ground within the player's reach |
+| `zipline` | `zipline_clear` | a capsule swept under the rope to its `End` child hits nothing |
+| | `zipline_angle` | the rope is no steeper than the movement code allows |
+
+- **Limits come from gameplay code**: `check.reach = Player.REACH` with `const Player := preload("res://player.gd")`.
+  A copied number keeps passing after the code changes; yesterday's valid zip line must fail the day the limit drops.
+- **A bug found once becomes a rule for its whole type**: one torch out of reach means a check of every torch.
+- **Prove each rule on a broken fixture before trusting it.** A false positive sends someone looking for nothing, and
+  they stop reading the report. Two traps the kit's fixture caught: before the map syncs, `map_get_closest_point`
+  returns (0, 0, 0), so a probe at the origin looks ready early (wait for `map_get_closest_point_owner` to be valid);
+  `map_get_path` to another navmesh island returns a path to the nearest reachable point, so compare where it ends.
+- **Exemptions are visible**: node metadata `placement_skip = {"zipline_clear": "the crate breaks"}`; the summary lists
+  each with its reason, and one without a reason is a finding.
+- **One summary with the change per type since the last run** (`counts_file`; keep the file between runs). The talk's
+  most useful line was "ladders +500", seen before anyone complained.
+- On 4.7.2 headless, navigation answered after 9 to 11 physics frames for the first level of a GUT run and 3 or 4 for
+  the next; the helper polls, capped. The checks take about 10 ms per 1,000 nodes.
+- A check at commit time does not replace the full run: data fine on day one breaks on day ten through another change.
+- Run it: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners gut -Filter test_every_level`.

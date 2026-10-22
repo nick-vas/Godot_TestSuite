@@ -76,7 +76,7 @@ public interface IDeterministic<TState, TInput>
 
 var replay = DeterminismCheck.Record(sim, inputs, interval: 60);      // a checksum every 60 ticks
 Divergence? d = DeterminismCheck.Verify(sim, replay);                  // null, or the first tick that differs
-Divergence? s = DeterminismCheck.SyncTest(sim, inputs);                // GGPO's test: save, step, load, step, compare
+Divergence? s = DeterminismCheck.SyncTest(sim, inputs, depth: 7);      // GGPO's test: every tick, re-run the last 7 and compare
 ulong h = DeterminismCheck.Fnv1a(DeterminismCheck.Fnv1a(14695981039346656037, x), y);   // stable across processes
 ```
 
@@ -84,6 +84,11 @@ ulong h = DeterminismCheck.Fnv1a(DeterminismCheck.Fnv1a(14695981039346656037, x)
   old replay against new balance numbers diverges.
 - On a desync, both sides dump the state at the first bad tick as sorted text and diff it; it is usually one variable
   (Factorio's workflow).
+- For rollback, record the remote inputs with the tick each arrived on: the match then replays on one machine with the
+  same rollbacks, as often as needed, with more logging each time (NetherRealm's desync workflow, under 0.1% desyncs).
+- `depth` is the rollback window. Depth 1 misses state that goes stale over several ticks: a value refreshed every few
+  ticks into a field `Save()` leaves out (gameplay reading a pose or joint position back from animation) re-runs the
+  same for one tick and differently across a refresh. `RollbackTests` plants exactly that; depth 7 finds it.
 - Rollback libraries: Backdash (MIT, GGPO-style, has a SyncTest session); its 0.8 preview needs .NET 10, so pin 0.3.x
   on .NET 8.
 
@@ -91,7 +96,8 @@ ulong h = DeterminismCheck.Fnv1a(DeterminismCheck.Fnv1a(14695981039346656037, x)
 
 - [ ] a pinned checksum: a fixed seed and input log for 1000 ticks gives a committed value, updated in the same commit as
       an intended change (as `TheRandomSequenceIsFixedForever` pins the generator)
-- [ ] `DeterminismCheck.SyncTest` over a recorded session: catches state kept outside `Save()`
+- [ ] `DeterminismCheck.SyncTest` over a recorded session, at depth 1 and at the rollback window: catches state kept
+      outside `Save()`
 - [ ] the same replay in two processes (catches per-process hashes and statics); `TheChecksumIgnoresTheProcess`
 - [ ] the replay test again with `LANG=de_DE.UTF-8` and with `DOTNET_EnableAVX2=0`
 - [ ] if machines must agree: the replay checksum printed on windows-latest, ubuntu-latest and macos-latest (Arm64) and
