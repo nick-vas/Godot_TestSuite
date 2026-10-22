@@ -84,6 +84,21 @@ test decide. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytic
 - Bots: run both versions on the same seeds and pair them. On the same data, pairing turned no result into p = 0.003.
 - One question per test: twenty metrics at 5% each find a "difference" by chance. Balancing many PvP classes is beyond this.
 
+## Reading balance from run data
+
+Pick and win rates per card, relic or upgrade, from one summary per finished run (bots or players): `BalanceReport` in
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie three ways:
+
+- **Late options flatter themselves.** An option found near the end is seen mostly in runs that were already winning (Slay the
+  Spire's Madness, from an event just before the last boss). Compare its runs only with all runs that reached the floor where
+  it was taken (`FloorMatchedLift`): a do-nothing option offered on floor 8 of 10 won 74% against 36% overall, lift 0.00.
+- **Heavy players drown out everyone.** Two testers with 500 runs each made a 23% win rate (per player) read 84% (per run).
+  Weigh each player, or each session when there is no player id, once (`PerSession`).
+- **Difficulties differ.** Report each difficulty apart; pooled, a neutral option favoured on the hard one looked 16 points worse.
+- The goal is not equal power: every option should be worth taking some of the time, so look for pick rates near 0 or 1 when
+  offered. Rare, hard-to-assemble combos may be strong. Metrics do not show what is boring (slow, grindy, optimal loops): watch
+  play for that. Decide whether a change helped with the tests above, not by eye.
+
 ## What studios test
 
 - **The whole game, every build.** Croteam ran a bot that solved all of The Talos Principle on every build; Dragon Quest III
