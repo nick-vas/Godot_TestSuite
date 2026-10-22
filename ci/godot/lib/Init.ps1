@@ -77,7 +77,7 @@ function Add-CSharpTestSetup([string]$ProjectDir, $Info) {
     <IncludeTests Condition="'$(Configuration)' != 'ExportRelease'">true</IncludeTests>
   </PropertyGroup>
   <ItemGroup Condition="'$(IncludeTests)' == 'true'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageReference Include="gdUnit4.api" Version="5.0.0" />
     <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />
     <PackageReference Include="coverlet.collector" Version="10.1.0" />

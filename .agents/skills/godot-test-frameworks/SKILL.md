@@ -20,10 +20,10 @@ Keep engine-free logic in plain classes so most tests need no Godot at all.
 
 ```xml
 <Project Sdk="Godot.NET.Sdk/4.7.2">
-<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
 <PackageReference Include="gdUnit4.api" Version="5.0.0" />
 <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />   <!-- 3.1.x needs a pre-release api -->
-<PackageReference Include="Chickensoft.GoDotTest" Version="2.0.47" />
+<PackageReference Include="Chickensoft.GoDotTest" Version="2.0.49" />
 <PackageReference Include="coverlet.collector" Version="10.1.0" />
 ```
 GUT: v9.7.1 for Godot 4.7 (v9.6.1 for 4.6, v9.5.0 for 4.5, v9.4.0 for 4.4). GUT releases are tied to one Godot
