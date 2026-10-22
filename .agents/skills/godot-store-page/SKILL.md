@@ -45,6 +45,10 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   microtrailer, so it should be gameplay throughout. H.264 and AAC, up to 1920x1080, 30 or 60 fps, 44.1 or 48 kHz audio.
   A release cannot go out while a trailer is still encoding. Capture its footage with the HUD, music and cursor off
   (capture mode and a free camera, `godot-debug-tools`); screenshots keep the UI.
+- **Trailer script:** start from `docs/TRAILER.md`, written in the prototype (template
+  `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/TRAILER.md`, gate `prototype.trailer`): genre in the first 5 seconds, then the
+  hook, content (bosses, modes, unlocks) only at the end; and its three standout moments. Without one, write it before
+  capturing anything.
 - **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep "Indie" and praise out of the top 5.
 - **Review rubric** (ask someone who has not seen the game, or the `look` skill on the page's screenshots): can they
   name the genre in 5 seconds? The hook? Is the gameplay visible? Is every screenshot readable at thumbnail size? If the
