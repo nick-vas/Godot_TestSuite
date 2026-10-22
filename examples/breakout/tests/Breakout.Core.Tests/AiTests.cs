@@ -131,11 +131,11 @@ public sealed class AiTests
         var actions = Enumerable.Range(0, 6).Select(i => new GoapAction($"step {i}", 1, i == 0 ? State() : State($"done{i - 1}"), State($"done{i}")))
             .Concat(Enumerable.Range(0, 20).Select(i => new GoapAction($"fidget {i}", 0.5f, State(), State($"fidget{i}"))))
             .ToList();
-        var watch = Stopwatch.StartNew();
-        List<GoapAction>? plan = null;
-        for (int run = 0; run < 100; run++) plan = GoapPlanner.Plan(State(), State("done5"), actions);
+        var plan = GoapPlanner.Plan(State(), State("done5"), actions, out int expanded);
+        GoapPlanner.Plan(State(), State("done5"), actions.Take(6).ToList(), out int withoutFidgets);
         Assert.Equal(Enumerable.Range(0, 6).Select(i => $"step {i}"), plan!.Select(a => a.Name));
-        Assert.True(watch.Elapsed.TotalMilliseconds / 100 < 5, $"{watch.Elapsed.TotalMilliseconds / 100:F2} ms per plan");
+        // Twenty actions that never lead to the goal add no work (asserted on states searched, not wall time).
+        Assert.Equal(withoutFidgets, expanded);
     }
 
     [Fact]
@@ -143,14 +143,14 @@ public sealed class AiTests
     {
         Assert.Null(GoapPlanner.Plan(State(), State("enemyDown", "flying"), SoldierActions));
         // Twelve facts, each reachable two ways from things that never hold: 4096 dead ends. The cap stops the search.
+        // Asserted on work done, not wall time, which failed under load.
         var actions = Enumerable.Range(0, 12).SelectMany(i => new[]
         {
             new GoapAction($"a{i}", 1, State($"never_a{i}"), State($"g{i}")),
             new GoapAction($"b{i}", 1, State($"never_b{i}"), State($"g{i}")),
         }).ToList();
-        var watch = Stopwatch.StartNew();
-        Assert.Null(GoapPlanner.Plan(State(), Enumerable.Range(0, 12).ToDictionary(i => $"g{i}", _ => true), actions, maxExpanded: 500));
-        Assert.True(watch.ElapsedMilliseconds < 500, $"{watch.ElapsedMilliseconds} ms");
+        Assert.Null(GoapPlanner.Plan(State(), Enumerable.Range(0, 12).ToDictionary(i => $"g{i}", _ => true), actions, out int expanded, maxExpanded: 500));
+        Assert.InRange(expanded, 1, 500);
     }
 
     // Opening the door uses the key up; the goal wants the door open and a key in hand, so the key comes second.
@@ -164,6 +164,38 @@ public sealed class AiTests
         };
         Assert.Equal(new[] { "open door", "get key" }, GoapPlanner.Plan(State("hasKey"), State("doorOpen", "hasKey"), actions)!.Select(a => a.Name));
         Assert.Equal(new[] { "get key", "open door", "get key" }, GoapPlanner.Plan(State(), State("doorOpen", "hasKey"), actions)!.Select(a => a.Name));
+    }
+
+    // Chris Conway's example (Tomb Raider, "GOAP: Ten Years of AI Programming"): melee costs 1 and ranged 10, and the
+    // walk there costs its distance. 20 m away, melee is 1 + 20 = 21 and ranged, already in range, 10 + 1 = 11.
+    static readonly GoapAction[] AttackActions =
+    {
+        new("melee", 1, State("atTarget"), State("targetDown")),
+        new("ranged", 10, State("inRange", "hasAmmo"), State("targetDown")),
+        new("go to target", 1, State(), State("atTarget")),
+        new("go to range", 1, State(), State("inRange")),
+    };
+
+    static Func<GoapAction, float> CostsAt(float distance, float weaponRange = 25) => a => a.Name switch
+    {
+        "go to target" => distance,
+        "go to range" => MathF.Max(1, distance - weaponRange),
+        _ => a.Cost,
+    };
+
+    [Fact]
+    public void GoapCostsFollowTheSituation()
+    {
+        string[] PlanAt(float distance, params string[] facts) =>
+            GoapPlanner.Plan(State(facts), State("targetDown"), AttackActions, costOf: CostsAt(distance))!.Select(a => a.Name).ToArray();
+
+        Assert.Equal(new[] { "go to target", "melee" }, PlanAt(2, "hasAmmo"));      // 3 against 11
+        Assert.Equal(new[] { "go to range", "ranged" }, PlanAt(20, "hasAmmo"));     // 11 against 21
+        Assert.Equal(new[] { "go to target", "melee" }, PlanAt(20));                // out of ammo: run in, no range rule needed
+
+        // Fixed costs give the same plan at every distance: melee 2 against ranged 11, so the soldier always runs in.
+        Assert.Equal(new[] { "go to target", "melee" }, GoapPlanner.Plan(State("hasAmmo"), State("targetDown"), AttackActions)!.Select(a => a.Name));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GoapPlanner.Plan(State(), State("targetDown"), AttackActions, costOf: _ => -1));
     }
     [Fact]
     public void ArriveStopsOnTheTargetWhereSeekOvershoots()
@@ -365,5 +397,111 @@ public sealed class AiTests
         Assert.True(failures["origin stand point"] == 0, report);
         Assert.True(failures["far stand point"] > 50, report);
         Assert.True(failures["origin reach"] == 0 && failures["far reach"] == 0, report);
+    // A guard at the origin looking along +X, seeing 300 units within 0.6 rad either side, nothing closer than 10.
+    static VisionSensor Eyes() => new(new VisionPie(HalfAngle: 0.6f, Far: 300, Near: 10));
+
+    /// <summary>A fake ray: counts calls, and is blocked for any target point in <paramref name="blocked"/>.</summary>
+    static LineOfSight CountingRay(List<(Vector2 From, Vector2 To)> calls, params Vector2[] blocked) =>
+        (from, to) => { calls.Add((from, to)); return !blocked.Contains(to); };
+
+    // Rays are the expensive part: anything behind, beside, beyond or too close is rejected by the shape, with no ray.
+    [Fact]
+    public void PerceptionRejectsByShapeBeforeCastingRays()
+    {
+        var eyes = Eyes();
+        var calls = new List<(Vector2, Vector2)>();
+        var random = new Random(11);
+        var outside = new List<Vector2>();
+        for (int i = 0; i < 100; i++)
+        {
+            float angle = (float)(random.NextDouble() * 2 - 1) * MathF.PI;
+            float distance = 5 + random.NextSingle() * 600;
+            var p = new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * distance;
+            if (!eyes.Pie.Contains(Vector2.Zero, Vector2.UnitX, p)) outside.Add(p);
+        }
+        outside.AddRange(new[] { new Vector2(-50, 0), new Vector2(0, 50), new Vector2(301, 0), new Vector2(5, 0) });
+        Assert.True(outside.Count > 80, $"{outside.Count} points outside");
+        foreach (var p in outside) Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { p }, CountingRay(calls)));
+        Assert.Empty(calls);
+
+        Assert.True(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(200, 50) }, CountingRay(calls)));
+        Assert.Single(calls);
+    }
+
+    // A twig in front of the head must not hide a target whose hips and hand still show; the ray stops at the first clear point.
+    [Fact]
+    public void OneOccludedSampleDoesNotHideTheTarget()
+    {
+        var eyes = Eyes();
+        Vector2 head = new(200, -20), hips = new(200, 0), hand = new(205, 10);
+        var calls = new List<(Vector2, Vector2)>();
+        Assert.True(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { head, hips, hand }, CountingRay(calls, head)));
+        Assert.Equal(2, calls.Count);
+
+        calls.Clear();
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { head, hips, hand }, CountingRay(calls, head, hips, hand)));
+        Assert.Equal(3, calls.Count);
+    }
+
+    // The mission designer blinds this guard for good; a flashbang blinds it again and wears off. The designer's blind stays.
+    [Fact]
+    public void AFlashbangDoesNotUndoTheDesignersBlind()
+    {
+        var eyes = Eyes();
+        Vector2[] target = { new(100, 0) };
+        LineOfSight clear = (_, _) => true;
+
+        eyes.Modifiers.Push("designer: blind", 0);
+        int flash = eyes.Modifiers.Push("flashbang", 0);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, target, clear));
+        Assert.True(eyes.Modifiers.Pop(flash));
+        Assert.Equal(0, eyes.Range);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, target, clear));
+        Assert.Equal(new[] { "designer: blind" }, eyes.Modifiers.Active);
+        Assert.False(eyes.Modifiers.Pop(flash));
+
+        // Effects end in any order: fog pushed after the flashbang, flashbang ends first, fog still applies.
+        var guard = Eyes();
+        int bang = guard.Modifiers.Push("flashbang", 0);
+        int fog = guard.Modifiers.Push("fog", 0.5f);
+        guard.Modifiers.Pop(bang);
+        Assert.Equal(150, guard.Range);
+        guard.Modifiers.Pop(fog);
+        Assert.Equal(300, guard.Range);
+    }
+
+    // Players learn the ranges; a modifier may shrink them, never stretch them.
+    [Fact]
+    public void ModifiersOnlyReduceSight()
+    {
+        var eyes = Eyes();
+        var calls = new List<(Vector2, Vector2)>();
+        eyes.Modifiers.Push("alarm: eagle eyes", 1.5f);
+        Assert.Equal(300, eyes.Range);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(400, 0) }, CountingRay(calls)));
+
+        eyes.Modifiers.Push("storm", 0.5f);
+        Assert.Equal(150, eyes.Range);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(200, 0) }, CountingRay(calls)));
+        Assert.Empty(calls);
+        Assert.True(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(140, 0) }, CountingRay(calls)));
+    }
+
+    // The target ducks behind a pillar for a few frames: still chased, toward where it was seen, not where it really is.
+    [Fact]
+    public void ABriefOcclusionDoesNotForgetTheTarget()
+    {
+        var memory = new TargetMemory();
+        Assert.False(memory.IsTracked(1));
+        const float dt = 1 / 60f;
+        for (int frame = 0; frame < 10; frame++) memory.Update(seen: true, new Vector2(100 + frame, 0), dt);
+        for (int frame = 0; frame < 12; frame++) memory.Update(seen: false, new Vector2(500, 500), dt);   // hidden for 0.2 s
+        Assert.False(memory.Visible);
+        Assert.True(memory.IsTracked(graceSeconds: 1));
+        Assert.Equal(new Vector2(109, 0), memory.LastKnownPosition);
+
+        for (int frame = 0; frame < 60; frame++) memory.Update(seen: false, new Vector2(500, 500), dt);
+        Assert.False(memory.IsTracked(graceSeconds: 1));
+        Assert.Equal(new Vector2(109, 0), memory.LastKnownPosition);   // where to search
     }
 }

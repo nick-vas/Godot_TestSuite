@@ -1,14 +1,15 @@
 ---
 name: godot-game-ai
-description: Use when a Godot game has enemies, companions, crowds or opponents that decide or move on their own, when choosing between a state machine, behaviour tree, utility AI or a planner, when adding navigation or steering, or when an AI dithers, gets stuck, stands still or is hard to test.
+description: Use when a Godot game has enemies, companions, crowds or opponents that decide or move on their own, when choosing between a state machine, behaviour tree, utility AI or a planner, when enemies must notice the player (sight, hearing, stealth), when adding navigation or steering, or when an AI dithers, gets stuck, stands still or is hard to test.
 ---
 
 # Game AI in Godot 4 (C#)
 
 Pick the simplest decision structure that holds, keep it in plain C# so it is tested without the engine, and wait for
 navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ai/`
-(`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`) with `examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`.
-Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
+(`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Aim.cs`, `Perception.cs`) with
+`examples/breakout/tests/Breakout.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
+`${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
 
 ## 1. Which structure
 
@@ -48,10 +49,26 @@ three states (go to, animate, use object) with a planner choosing what to put in
 - Actions declare preconditions, effects and a cost; `GoapPlanner.Plan(state, goal, actions)` searches backwards from
   the goal, so actions irrelevant to it cost nothing. A forward search took 110 ms and gave up on a six-step plan hidden
   among 20 cheap irrelevant actions; backward, it plans in microseconds.
-- Cap the search (`maxExpanded`) and treat `null` as "no plan": fall back to a default behaviour.
+- Cap the search (`maxExpanded`) and treat `null` as "no plan": fall back to a default behaviour. `Plan(..., out int expanded)`
+  reports the work done; assert on it, not on wall time, which fails under load.
 - Replan on events (the goal changed, the plan failed or was invalidated), not every frame and not on the plan's own
   effects. F.E.A.R. kept one goal active at a time and spread expensive checks across frames as cached facts.
 - Checks that cost (line of sight, a path) belong in the action's run-time check, not the world state.
+- Price actions from the situation instead of writing range rules: `GoapPlanner.Plan(state, goal, actions, costOf: a => ...)`
+  with walking costing the distance. Chris Conway's Tomb Raider example: 20 m away, melee 1 + walk 20 = 21 loses to
+  ranged 10 + walk 1, and out of ammo the same actions run in to melee with no rule to change (`GoapCostsFollowTheSituation`).
+- Plans are short. Eric Jacopin's logs of F.E.A.R., Shadow of Mordor and a Rise of the Tomb Raider alpha: mostly one
+  or two actions, a few of three or four; he advises three at most. Shorten them by moving logic out of the planner:
+  Peter Higley's Mordor orcs drew their swords as an animation transition, not a planned action.
+- Planning cost grows with the number of world-state variables. Higley folded about 40 flags that were never true
+  together (cower and the like) into one enum and planned on about 10 variables.
+- Cap planning calls per frame. Mordor allowed up to 50 AIs to plan in a frame and did not throttle; Jacopin found one
+  session crossing 50 calls within 0.4 s (usually 2 to 3 s) with up to 150 active NPCs. Conway plans on-screen and
+  nearby NPCs more often than distant ones.
+- Group decisions belong to a separate role-assignment system, not every agent's goals. Mordor's investigation system
+  takes every orc that saw a body, picks who searches (closest, a captain) and hands out roles (lead, watch his back,
+  dismiss); each orc's planner only plans for its role. Tomb Raider lets only so many investigate and delays the event
+  by distance, so the closest NPC plans first.
 
 ## 5. Steering
 
@@ -61,11 +78,26 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Seek is `normalize(target - position) * maxSpeed - velocity`. Reynolds' 1999 paper prints the subtraction the other way
   round under Seek: copied, the agent flees.
 - Arrive slows inside a radius; Seek overshoots and orbits ("like a moth around a light bulb").
-- Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek.
+- Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek. That guess
+  is fine for a body that re-steers every frame, not for a projectile, which cannot (below).
 - Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass a seeded `Random`.
 - Summed behaviours can cancel out; put obstacle avoidance first (the first non-zero wins) when it must not lose.
 
-## 6. Navigation (Godot 4.7)
+### Aiming projectiles
+
+Lead anything slow enough to dodge with `Aim.Lead` (the exact intercept: the smallest positive root of a quadratic; null
+means no shot), arc with `Aim.Ballistic`, and miss on purpose with `Aim.Scatter` (±2 degrees) or the AI is an aimbot.
+`position + velocity * distance / speed` hit 3.6% of fast targets where `Aim.Lead` hit 100%. Details, the designer knobs
+and the fallbacks: [aiming.md](aiming.md).
+
+## 6. Perception
+
+Perception answers "is the target there?"; what it means is the decision layer's job (`Ai/Perception.cs`). Test shape and
+range before casting a ray, sample several points on the target, see from the muzzle once the weapon is out, stack
+modifiers with handles, and decide from a `TargetMemory`, not this frame's ray. Rules, Godot ray wiring and budgets:
+[perception.md](perception.md).
+
+## 7. Navigation (Godot 4.7)
 
 - A path query on a map that has not synchronised returns an empty path, and the agent stands still with no error:
   `IsNavigationFinished()` is false and `GetNextPathPosition()` returns its own position.
@@ -118,19 +150,22 @@ closest?") stop agreeing once rounding enters: the agent twitches in place or th
   scripted animation": in the talk, sheathing a sword later became one and made the player untargetable. Write down
   what `IsAlive` returns during the death animation, and assert it.
 
-## 7. Addons
+## 8. Addons
 
 LimboAI (MIT; behaviour trees and a hierarchical state machine, with an editor and debugger) supports C# only in its
 engine-module build, which means a custom editor and export templates. Beehave (MIT) is GDScript only. For a C# game on
 stock Godot, plain C# classes like Breakout's are the portable choice.
 
-## 8. Prove it
+## 9. Prove it
 
 Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness. Scenario tests run in Godot
 (`godot-test-loop`), wait on conditions with a time-out, never on a fixed number of frames.
 
 - [ ] each structure's failure mode has a test: momentum stops flip-flopping, a higher branch interrupts and aborts,
-      GOAP finds the cheapest plan and gives up within its budget, arrive does not overshoot
+      GOAP finds the cheapest plan, changes it when the situation changes its costs and gives up within its budget,
+      arrive does not overshoot, a led shot flown frame by frame hits fast targets
+- [ ] perception: no ray for a point outside the shape, one blocked sample does not hide the target, ending one
+      modifier keeps the others, a brief occlusion does not forget the target
 - [ ] a scenario test waits for navigation to be ready, then asserts the agent reaches its goal within N seconds and is
       never stuck (it moves more than a little over every half second)
 - [ ] every random choice comes from an injected `Random(seed)`; the same seed gives the same run

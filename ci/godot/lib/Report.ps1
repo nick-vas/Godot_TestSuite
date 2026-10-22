@@ -102,6 +102,8 @@ function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode)
         Runner = $Runner; Ok = $ok; Total = $totals.Total; Passed = $totals.Passed
         Failed = $totals.Failed; Skipped = $totals.Skipped
         Failures = @($totals.Failures | Select-Object -First 10 | ForEach-Object { Resolve-FailureDetail $_ $logLines })
+        # Every failing test's name, for comparing with the previous run (Get-FailureIds); Failures keeps the first 10 only.
+        FailedNames = @($totals.Failures | ForEach-Object Name)
     }
 }
 
@@ -265,6 +267,108 @@ function Write-RunSummary([string]$ResultsDir, $Info, [object[]]$Results, $Cover
         if ($warnings.Count -gt 10) { $md.Add("- and $($warnings.Count - 10) more in the run's JSON") }
     }
     Set-Content -LiteralPath (Join-Path $ResultsDir 'summary.md') -Value $md -Encoding utf8
+}
+
+# What changed since the previous run: failures this run added, kept and fixed. Media Molecule's test report put that in
+# its subject line ("assert +1"), so whoever just broke something sees it at once, apart from failures already there.
+# A failure's id is "<runner>|<test name>"; the message is left out because it can hold numbers that change between runs
+# (the talk stripped line numbers from call stacks for the same reason). Only a run with the same scope (runners and
+# -Filter) is compared, so a filtered run never reports every test it did not run as fixed.
+$script:FailureIdCap = 200
+
+function Get-TestScope([string[]]$Runners, [string]$Filter) {
+    return [ordered]@{ runners = @($Runners | Where-Object { $_ } | Sort-Object -Unique); filter = $(if ($Filter) { $Filter } else { '' }) }
+}
+
+function Test-SameScope($Recorded, $Scope) {
+    if (-not $Recorded -or -not $Recorded.PSObject.Properties['runners'] -or -not $Recorded.PSObject.Properties['filter']) { return $false }
+    $recordedFilter = if ($Recorded.filter) { [string]$Recorded.filter } else { '' }
+    return (@($Recorded.runners | Sort-Object -Unique) -join ',') -ceq (@($Scope.runners) -join ',') -and $recordedFilter -ceq $Scope.filter
+}
+
+# The failing tests of a run as ids in ordinal order, cut at $script:FailureIdCap so a history line stays small however much
+# broke. A runner that failed without naming a test (it crashed, timed out or reported no tests) counts as "<runner>|(runner)".
+function Get-FailureIds([object[]]$Runs, [int]$Cap = $script:FailureIdCap) {
+    $set = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($run in $Runs) {
+        $names = @(if ($run.PSObject.Properties['FailedNames']) { $run.FailedNames } else { $run.Failures | ForEach-Object Name })
+        foreach ($name in $names | Where-Object { $_ }) { [void]$set.Add("$($run.Runner)|$name") }
+        if (-not $run.Ok -and $names.Count -eq 0) { [void]$set.Add("$($run.Runner)|(runner)") }
+    }
+    $ids = [string[]]@($set)
+    [Array]::Sort($ids, [StringComparer]::Ordinal)
+    return [pscustomobject]@{ Ids = @($ids | Select-Object -First $Cap); Truncated = $ids.Count -gt $Cap }
+}
+
+# Every readable line of the project's run history, oldest first. A damaged line is skipped; a missing or unreadable file
+# gives none, which only means there is nothing to compare with.
+function Read-RunHistory([string]$ProjectDir) {
+    $file = Join-Path $ProjectDir '.godot/godot-ci-history.jsonl'
+    try {
+        if (-not (Test-Path -LiteralPath $file)) { return @() }
+        # A try per line is about four times faster than Test-Json on a long history.
+        return @(foreach ($line in Get-Content -LiteralPath $file) {
+            if (-not $line.Trim()) { continue }
+            try { ConvertFrom-Json -InputObject $line } catch { Write-RunLog "[godot-ci] Skipped a damaged line in ${file}" }
+        })
+    } catch {
+        Write-RunLog "[godot-ci] Could not read ${file}: $_"
+        return @()
+    }
+}
+
+# Compares this run's failure ids with the newest earlier test run of the same scope in $History. Without one,
+# comparedWith and the three lists are null: nothing claims to be new without a baseline. When either side was cut at
+# the cap, an id past the other side's cut is in neither list, because whether it failed there is unknown.
+function Get-FailureDelta([string[]]$Ids, [bool]$Truncated, $Scope, [object[]]$History) {
+    $previous = $null
+    # Newest first: the scan usually stops at the last line.
+    for ($i = $History.Count - 1; $i -ge 0 -and -not $previous; $i--) {
+        $entry = $History[$i]
+        if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test') { continue }
+        if (-not $entry.PSObject.Properties['failures'] -or -not $entry.PSObject.Properties['scope']) { continue }
+        if (Test-SameScope $entry.scope $Scope) { $previous = $entry }
+    }
+    if (-not $previous) { return [ordered]@{ comparedWith = $null; new = $null; stillFailing = $null; fixed = $null; truncated = $Truncated } }
+
+    $now = [string[]]@($Ids | Where-Object { $_ })
+    $before = [string[]]@($previous.failures | Where-Object { $_ } | ForEach-Object { [string]$_ })
+    [Array]::Sort($now, [StringComparer]::Ordinal)
+    [Array]::Sort($before, [StringComparer]::Ordinal)
+    $beforeCut = [bool]($previous.PSObject.Properties['failuresTruncated'] -and $previous.failuresTruncated)
+    $nowSet = [System.Collections.Generic.HashSet[string]]::new($now, [StringComparer]::Ordinal)
+    $beforeSet = [System.Collections.Generic.HashSet[string]]::new($before, [StringComparer]::Ordinal)
+    $known = {
+        param([string]$Id, [bool]$Cut, [string[]]$List)
+        -not $Cut -or $List.Count -eq 0 -or [string]::CompareOrdinal($Id, $List[$List.Count - 1]) -le 0
+    }
+    $split = { param([string]$Id) $runner, $name = $Id -split '\|', 2; [ordered]@{ runner = $runner; name = $name } }
+    $time = $previous.PSObject.Properties['time'] ? $previous.time : $null
+    return [ordered]@{
+        comparedWith = $(if ($time -is [datetime]) { $time.ToUniversalTime().ToString('o') } else { [string]$time })
+        new = @(foreach ($id in $now) { if (-not $beforeSet.Contains($id) -and (& $known $id $beforeCut $before)) { & $split $id } })
+        stillFailing = @(foreach ($id in $now) { if ($beforeSet.Contains($id)) { & $split $id } })
+        fixed = @(foreach ($id in $before) { if (-not $nowSet.Contains($id) -and (& $known $id $Truncated $now)) { & $split $id } })
+        truncated = ($Truncated -or $beforeCut)
+    }
+}
+
+# true: the failure is new since the compared run; false: it failed then too; null: no baseline, or not known.
+function Get-FailureNewFlag($Delta, [string]$Runner, [string]$Name) {
+    if (-not $Delta -or $null -eq $Delta.comparedWith) { return $null }
+    foreach ($f in $Delta.new) { if ($f.runner -eq $Runner -and $f.name -ceq $Name) { return $true } }
+    foreach ($f in $Delta.stillFailing) { if ($f.runner -eq $Runner -and $f.name -ceq $Name) { return $false } }
+    return $null
+}
+
+# The console line, e.g. "Since the run of 2026-10-21T10:00:00Z with the same runners and filter: 1 new (gut: test_x),
+# 2 still failing, 0 fixed". Nothing without a baseline.
+function Format-FailureDelta($Delta) {
+    if (-not $Delta -or $null -eq $Delta.comparedWith) { return $null }
+    $names = @($Delta.new | Select-Object -First 3 | ForEach-Object { "$($_.runner): $($_.name)" })
+    $more = if ($Delta.new.Count -gt 3) { ", and $($Delta.new.Count - 3) more" } else { '' }
+    $newText = if ($names) { "$($Delta.new.Count) new ($($names -join '; ')$more)" } else { '0 new' }
+    return "Since the run of $($Delta.comparedWith) with the same runners and filter: $newText, $($Delta.stillFailing.Count) still failing, $($Delta.fixed.Count) fixed"
 }
 
 # Installs a .NET global tool into the shared tools folder once; returns its path.
