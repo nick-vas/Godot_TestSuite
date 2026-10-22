@@ -1,0 +1,24 @@
+// A working app build script, laid out as Valve's SDK sample: paths relative to this file, Windows separators.
+// Depot 1002 maps the whole content folder without excluding steam_appid.txt, which is in it.
+"AppBuild"
+{
+	"AppID" "1000"
+	"Desc" "Fixture build"
+	"ContentRoot" "content\"
+	"BuildOutput" "..\output\"
+	"SetLive" "qa"
+	"Depots"
+	{
+		"1001" "depot_build_1001.vdf"
+		"1002"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"Recursive" "1"
+			}
+			"FileExclusion" "*.pdb"
+		}
+	}
+}

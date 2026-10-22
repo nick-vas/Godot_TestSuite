@@ -260,7 +260,7 @@ From this pass (`docs/steam.md`):
 | GodotSteam 4.23.2 on macOS (its `.gdextension` names files the zip lacks) | No macOS; `doctor` reports the missing files |
 | Whether Valve's 9 px means the font size or the letters' height | Valve does not say; `textsize` fails the first and warns on the second |
 | `SteamDeck=1`, `OS.GetDistributionName()` on a Deck, focus events in gamescope, real sleep | No Deck |
-| Rich presence token file and achievement-name lint, build VDF lint | Proposed checks, not built yet |
+| Achievement, stat and rich presence names held in constants (as Breakout's `BreakoutProgress` does) or in code outside the Godot project (`Breakout.Core`) | `doctor`'s Steamworks checks read string literals in the project's own `.cs` and `.gd` files; following constants needs a C# and GDScript parser |
 
 ## To do: store pages, legal basics and credits
 
@@ -270,9 +270,9 @@ From this pass (`docs/store-and-legal.md`):
 |---|---|
 | Steam's short description limit, capsule file formats and size caps; whether a trailer is still required for review; custom EULA setup; whether Steam wants a game privacy policy | Not in Steamworks' public pages; the owner's partner account (no app yet) would show the real forms |
 | IARC's questions | Only inside a store's portal; a `ratings.json` answers file with a plan gate is the planned check once they are seen |
-| A release timeline check in `plan` (fee + 21 days, Coming Soon + 14 days, 7 business days per review, date freeze, Next Fest deadlines) | Needs dates in `plan.json`; a kit feature for a later pass |
-| A privacy check in `doctor` (telemetry or an Android/iOS preset without a policy; `policyVersion` not found in the policy) | A kit feature for a later pass |
-| Trailer and tag checks (`ffprobe` on `store/steam/trailer*`, `tags.txt`) | A kit feature for a later pass |
+| Next Fest registration deadlines in the release timeline (February 2027: register by January 10) | Valve publishes them per edition; the timeline checks only the demo review lead, which the Next Fest page states |
+| Public holidays in the timeline's business days | Valve does not say whose holidays count; the timeline counts Monday to Friday |
+| A trailer's container, length and minimum size | No source the kit read states them; `doctor` reports them as INFO |
 | A flow test that the credits screen is reachable from the main menu | Game-specific; the skill tells games to add one |
 | GodotSteam's licence, the Steamworks SDK redistribution terms, FMOD's credit terms, GOG's asset specs | 403, 404 or JavaScript-only pages from the cloud session, or partner-only |
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
