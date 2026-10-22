@@ -12,6 +12,7 @@ The research behind the `godot-localization` skill, the `l10n` runner and `shot 
 | `resource_loader.cpp` (`_path_remap`, `load_translation_remaps`), `localization_editor.cpp` | Translation remaps: `path:locale` targets, the locale read after the last `:`, a missing target warned about and replaced by the source |
 | `audio_stream_wav.cpp` | WAV import accepts format codes 1 (PCM) and 3 (float) only |
 | [Steps for Effective Localization](gdc/steps-for-effective-localization.md) (GDC talk, SIE Europe) | Length limits and audio specs agreed before translation and checked on delivery: the `too long`, `translation remaps` and `localized audio` cases |
+| GDC talks on Destiny's localization, Chinese-speaking markets and typography for global games ([notes](gdc/folds-l10n-audio-net.md)) | Gameplay information never only in text on art; variants only where a language needs them; Simplified and Traditional as separate, named locales; UTF-8 tables; CJK needs larger text; no negative letter spacing; room for accents: the encoding and `chinese-without-script` checks |
 | [Localization using gettext](https://docs.godotengine.org/en/stable/tutorials/i18n/localization_using_gettext.html) and `translation_loader_po.cpp` | `.po` loading, `Plural-Forms`, `msgctxt`; any comment containing "fuzzy" skips the next entry |
 | [Pseudolocalization](https://docs.godotengine.org/en/stable/tutorials/i18n/pseudolocalization.html) and `translation_server.cpp` | The nine settings, applied at translate time even with no translation |
 | `translation_domain.cpp` | Lookup: current locale, then `internationalization/locale/fallback`, then the key |
@@ -35,6 +36,9 @@ The research behind the `godot-localization` skill, the `l10n` runner and `shot 
 | A remap `en -> fr, de, it` (no `it` file), `set_locale` then `load` of the source path | `fr` gave the French file; `set_locale("de")` reloaded the same object as German; `it` printed a WARNING (not an error, so `smoke` passes) and played the English |
 | A 24-bit WAV from ffmpeg (WAVE_FORMAT_EXTENSIBLE, tag `0xFFFE`) | Import fails: "Format not supported for WAVE file (not PCM)"; 16-bit mono WAVs import |
 | `shot -Locale fr -Pseudo` on `tests/l10n-fixture/clean` | Finds the button cut off in French and pseudo, the label off screen, the Japanese label without glyphs; nothing on the label that fits (4.6.1 and 4.7.2) |
+| A table saved as UTF-16 (CSV with BOM, `.po`), as Big5, or as UTF-8 with a BOM (4.7.2 standard) | UTF-16 CSV: the import only warns "does not contain any translation" and makes no `.translation`; UTF-16 `.po`: fails to load; Big5: imports, every Chinese letter U+FFFD; UTF-8 with a BOM: imports correctly. PowerShell reads all four correctly, so the `l10n` runner checks the bytes |
+| Which table a Chinese system locale gets (4.7.2) | `zh_Hans` serves zh_CN, zh_SG and plain zh; `zh_Hant` serves zh_TW and zh_HK; with `zh_CN` and `zh_TW` tables, zh_HK gets zh_TW. A plain `zh` table serves all five |
+| `TranslationServer.Translate("WELCOME", "female")` with only a context-less `WELCOME` loaded | Returns the key `WELCOME`, not the plain line: a variant must be filled in every language |
 
 ## Not confirmed
 

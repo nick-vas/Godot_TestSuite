@@ -28,6 +28,7 @@ warm-up, `export -Run`, the release workflow, the Godot, template and NuGet cach
 | docs.gog.com (HTTP 500; search snippets only) | `GOGGalaxyPipelineBuilder build-game` |
 | getsentry/sentry-docs `cli/dif.mdx` | `sentry-cli debug-files upload` |
 | godot-builds 4.7.2-stable `SHA512-SUMS.txt` | Which Perfetto builds and debug symbols are published |
+| Piotr Mintus, "Performance and Memory Postmortem for Middle-earth: Shadow of War" (Monolith, GDC 2018 inferred; [notes](gdc/folds-l10n-audio-net.md)) | Character LODs pushed out from measured CPU frame time; a deep pipeline bound by V-Sync put the screen about 200 ms behind the input |
 
 ## Profiling C#
 

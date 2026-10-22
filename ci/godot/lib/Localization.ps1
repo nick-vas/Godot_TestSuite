@@ -1,8 +1,9 @@
 # The `l10n` runner: translation tables checked without Godot. It fails on duplicate keys, untranslated entries (an empty CSV
-# cell; an empty, fuzzy or short-of-plurals PO entry), keys the code asks for that no table has, CSV text longer than the
+# cell; an empty, fuzzy or short-of-plurals PO entry; a table that is not UTF-8), keys the code asks for that no table has, CSV text longer than the
 # limits in its _max/_lines columns, translation remaps to files that do not exist, and localized sounds whose format,
 # length or loudness differ from the source's (with ffmpeg; skipped without it). Selected when the project has Godot
 # translation CSVs (imported as csv_translation, or a first header cell "keys"), gettext .po files or translation remaps.
+# A plain "zh" locale is a warning (chinese-without-script).
 #
 # l10n.json in the project (optional) changes the localized-voice tolerances:
 #   { "voiceDurationMin": 0.5, "voiceDurationMax": 2.0, "voiceLoudnessLu": 2.0 }
@@ -92,6 +93,43 @@ function ConvertFrom-PoFile([string]$Text) {
     }
     & $flush
     return , $entries.ToArray()
+}
+
+# Godot reads translation tables as UTF-8 and skips a UTF-8 BOM. Measured on 4.7.2: a UTF-16 CSV imports with no
+# translation (the import only warns), a UTF-16 .po fails to load, and a Big5 CSV imports its letters as U+FFFD.
+# PowerShell decodes all of them correctly, so the bytes are checked before parsing. $null when Godot can read the file.
+function Get-TableEncodingProblem([string]$Path) {
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -ge 2 -and (($bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) -or ($bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF))) {
+        return 'is UTF-16: Godot reads no translation from it; save it as UTF-8'
+    }
+    if ([array]::IndexOf($bytes, [byte]0) -ge 0) { return 'has NUL bytes (UTF-16 without a BOM?): save it as UTF-8' }
+    $start = if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) { 3 } else { 0 }
+    try { [void][System.Text.UTF8Encoding]::new($false, $true).GetString($bytes, $start, $bytes.Length - $start) }
+    catch [System.Text.DecoderFallbackException] {
+        return 'is not UTF-8 (Big5, GBK, Shift JIS or a Windows code page?): Godot shows the letters as U+FFFD; save it as UTF-8'
+    }
+    return $null
+}
+
+# Locales a table names as plain "zh": Godot gives that one table to every Chinese player, Simplified (zh_CN, zh_SG) and
+# Traditional (zh_TW, zh_HK) alike, and the two scripts are written and worded differently. Warnings, not failures.
+function Get-TranslationWarnings([string]$ProjectDir) {
+    $sources = Get-TranslationSources $ProjectDir
+    $found = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in $sources.Csv) {
+        if (Get-TableEncodingProblem $file.FullName) { continue }
+        $header = @((Get-Content -LiteralPath $file.FullName -TotalCount 1) -split '[,;\t]' | ForEach-Object { $_.Trim('"', ' ') })
+        if (@($header | Select-Object -Skip 1 | Where-Object { $_ -eq 'zh' }).Count) { $found.Add("$(ConvertTo-ResPath $ProjectDir $file.FullName): column 'zh'") }
+    }
+    foreach ($file in $sources.Po) {
+        if (Get-TableEncodingProblem $file.FullName) { continue }
+        if ((Get-Content -LiteralPath $file.FullName -Raw) -match '(?m)^"Language:\s*zh\s*(\\n)?"') { $found.Add("$(ConvertTo-ResPath $ProjectDir $file.FullName): Language: zh") }
+    }
+    return @(foreach ($where in $found) {
+        [ordered]@{ rule = 'chinese-without-script'; severity = 'warning'; file = ($where -split ': ')[0]; line = $null
+            message = "$where is shown to Simplified and Traditional Chinese players alike: name the script (zh_CN and zh_TW, or zh_Hans and zh_Hant)" }
+    })
 }
 
 # Plural forms a language needs, as gettext and Godot's built-in rules count them (CLDR's decimal-only categories aside).
@@ -251,6 +289,8 @@ function Get-TranslationCases([string]$ProjectDir) {
 
     foreach ($file in $sources.Csv) {
         $res = ConvertTo-ResPath $ProjectDir $file.FullName
+        $encoding = Get-TableEncodingProblem $file.FullName
+        if ($encoding) { $untranslated.Add("$res $encoding"); continue }
         $import = "$($file.FullName).import"
         $delimiter = ','
         $importText = if (Test-Path -LiteralPath $import) { Get-Content -LiteralPath $import -Raw } else { '' }
@@ -323,6 +363,8 @@ function Get-TranslationCases([string]$ProjectDir) {
 
     foreach ($file in $sources.Po) {
         $res = ConvertTo-ResPath $ProjectDir $file.FullName
+        $encoding = Get-TableEncodingProblem $file.FullName
+        if ($encoding) { $untranslated.Add("$res $encoding"); continue }
         $entries = ConvertFrom-PoFile (Get-Content -LiteralPath $file.FullName -Raw)   # already an array of entries
         $header = @($entries | Where-Object { $_.Id -eq '' -and -not $_.Context } | Select-Object -First 1)
         $plurals = if ($header -and $header[0].Strings[0] -match 'nplurals\s*=\s*(?<n>\d+)') { [int]$Matches.n } else { 2 }
@@ -362,6 +404,7 @@ function Invoke-LocalizationRunner([string]$ProjectDir, [string]$ResultsDir) {
         Write-CiLog "l10n $($case.Name) skipped: $($case.Skipped)"
         [ordered]@{ rule = 'no-ffmpeg'; severity = 'warning'; file = $null; line = $null; message = "$($case.Name): $($case.Skipped)" }
     })
+    foreach ($warning in Get-TranslationWarnings $ProjectDir) { Write-CiLog "l10n warning: $($warning.message)"; $warnings += $warning }
     ConvertTo-Json -InputObject $warnings -Depth 4 | Set-Content -LiteralPath (Join-Path $ResultsDir 'findings.json') -Encoding utf8
     return 0
 }

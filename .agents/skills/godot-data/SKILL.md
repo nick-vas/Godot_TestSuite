@@ -101,6 +101,10 @@ every row without Godot and writes one JUnit case per table:
   game. Never hand-edit the export; commit it so a review shows every balance change.
 - Keep derived columns (damage per second, time to kill) in the sheet; export only the inputs.
 - Print a digest of all data tables in the game's log and in bug reports, so a report says which balance it ran.
+- Balance downloaded from a server (rebalancing without a patch; a Sony online consultant's GDC advice) is data only:
+  JSON or CSV parsed into the same records and checked by the same rules, never a `.tres`, a script or an expression,
+  which would be a way in for an attacker. The shipped tables stay the fallback, so the game plays offline with
+  whatever version it has; apply a download between missions or runs, never mid-mission; write its version into saves.
 
 ## 6. Placed objects: every one, every run
 

@@ -21,8 +21,10 @@ it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/
 - A key built at run time (`Tr($"LEVEL_{i}")`) cannot be checked: list the keys it can produce in a comment table, or
   look them up from data that names them.
 - Text drawn with `DrawString` or put in a `RichTextLabel` by code is not auto-translated: pass it through `Tr`.
-- Variants of one line (player gender, age) are contexts of the same key, `Tr("WELCOME", "female")`, not new keys: each
-  language fills every variant, repeating the text where it needs no difference.
+- Variants of one line (player gender, age) are contexts of the same key, `Tr("WELCOME", "female")`, not new keys. Add
+  one only to lines where some language needs it (Destiny branched a line if even one language needed a female form);
+  each language then fills it, repeating the text where it needs no difference. A context no table has returns the raw
+  key, not the plain line (4.7.2).
 - In debug builds, print the key when a line of dialogue or a subtitle is shown (`GD.Print($"[l10n] {key}")`), so a
   tester's log or recording names the row to fix. After bot, soak and playtest runs, list the dialogue keys never logged:
   that is the coverage, and a line that never plays is often set up wrong (Horizon Zero Dawn's contextual NPC lines,
@@ -37,8 +39,9 @@ it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/
 | Import | Makes `<name>.<locale>.translation` beside the CSV | Loaded as is |
 | Notes for translators | Columns whose header starts with `_` | `#.` comments |
 
-- CSV: UTF-8 without a BOM; quote a cell with a comma, newline or `"` and double the inner `"`. The delimiter is an import
-  option (comma, semicolon or tab).
+- CSV and PO files are UTF-8 (a BOM is skipped). Godot reads a UTF-16 table as no translation at all and a Big5 or
+  Windows code-page one as U+FFFD boxes; the gate below fails both. Quote a CSV cell with a comma, newline or `"` and
+  double the inner `"`. The delimiter is an import option (comma, semicolon or tab).
 - Register every table in Project Settings > Localization > Translations
   (`internationalization/locale/translations`). Commit the `.csv.import`; the `.translation` files are made by the import.
 - Godot skips a PO entry after any `#` comment containing the word "fuzzy", not only `#, fuzzy` flags.
@@ -50,8 +53,8 @@ it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/
 
 The `l10n` runner (picked automatically when a project has translation CSVs, `.po` files or translation remaps) fails on
 duplicate keys (same key and context twice), untranslated entries (an empty cell, a fuzzy or empty PO entry, fewer plural
-forms than the language needs), keys in `tr`/`Tr`/`TrN`/`atr` calls that no table has, text over its length limit, and
-the remaps and voice of section 4:
+forms than the language needs), keys in `tr`/`Tr`/`TrN`/`atr` calls that no table has, text over its length limit, tables
+that are not UTF-8, and the remaps and voice of section 4:
 
 ```powershell
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Runners l10n -Json -Quiet
@@ -75,6 +78,9 @@ as two code points, or an emoji sequence, is one; line breaks are not counted. P
   (`res://voice/en/l01.ogg`) and one file per locale, each saved as `path:locale`. Code and scenes use the source path;
   Godot loads the current locale's file instead, and reloads it when the locale changes.
 - Same file name, one folder per locale (`voice/fr/l01.ogg`): each pair is plain to read and to check.
+- Text painted into art (signs, posters) stays in one language unless remapped. Never let it carry what the player needs
+  (a "this way" sign: use the HUD, a voice line or an icon), never make a symbol of an English initial (Destiny's "U" for
+  the Underwatch: translated names start with other letters), and check what dirt or a decal over a few letters spells.
 - A target that does not exist only warns at run time and plays the source; a target without `:locale` is never used. The
   `translation remaps` case fails on both.
 - The `localized audio` case compares each sound with its source, with ffmpeg (skipped with a warning without it): the same
@@ -112,6 +118,15 @@ and Arabic from its own fonts and a player's may not. Look at the pictures too (
   guarantee. Set `AllowSystemFallback = false` on shipped fonts while testing so this machine looks like a player's.
 - Thai, CJK, Khmer and other scripts break lines with dictionary data: export with
   `internationalization/locale/include_text_server_data = true` (about 4 MB).
+- Chinese is two locales, translated apart and named by script: `zh_CN` and `zh_TW` (or `zh_Hans`, `zh_Hant`). Godot
+  gives zh_HK the Traditional table and zh_SG the Simplified one. A converter is no translation (words differ between
+  China, Taiwan and Hong Kong), and "Chinese" alone in a store page or menu says nothing. A plain `zh` column or `.po`
+  is a `chinese-without-script` warning from the gate.
+- CJK letters are denser: a size still readable in Latin can blur in Chinese, and one point size is not one height
+  across scripts. Look at the smallest text with `shot -Locale zh_TW`, not only at the pseudo pass. Keep one family per
+  style down the fallback chain: a serif CJK fallback under a sans Latin font looks broken even to non-readers.
+- Letter spacing (`FontVariation.SpacingGlyph`) stays at 0 or above for running text, and text boxes in fixed art keep
+  room above and below the letters for stacked accents. `Label.Uppercase` widens text: pseudo-test with it on.
 
 ## 7. Right-to-left
 
