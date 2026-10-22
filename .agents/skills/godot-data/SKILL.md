@@ -53,6 +53,11 @@ used by the game, tests and CI, reports every problem at once instead of stoppin
 - ranges from the `PropertyHint.Range` hint strings; enums with `Enum.IsDefined`
 - the game's balance rules from the GDD: damage rises with tier, drop weights sum above 0, every enemy beatable at the
   level's expected player power
+- a cost curve: one formula, kept in one place, gives each item's benefits minus its costs; the test fails on any item
+  outside a stated band (the method of a game balance course's GDC talk)
+- chance tables: no negative weight, every probability within 0 and 1, the exclusive outcomes summing to exactly 1 (most
+  probability mistakes fail one of these); where the exact chance of an outcome is known, the seeded rate of `godot-procgen`'s
+  "Chances come out right" test must agree with it
 
 ## 4. Tables: JSON and CSV
 

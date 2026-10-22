@@ -58,6 +58,17 @@ wall: `(p - p.Project(wallDir)).Length()`. For movement, Godot does the decompos
   to.Normalized())` gives the rotation itself.
 - Prefer `Basis` and `Quaternion` over hand-built 3 x 3 matrices; interpolate rotations with `Quaternion.Slerp`, never by
   interpolating angles past 180 degrees (`Mathf.LerpAngle` wraps correctly in 2D).
+- Interpolation traps, from "A Visual Guide to Quaternions and Dual Quaternions" (GDC), checked in Godot 4.7.2:
+  - `q` and `-q` are the same orientation, one the long way round. `Slerp` flips the sign itself (10 to -(80) degrees
+    gives 45 halfway); `Slerpni` and hand-written lerps do not (135): check `a.Dot(b) < 0` and negate first.
+  - Never lerp a `Basis` or matrix component by component: halfway through a 162 degree turn the object is squashed to
+    0.16 of its width (determinant 0.02). Use `Basis.Slerp` or `Transform3D.InterpolateWith`, which keep scale 1.
+  - Normalised lerp is not constant-speed (a quarter of a 160 degree turn gives 34.5 degrees; `Slerp` 40).
+  - Normalise before rotating a vector: in C# a debug build throws "Quaternion is not normalized."; a release build
+    silently stretches the vector. Build rotations with `new Quaternion(axis, angle)` (it halves the angle for you) or
+    `Basis.FromEuler(angles, EulerOrder.Yxz)` with the order named, never with sin and cos by hand.
+  - Skinned characters whose forearms twist flat (the candy wrapper) need dual-quaternion or "preserve volume" skinning
+    in the 3D tool; whether Godot's `Skeleton3D` offers it was not checked.
 
 ## Trigonometry (chapter 5)
 

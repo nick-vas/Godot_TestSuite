@@ -179,7 +179,7 @@ pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contr
 | A `playthrough` runner | `production.playthrough` is a manual gate, and `smoke` passes on a bot stuck in the first room | Built from the `juice` runner: run the main scene with `--headless --fixed-fps 60` and the game's flags, fail unless every expected log line (`[Run] ending reached`) appears; a `runner:playthrough` gate check; a fixture whose bot never finishes |
 | `--fixed-fps` for `smoke` | `-Frames` counts frames, not game time, so a long bot run is neither fast-forwarded nor reproducible | Opt-in switch, so existing smoke runs keep their meaning |
 | `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
-| Test duration in `status` | Croteam steered by submit-to-verdict time; the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
+| Test duration in `status` | Croteam steered by submit-to-verdict time; Rare sped up Sea of Thieves' commit stage, stopped watching, and was back where it started within months (`docs/gdc/folds-testing-misc.md`); the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
 
 ## To do: audio
@@ -285,6 +285,7 @@ From this pass (`docs/store-and-legal.md`):
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
 | Whether an export template lists only the components it compiles in (`Engine.get_copyright_info()`) | Not tested; `credits` lists every component, which over-credits but never under-credits |
 | Whether a store's DRM counts as a "technological measure" under CC BY | A legal question; the skill flags it |
+| The CVAA's games waiver (ended 1 January 2019) and grandfathering of older games, in an FCC source (`godot-legal` section 7) | fcc.gov and ecfr.gov were unreachable from the cloud session; only the talk and 47 CFR Part 14 (2023, govinfo.gov) were read |
 
 ## To do: phones, tablets and browsers
 
@@ -300,3 +301,4 @@ From this pass (`docs/mobile-web.md`):
 | Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
 | Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
+| Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |

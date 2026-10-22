@@ -44,6 +44,9 @@ a screenshot at 1920x1080 showed it.
 - Readability over a busy 3D backdrop: dim it, or put text on an opaque panel. Semi-transparent panels let titles behind them show
   through.
 - Text and icons need contrast that survives a post-process grade (posterize, tint, vignette); check with `shot`, not in the editor.
+- What matters most is drawn biggest, not equal to everything else (Zach Gage's three reads, GDC; `/look` names them).
+  Menus not needed during play slide away and come back on a tap (Really Bad Chess). A colour change that teaches a rule
+  animates across the pieces rather than popping in, or players take it for decoration (TypeShift).
 - Gamepad and keyboard navigation, focus, contrast numbers, target sizes and screen readers: `godot-ui-accessibility`.
 - Phones, tablets and ultrawides, notches and safe areas: the `layout` runner checks every screen (`godot-mobile-web`).
 

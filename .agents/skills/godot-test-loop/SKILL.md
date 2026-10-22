@@ -39,6 +39,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet   # failures 
 | `tests-failed` | `runnerResults[].failures[]` (`name`, `message`, `file`, `line`) | fix the code under test, or the test |
 | `coverage-below-minimum` / `no-coverage` | `coverage` | add tests; for gdUnit4Net see `godot-pitfalls` |
 | `unsafe-results-dir` | - | pass a dedicated `-Results` folder |
+| `download-failed` | `error.message` (the URL) | the network or the server, not your code: retry later; never change the game for it |
 | `unexpected-error` | `error.message` | usually a bad path or argument |
 
 With `tests-failed`, read `failureDelta.new` first: those failures were not there in the last run with the same
@@ -56,3 +57,17 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
   a known engine message only, never for your own errors.
 - Never skip, delete or loosen a test to get green. Fix the code or ask.
 - New bug -> first a regression test that fails, then the fix.
+- Let the code's own checks do the testing (Kevin Dill, Kythera AI, GDC): validators and `push_error`/`push_warning` in
+  the game catch what tests at the interface cannot see. An unexpected one fails the test (GUT 9.7.1 fails on
+  `push_error` by default; the suite fails on `ERROR:`); an expected one is counted exactly: feed a bad data file and
+  `assert_push_error_count(3)` or `assert_push_warning_count(3)` (GUT), or have a C# validator return its problems
+  and assert their number. Debug-only validators that run on every level load make every test that loads a level a
+  data check.
+- A stress test for code that steps with `delta`: a big level, many agents, a thousand updates with `delta` growing
+  each step from tiny to huge (say 1/240 s to 0.25 s), a save and reload every 200 updates, nothing may break. Dill's
+  found bugs that appear only at bad frame rates.
+- Slow tests (stress, long replays) get a category, `[Trait("Category", "Slow")]`; the inner loop leaves them out with
+  `-Filter 'Category!=Slow'`, and CI runs everything.
+- A test that passes and fails on the same code usually waits a fixed time (a boot that grows with content), depends on
+  state an earlier test left, or calls an outside service (Jafar Soltani, Rare, on Sea of Thieves, GDC 2018). Wait on a
+  condition with a time-out, set up its own state, fake the service.
