@@ -29,6 +29,9 @@ Feedback is information, not decoration. Nicolae Berbece layered Move or Die's d
 a colour split, a shockwave, rumble) until players knew someone had died elsewhere on screen without looking there.
 In the `juice` runner, `mark` and `rumble` are feedback names like any other.
 
+Optional, at boot: a short sound under the splash logo tells the player the game is running; Kenji Eno had Ryuichi
+Sakamoto write the Dreamcast's (*Untold History*). Keep the splash short and skippable.
+
 Keep feedback on the presentation side: it must never change gameplay state, so tests and bots stay deterministic
 (`godot-architecture`).
 
