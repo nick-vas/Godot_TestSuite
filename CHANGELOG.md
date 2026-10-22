@@ -8,7 +8,9 @@
   a hyphen are published as pre-releases; pull requests from forks get a notice instead of a misleading PR-comment
   warning. `doctor` fails on Git LFS pointers left in place of assets, committed keystores, certificates and
   `config.vdf`, names Windows cannot create and paths that differ only in case, and warns on `res://` paths whose case
-  differs from the file. `Test-DocLinks.ps1` checks every link and quoted path in the docs and skills.
+  differs from the file. `Test-DocLinks.ps1` checks every link and quoted path in the docs and skills. The self-test
+  installs ffmpeg through `.github/actions/ffmpeg`, which keeps its packages in the Actions cache: Ubuntu's mirror took
+  12 minutes for them in one run.
 - Algorithms (TheAlgorithms/C-Sharp, GPL-3.0, studied and measured, not copied; its MIT explanations read too;
   `docs/algorithms.md`): a `godot-algorithms` skill; Breakout.Core gains a Dijkstra map for crowds and fleeing
   (`DistanceField`), region labelling and union-find (`Regions`, `DisjointSet`) and "did you mean" (`Suggest`). The

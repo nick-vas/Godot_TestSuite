@@ -80,11 +80,11 @@ jobs:
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
+      # Before the l10n and audio steps, which measure sound with it.
+      - uses: ./.github/actions/ffmpeg
       - name: The l10n runner fails on duplicate, untranslated, missing and too long keys, broken remaps and mismatched voice
         shell: pwsh
-        run: |
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
-          ./tests/Test-Localization.ps1
+        run: ./tests/Test-Localization.ps1
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
@@ -105,9 +105,7 @@ jobs:
         run: ./tests/Test-TokenBenchmark.ps1
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
-        run: |
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
-          ./tests/Test-Audio.ps1
+        run: ./tests/Test-Audio.ps1
       - name: The juice check matches events with their feedback
         shell: pwsh
         run: ./tests/Test-JuiceLog.ps1
@@ -388,11 +386,10 @@ jobs:
       - name: Capture mode hides the HUD, mutes only the music, and freezes the game while the free camera flies
         shell: pwsh
         run: ./tests/Test-Capture.ps1
+      - uses: ./.github/actions/ffmpeg
       - name: audio -Mix records the game's mix and judges its loudness
         shell: pwsh
-        run: |
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
-          ./tests/Test-Audio.ps1 -Mix
+        run: ./tests/Test-Audio.ps1 -Mix
       - name: -GameArgs reach the game
         shell: pwsh
         run: |
