@@ -38,6 +38,12 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
   Breakout's `DeterministicRandom` (xorshift64*, `State` is a `ulong`) or Godot's `RandomNumberGenerator` (`Seed`, `State`).
 - Never in the simulation: `DateTime.Now`, `Time.GetTicksMsec()`, `GD.Randf()`, `GD.Randi()`, `delta` from `_Process`,
   static mutable fields, threads and `Parallel` (their order varies), `async` continuations.
+- Nor engine completion signals: `AudioStreamPlayer.Finished`, `AnimationPlayer.AnimationFinished`, `Tween.Finished`.
+  A one-second sound finished on physics tick 56 to 62 over 20 real-time runs, and never within 200,000 ticks under
+  `--fixed-fps 60` (audio follows the wall clock); the animation on tick 60 or 61. Store the length in ticks, count it
+  down in `Step`, and fire your own event at zero.
+- One random stream for the simulation (in its state), and separate ones for ambient audio and effects, outside it:
+  more sparks or a new ambient sound then leave old replays playing (`CosmeticRandomDrawsDoNotChangeTheReplay`).
 
 ## 3. Godot's physics
 
@@ -82,6 +88,28 @@ ulong h = DeterminismCheck.Fnv1a(DeterminismCheck.Fnv1a(14695981039346656037, x)
 
 - A replay holds the seed, the inputs and checkpoints; ship the build id and a digest of the game data with it, or an
   old replay against new balance numbers diverges.
+- Record every session, always (Retro City Rampage): `InputLog` (`Determinism/InputLog.cs`) keeps a header, one
+  run-length stream per button and per axis and a checksum byte, under zlib. Ten busy minutes took 9,651 bytes (25,139 as
+  raw frames under the same zlib), small enough to attach to a bug report or a leaderboard entry.
+
+```csharp
+var log = new InputLog(new InputLogHeader(seed, buildId, Rules: 3, Options: "scheme=b", ChecksumInterval: 60));
+log.Record(sim, frame);                  // every tick: steps the sim with the quantised InputFrame and keeps it
+log.Save(path);                          // on quit and from your Logger's _LogError: write to a temp file, then move
+Divergence? d = InputLog.Load(path).Play(sim, toTick: n);   // null, or the first tick whose checksum byte differs
+```
+
+- Build the `InputFrame` after reading the devices and before the game uses it, quantised; record and playback go
+  through the same `Record` and `Play`, so they cannot drift apart.
+- Save on `NotificationWMCloseRequest` and from a `Logger` (`godot-telemetry`'s `ErrorCapture`): C# exceptions in
+  callbacks never reach `AppDomain.UnhandledException`. A `Logger` runs on the failing thread, so globalize
+  `user://replays/last.replay` once at start; `InputLog` locks, so saving from there is safe.
+- A checksum byte every tick in development finds the very tick of a desync; every 60 ticks in a shipped build (a
+  byte a tick is 36 KB per ten minutes, and does not compress).
+- When a fix changes gameplay, bump `Rules` and keep the old branch (`if (rules < 3) ...`), so recorded logs keep
+  playing (`AnOldLogPlaysUnderTheRulesItWasRecordedWith`); still refuse one whose data digest differs.
+- Record even when the game is not fully deterministic yet: a log that reproduces a bug half the time beats a tester
+  replaying an hour by hand.
 - On a desync, both sides dump the state at the first bad tick as sorted text and diff it; it is usually one variable
   (Factorio's workflow).
 - For rollback, record the remote inputs with the tick each arrived on: the match then replays on one machine with the
@@ -103,3 +131,5 @@ ulong h = DeterminismCheck.Fnv1a(DeterminismCheck.Fnv1a(14695981039346656037, x)
 - [ ] if machines must agree: the replay checksum printed on windows-latest, ubuntu-latest and macos-latest (Arm64) and
       compared across the jobs
 - [ ] a code review of the simulation folder for the "never" list in section 2
+- [ ] an `InputLog` saved, loaded and played to the end and to a middle tick gives the live checksums
+      (`SkipToFrameReachesTheSameChecksum`); one recorded on the previous release still plays

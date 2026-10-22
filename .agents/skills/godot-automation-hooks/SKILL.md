@@ -46,6 +46,12 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://
 | `--act=N`, `--start-floor=N`, `--level=X` | jump straight to the content under test |
 | `--stress` | the worst case for `bench` (`godot-performance`) |
 | `--shot=path --shot-at=seconds` | the game saves its own screenshot (inside a real run, with game state); `shot` covers single scenes |
+| `--playback=<file>`, `--skip-to-frame=N` | replays an `InputLog` the game saved on quit or on an error (`godot-determinism`); the skip plays N ticks undrawn, then hands control back, still recording |
+
+Every session records its input, so a bug found by hand ends as a file: quit, then `-- --playback=user://replays/last.replay
+--skip-to-frame=N` lands on the frame of the bug. Playback also means `--no-save` and Breakout's `LocalPlatform` in place of Steam,
+never stored, so a replay unlocks and posts nothing real. Unlike `--replay` below, which stores intent and survives level edits,
+an input log holds raw ticks: it needs the same simulation rules (or its `Rules` branch) to play.
 
 ## Deterministic randomness
 
