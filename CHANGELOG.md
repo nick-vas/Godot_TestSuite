@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- The second-pass test features from Croteam's CI talk: a `playthrough` runner (`playthrough.json`: the game's bot plays at
+  a fixed 60 fps of game time and must log every milestone in order, the ending last; `smoke` passed a bot stuck in the first
+  room), and the plan gate `production.playthrough` is now checked by it (`runner:<name>`, a new gate check). `smoke
+  -FixedFps` runs smoke at fixed game time. `shot -Baseline -MaxChangedPercent` fails a changed screen with the new code
+  `shot-changed`. `status` reports `testDuration` (the median of recent passing full test runs against the ten before) and
+  warns over `testBudgetSeconds` in `plan.json` (900 in new plans) or when runs grow by half. `Test-LibNames.ps1` fails when
+  two lib files define the same function (status had called `Audio.ps1`'s `Get-Median` instead of its own).
 - `sfx`: placeholder sound effects from a seed (coin, laser, explosion, powerup, hit, jump, blip), so a prototype has
   sounds on day one. bfxr2's Bfxr synth ported to C# (`ci/godot/tools/Sfxr.cs`, Apache-2.0 and MIT) and compiled into
   the session, so it needs no Godot; the same seed gives bfxr2's sound sample for sample. WAVs at `-PeakDb` (-6 dBFS),
