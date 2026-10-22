@@ -17,6 +17,10 @@ approval, and, for kit changes, a measured result. Never write a new skill from 
 - Auto memory: `MEMORY.md` in this project's Claude Code memory folder, if it exists.
 - `git log --oneline -30` and reverted or amended work.
 - `docs/lessons.md` in the game, so nothing is recorded twice.
+- For a whole-project post-mortem: the people (or agents) who built it, over a playthrough recording or a `playthrough`
+  log, not memory. Take each account separately before merging, and record disagreements instead of averaging them:
+  "Sometimes those contradictions are because one person is wrong. But sometimes, everyone is correct." (Yusaku
+  Yamamoto, *Untold History*).
 
 ## 2. Write each lesson as one line with its evidence
 
