@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Valve, from its own public material (talk slides, the 2012 handbook, the Cabal article, seven games' developer
+  commentary; `docs/valve.md`, 115 quotes checked word for word): Breakout.Core gains `PacingDirector` and `Intensity`
+  (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and
+  `ResponseSystem` (the dialogue rule database of Left 4 Dead 2, Portal 2 and Dota 2: a flat query, most criteria wins,
+  random ties, memory that expires, follow-ups looked up when a line ends, rules that remove themselves). New skill
+  `godot-playtest`; Valve's process in `godot-game-plan`; story that serves play and dialogue rules in `godot-narrative`;
+  scarce-but-never-empty resources and worst-case drop streaks in `godot-progression`; readability rules in the `STYLE.md`
+  template.
 - The second-pass test features from Croteam's CI talk: a `playthrough` runner (`playthrough.json`: the game's bot plays at
   a fixed 60 fps of game time and must log every milestone in order, the ending last; `smoke` passed a bot stuck in the first
   room), and the plan gate `production.playthrough` is now checked by it (`runner:<name>`, a new gate check). `smoke
