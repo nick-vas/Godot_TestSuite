@@ -46,21 +46,31 @@ public static class DeterminismCheck
     }
 
     /// <summary>
-    /// GGPO's SyncTest: every tick, save, step, load the saved state, step again and compare. A difference means state
-    /// that Save misses (a static, a cached value, the random generator) or a step that depends on more than its input.
-    /// Rollback netcode replays ticks exactly like this, so a game that fails here desyncs online.
+    /// GGPO's SyncTest: every tick, step, then load the state from <paramref name="depth"/> ticks back, step those
+    /// ticks again and compare each checksum with the first run. A difference means state that Save misses (a static,
+    /// a cached value, the random generator) or a step that depends on more than its input. Rollback netcode replays
+    /// ticks exactly like this, so a game that fails here desyncs online.
+    /// Depth 1 (GGPO's default) misses state that goes stale over several ticks, such as a value refreshed every few
+    /// ticks into a field Save leaves out; test at the session's rollback window (NetherRealm ran 7 every frame).
     /// </summary>
-    public static Divergence? SyncTest<TState, TInput>(IDeterministic<TState, TInput> sim, IReadOnlyList<TInput> inputs)
+    public static Divergence? SyncTest<TState, TInput>(IDeterministic<TState, TInput> sim, IReadOnlyList<TInput> inputs, int depth = 1)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(depth, 1);
+        var saved = new TState[depth];          // the state before tick t, at t % depth
+        var sums = new ulong[depth];            // the checksum after tick t, at t % depth
         for (int t = 0; t < inputs.Count; t++)
         {
-            var before = sim.Save();
+            saved[t % depth] = sim.Save();
             sim.Step(inputs[t]);
-            ulong first = sim.Checksum();
-            sim.Load(before);
-            sim.Step(inputs[t]);
-            ulong second = sim.Checksum();
-            if (first != second) return new Divergence(t + 1, first, second);
+            sums[t % depth] = sim.Checksum();
+            int from = Math.Max(0, t + 1 - depth);
+            sim.Load(saved[from % depth]);
+            for (int k = from; k <= t; k++)
+            {
+                sim.Step(inputs[k]);
+                ulong again = sim.Checksum();
+                if (again != sums[k % depth]) return new Divergence(k + 1, sums[k % depth], again);
+            }
         }
         return null;
     }

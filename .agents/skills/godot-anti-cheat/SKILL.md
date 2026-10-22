@@ -60,10 +60,36 @@ server deciding everything that matters; client-side software is a later, costly
   projects. It is not anti-cheat. C# assemblies decompile readily.
 - Signing requests with a key in the client stops casual tampering only.
 
-## 6. Prove it
+## 6. Denial of service and player IPs
+
+An attacker who cannot beat you can knock you offline: flood the game server so a losing player's loss is not recorded,
+or flood a player directly. Streamers and tournament players are high-value targets whose IP rarely changes, so once it
+leaks they stay vulnerable (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/denial-of-service-mitigation.md`, Valve).
+
+- **Do not expose player IPs.** ENet peer-to-peer and listen servers hand every player's address to the others; a direct
+  connection does the same. Share an address only when both sides have agreed to connect, never just because one side
+  wants to. On Steam, relay the traffic so peers are identified by Steam ID, not address: GodotSteam's
+  `SteamMultiplayerPeer` connects by Steam ID (`create_client(steam_id, ...)`) after `Steam.initRelayNetworkAccess()`;
+  with Steamworks.NET, `SteamNetworkingSockets.ConnectP2P`/`CreateListenSocketP2P` with a `SteamNetworkingIdentity`
+  (`SetSteamID64`), and set ICE to `k_nSteamNetworkingConfig_P2P_Transport_ICE_Enable_Disable` to share no IP with the
+  peer. Keep peer addresses out of rich presence, spectator data and debug overlays (`godot-steam`).
+- **Let unauthenticated peers reach nothing.** Set `SceneMultiplayer.AuthCallback` and a short `AuthTimeout` (default 3 s):
+  a peer that does not complete `SendAuth`/`CompleteAuth` in time is dropped before it can send gameplay RPCs. An empty
+  callback accepts everyone (section 2).
+- **Put the backend (login, matchmaking, economy) on HTTP,** so commodity web DoS protection applies; never a raw socket.
+- **Record a result when the server dies mid-match,** so knocking the server over does not erase a loss and remove the
+  incentive to attack it (a derived rule, not from the talk).
+- **A ban must cost something.** In free-to-play, detect attackers from match-failure analytics and require a barrier to
+  re-enter ranked play (e.g. a number of games played); otherwise a new account walks straight back in.
+- Measured here: flooding a Godot 4.7.2 ENet server's port on loopback with junk UDP (`soak -JunkPps`) has no effect up
+  to ~10,000 packets a second, then collapses by ~50,000 (input loss ~38-57%, round trips into the seconds, dropped
+  clients). Well-written transports cope to ~250,000; Godot's single-threaded ENet poll sits well below that.
+
+## 7. Prove it
 
 - [ ] a test client that lies (sends results instead of inputs, too many inputs, out-of-range or NaN values, actions
       for another player's units) changes nothing on the server, and each attempt is counted
 - [ ] cooldowns and timers hold when the client's clock runs fast
 - [ ] a replayed score is accepted; a score with a changed input is refused (`DeterminismCheck.Verify` finds the tick)
 - [ ] an edited single-player save loads or is refused cleanly, never crashes (`godot-saves`)
+- [ ] no player address appears in rich presence, spectator data or a debug overlay; unauthenticated peers time out

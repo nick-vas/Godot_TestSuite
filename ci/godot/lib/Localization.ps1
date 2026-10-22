@@ -1,6 +1,43 @@
 # The `l10n` runner: translation tables checked without Godot. It fails on duplicate keys, untranslated entries (an empty CSV
-# cell; an empty, fuzzy or short-of-plurals PO entry) and keys the code asks for that no table has. Selected when the project
-# has Godot translation CSVs (imported as csv_translation, or a first header cell "keys") or gettext .po files.
+# cell; an empty, fuzzy or short-of-plurals PO entry), keys the code asks for that no table has, CSV text longer than the
+# limits in its _max/_lines columns, translation remaps to files that do not exist, and localized sounds whose format,
+# length or loudness differ from the source's (with ffmpeg; skipped without it). Selected when the project has Godot
+# translation CSVs (imported as csv_translation, or a first header cell "keys"), gettext .po files or translation remaps.
+#
+# l10n.json in the project (optional) changes the localized-voice tolerances:
+#   { "voiceDurationMin": 0.5, "voiceDurationMax": 2.0, "voiceLoudnessLu": 2.0 }
+
+function Get-L10nConfig([string]$ProjectDir) {
+    # A localized line is rarely the source's length (European languages run about 30% longer than English), so the default
+    # range only catches a wrong, cut or placeholder file. Lip-synced lines can ask for a tighter one.
+    $config = [ordered]@{ voiceDurationMin = 0.5; voiceDurationMax = 2.0; voiceLoudnessLu = 2.0 }
+    $file = Join-Path $ProjectDir 'l10n.json'
+    if (Test-Path -LiteralPath $file) {
+        try { $custom = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
+        catch { Stop-GodotCi "l10n.json is not valid JSON: $($_.Exception.Message)" 'invalid-arguments' }
+        foreach ($key in @($custom.Keys)) {
+            if (-not $config.Contains($key)) { Stop-GodotCi "l10n.json: unknown setting '$key' (settings: $($config.Keys -join ', '))" 'invalid-arguments' }
+            $value = 0.0
+            if (-not [double]::TryParse("$($custom[$key])", [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value) -or $value -le 0) {
+                Stop-GodotCi "l10n.json: $key must be a positive number, not '$($custom[$key])'" 'invalid-arguments'
+            }
+            $config[$key] = $value
+        }
+    }
+    return $config
+}
+
+# Godot's CSV import unescapes translations by default (unescape_translations): \n is a line break, as String.c_unescape reads it.
+function ConvertFrom-CsvEscapes([string]$Text) {
+    $map = @{ a = "`a"; b = "`b"; f = "`f"; n = "`n"; r = "`r"; t = "`t"; v = "`v" }
+    return [regex]::Replace($Text, '\\([abfnrtv''"\\?])', { param($m) $c = $m.Groups[1].Value; if ($map.ContainsKey($c)) { $map[$c] } else { $c } })
+}
+
+# What a player counts as characters: text elements (grapheme clusters), so "e" plus a combining accent, a CJK character
+# outside the BMP, or an emoji sequence each count once. Line breaks are not counted.
+function Measure-TextLength([string]$Text) {
+    return [System.Globalization.StringInfo]::new(($Text -replace '[\r\n]', '')).LengthInTextElements
+}
 
 # A CSV parser for Godot's translation tables: quoted fields, doubled quotes and line breaks inside quotes.
 function ConvertFrom-TranslationCsv([string]$Text, [char]$Delimiter = ',') {
@@ -97,19 +134,128 @@ function Get-UsedTranslationKeys([string]$ProjectDir) {
     return $used
 }
 
+# Translation remaps from project.godot, as the editor saves them:
+#   locale/translation_remaps={ "res://voice/en/l01.ogg": PackedStringArray("res://voice/fr/l01.ogg:fr", ...) }
+# Godot reads the text after a target's last ':' as its locale (ResourceLoader::_path_remap); a target without one is
+# never picked. Locale is $null for those.
+function Get-TranslationRemaps([string]$ProjectDir) {
+    $file = Join-Path $ProjectDir 'project.godot'
+    if (-not (Test-Path -LiteralPath $file)) { return @() }
+    $setting = [regex]::Match((Get-Content -LiteralPath $file -Raw), '(?m)^locale/translation_remaps=\{(?<body>[^}]*)\}')
+    if (-not $setting.Success) { return @() }
+    $entries = [regex]::Matches($setting.Groups['body'].Value, '"(?<source>[^"]+)"\s*:\s*(?:PackedStringArray\((?<list>[^)]*)\)|\[(?<list>[^\]]*)\])')
+    return @(foreach ($entry in $entries) {
+        foreach ($quoted in [regex]::Matches($entry.Groups['list'].Value, '"(?<t>[^"]*)"')) {
+            $value = $quoted.Groups['t'].Value
+            $split = $value.LastIndexOf(':')
+            $locale = $value.Substring($split + 1).Trim()
+            $named = $locale -match '^[A-Za-z]{2,3}([_-][A-Za-z0-9]+)*$'
+            [pscustomobject]@{
+                Source = $entry.Groups['source'].Value
+                Target = $(if ($named) { $value.Substring(0, $split) } else { $value })
+                Locale = $(if ($named) { $locale } else { $null })
+            }
+        }
+    })
+}
+
+# uid:// paths of imported files (sounds, textures), from their .import files.
+function Get-ImportUids([string]$ProjectDir) {
+    $uids = @{}
+    foreach ($file in Find-ProjectFiles -Root $ProjectDir -Filter '*.import') {
+        if ((Get-Content -LiteralPath $file.FullName -Raw) -match '(?m)^uid="(?<uid>uid://[^"]+)"') { $uids[$Matches.uid] = $file.FullName -replace '\.import$', '' }
+    }
+    return $uids
+}
+
+# Each localized sound against its source: the same sample rate, channels and bit depth (when both formats have one), a
+# length within the configured ratio, and integrated loudness within the configured LU (the `audio` command's meter).
+function Compare-LocalizedAudio([object[]]$Pairs, $Config) {
+    $problems = [System.Collections.Generic.List[string]]::new()
+    if ($Pairs.Count -eq 0) { return [pscustomobject]@{ Problems = @(); Skipped = '' } }
+    $absent = @(foreach ($tool in 'ffmpeg', 'ffprobe') { if (-not (Get-Command $tool -CommandType Application -ErrorAction SilentlyContinue)) { $tool } })
+    if ($absent) {
+        return [pscustomobject]@{ Problems = @(); Skipped = "$($absent -join ' and ') not installed: $($Pairs.Count) localized sound(s) not compared with their source" }
+    }
+    $measured = @{}
+    $measure = {
+        param($file)
+        if (-not $measured.ContainsKey($file)) {
+            $format = Get-AudioFormat $file
+            $measured[$file] = if ($format) { $format + [ordered]@{ lufs = (Measure-Loudness $file).integratedLufs } } else { $null }
+        }
+        $measured[$file]
+    }
+    $count = { param($n, $word) if ($n -eq 1) { "1 $word" } else { "$n ${word}s" } }
+    foreach ($pair in $Pairs) {
+        $named = "$($pair.Target) ($($pair.Locale), for $($pair.Source))"
+        $source = & $measure $pair.SourceFile
+        $target = & $measure $pair.TargetFile
+        if (-not $source -or -not $target) { $problems.Add("$named`: ffmpeg cannot read $(if (-not $target) { 'it' } else { 'the source' })"); continue }
+        $why = [System.Collections.Generic.List[string]]::new()
+        if ($target.sampleRate -ne $source.sampleRate) { $why.Add("sample rate $($target.sampleRate) Hz, source $($source.sampleRate) Hz") }
+        if ($target.channels -ne $source.channels) { $why.Add("$(& $count $target.channels 'channel'), source $($source.channels)") }
+        if ($target.bits -and $source.bits -and $target.bits -ne $source.bits) { $why.Add("$($target.bits)-bit, source $($source.bits)-bit") }
+        if ($target.seconds -and $source.seconds) {
+            $ratio = [math]::Round($target.seconds / $source.seconds, 2)
+            if ($ratio -lt $Config.voiceDurationMin -or $ratio -gt $Config.voiceDurationMax) {
+                $why.Add("$ratio times the source's length ($($target.seconds) s against $($source.seconds) s; allowed $($Config.voiceDurationMin) to $($Config.voiceDurationMax))")
+            }
+        }
+        if ($null -ne $source.lufs -and $null -eq $target.lufs) { $why.Add('silent, and the source is not') }
+        elseif ($null -ne $source.lufs) {
+            $offset = [math]::Round($target.lufs - $source.lufs, 1)
+            if ([math]::Abs($offset) -gt $Config.voiceLoudnessLu) {
+                $why.Add("$([math]::Abs($offset)) LU $(if ($offset -gt 0) { 'louder' } else { 'quieter' }) than the source ($($target.lufs) against $($source.lufs) LUFS; allowed $($Config.voiceLoudnessLu) LU)")
+            }
+        }
+        if ($why.Count) { $problems.Add("$named`: $($why -join '; ')") }
+    }
+    return [pscustomobject]@{ Problems = $problems.ToArray(); Skipped = '' }
+}
+
+# Remap targets that do not exist (Godot warns and loads the source: the player hears English) or name no locale, and the
+# localized sounds compared with their source.
+function Get-RemapProblems([string]$ProjectDir) {
+    $remaps = @(Get-TranslationRemaps $ProjectDir)
+    $uids = if (@($remaps | Where-Object { "$($_.Source) $($_.Target)" -match 'uid://' }).Count) { Get-ImportUids $ProjectDir } else { @{} }
+    $toFile = { param($path) if ($path -like 'uid://*') { $uids[$path] } elseif ($path -like 'res://*') { Join-Path $ProjectDir $path.Substring(6) } }
+    $exists = { param($file) $file -and (Test-Path -LiteralPath $file -PathType Leaf) }
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $pairs = [System.Collections.Generic.List[object]]::new()
+    $missingSources = [System.Collections.Generic.HashSet[string]]::new()
+    $sound = '(?i)\.(wav|ogg|mp3)$'
+    foreach ($remap in $remaps) {
+        $source = & $toFile $remap.Source
+        if (-not (& $exists $source)) {
+            if ($missingSources.Add($remap.Source)) { $problems.Add("$($remap.Source) is remapped but does not exist") }
+            continue
+        }
+        if (-not $remap.Locale) { $problems.Add("$($remap.Target) (for $($remap.Source)) has no locale after the path (path:fr), so Godot never picks it"); continue }
+        $target = & $toFile $remap.Target
+        if (-not (& $exists $target)) { $problems.Add("$($remap.Target) ($($remap.Locale)) does not exist; Godot loads $($remap.Source) instead"); continue }
+        if ($source -match $sound -and $target -match $sound) {
+            $pairs.Add([pscustomobject]@{ Source = $remap.Source; Target = $remap.Target; Locale = $remap.Locale; SourceFile = $source; TargetFile = $target })
+        }
+    }
+    $audio = Compare-LocalizedAudio $pairs.ToArray() (Get-L10nConfig $ProjectDir)
+    return [pscustomobject]@{ Remaps = $problems.ToArray(); Audio = $audio.Problems; AudioSkipped = $audio.Skipped }
+}
+
 function Get-TranslationCases([string]$ProjectDir) {
     $sources = Get-TranslationSources $ProjectDir
     $known = [System.Collections.Generic.HashSet[string]]::new()
     $duplicates = [System.Collections.Generic.List[string]]::new()
     $untranslated = [System.Collections.Generic.List[string]]::new()
+    $tooLong = [System.Collections.Generic.List[string]]::new()
 
     foreach ($file in $sources.Csv) {
         $res = ConvertTo-ResPath $ProjectDir $file.FullName
         $import = "$($file.FullName).import"
         $delimiter = ','
-        if ((Test-Path -LiteralPath $import) -and (Get-Content -LiteralPath $import -Raw) -match '(?m)^delimiter=(?<d>\d)') {
-            $delimiter = @(',', ';', "`t")[[int]$Matches.d]
-        }
+        $importText = if (Test-Path -LiteralPath $import) { Get-Content -LiteralPath $import -Raw } else { '' }
+        if ($importText -match '(?m)^delimiter=(?<d>\d)') { $delimiter = @(',', ';', "`t")[[int]$Matches.d] }
+        $unescape = $importText -notmatch '(?m)^unescape_translations=false'
         $rows = ConvertFrom-TranslationCsv (Get-Content -LiteralPath $file.FullName -Raw) $delimiter   # already an array of rows
         if ($rows.Count -eq 0) { continue }
         $header = @($rows[0])
@@ -120,6 +266,12 @@ function Get-TranslationCases([string]$ProjectDir) {
         $contextColumn = [array]::IndexOf($header, '?context')
         $pluralColumn = [array]::IndexOf($header, '?plural')
         $cell = { param($row, $c) if ($c -ge 0 -and $c -lt $row.Count) { $row[$c] } else { '' } }
+        # Length limits live in comment columns, which Godot's import skips: _max (characters), _lines, and _max_<locale>
+        # (_max_ja, _max_pt_BR), which overrides _max for that locale and, by language, for its regional variants.
+        $limitColumns = [ordered]@{}
+        for ($c = 1; $c -lt $header.Count; $c++) {
+            if ($header[$c] -match '^_(?<name>max(?:_[A-Za-z0-9_-]+)?|lines)$') { $limitColumns[($Matches.name -replace '-', '_').ToLowerInvariant()] = $c }
+        }
         $entries = [System.Collections.Generic.List[object]]::new()
         for ($r = 1; $r -lt $rows.Count; $r++) {
             $row = @($rows[$r]); $key = $row[0]
@@ -142,6 +294,30 @@ function Get-TranslationCases([string]$ProjectDir) {
                 if ($forms -eq 0) { $header[$c] } elseif ($needed -and $forms -lt $needed) { "$($header[$c]) ($forms of $needed plural forms)" }
             })
             if ($missing) { $untranslated.Add("$res`: $named has no $($missing -join ', ')") }
+            if ($limitColumns.Count -eq 0) { continue }
+
+            $limits = @{}
+            foreach ($name in $limitColumns.Keys) {
+                $text = (& $cell $entry.Forms[0] $limitColumns[$name]).Trim()
+                if (-not $text) { continue }
+                $value = 0
+                if ([int]::TryParse($text, [ref]$value) -and $value -gt 0) { $limits[$name] = $value }
+                else { $tooLong.Add("$res`: $named _$name '$text' is not a whole number") }
+            }
+            foreach ($c in $locales) {
+                $locale = ($header[$c] -replace '-', '_').ToLowerInvariant()
+                $maxName = @("max_$locale", "max_$(($locale -split '_')[0])", 'max') | Where-Object { $limits.ContainsKey($_) } | Select-Object -First 1
+                for ($f = 0; $f -lt $entry.Forms.Count; $f++) {
+                    $text = & $cell $entry.Forms[$f] $c
+                    if (-not $text) { continue }
+                    if ($unescape) { $text = ConvertFrom-CsvEscapes $text }
+                    $which = if ($entry.Forms.Count -gt 1) { "$($header[$c]) plural form $($f + 1)" } else { $header[$c] }
+                    $length = Measure-TextLength $text
+                    if ($maxName -and $length -gt $limits[$maxName]) { $tooLong.Add("$res`: $named $which is $length characters, limit $($limits[$maxName]) (_$maxName)") }
+                    $lines = @($text -split '\r?\n').Count
+                    if ($limits.ContainsKey('lines') -and $lines -gt $limits['lines']) { $tooLong.Add("$res`: $named $which has $lines lines, limit $($limits['lines']) (_lines)") }
+                }
+            }
         }
     }
 
@@ -165,11 +341,15 @@ function Get-TranslationCases([string]$ProjectDir) {
 
     $used = Get-UsedTranslationKeys $ProjectDir
     $missingKeys = @(foreach ($key in $used.Keys) { if (-not $known.Contains($key)) { "$($used[$key]): '$key' is in no translation table" } })
+    $remapped = Get-RemapProblems $ProjectDir
     $limit = { param($items) (@($items) | Select-Object -First 50) -join "`n" }
     return @(
         @{ Name = 'duplicate keys'; Failure = & $limit $duplicates }
         @{ Name = 'untranslated'; Failure = & $limit $untranslated }
         @{ Name = 'missing keys'; Failure = & $limit $missingKeys }
+        @{ Name = 'too long'; Failure = & $limit $tooLong }
+        @{ Name = 'translation remaps'; Failure = & $limit $remapped.Remaps }
+        @{ Name = 'localized audio'; Failure = & $limit $remapped.Audio; Skipped = $remapped.AudioSkipped }
     )
 }
 
@@ -177,5 +357,11 @@ function Invoke-LocalizationRunner([string]$ProjectDir, [string]$ResultsDir) {
     $cases = @(Get-TranslationCases $ProjectDir)
     Write-JUnitCases (Join-Path $ResultsDir 'l10n.junit.xml') 'l10n' $cases
     foreach ($case in $cases | Where-Object { $_.Failure }) { Write-CiLog "l10n $($case.Name): $(($case.Failure -split "`n").Count) problem(s)" }
+    # A comparison that could not run is a warning, never a pass.
+    $warnings = @(foreach ($case in $cases | Where-Object { $_['Skipped'] }) {
+        Write-CiLog "l10n $($case.Name) skipped: $($case.Skipped)"
+        [ordered]@{ rule = 'no-ffmpeg'; severity = 'warning'; file = $null; line = $null; message = "$($case.Name): $($case.Skipped)" }
+    })
+    ConvertTo-Json -InputObject $warnings -Depth 4 | Set-Content -LiteralPath (Join-Path $ResultsDir 'findings.json') -Encoding utf8
     return 0
 }

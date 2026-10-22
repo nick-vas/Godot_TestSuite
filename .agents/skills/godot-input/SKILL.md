@@ -1,6 +1,6 @@
 ---
 name: godot-input
-description: Use when a Godot game takes keyboard, mouse or controller input, when adding a controls or rebinding menu, button prompts or icons, controller support, Steam Deck or Steam Input support, local multiplayer, or when a binding, prompt or controller misbehaves.
+description: Use when a Godot game takes keyboard, mouse or controller input, when adding a controls or rebinding menu, button prompts or icons, controller support, Steam Deck or Steam Input support, local multiplayer, or when a binding, prompt or controller misbehaves or controls feel unresponsive (coyote time, jump buffering, accidental restarts).
 ---
 
 # Input in Godot 4 (C#)
@@ -17,6 +17,12 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
 - In C#, cache action names: `static readonly StringName Jump = "jump";`. A string literal converts to a new
   `StringName` on every call; the `architecture` runner flags it in `_Process` (`per-frame-alloc`).
 - Movement: `Input.GetVector(Left, Right, Up, Down)` gives a circular deadzone; `Input.GetAxis` for one axis.
+  They treat the per-action deadzone (`InputMap.ActionSetDeadzone`, 0.2 by default) differently (4.7.2
+  `core/input/input.cpp`): `GetAxis` is `GetActionStrength(positive) - GetActionStrength(negative)`, each action applying
+  its own deadzone per axis and rescaling past it. `GetVector` applies none per axis: it takes raw strengths, then one
+  circular deadzone, its `deadzone` argument or, when that is omitted, the mean of the four actions' deadzones (the
+  source: "get it from the average of the actions"), rescaled so full deflection is 1, and limited to length 1. An action
+  bound to several sticks or pads takes the strongest.
 - Contexts like Steam Input's action sets: menu actions (`ui_*`), gameplay actions, vehicle actions. Only one context
   handles input at a time, and conflicts matter only inside one.
 - Name actions the way a future Steam Input action manifest would (`jump`, `move`), so it maps one to one.
@@ -60,6 +66,7 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
   `res://prompts` and record it in `assets.json` (`godot-asset-pipeline`). Fall back to text (`InputBindings.Label`).
 - `Input.JoyConnectionChanged` fires on plug and unplug. Pause the game when the controller in use disconnects.
   `input_devices/joypads/ignore_joypad_on_unfocused_application` stops a pad driving a game in the background.
+- Touch (fingers by index, the mouse Godot fakes from the first finger, on-screen sticks, target sizes): `godot-mobile-web`.
 
 ## 4. Godot 4.7 specifics
 
@@ -89,7 +96,72 @@ configuration reaches every function, and an on-screen keyboard for text fields 
 - No action that needs two buttons at once without an alternative; menus usable with single presses on the same device
   as the game (`godot-ui-accessibility`).
 
-## 8. Prove it
+Mobility settings (Karen Stevens, EA, GDC 2021; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/accessibility-mobility.md`):
+
+- Sticks: a deadzone the player sets (with a tremor, only a full push should count), an optional axial deadzone (a
+  drifting diagonal reads as straight up, down, left or right), sensitivity per axis that goes both lower and higher than
+  the default (Xbox Accessibility Guideline 107: at least 50% each way), and a stick swap for whichever hand hurts today,
+  each stick's settings following its role. Rescale past every deadzone: zeroing below it and passing the rest through
+  makes the output jump at the edge. Tested in `examples/breakout/src/Breakout.Core/Controls/StickSettings.cs`
+  (`StickSettings.Apply`, `StickLayout`), saved with the bindings (`InputBindings.Sticks`). Feed it
+  `Input.GetJoyAxis` values or `Input.GetVector(..., deadzone: 0f)`, or Godot's deadzone runs first and the two stack.
+- One-stick play where the genre allows (no camera stick, or a camera that follows), and few buttons: simple presses
+  rather than combos, one button that can stand for a multi-button press, and a reduced-button mode, down to one stick
+  and one button.
+- Options that turn off button mashing, quick-time events and hold-to-confirm meters (a single press instead), and
+  automatic actions where they fit: jump up a step, grab a ledge, aim assist.
+- Vibration off, important only, or all: give each rumble a category and route every call through one helper that
+  scales or drops `Input.StartJoyVibration(device, weak, strong, duration)` by the player's level; never the only cue.
+
+## 8. Forgiveness
+
+Players press late, press early, forget they are holding a button and squeeze the pad in a panic; the rules should
+accept what they meant (Seth Coster on Levelhead, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/forgiveness-mechanics.md`). The rules
+are tested in `examples/breakout/src/Breakout.Core/Platformer/Forgiveness.cs` and count physics ticks, never seconds.
+Levelhead's values are starting points; export them so the user can tune them in play:
+
+| Rule | Levelhead | At 60 Hz |
+|---|---|---|
+| Coyote time: a jump stays allowed after the last tick it was valid (on the floor, on an enemy's head) | 0.1 s | 6 ticks |
+| Input buffer: a press is kept and performed on the first tick the action is valid | 0.2 s | 12 ticks |
+| Speed bump: a destructive button (restart, quit) fires only after a continuous hold | 0.3 s | 18 ticks |
+| Fall-through: holding down on the ground drops through thin platforms | 0.2 s | 12 ticks |
+
+- A jump spends both the coyote window and the buffered press: no second jump in mid-air, one press is one jump.
+  Buffer the other actions too (grab, shoot, dash), not only jump.
+- Input reset: a jump turns fall-through off, and the hold only counts while standing, so a player still holding down
+  from the last move lands on the platform instead of dropping through it.
+- Hazards get hit shapes smaller than the art and round (a toe through a spike's corner is a close call); pickups get
+  larger, square ones. On contact, test the outcome good for the player first (a stomp box larger than the enemy,
+  while falling), and harm only after it fails, with a smaller circle (`Contact.Resolve`).
+
+Wiring on a `CharacterBody2D`, tested in `examples/breakout/game/test/gdunit4/ForgivenessWiringTest.cs` (a body
+dropped onto a floor: a press 5 ticks before landing jumps on the landing tick, once; a press held from 25 ticks
+before landing never jumps):
+
+```csharp
+readonly JumpForgiveness _jump = JumpForgiveness.Levelhead(Engine.PhysicsTicksPerSecond);
+
+public override void _PhysicsProcess(double delta)
+{
+    bool onFloor = IsOnFloor();                                   // what the previous MoveAndSlide found
+    bool jumped = _jump.Tick(onFloor, Input.IsActionJustPressed(Jump));
+    var velocity = Velocity;
+    if (!onFloor) velocity += GetGravity() * (float)delta;
+    if (jumped) velocity.Y = -JumpVelocity;
+    Velocity = velocity;
+    MoveAndSlide();
+}
+```
+
+- `IsActionJustPressed` read in `_PhysicsProcess` is true on one physics tick per press (a `ParseInputEvent` press
+  shows on the next tick). `IsActionPressed` would refill the buffer on every held tick: holding jump would bounce.
+- Build the windows from `Engine.PhysicsTicksPerSecond`, so changing the physics rate keeps them in seconds.
+- Not tested in Godot: fall-through as `SetCollisionMaskValue(ThinPlatformLayer, !_fall.Tick(Input.IsActionPressed(Down),
+  onFloor, jumped))` with thin platforms on their own layer and one-way collision on; restart as
+  `HoldToConfirm.Restart(...)` ticked with `Input.IsActionPressed(Restart)`, its `Progress` drawn as a fill on the prompt.
+
+## 9. Prove it
 
 Tests that run inside Godot (`godot-test-loop`), with input sent through `Input.ParseInputEvent` and a frame waited:
 
@@ -99,3 +171,6 @@ Tests that run inside Godot (`godot-test-loop`), with input sent through `Input.
 - [ ] the prompt family follows a pad press, ignores mouse motion and small stick values, and switches back on a key
 - [ ] vendor ids and names map to the right family, and Nintendo's bottom button shows "B"
 - [ ] `doctor` lists no action without both a keyboard and a controller binding
+- [ ] stick settings: output never longer than 1, no jump at any deadzone edge, swap and invert as set, saved with the
+      bindings (`StickSettingsTests`, `ControlsTest`)
+- [ ] each forgiveness window checked to the tick (its last tick works, the next does not); one press, one jump

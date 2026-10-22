@@ -11,5 +11,6 @@
   "untrusted-load": "untrusted-load",
   "culture-parse": "culture-parse",
   "steam-removed-api": "steam-removed-api",
-  "steam-env-dotnet": "steam-env-dotnet"
+  "steam-env-dotnet": "steam-env-dotnet",
+  "frame-dependent-lerp": "frame-dependent-lerp"
 }

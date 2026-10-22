@@ -91,6 +91,11 @@ manual runs (Spacewar or your App ID) touch the real client: overlay, popups, cl
   must be added back.
 - Authentication: `GetAuthTicketForWebApi` on the client, `ISteamUserAuth/AuthenticateUserTicket` on your server; never
   trust a Steam ID the client states.
+- Networking: relay game traffic through Steam rather than connecting peers directly, so no player's IP is revealed and
+  peers are known by Steam ID. GodotSteam's `SteamMultiplayerPeer` (`create_host`, `create_client(steam_id, ...)`) does
+  this after `Steam.initRelayNetworkAccess()`; Steamworks.NET has `SteamNetworkingSockets.ConnectP2P`/
+  `CreateListenSocketP2P` with a `SteamNetworkingIdentity`. Why it matters for denial of service and IP privacy:
+  `godot-anti-cheat`.
 
 ## 7. Done means
 

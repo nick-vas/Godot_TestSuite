@@ -110,7 +110,7 @@ transforms; 300 `RigidBody2D` for 2D.
 
 `examples/breakout/src/Breakout.Core/Determinism/Replay.cs` turns the above into code: `IDeterministic` (`Save`, `Load`,
 `Step`, `Checksum`), `DeterminismCheck.Record` (a checksum every `interval` ticks), `Verify` (the first checkpoint that
-differs), `SyncTest` (save, step, load, step, compare every tick), `Fnv1a` (a hash that is the same in every process)
+differs), `SyncTest` (every tick, re-run the last `depth` ticks and compare; depth 7 in `RollbackTests`), `Fnv1a` (a hash that is the same in every process)
 and `DeterministicRandom` (xorshift64*, its whole state one `ulong`). `DeterminismTests.cs` runs a ball in 1/1000 px
 integer units for 3600 ticks: the replay matches all 61 checkpoints, an input changed at tick 137 is found at tick 180,
 SyncTest catches a shared `System.Random` kept outside the state, `TheRandomSequenceIsFixedForever` pins the generator's
