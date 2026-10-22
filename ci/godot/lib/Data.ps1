@@ -16,6 +16,12 @@
 # "names" at the top level: proper nouns spelled one letter or two away from a canonical name, in the files given (a comic
 # and the game spelled the same character Belrysa and Belysra):
 #   "names": { "table": "characters", "field": "name", "files": ["dialogue/*.json", "translations/*.csv"], "allow": [] }
+# "kind": "responses" on a JSON table: rows of Breakout.Core's ResponseSystem (who, concept, criteria, lines, then,
+# remember, once; ResponseTable.cs loads the same file). Its fields come predefined; it also fails criteria syntax (with the
+# column), a then naming a concept no rule has, voice files that do not exist, rules with the same who, concept and
+# criteria, and criteria that contradict each other; facts read but never remembered are warnings unless "facts" lists them:
+#   "barks": { "file": "data/barks.json", "kind": "responses", "facts": ["health", "weapon"], "voiced": false }
+# "type": "criteria" is the criteria grammar in any table (Read-ResponseCriteria, the same as CriteriaSyntax in C#).
 
 function Read-DataTable([string]$Path) {
     if ($Path -match '\.csv$') {
@@ -48,6 +54,176 @@ function Format-DidYouMean([string]$Typed, [string[]]$Names) {
     return ''
 }
 
+# A name in the criteria grammar: a letter or "_", then letters, digits, "_", "." or "-" (CriteriaSyntax.IsName in C#).
+function Test-ResponseName([string]$Text) {
+    return $Text -cmatch '^[\p{L}_][\p{L}\p{Nd}_.\-]*\z'
+}
+
+# ResponseSystem's criteria, parsed exactly as CriteriaSyntax.Parse in Breakout.Core (ResponseRules.cs), which documents
+# the grammar; criteria-examples.json in Breakout.Core's tests holds the cases both must agree on. Returns Criteria (Key,
+# Op as = < <= > >= or !, Number, Name) and Error: "column N: reason", N 1-based in the whole text, or $null.
+function Read-ResponseCriteria([string]$Text) {
+    $found = [System.Collections.Generic.List[object]]::new()
+    if ($Text -cmatch '^[ \t]*\z') { return @{ Criteria = @(); Error = $null } }
+    $t = $Text; $i = 0
+    try {
+        while ($true) {
+            while ($i -lt $t.Length -and ($t[$i] -ceq ' ' -or $t[$i] -ceq "`t")) { $i++ }
+            if ($i -eq $t.Length -or $t[$i] -ceq ';') { throw "column $($i + 1): empty criterion" }
+            $missing = $t[$i] -ceq '!'
+            if ($missing) { $i++ }
+            if ($i -eq $t.Length -or -not ([char]::IsLetter($t[$i]) -or $t[$i] -ceq '_')) {
+                if ($missing) { throw "column $($i + 1): expected a fact name after '!'" }
+                throw "column $($i + 1): expected a fact name"
+            }
+            $start = $i
+            while ($i -lt $t.Length -and ([char]::IsLetterOrDigit($t[$i]) -or $t[$i] -ceq '_' -or $t[$i] -ceq '.' -or $t[$i] -ceq '-')) { $i++ }
+            $key = $t.Substring($start, $i - $start)
+            while ($i -lt $t.Length -and ($t[$i] -ceq ' ' -or $t[$i] -ceq "`t")) { $i++ }
+            if ($missing) { $criterion = [pscustomobject]@{ Key = $key; Op = '!'; Number = $null; Name = $null } }
+            else {
+                if ($i + 1 -lt $t.Length -and ($t[$i] -ceq '<' -or $t[$i] -ceq '>') -and $t[$i + 1] -ceq '=') { $op = $t.Substring($i, 2) }
+                elseif ($i -lt $t.Length -and ($t[$i] -ceq '<' -or $t[$i] -ceq '>' -or $t[$i] -ceq '=')) { $op = $t.Substring($i, 1) }
+                else { throw "column $($i + 1): expected =, <, <=, > or >= after '$key'" }
+                $i += $op.Length
+                while ($i -lt $t.Length -and ($t[$i] -ceq ' ' -or $t[$i] -ceq "`t")) { $i++ }
+                $start = $i
+                while ($i -lt $t.Length -and -not ($t[$i] -ceq ' ' -or $t[$i] -ceq "`t" -or $t[$i] -ceq ';')) { $i++ }
+                $raw = $t.Substring($start, $i - $start)
+                if ($raw.Length -eq 0) { throw "column $($start + 1): expected a value after '$op'" }
+                $number = $null; $name = $null
+                if ($raw -cmatch '^-?[0-9]+(\.[0-9]+)?\z') { $number = [double]::Parse($raw, [cultureinfo]::InvariantCulture) }
+                elseif ($op -cne '=') { throw "column $($start + 1): '$op' needs a number, not '$raw'" }
+                elseif ($raw -ceq 'true') { $number = 1.0 }
+                elseif ($raw -ceq 'false') { $number = 0.0 }
+                elseif (Test-ResponseName $raw) { $name = $raw }
+                else { throw "column $($start + 1): '$raw' is neither a number nor a name" }
+                $criterion = [pscustomobject]@{ Key = $key; Op = $op; Number = $number; Name = $name }
+                while ($i -lt $t.Length -and ($t[$i] -ceq ' ' -or $t[$i] -ceq "`t")) { $i++ }
+            }
+            if ($i -lt $t.Length -and $t[$i] -cne ';') { throw "column $($i + 1): unexpected '$($t[$i])'" }
+            $found.Add($criterion)
+            if ($i -eq $t.Length) { break }
+            $i++   # past the ';'
+        }
+    }
+    catch { return @{ Criteria = @(); Error = $_.Exception.Message } }
+    return @{ Criteria = $found.ToArray(); Error = $null }
+}
+
+# One parsed criterion as text, for messages and for comparing rules: true and false are written as 1 and 0.
+function Format-ResponseCriterion($Criterion) {
+    if ($Criterion.Op -ceq '!') { return "!$($Criterion.Key)" }
+    if ($null -ne $Criterion.Name) { return "$($Criterion.Key)$($Criterion.Op)$($Criterion.Name)" }
+    return "$($Criterion.Key)$($Criterion.Op)$(([double]$Criterion.Number).ToString([cultureinfo]::InvariantCulture))"
+}
+
+# Criteria of one rule that no facts can satisfy together (health<10 and health>20; weapon=axe and weapon=bow; !seen with
+# seen=1): the rule can never match. Numbers are compared as ResponseSystem's intervals; a name is a symbol, never 0, and
+# is not compared with numbers. Returns the fact and its criteria as text, or $null.
+function Find-ResponseContradiction([object[]]$Criteria) {
+    $byKey = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[object]]]::new([StringComparer]::Ordinal)
+    foreach ($c in $Criteria) {
+        if (-not $byKey.ContainsKey($c.Key)) { $byKey[$c.Key] = [System.Collections.Generic.List[object]]::new() }
+        $byKey[$c.Key].Add($c)
+    }
+    foreach ($key in $byKey.Keys) {
+        $group = $byKey[$key]
+        if ($group.Count -lt 2) { continue }
+        $names = [System.Collections.Generic.HashSet[string]]::new()
+        $hasMissing = $false; $hasNumber = $false
+        $lo = [double]::NegativeInfinity; $hi = [double]::PositiveInfinity
+        foreach ($c in $group) {
+            if ($c.Op -ceq '!') { $hasMissing = $true; continue }
+            if ($null -ne $c.Name) { [void]$names.Add($c.Name); continue }
+            $hasNumber = $true
+            $n = [double]$c.Number
+            if ($c.Op -ceq '=') { $lo = [Math]::Max($lo, $n); $hi = [Math]::Min($hi, $n) }
+            elseif ($c.Op -ceq '<') { $hi = [Math]::Min($hi, [Math]::BitDecrement($n)) }
+            elseif ($c.Op -ceq '<=') { $hi = [Math]::Min($hi, $n) }
+            elseif ($c.Op -ceq '>') { $lo = [Math]::Max($lo, [Math]::BitIncrement($n)) }
+            else { $lo = [Math]::Max($lo, $n) }
+        }
+        $never = $false
+        if ($names.Count -gt 1) { $never = $true }
+        elseif ($names.Count -eq 1) { $never = $hasMissing }
+        elseif ($hasNumber) { $never = $lo -gt $hi -or ($hasMissing -and -not ($lo -le 0 -and 0 -le $hi)) }
+        if ($never) { return "'$key' ($((@($group) | ForEach-Object { Format-ResponseCriterion $_ }) -join ', '))" }
+    }
+    return $null
+}
+
+# The checks of a "kind": "responses" table that look across rows; field rules (criteria syntax included) are checked by
+# Get-DataCases. $ConceptWho maps every concept of every responses table to the speakers with a rule for it ('' for
+# anyone); $Remembered holds every fact any of them remembers. Returns Problems and Warnings (findings.json entries).
+function Test-ResponseTable([string]$ProjectDir, $Spec, [object[]]$Records, $ConceptWho, $Remembered) {
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $warnings = [System.Collections.Generic.List[object]]::new()
+    $given = [System.Collections.Generic.HashSet[string]]::new()
+    if ($Spec.Contains('facts')) { foreach ($f in @($Spec['facts'])) { [void]$given.Add("$f") } }
+    $voiced = $Spec.Contains('voiced') -and $Spec['voiced'] -eq $true
+    $idField = $Spec['id']
+    $readBy = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[string]]]::new([StringComparer]::Ordinal)
+    $seen = [System.Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+    foreach ($record in $Records) {
+        $id = if ($record.Contains('@key')) { $record['@key'] } elseif ($idField -and $record.Contains($idField)) { "$($record[$idField])" } else { '' }
+        $where = if ($id) { "'$id'" } elseif ($record.Contains('@line')) { "row $($record['@line'])" } else { 'a row' }
+        $who = if ($record.Contains('who') -and $record['who'] -is [string]) { $record['who'] } else { '' }
+        $concept = if ($record.Contains('concept') -and $record['concept'] -is [string]) { $record['concept'] } else { '' }
+
+        $parsed = Read-ResponseCriteria $(if ($record.Contains('criteria') -and $record['criteria'] -is [string]) { $record['criteria'] } else { '' })
+        if (-not $parsed.Error) {   # a syntax error is the field rule's to report
+            $criteria = @($parsed.Criteria)
+            foreach ($c in $criteria) {
+                if (-not $readBy.ContainsKey($c.Key)) { $readBy[$c.Key] = [System.Collections.Generic.List[string]]::new() }
+                if (-not $readBy[$c.Key].Contains($where)) { $readBy[$c.Key].Add($where) }
+            }
+            $contradiction = Find-ResponseContradiction $criteria
+            if ($contradiction) { $problems.Add("$where can never match: its criteria on $contradiction contradict each other") }
+            $texts = [System.Collections.Generic.SortedSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($c in $criteria) { [void]$texts.Add((Format-ResponseCriterion $c)) }
+            $same = "$who`n$concept`n$(@($texts) -join ';')"
+            if ($concept -and $seen.ContainsKey($same)) {
+                $problems.Add("$where has the same who, concept and criteria as $($seen[$same]): the two tie and one is drawn at random each time, so make them one rule with all the lines")
+            }
+            elseif ($concept) { $seen[$same] = $where }
+        }
+
+        $then = if ($record.Contains('then')) { $record['then'] } else { $null }
+        if ($then -is [System.Collections.IDictionary] -and $then.Contains('concept') -and $then['concept'] -is [string] -and $then['concept']) {
+            $next = $then['concept']
+            $to = if ($then.Contains('who') -and $then['who'] -is [string]) { $then['who'] } else { '' }
+            if (-not $ConceptWho.ContainsKey($next)) {
+                $problems.Add("$where then names concept '$next', which no rule has$(Format-DidYouMean $next @($ConceptWho.Keys))")
+            }
+            elseif ($to -and -not $ConceptWho[$next].Contains($to) -and -not $ConceptWho[$next].Contains('')) {
+                $problems.Add("$where then sends '$next' to '$to', but no '$next' rule is for '$to' or for anyone$(Format-DidYouMean $to @($ConceptWho[$next]))")
+            }
+        }
+
+        if ($record.Contains('lines') -and $null -ne $record['lines']) {
+            $number = 0
+            foreach ($line in @($record['lines'])) {
+                $number++
+                $voice = if ($line -is [System.Collections.IDictionary] -and $line.Contains('voice') -and $line['voice'] -is [string]) { $line['voice'] } else { '' }
+                if ($voice) {
+                    if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir ($voice -replace '^res://', '')) -PathType Leaf)) { $problems.Add("$where line $number voice $voice does not exist") }
+                }
+                elseif ($voiced) { $problems.Add("$where line $number has no voice file") }
+            }
+        }
+    }
+    foreach ($fact in $readBy.Keys) {
+        if ($Remembered.Contains($fact) -or $given.Contains($fact)) { continue }
+        $readers = $readBy[$fact]
+        $by = if ($readers.Count -gt 1) { "$($readers[0]) and $($readers.Count - 1) more" } else { $readers[0] }
+        $known = [string[]]@(@($Remembered) + @($given))
+        $warnings.Add([ordered]@{ rule = 'fact-never-written'; severity = 'warning'; file = "$($Spec['file'])"; line = $null
+            message = "fact '$fact' is read by $by, but no rule remembers it and the table's facts do not list it$(Format-DidYouMean $fact $known)" })
+    }
+    return @{ Problems = $problems.ToArray(); Warnings = $warnings.ToArray() }
+}
+
 # One value against its field rule; the problem as text, or $null.
 function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
     $type = if ($Rule.Contains('type')) { $Rule['type'] } else { $null }
@@ -67,6 +243,41 @@ function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
             if (-not ($Value -is [bool] -or ($FromCsv -and "$Value" -in 'true', 'false'))) { return "is not true or false: '$Value'" }
         }
         'string' { if ($Value -isnot [string]) { return "is not text: '$Value'" } }
+        'criteria' {
+            if ($Value -isnot [string]) { return "is not text: '$Value'" }
+            $parsed = Read-ResponseCriteria $Value
+            if ($parsed.Error) { return $parsed.Error }
+        }
+        'line' {
+            if ($Value -is [System.Collections.IDictionary]) {
+                foreach ($k in $Value.Keys) { if ($k -cnotin 'text', 'voice') { return "has '$k' (a line has text and voice)" } }
+                if (-not ($Value.Contains('text') -and $Value['text'] -is [string] -and $Value['text'])) { return 'has a line without text' }
+                if ($Value.Contains('voice') -and $Value['voice'] -isnot [string]) { return "voice is not text: '$($Value['voice'])'" }
+            }
+            elseif ($Value -isnot [string]) { return "is neither text nor { text, voice }: '$Value'" }
+        }
+        'followup' {
+            if ($Value -isnot [System.Collections.IDictionary]) { return "is not { who, concept }: '$Value'" }
+            foreach ($k in $Value.Keys) { if ($k -cnotin 'who', 'concept') { return "has '$k' (then has who and concept)" } }
+            if (-not ($Value.Contains('concept') -and $Value['concept'] -is [string] -and $Value['concept'])) { return 'needs a concept' }
+            if ($Value.Contains('who') -and $null -ne $Value['who'] -and $Value['who'] -isnot [string]) { return "who is not text: '$($Value['who'])'" }
+        }
+        'remember' {
+            if ($Value -isnot [System.Collections.IDictionary]) { return "is not { fact, value, world, for }: '$Value'" }
+            foreach ($k in $Value.Keys) { if ($k -cnotin 'fact', 'value', 'world', 'for') { return "has '$k' (remember has fact, value, world and for)" } }
+            if (-not ($Value.Contains('fact') -and $Value['fact'] -is [string] -and (Test-ResponseName $Value['fact']))) { return "needs a fact name: '$(if ($Value.Contains('fact')) { $Value['fact'] })'" }
+            $fact = $Value['fact']
+            if ($Value.Contains('value')) {
+                $v = $Value['value']
+                $isNumber = $v -is [double] -or $v -is [long] -or $v -is [int] -or $v -is [decimal]
+                if (-not ($isNumber -or $v -is [bool] -or ($v -is [string] -and (Test-ResponseName $v)))) { return "'$fact' value is neither a number, true, false nor a name: '$v'" }
+            }
+            if ($Value.Contains('world') -and $Value['world'] -isnot [bool]) { return "'$fact' world is not true or false: '$($Value['world'])'" }
+            if ($Value.Contains('for')) {
+                $for = $Value['for']
+                if (-not (($for -is [double] -or $for -is [long] -or $for -is [int] -or $for -is [decimal]) -and [double]$for -gt 0)) { return "'$fact' for is not a number of seconds above 0: '$for'" }
+            }
+        }
     }
     if ($null -ne $number) {
         if ($Rule.Contains('min') -and $number -lt [double]$Rule['min']) { return "is $number, below the minimum $($Rule['min'])" }
@@ -125,6 +336,22 @@ function Get-DataCases([string]$ProjectDir) {
 
     # Read every table first: references between them need all the ids.
     $loaded = [ordered]@{}; $configProblems = @()
+    # A responses table (ResponseSystem's rules) gets its columns predefined; fields it lists are added or override them.
+    $responses = @(foreach ($name in $tables.Keys) {
+        $spec = $tables[$name]
+        if (-not $spec.Contains('kind')) { continue }
+        if ($spec['kind'] -cne 'responses') { $configProblems += "table '$name': kind '$($spec['kind'])' is unknown (the one kind is responses)"; continue }
+        if ("$($spec['file'])" -notmatch '\.json$') { $configProblems += "table '$name': a responses table is a JSON file, not $($spec['file'])" }
+        if (-not $spec.Contains('id')) { $spec['id'] = 'id' }
+        $fields = [ordered]@{
+            who = @{ type = 'string'; optional = $true }; concept = @{ type = 'string' }; criteria = @{ type = 'criteria'; optional = $true }
+            lines = @{ type = 'line'; list = $true }; then = @{ type = 'followup'; optional = $true }
+            remember = @{ type = 'remember'; list = $true; optional = $true }; once = @{ type = 'bool'; optional = $true }
+        }
+        if ($spec.Contains('fields') -and $spec['fields']) { foreach ($f in $spec['fields'].Keys) { $fields[$f] = $spec['fields'][$f] } }
+        $spec['fields'] = $fields
+        $name
+    })
     foreach ($name in $tables.Keys) {
         $spec = $tables[$name]
         $file = Join-Path $ProjectDir (($spec['file'] -replace '^res://', ''))
@@ -146,6 +373,25 @@ function Get-DataCases([string]$ProjectDir) {
         $idField = $tables[$name]['id']
         $idOrder[$name] = [string[]]@(foreach ($r in $loaded[$name]) { if ($r.Contains('@key')) { $r['@key'] } elseif ($idField -and $r.Contains($idField)) { "$($r[$idField])" } })
         $ids[$name] = [System.Collections.Generic.HashSet[string]]::new($idOrder[$name])
+    }
+
+    # Across every responses table: who has a rule for each concept ('' is anyone), and every fact a rule remembers.
+    $conceptWho = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.HashSet[string]]]::new([StringComparer]::Ordinal)
+    $remembered = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($name in $responses) {
+        if (-not $loaded.Contains($name)) { continue }
+        foreach ($record in $loaded[$name]) {
+            if ($record.Contains('concept') -and $record['concept'] -is [string] -and $record['concept']) {
+                $concept = $record['concept']
+                if (-not $conceptWho.ContainsKey($concept)) { $conceptWho[$concept] = [System.Collections.Generic.HashSet[string]]::new() }
+                [void]$conceptWho[$concept].Add($(if ($record.Contains('who') -and $record['who'] -is [string]) { $record['who'] } else { '' }))
+            }
+            if ($record.Contains('remember') -and $null -ne $record['remember']) {
+                foreach ($r in @($record['remember'])) {
+                    if ($r -is [System.Collections.IDictionary] -and $r.Contains('fact') -and $r['fact'] -is [string]) { [void]$remembered.Add($r['fact']) }
+                }
+            }
+        }
     }
 
     foreach ($name in $loaded.Keys) {
@@ -201,7 +447,13 @@ function Get-DataCases([string]$ProjectDir) {
         }
         foreach ($cycle in @(Find-DataCycles $edges)) { $problems.Add("$cycle is a cycle: none of them can come first") }
         foreach ($problem in @(Test-DataTotals $name $spec $loaded $tables)) { $problems.Add($problem) }
-        $cases.Add(@{ Name = "table $name"; Failure = (@($problems) | Select-Object -First 50) -join "`n" })
+        $warnings = @()
+        if ($responses -ccontains $name) {
+            $checked = Test-ResponseTable $ProjectDir $spec $loaded[$name] $conceptWho $remembered
+            foreach ($problem in $checked.Problems) { $problems.Add($problem) }
+            $warnings = @($checked.Warnings)
+        }
+        $cases.Add(@{ Name = "table $name"; Failure = (@($problems) | Select-Object -First 50) -join "`n"; Warnings = $warnings })
     }
     if ($config -and $config.Contains('names')) { $cases.Add(@{ Name = 'names'; Failure = (@(Test-DataNames $ProjectDir $config['names'] $loaded $tables) | Select-Object -First 50) -join "`n" }) }
     return $cases.ToArray()
@@ -311,5 +563,9 @@ function Invoke-DataRunner([string]$ProjectDir, [string]$ResultsDir) {
     $cases = @(Get-DataCases $ProjectDir)
     Write-JUnitCases (Join-Path $ResultsDir 'data.junit.xml') 'data' $cases
     foreach ($case in $cases | Where-Object { $_.Failure }) { Write-CiLog "data $($case.Name): $(($case.Failure -split "`n").Count) problem(s)" }
+    # Findings that do not fail the run (facts a responses table reads but nothing writes), as the textsize runner's.
+    $warnings = @(foreach ($case in $cases) { if ($case.Contains('Warnings')) { $case['Warnings'] } })
+    ConvertTo-Json -InputObject @($warnings) -Depth 4 | Set-Content -LiteralPath (Join-Path $ResultsDir 'findings.json') -Encoding utf8
+    foreach ($w in $warnings) { Write-CiLog "data warning $($w['file']): $($w['message'])" }
     return 0
 }

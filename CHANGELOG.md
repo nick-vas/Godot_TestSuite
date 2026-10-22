@@ -10,6 +10,48 @@
   game with the `expand` aspect saw a square screen, and a resize leaked into the next flow. Bad sizes, an unknown or
   numeric `hold` and a `release` of an action not held fail with their reason. Self-test: `Test-Flows.ps1`
   (`tests/flows-fixture`, needs Godot).
+- Playtest telemetry, from the roadmap's Valve list: the events `godot-playtest` names (`stuck`, `revisit`,
+  `solved_but_stayed`, `item_found`, `death`, `hint_requested`, `level_time`, each with level, position and level time)
+  as a ready schema, `ci/godot/templates/playtest-events.json`, and in Breakout.Core as `PlaytestEvents` for the existing
+  `TelemetrySchema` (consent, no free text). `PlaytestTracker` raises them from the player's position and the game's
+  progress calls: a stall is no progress and no new ground for 120 s, a revisit is re-entering a cell after 10 s away,
+  solved-but-stayed is still near a solved puzzle 30 s later (`PlaytestTests`, with a fake clock). New command
+  `playtest -Sessions <folder>`: reads the session files playtest builds wrote (`.json`, `.jsonl`; repeated batches
+  counted once, broken files and events that do not fit listed) and writes per-level counts and medians (level time,
+  deaths and stalls per session, items found) and a PNG heat map per level and event type, alone or over a level
+  screenshot that the new `playtest.json` places in the world. The PNGs are drawn by `ci/godot/tools/Heatmap.cs`, compiled
+  with `Add-Type`, so no Godot is needed. New error codes `no-playtest-sessions` and `invalid-playtest-config`;
+  `-HotspotCell` also sets the maps' cell. Self-test: `Test-Playtest.ps1` with `tests/playtest-fixture`.
+- From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Breakout.Core gains `SoftLockCheck`.
+  A level is written down as areas, passages (one-way, needing an item held, or using items up once: a key, three
+  rounds for a cracked wall), one-time pickups, supplies that top an item back up (Portal's box delivery tubes), items
+  that can be lost at any moment, and goals. A breadth-first search over area, items held, pickups taken and ways opened
+  (packed into 128 bits, capped by `maxStates` with a clear error) and a backward search from the goal find every
+  reachable state the goal cannot be reached from, and return the shortest counterexample ("pick up key in Hall; use
+  key on closet door, go Hall -> Closet. Stuck in Closet, holding nothing"). `everyItemCanBeLost` is the stress test.
+  A game's test calls `SoftLockCheck.AssertNoSoftLock(level)`; `godot-playtest` gains a section on it. With
+  `LookTrigger`, the roadmap item is done.
+- Localization, from the roadmap's to-do list: the `l10n` runner gains a seventh case, `missing glyphs`, a glyph-coverage
+  check per locale without a display. It reads every translated string from the CSV and PO tables (an imported,
+  compressed `.translation` lists no keys, measured), drops placeholders, BBCode tags and invisible characters, and runs
+  `ci/godot/tools/glyphs.gd` in headless Godot to check each character with `Font.has_char` against the default font
+  (the project theme's, `gui/theme/custom_font` or Godot's Open Sans) and every font of a `.tres` theme, fallbacks
+  included. Each finding names the locale, font, characters with code points and up to five keys; characters only a
+  `SystemFont` could draw are a `system-font` warning (they depend on the player's OS), and `l10n.json`'s
+  `glyphIgnoreFonts` leaves out fonts that never draw translated text. `test -Json` adds `glyphs` to the l10n entry of
+  `runnerResults`. Measured on 4.7.2 (`docs/localization.md`): `has_char` walks `FontFile` and `FontVariation`
+  fallbacks but never the system fonts `allow_system_fallback` draws from. Fixture: `tests/l10n-fixture/glyphs`
+  (text-only bitmap fonts, no font file committed); `tests/Test-Localization.ps1` gains `-NoGodot`.
+- Dialogue tables, from the roadmap's Valve list: a `data.json` table of `"kind": "responses"` holds `ResponseSystem`'s
+  rules (id, who, concept, criteria, lines with optional voice files, then, remember, once), and the `data` runner fails
+  criteria syntax errors with the column, a `then` no rule answers (across all responses tables, with the near name),
+  voice files that do not exist (and lines without one when `"voiced": true`), rules with the same who, concept and
+  criteria, and criteria that contradict each other; a fact read but never remembered nor listed in `facts` is a
+  `fact-never-written` warning. `"type": "criteria"` checks the grammar in any table. Breakout.Core gains
+  `ResponseTable.Load` (rules from the same JSON, every bad row reported at once), `Rule.Voices` and `Rule.VoiceOf`, and
+  one strict criteria grammar, `CriteriaSyntax` (`Criterion.Parse` no longer accepts `a=` or `a=1;b=2` as one
+  criterion); 37 shared cases in `criteria-examples.json` keep the C# and PowerShell parsers in agreement. Breakout has a
+  green dialogue table (`game/data/barks.json`), and `tests/data-fixture` a broken one per check.
 - Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
   three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
   milestones), world rules, what failing costs, content counts and length, optional modes, open questions and a change
