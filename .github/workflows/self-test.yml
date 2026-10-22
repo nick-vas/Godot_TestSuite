@@ -528,6 +528,7 @@ jobs:
           if ($entry.command -ne 'uvx' -or $entry.env.ASEPRITE_PATH -ne (Join-Path $ase 'Aseprite.exe') -or $entry.args -notcontains 'aseprite_mcp') { throw "unexpected aseprite entry: $($entry | ConvertTo-Json -Compress)" }
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -McpAseprite (Join-Path $env:RUNNER_TEMP 'no-aseprite') -Project $dir -Json 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'aseprite-not-found') { throw "expected aseprite-not-found, got: $($d.error.code)" }
+          exit 0  # the last pwsh run failed on purpose; GitHub's shell would otherwise end the step with its exit code
       - name: Export the Windows build and launch it
         shell: pwsh
         run: ./ci/godot/godot-ci.ps1 export -Project examples/breakout/game -Preset Windows -Run
