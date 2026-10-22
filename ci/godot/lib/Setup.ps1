@@ -1,5 +1,5 @@
 # Installs the .NET SDK (when missing), the Godot .NET editor and, on request, export templates.
-# Windows for local runs; Linux for GitHub runners and Claude Code cloud sessions.
+# Windows for local runs; Linux for GitHub runners and Claude Code cloud sessions; macOS for macOS and iOS exports.
 
 function Save-Download([string]$Url, [string]$Destination) {
     Write-CiLog "Downloading $Url"
@@ -56,6 +56,7 @@ function Install-DotnetSdk([string]$Channel) {
         $env:PATH = "$root$([IO.Path]::PathSeparator)$env:PATH"
         return
     }
+    if ($IsMacOS) { Stop-GodotCi ".NET $Channel SDK not found and dotnet-install.sh failed. Install it with: brew install --cask dotnet-sdk" }
     # Sandboxed sessions may block Microsoft's CDN but allow the distro mirror.
     Write-CiLog "Microsoft's .NET download failed; installing dotnet-sdk-$Channel with apt"
     # Spelled out rather than indexing an array: PowerShell unrolls a one-item array to a plain string.
@@ -65,13 +66,25 @@ function Install-DotnetSdk([string]$Channel) {
     }
 }
 
+# This machine as Get-GodotPaths names it: windows, linux or macos ('' for anything else), and x86_64 or arm64.
+function Get-HostOs {
+    if ($IsWindows) { return 'windows' }
+    if ($IsLinux) { return 'linux' }
+    if ($IsMacOS) { return 'macos' }
+    return ''
+}
+function Get-HostArch {
+    if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { return 'arm64' }
+    return 'x86_64'
+}
+
 # Download names and install paths. C# projects need the .NET ("mono") build; GDScript projects get the
-# standard build, which needs no .NET SDK and is smaller.
-function Get-GodotPaths([string]$Version, [string]$Release, [bool]$Mono = $true) {
+# standard build, which needs no .NET SDK and is smaller. -Os and -Arch default to this machine's (tests pass others).
+function Get-GodotPaths([string]$Version, [string]$Release, [bool]$Mono = $true, [string]$Os = (Get-HostOs), [string]$Arch = (Get-HostArch)) {
     $tag = "$Version-$Release"
     $flavor = if ($Mono) { 'mono' } else { 'standard' }
     $toolsDir = Join-Path (Get-ToolsDir) "$tag-$flavor"
-    if ($IsWindows) {
+    if ($Os -eq 'windows') {
         # The _console build writes to stdout, which logs and log checks need.
         if ($Mono) {
             $package = "Godot_v${tag}_mono_win64"
@@ -80,20 +93,30 @@ function Get-GodotPaths([string]$Version, [string]$Release, [bool]$Mono = $true)
             $package = "Godot_v${tag}_win64.exe"
             $bin = Join-Path $toolsDir "Godot_v${tag}_win64_console.exe"
         }
-        $templatesRoot = Join-Path $env:APPDATA 'Godot/export_templates'
-    } elseif ($IsLinux) {
-        $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'x86_64' }
+        $appData = if ($env:APPDATA) { $env:APPDATA } else { Join-Path $HOME 'AppData/Roaming' }
+        $templatesRoot = Join-Path $appData 'Godot/export_templates'
+    } elseif ($Os -eq 'linux') {
         if ($Mono) {
-            $package = "Godot_v${tag}_mono_linux_$arch"
-            $bin = Join-Path $toolsDir "$package/Godot_v${tag}_mono_linux.$arch"
+            $package = "Godot_v${tag}_mono_linux_$Arch"
+            $bin = Join-Path $toolsDir "$package/Godot_v${tag}_mono_linux.$Arch"
         } else {
-            $package = "Godot_v${tag}_linux.$arch"
+            $package = "Godot_v${tag}_linux.$Arch"
             $bin = Join-Path $toolsDir $package
         }
         $dataHome = if ($env:XDG_DATA_HOME) { $env:XDG_DATA_HOME } else { Join-Path $HOME '.local/share' }
         $templatesRoot = Join-Path $dataHome 'godot/export_templates'
+    } elseif ($Os -eq 'macos') {
+        # One universal build for Intel and Apple Silicon; the zip holds the app bundle (Godot_mono.app for .NET).
+        if ($Mono) {
+            $package = "Godot_v${tag}_mono_macos.universal"
+            $bin = Join-Path $toolsDir 'Godot_mono.app/Contents/MacOS/Godot'
+        } else {
+            $package = "Godot_v${tag}_macos.universal"
+            $bin = Join-Path $toolsDir 'Godot.app/Contents/MacOS/Godot'
+        }
+        $templatesRoot = Join-Path $HOME 'Library/Application Support/Godot/export_templates'
     } else {
-        Stop-GodotCi 'Only Windows and Linux are supported'
+        Stop-GodotCi 'Only Windows, Linux and macOS are supported'
     }
     $monoSuffix = if ($Mono) { '_mono' } else { '' }
     [pscustomobject]@{
@@ -119,8 +142,18 @@ function Install-GodotTools {
         $zip = Join-Path (Get-ToolsDir) "$($paths.Package).zip"
         New-Item -ItemType Directory -Force (Get-ToolsDir) | Out-Null
         Save-RequiredDownload "$($paths.BaseUrl)/$($paths.Package).zip" $zip
-        Expand-Zip $zip $paths.ToolsDir
+        # ditto keeps what an app bundle needs (symbolic links, permissions, its code signature) and ZipFile does not.
+        if ($IsMacOS) {
+            New-Item -ItemType Directory -Force $paths.ToolsDir | Out-Null
+            Invoke-Checked ditto @('-x', '-k', $zip, $paths.ToolsDir)
+        } else {
+            Expand-Zip $zip $paths.ToolsDir
+        }
         Remove-Item -Force $zip
+        if (-not (Test-Path -LiteralPath $paths.Bin)) {
+            $found = @(Get-ChildItem -LiteralPath $paths.ToolsDir | ForEach-Object Name)
+            Stop-GodotCi "$($paths.Package).zip has no $([System.IO.Path]::GetRelativePath($paths.ToolsDir, $paths.Bin)) (it holds: $($found -join ', '))"
+        }
         if (-not $IsWindows) { Invoke-Checked chmod @('+x', $paths.Bin) }
     }
 

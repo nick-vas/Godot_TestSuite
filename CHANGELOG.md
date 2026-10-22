@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- CI, more from GameCI's documentation: `export -GameVersion auto` reads the version from git (the nearest `v*` tag and
+  the commits since: `1.2.3.4`, `1.2.3+4.gabc1234`; `0.0.0.<commits>` without a tag) and stops with `shallow-checkout`
+  in a shallow clone, before Godot is set up. Any `-GameVersion` also sets Android presets' `version/code` for the export
+  only (major\*1,000,000 + minor\*1,000 + patch, `gameVersion.androidVersionCode`). The action outputs `version`,
+  `android-version-code` and `build-path`, keeps Git LFS objects (`lfs` input) and Android's Gradle caches in the Actions
+  cache, and finds export templates on macOS; `setup` downloads the macOS build of Godot instead of stopping. `godot.yml`
+  takes optional signing secrets (Android keystore, Windows certificate, macOS certificate and notarization key) and an
+  `environment` for its export jobs, a `game-version` for runs that are not for a tag, and sends iOS presets to
+  `macos-latest`. New page: `docs/self-hosted-runners.md`. Self-test: `Test-GameVersion.ps1`.
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the

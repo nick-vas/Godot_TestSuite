@@ -32,12 +32,24 @@ inputs:
     description: "export: also launch the exported build when this runner's OS can run it, and fail on errors"
     default: "false"
   game-version:
-    description: "export: the game's version, e.g. the tag v1.2.3 (its numbers become config/version for the export, all of it the C# InformationalVersion)"
+    description: "export: the game's version, e.g. the tag v1.2.3 (its numbers become config/version for the export, all of it the C# InformationalVersion, and Android presets get version/code), or auto: from the nearest v* tag and the commits since (check out with fetch-depth: 0)"
     default: ""
+  lfs:
+    description: "Pull Git LFS files, keeping .git/lfs in the Actions cache (check out with lfs: false; the action pulls)"
+    default: "false"
   retention-days:
     description: Days to keep uploaded artifacts
     default: "14"
 outputs:
+  version:
+    description: "export with game-version: the version exported, e.g. 1.2.3-rc.1 or 1.2.3+4.gabc1234"
+    value: ${{ steps.run.outputs.version }}
+  android-version-code:
+    description: "export with game-version: major*1,000,000 + minor*1,000 + patch, set as version/code of Android presets"
+    value: ${{ steps.run.outputs.android-version-code }}
+  build-path:
+    description: "export: folder with the exports, one subfolder per preset"
+    value: ${{ steps.run.outputs.build-path }}
   presets:
     description: JSON array of the project's export presets
     value: ${{ steps.detect.outputs.presets }}
@@ -68,8 +80,51 @@ runs:
         if ($env:GODOT_VERSION_INPUT) { $params.GodotVersion = $env:GODOT_VERSION_INPUT }
         & $env:CLI detect @params
         $templates = if ($IsWindows) { Join-Path $env:APPDATA 'Godot/export_templates' }
+          elseif ($IsMacOS) { Join-Path $HOME 'Library/Application Support/Godot/export_templates' }
           else { Join-Path $HOME '.local/share/godot/export_templates' }
         "templates=$templates" >> $env:GITHUB_OUTPUT
+
+    # What the LFS and Gradle caches need: a hash of the LFS file list (empty when no file is in LFS), and whether an
+    # exported preset is for Android (Godot's Gradle build downloads Gradle and its dependencies on every run).
+    - id: extras
+      if: inputs.lfs == 'true' || inputs.command == 'export'
+      shell: pwsh
+      env:
+        LFS: ${{ inputs.lfs }}
+        COMMAND: ${{ inputs.command }}
+        PRESET: ${{ inputs.preset }}
+        PLATFORMS: ${{ steps.detect.outputs.preset-platforms }}
+      run: |
+        if ($env:LFS -eq 'true') {
+          $files = @(git lfs ls-files -l)
+          if ($LASTEXITCODE -ne 0) { Write-Host '::error::lfs is true, but git lfs ls-files failed: is Git LFS installed on this runner?'; exit 1 }
+          if ($files.Count -gt 0) {
+            $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($files -join "`n")))
+            "lfs-hash=$hash" >> $env:GITHUB_OUTPUT
+          }
+        }
+        if ($env:COMMAND -eq 'export') {
+          $platforms = if ($env:PLATFORMS) { $env:PLATFORMS | ConvertFrom-Json -AsHashtable } else { @{} }
+          $wanted = @(if ($env:PRESET) { $env:PRESET -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { $platforms.Keys })
+          $android = @($wanted | Where-Object { $platforms[$_] -eq 'Android' }).Count -gt 0
+          "android=$($android.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+        }
+
+    # Git LFS objects: restored into .git/lfs, then only the missing ones are downloaded (LFS bandwidth is billed).
+    - id: lfs-cache
+      if: steps.extras.outputs.lfs-hash != ''
+      uses: actions/cache/restore@v6
+      with:
+        path: .git/lfs
+        key: git-lfs-${{ runner.os }}-${{ steps.extras.outputs.lfs-hash }}
+        restore-keys: git-lfs-${{ runner.os }}-
+
+    - id: lfs-pull
+      if: steps.extras.outputs.lfs-hash != ''
+      shell: pwsh
+      run: |
+        git lfs pull
+        exit $LASTEXITCODE
 
     # Only C# projects use the .NET build of Godot; GDScript projects get the standard build.
     - if: steps.detect.outputs.csharp == 'true'
@@ -93,6 +148,18 @@ runs:
       with:
         path: ${{ steps.detect.outputs.templates }}
         key: godot-templates-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-${{ steps.detect.outputs.csharp == 'true' && 'mono' || 'standard' }}
+
+    # Android's Gradle build (gradle_build/use_gradle_build) downloads Gradle and its dependencies into ~/.gradle; the key
+    # follows the build template Godot installed into the project (android/build).
+    - id: gradle-cache
+      if: steps.extras.outputs.android == 'true'
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-${{ hashFiles('**/android/build/*.gradle', '**/android/build/gradle/wrapper/gradle-wrapper.properties', '**/android/build/gradle.properties') }}
+        restore-keys: gradle-${{ runner.os }}-${{ steps.detect.outputs.godot-version }}-
 
     - uses: actions/cache@v6
       with:
@@ -141,6 +208,7 @@ runs:
           "artifact=$env:NAME-$env:RUNNER_OS"
           "export-artifact=$env:NAME-$(($preset -replace '[^A-Za-z0-9._-]+', '-').Trim('-'))"
         ) >> $env:GITHUB_OUTPUT
+        if ($env:COMMAND -eq 'export') { "build-path=$output" >> $env:GITHUB_OUTPUT }
 
         $params = @{ Project = $env:PROJECT; GodotVersion = $env:GODOT_VERSION_INPUT; Results = $results; Output = $output }
         if ($env:RUNNERS) { $params.Runners = $env:RUNNERS }
@@ -151,8 +219,13 @@ runs:
         if ([double]$env:MIN_COVERAGE -gt 0) { $params.MinCoverage = [double]$env:MIN_COVERAGE }
         if ($env:RUN_EXPORTS -eq 'true') { $params.Run = $true }
         if ($env:GAME_VERSION) { $params.GameVersion = $env:GAME_VERSION }
+        # export writes version and android-version-code to this step's outputs.
+        if ($env:COMMAND -eq 'export') { $params.GitHubOutput = $true }
         & $env:CLI $env:COMMAND @params
-        exit $LASTEXITCODE
+        $code = $LASTEXITCODE
+        # Only an export that used Gradle has anything there to save.
+        if (Test-Path -LiteralPath (Join-Path $HOME '.gradle/caches')) { 'gradle=true' >> $env:GITHUB_OUTPUT }
+        exit $code
 
     # Only a complete install (Setup writes GODOT_CI_INSTALLED after it), never a half-finished download.
     - if: always() && steps.godot-cache.outputs.cache-hit != 'true' && env.GODOT_CI_INSTALLED == '1'
@@ -168,6 +241,22 @@ runs:
       with:
         path: ${{ steps.detect.outputs.templates }}
         key: ${{ steps.templates-cache.outputs.cache-primary-key }}
+
+    - if: always() && steps.lfs-pull.outcome == 'success' && steps.lfs-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: .git/lfs
+        key: ${{ steps.lfs-cache.outputs.cache-primary-key }}
+
+    - if: always() && steps.extras.outputs.android == 'true' && steps.run.outputs.gradle == 'true' && steps.gradle-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
 
     - if: always() && steps.import-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@v6
