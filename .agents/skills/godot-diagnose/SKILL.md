@@ -67,6 +67,19 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 status -Json
 - `firstSeen.commit` is where it started: in that commit, or in uncommitted work on top of it (`git log <commit>..`
   lists what came after).
 
+## GPU crashes, hangs and wrong pictures
+
+From Adam Sawicki (AMD), "Make Your Game Friendly for Graphics Debugging and Optimization" (Digital Dragons 2019):
+validation layers belong in regular testing ("Use them in regular testing"), and a crash wants a safe mode. Godot 4.7.2
+flags (in `--help`; pass them to a game run with `-GameArgs` or on the command line):
+
+- `--gpu-validation` turns on the graphics API's validation layers, in release builds too; `--gpu-abort` (debug
+  builds) stops at the first API usage error, which helps when the machine freezes.
+- A GPU reset (device lost): `--accurate-breadcrumbs` puts barriers between breadcrumbs to narrow down the command that
+  caused it; `--extra-gpu-memory-tracking` adds detail to `RenderingDevice`'s memory report. Both are Vulkan only.
+- Rule out threading with `--single-threaded-scene`, and the API or renderer with `--rendering-driver` and
+  `--rendering-method`. Test stability first, then correctness, then performance, on more than one GPU vendor.
+
 ## Keeping the session cheap
 
 - Screenshots, benchmarks and launching an export produce long logs and images: hand them to the `godot-verifier`

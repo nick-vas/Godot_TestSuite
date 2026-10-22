@@ -88,6 +88,10 @@ foreach (var arg in OS.GetCmdlineUserArgs())
   cursor, and breakpoints and extra logs sit behind `if (DebugTagged)` (`Debugger.Break()` under `#if DEBUG`), so they
   fire for it alone. Draw a marker over agents a script or cutscene is driving (ArenaNet's green dot): a report of odd
   behaviour then goes to the script's author or to the AI programmer straight away.
+- **GPU captures** (RenderDoc): name what custom rendering code does, so a capture reads as passes, not draw numbers
+  ("Wrap passes with Begin…End markers with custom names. Give names to resources.", Sawicki, AMD): wrap compute or
+  `RenderingDevice` work in `DrawCommandBeginLabel(name, color)` / `DrawCommandEndLabel()` and name buffers and
+  textures with `SetResourceName(rid, name)`. GPU crashes and validation layers: `godot-diagnose`.
 - **.NET tools** attach to any build, release included: `dotnet-trace`, `dotnet-gcdump` (`godot-performance`).
   `DOTNET_EnableDiagnostics=0` turns that off.
 
