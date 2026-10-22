@@ -45,6 +45,22 @@ First run with the token (2026-10-22, Claude Code 2.1.308): the eval stopped aft
 token` (`partialReason: auth_failed`), and the workflow, which ended with `exit 0`, showed green. Both workflows now
 check the token with one small `claude -p` request before anything else, and Evals fails when a run was never graded.
 
+Run 4 (2026-10-22, all four cases, 3 runs per arm, $1.77): the subscription token works for `claude plugin eval` in
+Actions, but the scores mostly measured a broken sandbox. On `ubuntu-latest` (24.04), AppArmor stops unprivileged
+programs from making user namespaces, so bwrap failed with `loopback: Failed RTM_NEWADDR: Operation not permitted` and
+every Bash call in a case failed with it ([Ubuntu 24.04 and Bubblewrap](https://etbe.coker.com.au/2024/04/24/ubuntu-24-04-bubblewrap/)).
+
+| Case | With | Without | What it measured |
+|---|---:|---:|---|
+| explain-failure | 0.67 | 1.00 | All 6 runs reported the bwrap error; without the plugin the model read the code and guessed right, with it the model refused to guess without a test run |
+| fix-score-bug | 0.67 | 0.67 | Fixed in every run, verified in none, and the kit never used: nothing could run |
+| lost-in-level | 1.00 | 0.00 | A design question, no commands: a real result for the plugin |
+| review-publishing-deal | 0.78 | 0.78 | A reading task, no commands: no difference |
+
+The Evals workflow now lets bwrap make namespaces (an AppArmor profile for bwrap, then the sysctl as a fallback),
+checks that the sandbox can run a command before any case, and fails when a result mentions a bwrap error. Only
+`lost-in-level` and `review-publishing-deal` count from run 4.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 

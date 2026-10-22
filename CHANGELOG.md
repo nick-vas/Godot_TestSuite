@@ -6,6 +6,9 @@
   does not have (read from its own parameters), files and `res://` paths that do not exist, imports that load nothing,
   and files over 200 lines; lines kept from the kit's template are skipped. `tests/Test-Context.ps1` also holds the
   template, skills and docs to the real flags. The kit's own `AGENTS.md` named `licences/` without its folder.
+- Evals: bwrap is allowed to make its sandbox on GitHub's Ubuntu 24.04 runners (AppArmor stopped bwrap from making user namespaces, so
+  every command in run 4 failed and its scores measured that); the workflow checks the sandbox before any case and fails
+  when a result reports a bwrap error. Run 4's scores and what they do and do not show are in `docs/research.md`.
 - Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
   an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
   `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the
