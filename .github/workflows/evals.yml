@@ -40,6 +40,15 @@ jobs:
           ./ci/godot/godot-ci.ps1 build -Project examples/gdscript
           $godot = Get-ChildItem $env:GODOT_TOOLS_DIR -Recurse -File -Filter 'Godot_v*_linux.x86_64' | Select-Object -First 1
           "EVAL_GODOT_BIN=$($godot.FullName)" >> $env:GITHUB_ENV
+      # One small request first: a token that is malformed or revoked fails here, by name, instead of as a run of 0 scores.
+      - name: The subscription token works
+        shell: pwsh
+        run: |
+          $token = $env:CLAUDE_CODE_OAUTH_TOKEN
+          if ($token -match '\s') { Write-Host '::warning::CLAUDE_CODE_OAUTH_TOKEN contains spaces or line breaks; paste it again as one line' }
+          if ($token -notmatch '^sk-ant-oat') { Write-Host '::warning::CLAUDE_CODE_OAUTH_TOKEN does not start like a claude setup-token token (sk-ant-oat...)' }
+          $out = claude -p 'Reply with the single word OK.' --max-turns 1 --output-format json 2>&1
+          if ($LASTEXITCODE) { throw "Claude Code rejected CLAUDE_CODE_OAUTH_TOKEN; run claude setup-token again and replace the secret: $out" }
       - name: Run evals
         shell: pwsh
         env:
@@ -57,6 +66,9 @@ jobs:
           }
           $lines += '', ('Mean delta {0:N2}; total cost ${1:N2}' -f $result.aggregates.meanDelta, $result.costUsd)
           $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+          # A low score is a result, not a failure; a run that never got graded (auth, rate limit, crash) is.
+          $errors = @(foreach ($case in $result.cases) { foreach ($arm in $case.arms.PSObject.Properties) { foreach ($run in $arm.Value) { if ($run.error) { "$($case.name) ($($arm.Name)): $($run.error)" } } } })
+          if ($result.partial -or $errors.Count) { throw "The evals did not finish: $($result.partialReason) $($errors -join '; ')" }
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()

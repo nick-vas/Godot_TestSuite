@@ -41,6 +41,10 @@ or WSL2 or Linux as a normal user.
 | A subscription, on GitHub | `claude setup-token` makes a one-year token ([authentication](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token)); store it as the secret `CLAUDE_CODE_OAUTH_TOKEN` and run the `Evals` workflow by hand | The evals page names only API keys and cloud credentials for CI, so this is documented for Claude Code in Actions but not yet confirmed for evals. Subscription use is meant for ordinary individual use ([terms](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use)): occasional manual runs, never a schedule. A present `ANTHROPIC_API_KEY` wins over the token |
 | A local model | Ollama 0.14+ or llama.cpp's `llama-server` speak the Anthropic Messages API ([Ollama](https://docs.ollama.com/api/anthropic-compatibility), [llama.cpp](https://huggingface.co/blog/ggml-org/anthropic-messages-api-in-llamacpp)); `ANTHROPIC_BASE_URL=http://localhost:11434` | Anthropic does not support Claude Code on non-Claude models ([LLM gateway](https://code.claude.com/docs/en/llm-gateway)); eval runs inherit only an allowlist of variables, so the base URL may not reach them (untested); and the scores would measure another model, so they only show the suite works |
 
+First run with the token (2026-10-22, Claude Code 2.1.308): the eval stopped after one run with `401 Invalid bearer
+token` (`partialReason: auth_failed`), and the workflow, which ended with `exit 0`, showed green. Both workflows now
+check the token with one small `claude -p` request before anything else, and Evals fails when a run was never graded.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 
