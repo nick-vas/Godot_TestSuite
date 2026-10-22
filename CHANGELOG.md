@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Breakout.Core gains `SoftLockCheck`.
+  A level is written down as areas, passages (one-way, needing an item held, or using items up once: a key, three
+  rounds for a cracked wall), one-time pickups, supplies that top an item back up (Portal's box delivery tubes), items
+  that can be lost at any moment, and goals. A breadth-first search over area, items held, pickups taken and ways opened
+  (packed into 128 bits, capped by `maxStates` with a clear error) and a backward search from the goal find every
+  reachable state the goal cannot be reached from, and return the shortest counterexample ("pick up key in Hall; use
+  key on closet door, go Hall -> Closet. Stuck in Closet, holding nothing"). `everyItemCanBeLost` is the stress test.
+  A game's test calls `SoftLockCheck.AssertNoSoftLock(level)`; `godot-playtest` gains a section on it. With
+  `LookTrigger`, the roadmap item is done.
 - Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
   an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
   `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the

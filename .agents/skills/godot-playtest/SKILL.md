@@ -55,7 +55,7 @@ The plan's gates `prototype.stranger` and `beta.playtest` say when; this says ho
 | got lost | Simplify the path, add one-way drops, give a landmark visible from everywhere; name landmarks, not compass points |
 | missed a key moment | A look trigger with a timer; motion, warm light or a sound pointing at it |
 | were hit by what they never saw coming | A sound before the threat appears, and a distinct sound per dangerous state |
-| lost a key item or got stuck | Detect it and supply another (Portal's box tubes); a failsafe for every resource gate |
+| lost a key item or got stuck | Detect it and supply another (Portal's box tubes); a failsafe for every resource gate; the soft-lock check (section 6) |
 | died again and again at one checkpoint | Autosave only when the player has been safe for a while |
 | were tired after long stretches | Alternate slow puzzles with simple timed tasks, and fights with quiet |
 | used a weak tactic because something rewarded it | Remove the feedback that teaches the wrong lesson |
@@ -69,7 +69,27 @@ areas already seen), `solved_but_stayed` (still in a puzzle room 30 s after solv
 pickup, `deaths` with position per checkpoint, `hint_requested` with position, and `level_time` for grey-box and art
 passes. A heat map of deaths and stalls over all testers beats any single replay.
 
-## 6. Deciding
+## 6. Soft-locks: search, do not wait for a tester
+
+A soft-lock is a state the player can reach from which the goal cannot be reached: a key spent on the wrong door, ammo
+shot at the wrong wall, the only box lost in a pit, a one-way drop taken before the key. Testers find them late and by
+luck. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Level/SoftLock.cs` tries every order instead (tests:
+`SoftLockTests.cs`). Write the level down as areas, passages (`oneWay`, `needs` an item held, `uses` items once),
+one-time pickups, supplies that top an item back up, items that `canBeLost`, and goals; then, in the game's own tests:
+
+```csharp
+var level = Levels.Vault();               // built from the level's data
+SoftLockCheck.AssertNoSoftLock(level);    // fails with the steps into the dead end
+```
+
+The failure is the shortest path into the first dead end: "pick up key in Hall; use key on closet door, go Hall ->
+Closet. Stuck in Closet, holding nothing". Fix it as Valve did: a supply where the item is needed (Portal's box
+delivery tubes), a second way, or a door that cannot take another door's key. `everyItemCanBeLost: true` asks whether
+the level survives losing anything at any moment. It models what the designer writes, not physics: a box that can be
+lost only in one room is lost anywhere here, which is stricter, never looser. Check a large level part by part between
+checkpoints; past `maxStates` (100,000) it stops with an error rather than run for ever.
+
+## 7. Deciding
 
 - A finding becomes a task only with the fix named; a cut gets an ADR. Portal's three questions: is it fun, how much
   work to make it fun, does it fit the game's purpose?

@@ -321,7 +321,9 @@ action, `setup` on macOS, optional signing secrets and an `environment` input on
 
 Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
 `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
-`godot-playtest` skill, and Valve's process in `godot-game-plan`. Still to do:
+`godot-playtest` skill, Valve's process in `godot-game-plan`, and from the commentaries `LookTrigger` (a look target with
+a fallback timer) and `SoftLockCheck` (every order of using up or losing key items searched, the shortest path into a
+dead end reported). Still to do:
 
 - [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
       scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
@@ -333,5 +335,5 @@ Valve's talks, handbook, Cabal article and developer commentary were read in Oct
       `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
-- [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
-      use up every key item, then check progress is still possible), both from the commentaries.
+- [ ] Soft-lock levels as data: read a `SoftLockLevel` from a `data.json` table (areas, passages, pickups, supplies,
+      goals), so the `data` runner checks it without a C# test and GDScript games can use it too.
