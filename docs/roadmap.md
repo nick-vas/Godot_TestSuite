@@ -181,7 +181,7 @@ pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contr
 | `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
 | Test duration in `status` | Croteam steered by submit-to-verdict time; Rare sped up Sea of Thieves' commit stage, stopped watching, and was back where it started within months (`docs/gdc/folds-testing-misc.md`); the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
-| Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
+| Re-run `Evals` after the sandbox fix | Run 4 confirmed the subscription token but scored a sandbox that refused every command (`docs/research.md`) | Run the workflow once with `runs` 1 on `fix-score-bug` and `explain-failure`, check that the bwrap step passes, and record the scores |
 
 ## To do: audio
 
