@@ -32,7 +32,8 @@ Get-Help ci/godot/godot-ci.ps1 -Detailed
 ```
 `doctor` catches the mistakes that break CI or ship broken builds. Examples: no `solution_directory`
 (exports would silently drop your C# code), test packages or test folders going into release builds, GUT
-files that won't run, and a missing .NET SDK. Godot is downloaded once to `~/.godot-ci`.
+files that won't run, a GDExtension with no library for a build a preset exports (picked as Godot picks it,
+[docs/addons.md](addons.md)), and a missing .NET SDK. Godot is downloaded once to `~/.godot-ci`.
 
 It also reads the instructions every agent session loads: `AGENTS.md`, `CLAUDE.md` and `CLAUDE.local.md` at the
 repository root (and in the project folder), with the files they import (`@path`, up to four hops, as Claude Code

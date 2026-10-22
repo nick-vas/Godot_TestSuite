@@ -155,6 +155,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-release-readiness` | is it ready to ship: a checklist where each line names the command or skill that proves it |
 | `godot-export-release` | exporting, smoke-launching, tagged releases, versions, signing, Steam, itch.io, Epic and GOG uploads |
 | `godot-debug-tools` | cheats, consoles, overlays, debug drawing and logging that never reach the shipped build |
+| `godot-addons` | choosing and installing add-ons and GDExtensions, calling them from C#, an add-on missing from an export |
 | `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
 | `retro` (manual) | end of a session: turn what went wrong into lessons and kit pull requests |
 | `kit-review` (manual) | monthly: which parts of the kit cost the most or help the least |
