@@ -26,6 +26,8 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
 - Across machines, three things change results:
   - **`Vector<T>` and SIMD reductions**: its width is 8 floats with AVX2 and 4 without, so a sum differs. Any change in
     summation order does (`Parallel.For`, a different loop shape).
+- List the simulation folders in `architecture.json` (`"simulation": ["sim"]`) and the `architecture` runner's
+  `nondeterministic-sim` rule flags the calls below there (set it to `error` for lockstep or rollback).
   - **`Math.Sin`, `Cos`, `Tan`, `Atan2`, `Pow`, `Exp`** (and the `MathF` versions) come from each OS's C library and can differ
     in the last bit between Windows, Linux and macOS. `Sqrt` and `+ - * /` are exact everywhere.
   - **Text**: `float.Parse("0.5")` returns 5 on a German system and throws on a French one, inside Godot too. Use

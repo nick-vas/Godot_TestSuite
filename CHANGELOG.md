@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- From the roadmap's to-do list: Breakout.Core's steering gains `Alignment` and `Cohesion` (with `Separation`, a flock: 30
+  boids head the same way within ten seconds without overlapping), `FollowPath` (Reynolds' corridor following, stopping at
+  the end) and `AvoidObstacles`; and `LookTrigger` (Valve's look target with a fallback timer: fires when the player has
+  looked at a point long enough, or when time runs out). A new architecture rule, `nondeterministic-sim`, flags
+  platform maths, `System.Random`, global random, clocks, per-process hashes and `Dictionary` iteration in the folders
+  `architecture.json` lists as `simulation`. `validate` fails a `.tres` that keeps a key its class no longer has (a renamed
+  export, whose value Godot drops on load).
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the

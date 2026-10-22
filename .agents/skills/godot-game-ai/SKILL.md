@@ -109,7 +109,8 @@ public override void _PhysicsProcess(double delta) => _budget.Run(1.0);   // mil
 
 ## 5. Steering
 
-`Steering.Seek`, `Flee`, `Arrive`, `Pursue`, `Evade`, `Wander`, `Separation` return a velocity change; `SteeringAgent.Step`
+`Steering.Seek`, `Flee`, `Arrive`, `Pursue`, `Evade`, `Wander`, flocking (`Separation`, `Alignment`, `Cohesion`), `FollowPath`
+and `AvoidObstacles` return a velocity change; `SteeringAgent.Step`
 applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterBody2D.Velocity` and `MoveAndSlide()`.
 
 - Seek is `normalize(target - position) * maxSpeed - velocity`. Reynolds' 1999 paper prints the subtraction the other way
