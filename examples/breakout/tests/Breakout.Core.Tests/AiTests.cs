@@ -261,4 +261,112 @@ public sealed class AiTests
         Assert.Equal(Wander(5), Wander(5));
         Assert.NotEqual(Wander(5), Wander(6));
     }
+
+    // A guard at the origin looking along +X, seeing 300 units within 0.6 rad either side, nothing closer than 10.
+    static VisionSensor Eyes() => new(new VisionPie(HalfAngle: 0.6f, Far: 300, Near: 10));
+
+    /// <summary>A fake ray: counts calls, and is blocked for any target point in <paramref name="blocked"/>.</summary>
+    static LineOfSight CountingRay(List<(Vector2 From, Vector2 To)> calls, params Vector2[] blocked) =>
+        (from, to) => { calls.Add((from, to)); return !blocked.Contains(to); };
+
+    // Rays are the expensive part: anything behind, beside, beyond or too close is rejected by the shape, with no ray.
+    [Fact]
+    public void PerceptionRejectsByShapeBeforeCastingRays()
+    {
+        var eyes = Eyes();
+        var calls = new List<(Vector2, Vector2)>();
+        var random = new Random(11);
+        var outside = new List<Vector2>();
+        for (int i = 0; i < 100; i++)
+        {
+            float angle = (float)(random.NextDouble() * 2 - 1) * MathF.PI;
+            float distance = 5 + random.NextSingle() * 600;
+            var p = new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * distance;
+            if (!eyes.Pie.Contains(Vector2.Zero, Vector2.UnitX, p)) outside.Add(p);
+        }
+        outside.AddRange(new[] { new Vector2(-50, 0), new Vector2(0, 50), new Vector2(301, 0), new Vector2(5, 0) });
+        Assert.True(outside.Count > 80, $"{outside.Count} points outside");
+        foreach (var p in outside) Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { p }, CountingRay(calls)));
+        Assert.Empty(calls);
+
+        Assert.True(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(200, 50) }, CountingRay(calls)));
+        Assert.Single(calls);
+    }
+
+    // A twig in front of the head must not hide a target whose hips and hand still show; the ray stops at the first clear point.
+    [Fact]
+    public void OneOccludedSampleDoesNotHideTheTarget()
+    {
+        var eyes = Eyes();
+        Vector2 head = new(200, -20), hips = new(200, 0), hand = new(205, 10);
+        var calls = new List<(Vector2, Vector2)>();
+        Assert.True(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { head, hips, hand }, CountingRay(calls, head)));
+        Assert.Equal(2, calls.Count);
+
+        calls.Clear();
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { head, hips, hand }, CountingRay(calls, head, hips, hand)));
+        Assert.Equal(3, calls.Count);
+    }
+
+    // The mission designer blinds this guard for good; a flashbang blinds it again and wears off. The designer's blind stays.
+    [Fact]
+    public void AFlashbangDoesNotUndoTheDesignersBlind()
+    {
+        var eyes = Eyes();
+        Vector2[] target = { new(100, 0) };
+        LineOfSight clear = (_, _) => true;
+
+        eyes.Modifiers.Push("designer: blind", 0);
+        int flash = eyes.Modifiers.Push("flashbang", 0);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, target, clear));
+        Assert.True(eyes.Modifiers.Pop(flash));
+        Assert.Equal(0, eyes.Range);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, target, clear));
+        Assert.Equal(new[] { "designer: blind" }, eyes.Modifiers.Active);
+        Assert.False(eyes.Modifiers.Pop(flash));
+
+        // Effects end in any order: fog pushed after the flashbang, flashbang ends first, fog still applies.
+        var guard = Eyes();
+        int bang = guard.Modifiers.Push("flashbang", 0);
+        int fog = guard.Modifiers.Push("fog", 0.5f);
+        guard.Modifiers.Pop(bang);
+        Assert.Equal(150, guard.Range);
+        guard.Modifiers.Pop(fog);
+        Assert.Equal(300, guard.Range);
+    }
+
+    // Players learn the ranges; a modifier may shrink them, never stretch them.
+    [Fact]
+    public void ModifiersOnlyReduceSight()
+    {
+        var eyes = Eyes();
+        var calls = new List<(Vector2, Vector2)>();
+        eyes.Modifiers.Push("alarm: eagle eyes", 1.5f);
+        Assert.Equal(300, eyes.Range);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(400, 0) }, CountingRay(calls)));
+
+        eyes.Modifiers.Push("storm", 0.5f);
+        Assert.Equal(150, eyes.Range);
+        Assert.False(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(200, 0) }, CountingRay(calls)));
+        Assert.Empty(calls);
+        Assert.True(eyes.CanSee(Vector2.Zero, Vector2.UnitX, new[] { new Vector2(140, 0) }, CountingRay(calls)));
+    }
+
+    // The target ducks behind a pillar for a few frames: still chased, toward where it was seen, not where it really is.
+    [Fact]
+    public void ABriefOcclusionDoesNotForgetTheTarget()
+    {
+        var memory = new TargetMemory();
+        Assert.False(memory.IsTracked(1));
+        const float dt = 1 / 60f;
+        for (int frame = 0; frame < 10; frame++) memory.Update(seen: true, new Vector2(100 + frame, 0), dt);
+        for (int frame = 0; frame < 12; frame++) memory.Update(seen: false, new Vector2(500, 500), dt);   // hidden for 0.2 s
+        Assert.False(memory.Visible);
+        Assert.True(memory.IsTracked(graceSeconds: 1));
+        Assert.Equal(new Vector2(109, 0), memory.LastKnownPosition);
+
+        for (int frame = 0; frame < 60; frame++) memory.Update(seen: false, new Vector2(500, 500), dt);
+        Assert.False(memory.IsTracked(graceSeconds: 1));
+        Assert.Equal(new Vector2(109, 0), memory.LastKnownPosition);   // where to search
+    }
 }

@@ -1,14 +1,14 @@
 ---
 name: godot-game-ai
-description: Use when a Godot game has enemies, companions, crowds or opponents that decide or move on their own, when choosing between a state machine, behaviour tree, utility AI or a planner, when adding navigation or steering, or when an AI dithers, gets stuck, stands still or is hard to test.
+description: Use when a Godot game has enemies, companions, crowds or opponents that decide or move on their own, when choosing between a state machine, behaviour tree, utility AI or a planner, when enemies must notice the player (sight, hearing, stealth), when adding navigation or steering, or when an AI dithers, gets stuck, stands still or is hard to test.
 ---
 
 # Game AI in Godot 4 (C#)
 
 Pick the simplest decision structure that holds, keep it in plain C# so it is tested without the engine, and wait for
 navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ai/`
-(`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`) with `examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`.
-Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
+(`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Perception.cs`) with
+`examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`. Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
 
 ## 1. Which structure
 
@@ -81,7 +81,53 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass a seeded `Random`.
 - Summed behaviours can cancel out; put obstacle avoidance first (the first non-zero wins) when it must not lose.
 
-## 6. Navigation (Godot 4.7)
+## 6. Perception
+
+Perception is on or off: is the target there? What it means (an enemy, a noise worth a look) is the decision layer's
+job. `VisionSensor`, `VisionPie`, `VisionModifiers` and `TargetMemory` are in `Ai/Perception.cs`.
+
+- Cheapest first: pick which entities to try (the player, a body left on the floor), test shape and range in the eye's
+  local space, and cast a ray last. `VisionSensor.CanSee` casts no ray for a point outside the shape.
+- The shape is a pie: half-angle, far and optional near distance (3D adds top and bottom cut-offs). Hearing is a
+  radius; a small circle round the agent is a "sixth sense" for someone standing at its back. Nested shapes can carry
+  danger levels.
+- Sample several points on the target (head, hips, a hand) and stop at the first clear one: a twig hides a single
+  point. The node's origin is at the feet, behind every crate. Far away, a skeleton LOD may stop updating bones: fall
+  back to fixed offsets from the root.
+- Once the weapon is out, see from the muzzle (pass it as `eye`). Eyes above the gun see what the gun cannot hit, and
+  the agent loops between "I see it" and "I cannot shoot it".
+- Modifiers are a stack: each effect pushes and pops its own handle (`var h = Modifiers.Push("flashbang", 0)`, later
+  `Pop(h)`), so a flashbang wearing off keeps a designer's permanent blind. Factors above 1 count as 1: modifiers only
+  reduce, because players learn the ranges. Show the player why (a hand over the eyes).
+- Decisions read a `TargetMemory`, not this frame's ray: the last known position and time since seen keep a target
+  through a moment behind a pillar, and the search starts where it was last seen.
+- Aim the sensor from a dedicated node the animation drives, not the head bone, which sweeps it around; delay its turn
+  after a 180 so the player escapes just in time. If a target moving beside the agent flickers in and out, let the
+  sensor follow the target until it is occluded.
+- Smoke and tall grass: sum the depth the ray travels inside them, with a threshold per material. Whether a moving
+  object occludes can depend on state (Assassin's Creed Syndicate's carriages stopped hiding you once combat began).
+  Neither is in the core.
+
+Godot wiring, in `_PhysicsProcess` (the direct space state is only safe to query during the physics step):
+
+```csharp
+static LineOfSight RayTo(CollisionObject2D self, CollisionObject2D target, uint occluderMask)
+{
+    var space = self.GetWorld2D().DirectSpaceState;
+    var exclude = new Godot.Collections.Array<Rid> { self.GetRid(), target.GetRid() };
+    return (from, to) => space.IntersectRay(PhysicsRayQueryParameters2D.Create(
+        new Vector2(from.X, from.Y), new Vector2(to.X, to.Y), occluderMask, exclude)).Count == 0;
+}
+```
+
+- Exclude the observer and the target and mask to occluder layers. With the characters' layer in the mask and the target
+  not excluded, the target's own body blocks every ray. This 2D wiring ran once on 4.7.2 headless (a blocked head with
+  clear hips was seen, in 2 rays); it has no test in the repository. 3D (`PhysicsRayQueryParameters3D`) was not run.
+- Budget rays: queue sight requests and run at most N per physics frame, highest priority first (interacting with the
+  player, near the camera, in combat), the rest next frame; reuse a result when several agents test the same point.
+  Not tested: the kit has no scheduler. Measure N with `bench`.
+
+## 7. Navigation (Godot 4.7)
 
 - A path query on a map that has not synchronised returns an empty path, and the agent stands still with no error:
   `IsNavigationFinished()` is false and `GetNextPathPosition()` returns its own position.
@@ -111,13 +157,13 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Bake at run time from collision shapes or outlines; `AddMesh` reads meshes back from the GPU and stalls. Free the RIDs
   you create (`NavigationServer2D.FreeRid`) or they leak at exit.
 
-## 7. Addons
+## 8. Addons
 
 LimboAI (MIT; behaviour trees and a hierarchical state machine, with an editor and debugger) supports C# only in its
 engine-module build, which means a custom editor and export templates. Beehave (MIT) is GDScript only. For a C# game on
 stock Godot, plain C# classes like Breakout's are the portable choice.
 
-## 8. Prove it
+## 9. Prove it
 
 Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness. Scenario tests run in Godot
 (`godot-test-loop`), wait on conditions with a time-out, never on a fixed number of frames.
@@ -125,6 +171,8 @@ Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness.
 - [ ] each structure's failure mode has a test: momentum stops flip-flopping, a higher branch interrupts and aborts,
       GOAP finds the cheapest plan, changes it when the situation changes its costs and gives up within its budget,
       arrive does not overshoot
+- [ ] perception: no ray for a point outside the shape, one blocked sample does not hide the target, ending one
+      modifier keeps the others, a brief occlusion does not forget the target
 - [ ] a scenario test waits for navigation to be ready, then asserts the agent reaches its goal within N seconds and is
       never stuck (it moves more than a little over every half second)
 - [ ] every random choice comes from an injected `Random(seed)`; the same seed gives the same run
