@@ -138,6 +138,9 @@ public sealed class GhostReplicator
 
     public uint PendingOf(int id) => _ghosts.TryGetValue(id, out var g) ? g.Pending : 0;
 
+    /// <summary>True while the object's creation waits to be sent or is in flight: the client may not have it yet.</summary>
+    public bool AwaitingCreation(int id) => _ghosts.TryGetValue(id, out var g) && g.Phase is Phase.NeedCreate or Phase.Creating;
+
     /// <summary>The objects this client should see, with their priority (the simulation's scoping, run each tick).</summary>
     public void SetScope(IReadOnlyDictionary<int, float> inScope)
     {
