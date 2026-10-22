@@ -141,6 +141,8 @@ function Get-ProjectInfo {
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
         # A bot run that checks every gameplay event got its feedback in time, when juice.json says what to expect.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'juice.json')) { $selected += 'juice' }
+        # The game's bot plays to the ending, when playthrough.json names the milestones it must log.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'playthrough.json')) { $selected += 'playthrough' }
         # Translation tables are checked for duplicate, untranslated, missing and too long keys; translation remaps
         # (localized voice, textures) for missing files and sounds that differ from their source.
         $translations = Get-TranslationSources $projectDir
@@ -154,7 +156,7 @@ function Get-ProjectInfo {
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize', 'layout'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) {
         $hints = @(foreach ($u in $unknown) { $near = Get-ClosestName $u $valid; if ($near) { "'$u' is probably '$near'" } })
