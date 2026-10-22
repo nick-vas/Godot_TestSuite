@@ -1,6 +1,6 @@
 ---
 name: godot-legal
-description: Use when a Godot game is being prepared for release or sale and needs age ratings, a privacy policy, an end-user licence, loot box or in-game purchase decisions, a check of the rights to its music, art, fonts and code, or a review of a publishing agreement before signing.
+description: Use when a Godot game is being prepared for release or sale and needs age ratings, a privacy policy, an end-user licence, loot box or in-game purchase decisions, a check of the rights to its music, art, fonts and code, a review of a publishing agreement before signing, or agreements with collaborators or clients.
 ---
 
 # Legal basics for releasing a game
@@ -62,7 +62,7 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
 - Not in a game that is sold: non-commercial licences (CC BY-NC). GPL-family code may require publishing the game's code;
   read it before use. No-derivatives licences (CC BY-ND) forbid changing the work.
 - Bought asset packs carry the vendor's licence: record it as `LicenseRef-<vendor>` and keep the receipt and terms.
-- Music: a licence for the game is not always a licence for trailers or streams; check both.
+- Music: a licence for the game is not always a licence for trailers, streams or a soundtrack release; check each.
 - CC BY 3.0 and 4.0 forbid technical measures that restrict what the licence allows; whether a store's DRM wrapper is
   one is unsettled (OGA-BY was written to avoid the question). Prefer CC0 or OGA-BY assets for a DRM build, or ask.
 - Fonts under the OFL may be shipped and sold with the game, never sold on their own; a modified font loses its Reserved
@@ -99,11 +99,25 @@ general information, not legal advice; his fees are from then, so check current 
   filing, register the game's name as a word mark (about US$1,500 with an attorney, he said in 2018).
 - Copyright needs no registration, but a US registration (about US$65 then) within three months of launch gives the most
   coverage; include about 30 seconds of gameplay video so a judge can see the game.
-- Mechanics and ideas are not protected; protect a pitch with an NDA. Fair use is an argument made in court, not a safe
-  harbour. No real person's name or likeness without permission (right of publicity), and no former employer's secrets
+- Mechanics and ideas are not protected; protect a pitch with an NDA, and pitch with a prototype. Dated design docs
+  and git history show what you made and when. Fair use is an argument made in court, not a safe harbour. No real person's name or likeness without permission (right of publicity), and no former employer's secrets
   from a new hire.
 - A company (in the US often an LLC) once the project gets serious, before working with others, with a written operating
   agreement even for one owner: without the formalities its liability protection can be challenged.
+
+**Other agreements to have in writing** (a checklist, not templates; a lawyer drafts them):
+
+- [ ] An unpaid or student team: who owns what each member made, what happens when someone leaves, credit, and any
+  revenue split, signed before work starts. If each member keeps their own assets, the game needs every member's
+  consent to ship.
+- [ ] The studio as the contractor (a port, co-development, a client's game): the studio keeps its own tools and code;
+  acceptance criteria per milestone, payment on acceptance, a kill fee, portfolio rights.
+- [ ] Releasing the game's own source: its licence chosen, and every asset's licence allows it.
+- [ ] Tabletop rules text: mechanics are free, the words are not. SRD 5.1 is offered under CC BY 4.0 or OGL 1.0a, SRD
+  5.2 under CC BY 4.0 only (Wizards of the Coast's SRD page, read 2026-10-22): ship the attribution the licence asks for
+  and use only what the SRD contains.
+- [ ] Parody or homage: the owner of a name, look or asset agrees first, and their assets are used on their terms
+  (Google asked Nintendo, and Square Enix supplied its Dragon Quest art, for 8-bit Maps; *Untold History*).
 
 ## 5. Before launch
 

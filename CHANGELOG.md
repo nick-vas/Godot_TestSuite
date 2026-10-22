@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
+  three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
+  milestones), world rules, what failing costs, content counts and length, optional modes, open questions and a change
+  log; the parsed parts (pitch, `### F<n>` features) are unchanged. New `templates/GDD-jam.md` and a jam mode in
+  `godot-game-plan` (days, not weeks; "browser build?" first, since Godot 4.7 cannot export C# to the Web), with a
+  concept risk log, budget and runway categories, a business model and fairness rule, and sharper alpha and beta exit
+  criteria (a placeholders table in `templates/TECH-DEBT.md`, bug classes A and B). `godot-store-page` gains a marketing
+  cadence and a release ladder; `godot-legal` a checklist of other agreements (unpaid teams, the studio as contractor,
+  the game's own source licence, tabletop rules text: SRD 5.1 under CC BY 4.0 or OGL 1.0a, checked at Wizards of the
+  Coast's SRD page) and parody permissions; `godot-narrative` character sheets, events from the player's relationships
+  and quest templates as `data` tables; `godot-game-design` comparable-game teardowns, world size by traversal time and
+  Bartle's player types kept apart from MDA. *Untold History* read again: lessons 16-39 in `docs/studio-lessons.md`
+  (quotes checked word for word), each placed in one skill line where it adds something.
 - Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
   makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
   0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility

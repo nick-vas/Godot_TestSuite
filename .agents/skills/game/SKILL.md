@@ -25,11 +25,12 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 status -Json      # add -Projec
 If `gdd` is null, draft `docs/GDD.md` from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD.md`. Base it on what exists:
 `inventory` (scenes, main scene, autoloads, input actions), the scripts behind them, and any notes in the repository.
 Each feature gets an id (F1, F2...), a guessed priority, the kinds of fun it serves (`Fun:`, from `godot-game-design`) and
-"Done when" lines describing behaviour you can see in the code. Keep `Status: draft` in it.
+"Done when" lines describing behaviour you can see in the code. Keep `Status: draft` in it. A game jam entry starts from
+`${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` instead (`godot-game-plan`, jam mode).
 
-Then confirm it with the user, section by section, with multiple-choice questions: pitch and pillars, core loop, then
-features in groups of at most four (Keep, Change, Drop, Later), then out of scope. Write each answer in before the next
-question. Remove `Status: draft` only when every section is confirmed. Never measure progress against a draft.
+Then confirm it with the user, section by section, with multiple-choice questions: pitch and pillars, audience, core
+loop, the first session, then features in groups of at most four (Keep, Change, Drop, Later), then out of scope; the
+other sections only when the user wants them. Write each answer in before the next question. Remove `Status: draft` only when every section is confirmed. Never measure progress against a draft.
 
 Ask once whether to tag existing tests: a `GDD:F<n>` comment on each test that checks a feature's "Done when", so
 `status` can find the proof next time.

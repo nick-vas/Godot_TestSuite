@@ -30,6 +30,9 @@ for the `godot-verifier` subagent, which returns the numbers without the logs. `
 - **Use a display.** Without `-Headless`, frames are really drawn. `-Headless` measures CPU time only (draw calls 0) and is what CI can run.
 - **Read the hitch timestamps.** If a hitch moves when you change `-Warmup`, it is a measurement artifact; if it stays tied to a
   game event (first hit of a fight), it is real.
+- **Find the scripting layer's limits in the first week.** Bench the hot loop (pathfinding, the simulation tick, many
+  bodies) as first written, in GDScript if that is the game's language, and move only what `bench` shows over budget to
+  C# or a server. Toru Hidaka knew BASIC's limits within a month and turned to machine language (*Untold History*).
 
 ## Budget per area
 
