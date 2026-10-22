@@ -42,8 +42,8 @@
 ## What the kit took
 
 - `.agents/skills/godot-legal/SKILL.md`: section 6, a checklist of the clauses above with his numbers, marked general
-  information, not legal advice; a worked example (illustrative numbers, not his) of recoup from gross against recoup
-  from the developer's share; the description now names a publishing agreement review as a trigger.
+  information, not legal advice; the formulas for recoup from gross against recoup from the developer's share, with
+  one worked number (the full example is under "Numbers and checks" below); the description now names a publishing agreement review as a trigger.
 - `evals/review-publishing-deal/`: a term sheet with three planted clauses (term from the last version, recoup from the
   developer's share, time of the essence) among fair ones; graders check that all three are flagged, that fair clauses are
   not attacked, and (with the plugin only) that `godot-legal` was used.
@@ -52,7 +52,7 @@
 ## Not taken, and why
 
 - A C# helper in `Breakout.Core` for the payout. The arithmetic is two lines (s(R - C) against sR - C), Breakout's core is
-  not shipped to games, and nothing in a game would call it; a table in the skill reaches the agent that needs it.
+  not shipped to games, and nothing in a game would call it; the formulas in the skill reach the agent that needs it.
 - A `plan` or `doctor` check: contracts are not in the game's files.
 
 ## Numbers and checks

@@ -146,6 +146,8 @@ on demand only (one assist action speaks what is focused and stops it), state th
 music and effects ducked while it speaks and a positional cue at the object. Turn on `audio/general/text_to_speech`
 (`doctor` warns when it is off). Read [narration.md](narration.md) before building it; tested core:
 `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Access/Narration.cs`.
+A turn-based or story game can aim to be playable with the screen off, a goal you can test: every state change has a
+sound or a spoken cue. Kenji Eno's Real Sound was made "for the blind" (*Untold History*).
 
 ## In play
 

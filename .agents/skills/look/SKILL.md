@@ -16,6 +16,11 @@ with the user, one multiple-choice question per section: target resolutions (des
 colours the game already uses, read from its themes and scenes), type and smallest text size, readability rules, motion rules.
 Keep the `Resolutions:` line on one line; tools read it.
 
+Before art agents start, gather real reference (photos or video of the places and objects, in `docs/reference/`) and
+link it from STYLE.md: before OutRun, Yu Suzuki and Yoji Ishii took a road trip across a continent with a video
+camera. The user's rough sketches or photos are source material: agents clean, colour and add effects, keeping the
+original beside the result (Hitoshi Yoneda draws by hand, scans, then adds effects; *Untold History*).
+
 ## 2. Critique
 
 Hand the screenshots to the `godot-verifier` subagent so the images stay out of this conversation: every screen the user named

@@ -8,6 +8,8 @@ description: Use when a Godot game shows text players read and will ship in more
 Every visible string goes through a key, every key has a translation in every shipped language, and the screens still
 fit and draw when the language changes. The kit checks the tables without Godot (the `l10n` runner) and the screens with
 it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/docs/localization.md`.
+Choose the languages at `concept.decisions` and keep the `l10n` runner green from the first milestone, not as a late
+port ("At Google, we always try to launch products globally.", Tatsuo Nomura, *Untold History*).
 
 ## 1. Keys and calls
 
