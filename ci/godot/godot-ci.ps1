@@ -44,7 +44,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data, textsize, layout (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, playthrough, l10n, data, textsize, layout (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -71,6 +71,9 @@ param(
     [string]$Output = 'build',
     # Frames the smoke runner plays, launched exports play, and shot waits before each screenshot.
     [int]$Frames = 120,
+    # smoke: run at this fixed rate of game time (--fixed-fps), so -Frames is game time and a bot's run is the same on
+    # every machine and as fast as the CPU allows. 0 (default): real time, as before.
+    [int]$FixedFps = 0,
     # Your game's own flags, passed after "--" to smoke runs, export -Run, bench and shot (read them with
     # OS.GetCmdlineUserArgs()). Release exports ignore scene paths, so debug entry points belong here, e.g. '--autoplay','--seed=3'.
     [string[]]$GameArgs,
@@ -90,6 +93,9 @@ param(
     [string]$Resolution,
     # shot: a folder of earlier screenshots; each new one is compared with its namesake there (percent changed, side-by-side image).
     [string]$Baseline,
+    # shot -Baseline: fail (shot-changed) when a picture differs from its baseline by more than this share of pixels, or
+    # changed size. Without it, -Baseline only reports.
+    [double]$MaxChangedPercent = -1,
     # shot: also take each scene in these locales (e.g. fr,ar,ja; each picture is named scene.<locale>.png) and report text
     # that is cut off, off screen or missing glyphs. -Pseudo adds a pseudolocalized pass: accented, 40% longer, in [brackets].
     [string[]]$Locale,
@@ -166,7 +172,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Version') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -316,7 +322,7 @@ function Invoke-Tests {
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunnerWithRetry -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) -Retry $Retry -Quarantine $quarantine.Entries `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'l10n', 'data') -Frames $Frames -GameArgs $GameArgs
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'playthrough', 'l10n', 'data') -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -548,7 +554,7 @@ switch ($Command) {
     }
     'shot' {
         Invoke-Setup; Invoke-Build
-        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
+        Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
             -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
     }
     'soak' {

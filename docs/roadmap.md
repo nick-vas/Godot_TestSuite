@@ -171,15 +171,12 @@ Kenney, OpenGameArt, Fast WFC add-on, WaveFunctionCollapse and MarkovJunior lice
 
 ## To do: kit features from the second pass
 
-Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. The hang time limit was done in that
-pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contract or needs its own fixture and review:
+Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. Done: the hang time limit
+(`GODOT_CI_TIMEOUT`), the `playthrough` runner and its `runner:playthrough` gate, `smoke -FixedFps`, `shot -MaxChangedPercent`
+(`shot-changed`) and test duration in `status` (`testDuration`, `testBudgetSeconds`). Still open:
 
 | Feature | Why | Smallest change |
 |---|---|---|
-| A `playthrough` runner | `production.playthrough` is a manual gate, and `smoke` passes on a bot stuck in the first room | Built from the `juice` runner: run the main scene with `--headless --fixed-fps 60` and the game's flags, fail unless every expected log line (`[Run] ending reached`) appears; a `runner:playthrough` gate check; a fixture whose bot never finishes |
-| `--fixed-fps` for `smoke` | `-Frames` counts frames, not game time, so a long bot run is neither fast-forwarded nor reproducible | Opt-in switch, so existing smoke runs keep their meaning |
-| `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
-| Test duration in `status` | Croteam steered by submit-to-verdict time; Rare sped up Sea of Thieves' commit stage, stopped watching, and was back where it started within months (`docs/gdc/folds-testing-misc.md`); the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
 | Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
 
@@ -190,8 +187,6 @@ From the audio pass (`docs/audio.md`):
 | Item | Why it is open |
 |---|---|
 | Learn FMOD's Skill Tree (adaptive music lessons) | Needs a sign-in; the landing page and course list were read |
-| A mono option | Xbox Accessibility Guideline 105 asks for one. Godot has no mono switch, and no bus effect that folds stereo to mono was confirmed |
-| A voice budget helper (categories, priorities, oldest-first stealing across players) | Godot has only per-player `MaxPolyphony`; the skill describes the pattern, but a tested C# helper would make it reusable |
 | `audio -Mix` on Windows | Tested on Linux under Xvfb; Movie Maker should work the same on Windows with a desktop session |
 
 ## To do: art and technical art
@@ -234,7 +229,6 @@ From this pass (`docs/game-ai.md`, `docs/multiplayer.md`, `docs/telemetry.md`):
 | Sentry's addon end to end | Its release binaries could not be downloaded here; the settings `doctor` checks were read from its source |
 | Valve's networking articles, the Overwatch and Sea of Thieves GDC talks, EUR-Lex, gdpr-info.eu, cnil.fr | Behind a proof-of-work wall, a login, or unreachable from this session |
 | Whether crash reports may rest on legitimate interest, and access requests with random ids | Legal questions for the owner's lawyer |
-| Steering: obstacle avoidance, path following, alignment and cohesion | Not in Breakout's `Steering.cs` yet |
 
 ## To do: data, determinism, modding, anti-cheat, consoles, debug tools and builds
 
@@ -245,8 +239,6 @@ From this pass (`docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/
 |---|---|
 | PlayStation TRC and Nintendo Lotcheck requirements | Under NDA; the skill uses Xbox's public list as a stand-in. The owner would need developer access to compare |
 | W4 Games and Godot 4.7 | W4 listed 4.4 to 4.6 in October 2026; check again before a console port |
-| A check that every key in a `.tres` is a stored property of its class | Renamed `[Export]` properties lose data silently; needs a GDScript tool run inside Godot. A kit feature for the `data` runner |
-| Static determinism checks (`Math.Sin`, `System.Random`, `DateTime.Now`, `Dictionary` iteration in simulation folders) | Candidate `architecture` rules; needs a way to mark which folders are simulation |
 | Floats on Arm64 and across operating systems, and Godot physics across machines | No Arm64 hardware or second OS here; a GitHub matrix job printing a replay checksum on Windows, Linux and macOS would answer it |
 | Unloading C# mods from a collectible load context | Untested; the skill tells games to restart instead |
 | Steam Workshop, mod.io, Easy Anti-Cheat and BattlEye in a Godot game | Need accounts and keys; only documentation was read |
@@ -324,3 +316,22 @@ action, `setup` on macOS, optional signing secrets and an `environment` input on
       job without one). The session that wrote these could not start PowerShell (its sandbox refused it), so
       `Test-GameVersion.ps1`, PSScriptAnalyzer and the example exports were first run by the self-test, not locally.
 
+
+## To do: from Valve's public material
+
+Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
+`PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
+`godot-playtest` skill, and Valve's process in `godot-game-plan`. Still to do:
+
+- [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
+      scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
+      page is "Under Construction"), *Game Developer* November 2005 ("Scaling the Cabal": the GDC Vault serves a login
+      page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
+- [ ] A dialogue authoring path: a `data.json` table for `ResponseSystem` rows (who, concept, criteria, lines, then,
+      remember), so the `data` runner checks criteria syntax, follow-up targets and missing voice files.
+- [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
+      `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
+- [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
+      from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
+- [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
+      use up every key item, then check progress is still possible), both from the commentaries.

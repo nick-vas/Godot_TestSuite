@@ -529,6 +529,37 @@ function Get-FlakyOffenders([object[]]$History, [int]$Days = 30, [datetime]$Now 
     return [ordered]@{ days = $Days; testRuns = $runs; tests = $tests }
 }
 
+# Submit-to-verdict time (Croteam kept theirs under an hour; Rare stopped watching Sea of Thieves' and lost the gain within
+# months, docs/gdc/folds-testing-misc.md): the median seconds of the last $Count passing test runs without -Filter, and of
+# the $Count before them. A run with -Filter or -Runners other than the usual is a different, shorter thing, so only runs of
+# the most common scope count. $null medians when there are no such runs.
+function Get-TestDuration([object[]]$History, [int]$Count = 10) {
+    $runs = @(foreach ($entry in $History) {
+        if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test') { continue }
+        if (-not $entry.PSObject.Properties['ok'] -or -not $entry.ok -or -not $entry.PSObject.Properties['seconds']) { continue }
+        if (-not $entry.PSObject.Properties['scope'] -or -not $entry.scope -or $entry.scope.filter) { continue }
+        [pscustomobject]@{ Seconds = [double]$entry.seconds; Scope = (@($entry.scope.runners | Sort-Object -Unique) -join ',') }
+    })
+    $usual = @($runs | Group-Object Scope | Sort-Object Count -Descending | Select-Object -First 1)
+    $runs = @(if ($usual) { $runs | Where-Object { $_.Scope -eq $usual[0].Name } })
+    $recent = @($runs | Select-Object -Last $Count)
+    $before = @($runs | Select-Object -SkipLast $recent.Count | Select-Object -Last $Count)
+    return [ordered]@{
+        runners = @(if ($usual) { $usual[0].Name -split ',' | Where-Object { $_ } })
+        runs = $recent.Count
+        medianSeconds = Get-RunMedian @($recent | ForEach-Object Seconds)
+        previousRuns = $before.Count
+        previousMedianSeconds = Get-RunMedian @($before | ForEach-Object Seconds)
+    }
+}
+
+function Get-RunMedian([double[]]$Values) {
+    if ($Values.Count -eq 0) { return $null }
+    $sorted = @($Values | Sort-Object)
+    $mid = [int][math]::Floor($sorted.Count / 2)
+    return [math]::Round($(if ($sorted.Count % 2) { $sorted[$mid] } else { ($sorted[$mid - 1] + $sorted[$mid]) / 2 }), 1)
+}
+
 # Activision's error buckets for Call of Duty (docs/gdc/call-of-duty-error-keys.md): every run whose history line has
 # errorKeys (Get-RunErrorKeys) is grouped by key, so a failure shows whether its error is new or has been seen before, how
 # often, since when and at which commit, and in which commands. Lists the keys that were in at least one failed run (a

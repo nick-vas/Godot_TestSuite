@@ -48,7 +48,8 @@ used by the game, tests and CI, reports every problem at once instead of stoppin
 
 - every `.tres` under the data folders loads, non-null, of the expected class
 - every key in each `.tres` is a stored property of its class: parse the keys from the text and compare with
-  `GetPropertyList()` entries whose usage has `PropertyUsageFlags.Storage` (this alone catches renamed properties)
+  `GetPropertyList()` entries whose usage has `PropertyUsageFlags.Storage` (this alone catches renamed properties); the
+  kit's `validate` runner now does this for every `.tres` (`keeps spead, which EnemyStats no longer has`)
 - ids unique and matching `^[a-z0-9_]+$`; references resolve; no cycles where none belong (upgrade chains)
 - ranges from the `PropertyHint.Range` hint strings; enums with `Enum.IsDefined`
 - the game's balance rules from the GDD: damage rises with tier, drop weights sum above 0, every enemy beatable at the

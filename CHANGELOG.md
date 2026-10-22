@@ -10,6 +10,33 @@
   takes optional signing secrets (Android keystore, Windows certificate, macOS certificate and notarization key) and an
   `environment` for its export jobs, a `game-version` for runs that are not for a tag, and sends iOS presets to
   `macos-latest`. New page: `docs/self-hosted-runners.md`. Self-test: `Test-GameVersion.ps1`.
+- Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
+  makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
+  0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility
+  Guideline 105. Breakout.Core gains `VoiceBudget`: a global voice cap with categories, priorities, oldest-first stealing
+  and protected categories, the part Godot leaves to games.
+- From the roadmap's to-do list: Breakout.Core's steering gains `Alignment` and `Cohesion` (with `Separation`, a flock: 30
+  boids head the same way within ten seconds without overlapping), `FollowPath` (Reynolds' corridor following, stopping at
+  the end) and `AvoidObstacles`; and `LookTrigger` (Valve's look target with a fallback timer: fires when the player has
+  looked at a point long enough, or when time runs out). A new architecture rule, `nondeterministic-sim`, flags
+  platform maths, `System.Random`, global random, clocks, per-process hashes and `Dictionary` iteration in the folders
+  `architecture.json` lists as `simulation`. `validate` fails a `.tres` that keeps a key its class no longer has (a renamed
+  export, whose value Godot drops on load).
+- Valve, from its own public material (talk slides, the 2012 handbook, the Cabal article, seven games' developer
+  commentary; `docs/valve.md`, 115 quotes checked word for word): Breakout.Core gains `PacingDirector` and `Intensity`
+  (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and
+  `ResponseSystem` (the dialogue rule database of Left 4 Dead 2, Portal 2 and Dota 2: a flat query, most criteria wins,
+  random ties, memory that expires, follow-ups looked up when a line ends, rules that remove themselves). New skill
+  `godot-playtest`; Valve's process in `godot-game-plan`; story that serves play and dialogue rules in `godot-narrative`;
+  scarce-but-never-empty resources and worst-case drop streaks in `godot-progression`; readability rules in the `STYLE.md`
+  template.
+- The second-pass test features from Croteam's CI talk: a `playthrough` runner (`playthrough.json`: the game's bot plays at
+  a fixed 60 fps of game time and must log every milestone in order, the ending last; `smoke` passed a bot stuck in the first
+  room), and the plan gate `production.playthrough` is now checked by it (`runner:<name>`, a new gate check). `smoke
+  -FixedFps` runs smoke at fixed game time. `shot -Baseline -MaxChangedPercent` fails a changed screen with the new code
+  `shot-changed`. `status` reports `testDuration` (the median of recent passing full test runs against the ten before) and
+  warns over `testBudgetSeconds` in `plan.json` (900 in new plans) or when runs grow by half. `Test-LibNames.ps1` fails when
+  two lib files define the same function (status had called `Audio.ps1`'s `Get-Median` instead of its own).
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the

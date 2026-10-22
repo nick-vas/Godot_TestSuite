@@ -23,7 +23,8 @@ navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT
 | HTN | Designer-written multi-step behaviour with priorities by method order | Plans the designer did not foresee are needed | Replanning on the plan's own effects cancels deliberate steps |
 
 Start with a state machine; move up when its failure mode appears, not before. F.E.A.R.'s soldiers ran a state machine of
-three states (go to, animate, use object) with a planner choosing what to put in them.
+three states (go to, animate, use object) with a planner choosing what to put in them. When enemies come (not how strong):
+Left 4 Dead's director, `PacingDirector` (`docs/valve.md` 4).
 
 ## 2. Behaviour trees
 
@@ -109,7 +110,8 @@ public override void _PhysicsProcess(double delta) => _budget.Run(1.0);   // mil
 
 ## 5. Steering
 
-`Steering.Seek`, `Flee`, `Arrive`, `Pursue`, `Evade`, `Wander`, `Separation` return a velocity change; `SteeringAgent.Step`
+`Steering.Seek`, `Flee`, `Arrive`, `Pursue`, `Evade`, `Wander`, flocking (`Separation`, `Alignment`, `Cohesion`), `FollowPath`
+and `AvoidObstacles` return a velocity change; `SteeringAgent.Step`
 applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterBody2D.Velocity` and `MoveAndSlide()`.
 
 - Seek is `normalize(target - position) * maxSpeed - velocity`. Reynolds' 1999 paper prints the subtraction the other way
