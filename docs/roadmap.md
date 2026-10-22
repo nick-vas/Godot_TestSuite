@@ -253,6 +253,7 @@ From this pass (`docs/data.md`, `docs/determinism.md`, `docs/modding.md`, `docs/
 | GPU profiling (`--gpu-profile`, the Visual Profiler) | No GPU in this container |
 | The C# forms of the suspend and controller-loss tests | They compile; only the GDScript forms were run |
 | How much the import cache saves on a large project | Breakout is too small to measure |
+| Placement checks in C#, or as a `placement` runner | `ci/godot/templates/placement_check.gd` is GDScript, run from a GUT test; neither example is a 3D level with navmesh to try a C# twin on. A runner could read each limit from a script constant named in a `placement.json` |
 
 ## To do: Steam and Steam Deck
 
@@ -284,3 +285,18 @@ From this pass (`docs/store-and-legal.md`):
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
 | Whether an export template lists only the components it compiles in (`Engine.get_copyright_info()`) | Not tested; `credits` lists every component, which over-credits but never under-credits |
 | Whether a store's DRM counts as a "technological measure" under CC BY | A legal question; the skill flags it |
+
+## To do: phones, tablets and browsers
+
+From this pass (`docs/mobile-web.md`):
+
+| Item | Why it is open |
+|---|---|
+| Launching Android builds (`export -Run` on an emulator) | No KVM in the cloud session; GitHub's Linux runners have it, so an emulator job is possible |
+| Android checks after export (`aapt2` target API, `zipalign -P 16`, signature, `.a` and `.pdb` files in a release APK) | Needs the Android SDK on the runner; worked by hand here |
+| iOS exports | Need macOS and Xcode |
+| Audio unlock, Safari and WebKit | Automated Chromium did not block audio; WebKit was not installed (Playwright can install it) |
+| itch.io's SharedArrayBuffer checkbox | Only secondary sources; the headers it sends were not confirmed |
+| Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
+| Touch test helpers in the examples (two fingers on two buttons) | Neither example has touch controls; a fixture would show 4.7's multitouch buttons |
+| Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |

@@ -91,6 +91,14 @@ objects or an object keyed by id. A CSV table without `importer="keep"` in its c
 not ship. Numbers in CSV cells are parsed with the invariant culture. One JUnit case per table;
 `tests/Test-Data.ps1` checks it against `tests/data-fixture`.
 
+## Placed objects in levels
+
+`ci/godot/templates/placement_check.gd`, copied into a game's tests, checks every node of the groups `ai_point`,
+`interactable` and `zipline` in each level against limits read from gameplay code (`godot-data` section 6).
+`tests/Test-Placement.ps1` proves each rule on `tests/placement-fixture`. Navigation answered under `--headless` after 9
+to 11 physics frames for the first level of a GUT run; the checks took about 10 ms per 1,000 nodes. Source and the
+talk's numbers: [Assassin's Creed Origins: world design data](gdc/assassins-creed-origins-world-data.md).
+
 ## Not confirmed
 
 - A `_Set(StringName, Variant)` override mapping a renamed property; whether `CacheMode.Replace` emits `changed`.

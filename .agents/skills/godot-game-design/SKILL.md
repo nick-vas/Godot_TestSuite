@@ -94,13 +94,13 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
   them as a small table of rules with a test per pair. When players find an exploit, add a rule to the GDD before patching.
 - **Feel is found by playing.** Expose speeds, timings and windows as exported values for the user to tune. Physics serves
   the design: coyote time, snapping and aim assist are deliberate, named rules, and "fixing" them toward realism is a bug.
-- **Be the generous judge.** Forgiving hitboxes and timing windows by default; find what really makes a part hard (often the
-  controls) before lowering difficulty.
+- **Be the generous judge.** Forgiving hitboxes and timing windows by default (Levelhead's numbers and tested code:
+  `godot-input`, Forgiveness); find what really makes a part hard (often the controls) before lowering difficulty.
 - **Readable opponents.** An enemy that always picks the best move is not fun; give it habits and mistakes. Do not add moves
   the AI cannot use and tests cannot cover: cut them.
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
 
-## 6. Puzzles and quests (Croteam, CD Projekt Red)
+## 6. Puzzles and quests (Croteam, LineLight, CD Projekt Red)
 
 Puzzles, as Croteam tuned The Talos Principle's 200 gray rooms:
 
@@ -110,6 +110,39 @@ Puzzles, as Croteam tuned The Talos Principle's 200 gray rooms:
 - Never one linear path: hubs with several puzzles open, gates that count solved puzzles, so a stuck player goes elsewhere.
 - Rewards for explorers stay off counters and achievements; only count what takes skill to get.
 - Hints are tuned with stuck players, not by the designer who knows the answer.
+
+Puzzle levels, as Brett Taylor cut and rebuilt LineLight's (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/puzzle-game-magic-secrets.md`):
+
+- **One solution sentence per level.** The best levels turn on a single moment. Write that moment as one sentence ("park
+  the crate on the switch before the bridge drops") and build the simplest level whose solution it is. A level the player
+  chips away at, with no such moment, is the first to cut.
+- **What the sentence does not mention is noise**: it takes up the player's working memory without being part of the
+  puzzle. Cut it, and vet every level at least twice. Add noise back only on purpose, such as a dead end that stops
+  players solving a level by accident without knowing how.
+- **Every level has a purpose or is cut**: it teaches, reinforces a skill, gives a moment the player has not had, or is a
+  breather after hard levels. A run of near-identical layouts on one idea bores players; keep about three.
+- **Action or puzzle, not both** (in single-solution puzzles): on entering, the player knows which skill the level asks
+  for, and action levels are optional. A few timing puzzles make players think every puzzle needs reflexes.
+- **Unambiguous solutions.** "Was that right?", brute-forcing switches and retrying an impossible move are red flags: move
+  elements apart, cut extras, make every jump obviously possible or obviously impossible. Test the controls handicapped
+  (Taylor played with his non-dominant foot), and keep easing a timing players still complain about.
+
+Hold every level to this with a `levels` table for the `data` runner (`godot-data`):
+
+```json
+{ "tables": {
+    "mechanics": { "file": "data/mechanics.json", "id": "id", "fields": {} },
+    "levels":    { "file": "data/levels.json", "id": "id",
+                   "fields": { "kind": { "enum": ["puzzle", "action"] },
+                               "purpose": { "enum": ["teach", "reinforce", "moment", "breather"] },
+                               "mechanics": { "ref": "mechanics", "list": true },
+                               "solution": { "type": "string", "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$" } } } } }
+```
+
+A level fails with no `solution` or an empty one, with a second sentence (`.`, `!` or `?` followed by more words, so write
+no abbreviations), or with a `purpose` or `kind` not in the list. Run it alone with
+`pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`. The `mechanics` column also shows which pairs of mechanics
+no level combines yet.
 
 Quests, from Sasko's ten lessons (The Witcher 3, Cyberpunk 2077). For each quest ask:
 
