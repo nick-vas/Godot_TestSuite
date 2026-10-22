@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # Self-test of the plan's vertical-slice gates on a fresh plan: slice.debt is automatic and turns true when
 # docs/TECH-DEBT.md exists (and `plan -Do done` refuses it), slice.budget is manual and names a real `bench` command,
-# and every gate id and godot-ci.ps1 flag that the plan or the godot-game-plan skill quotes exists. No Godot needed.
+# and every gate id and godot-ci.ps1 flag that the plan or any skill quotes exists. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -32,10 +32,12 @@ foreach ($phase in $template.phases) {
     }
 }
 
-# Gate ids the planning skill names exist in the template (plan.json is copied once, so a renamed gate would strand them).
-$skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-plan/SKILL.md') -Raw
-foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post)\.[a-z0-9]+)`')) {
-    Assert-True ($quoted.Groups['id'].Value -in $gateIds) "godot-game-plan names gate $($quoted.Groups['id'].Value), which plan.json has"
+# Gate ids any skill names exist in the template (plan.json is copied once, so a renamed gate would strand them).
+foreach ($skillFile in @(Get-ChildItem -LiteralPath (Join-Path $root '.agents/skills') -Filter 'SKILL.md' -Recurse)) {
+    $skill = Get-Content -LiteralPath $skillFile.FullName -Raw
+    foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post)\.[a-z0-9]+)`')) {
+        Assert-True ($quoted.Groups['id'].Value -in $gateIds) "$($skillFile.Directory.Name) names gate $($quoted.Groups['id'].Value), which plan.json has"
+    }
 }
 
 try {
