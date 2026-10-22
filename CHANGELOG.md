@@ -14,6 +14,10 @@
   `--single-threaded-scene` in `godot-diagnose`; RenderDoc labels in `godot-debug-tools`; currencies in
   `godot-progression`. What could not be run or checked here (Vulkan-only flags, shader precision, Mobile light limits,
   dialogue tool licences) is in `docs/roadmap.md`.
+- Publisher contracts: Jan Willem Nijman's red flags from his comments on a 2020 publishing agreement draft
+  (`docs/publisher-contracts.md`, clause by clause with what to ask for; `godot-legal` section 6): markups and fixed
+  splits, recoup before any revenue, one-sided termination and breach clauses, unpublishing, reserves, sequel fees, and
+  a worked example of what a 15% markup and a 50/50 split cost against his 70/30 benchmark.
 - Add-ons and GDExtensions (`docs/addons.md`, skill `godot-addons`, `ci/godot/lib/Addons.ps1`): the state of 25 popular
   add-ons on Godot 4.7, cross-checked with garciamarquez.dev's ranking. `doctor`'s GDExtension check now picks each
   library as Godot does (measured on 4.7.2: every tag of a key must be a feature of the build, the most tags wins), for
