@@ -18,7 +18,7 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `godot-ci/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
@@ -61,6 +61,8 @@ Branch on `error.code`; `message` can change.
 | `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `no-asset-manifest` | `credits`: the project has no `assets.json` | - |
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
+| `no-playtest-sessions` | `playtest`: the sessions folder (`-Sessions`, default `<project>/playtests/sessions`) does not exist or holds no telemetry batch | `error.message` |
+| `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
@@ -93,7 +95,9 @@ The `juice` runner has one case named `run` (Godot's exit and engine errors) and
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
 missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
-case `table <name>` per table, each listing up to 50 problems, one per line.
+case `table <name>` per table, each listing up to 50 problems, one per line. A fact that a `"kind": "responses"` table's
+criteria read but no rule remembers and its `facts` do not list is a warning (`fact-never-written`, `file` the table's
+file, `line` null) in `runnerResults[].warnings`; it does not fail the run.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,
 subtitles under the subtitle minimum and, when integer scaling cuts the game off, that; a case `run` when Godot fails or
 finds no visible text. Text under the recommended size is a warning (`text-below-recommended`), subtitles under theirs
@@ -104,14 +108,31 @@ The `layout` runner has a passing case per profile that is clean, and one failin
 in the group `touch_control` under that size on a touch profile, `60 dp (9.5 mm, 158 px), under 75 dp`), separated by `; `;
 a case `run` when Godot fails, a scene cannot be loaded, a profile is not understood, or nothing was found to check. Its
 log is `layout.log`.
-The `l10n` runner has six cases, `duplicate keys`, `untranslated`, `missing keys`, `too long`, `translation remaps` and
-`localized audio`; a failure's message lists up to 50 entries, one per line: `res://file: 'KEY' reason` for the first four
+The `l10n` runner has seven cases, `duplicate keys`, `untranslated`, `missing keys`, `too long`, `translation remaps`,
+`localized audio` and `missing glyphs`; a failure's message lists up to 50 entries, one per line: `res://file: 'KEY' reason` for the first four
 (`too long`: `'KEY' de is 14 characters, limit 10 (_max)` or `has 3 lines, limit 2 (_lines)`), `res://target (locale) does
 not exist; ...` for remaps, and `res://target (locale, for res://source): reason; reason` for audio. Without ffmpeg and
 ffprobe, `localized audio` is skipped (`skipped` counts it) and `runnerResults[].warnings` has one with rule `no-ffmpeg`.
 A table Godot cannot read as UTF-8 (UTF-16, or Big5 and other code pages) is one `untranslated` entry, `res://file is
 UTF-16: ...` or `res://file is not UTF-8 (...)`, and its rows are not checked. A CSV column or `.po` language that is plain
 `zh` is a warning with rule `chinese-without-script` (`file` is the table).
+`missing glyphs` runs `tools/glyphs.gd` in headless Godot (its log is `glyphs.log`): each entry is one locale and font,
+`ja: res://fonts/latin.tres (default font) has no 始 U+59CB, 開 U+958B (in 'TITLE')`, up to 20 characters and 5 keys. The
+fonts are the default one (the project theme's default font, else `gui/theme/custom_font`, else `Godot's default font (Open
+Sans SemiBold)`) and every font of a `.tres` theme (`res://ui/theme.tres Button/font`), each with its fallbacks. Characters
+that only a `SystemFont` in a font's chain could draw are a warning with rule `system-font` (`file` is the font), since they
+depend on the player's OS. Fonts listed in `l10n.json`'s `glyphIgnoreFonts` are not reported. The l10n entry also has
+`glyphs`:
+
+```json
+"glyphs": { "checked": 61,
+  "fonts": [ { "name": "res://fonts/latin.tres", "where": "default font", "ignored": false } ],
+  "missing": [ { "locale": "ja", "font": "res://fonts/latin.tres", "where": "default font", "characters": ["始", "開"],
+                 "codePoints": ["U+59CB", "U+958B"], "keys": ["TITLE"] } ],
+  "systemFont": [] }
+```
+`checked` counts the distinct characters of all translations; a `systemFont` entry is shaped like a `missing` one, plus
+`systemFonts` (the SystemFont's font names).
 
 `message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
 and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;
@@ -241,6 +262,24 @@ parameters, which bfxr2's editor and library open), `sound` (the preset, or the 
 `seconds`, `peakDb`), and `assetsEntry` (the `assets.json` entry for the output folder, added to the project's
 `assets.json` when it has one and not already there; `null` when the output is outside the project). An unknown
 `-Sound` is `invalid-arguments`, with the nearest name.
+
+**playtest**: `playtest` with `sessionsDir`, `resultsDir`, `files` (`.json` and `.jsonl` files read), `batches`, `sessions`
+(distinct session ids), `builds[]`, `events` (playtest events counted), `otherEvents` (events that are not playtest events,
+such as `run_end`, ignored), `duplicates` (the same session and `seq` seen again: a batch sent twice), `invalidEvents` and
+`invalid[]` (up to 20: `file`, `session`, `event`, `seq`, `reason`: an event that does not fit
+`ci/godot/templates/playtest-events.json`, left out), `skipped[]` (`file`, `reason`: a file or `.jsonl` line that is not JSON
+or not a batch), `unknownLevels[]` (levels with events that `playtest.json` does not list, when it lists any), `levels[]`
+and `heatmaps[]`, `report` (the same document, `<Results>/playtest.json`) and `summary` (`<Results>/playtest.md`, a table and
+the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any event in it), `levelTime` (`count`, `median`,
+`min`, `max` seconds of its `level_time` events, and how many `finished`, `quit`, `failed`), `deaths` (`total`,
+`medianPerSession`, `maxPerSession`), `stuck` (`total`, `sessions` with one, `medianPerSession`, `medianSeconds`,
+`maxSeconds`), `revisits`, `solvedButStayed` (`total`, `medianSeconds`), `hints`, `items[]` (`item`, `sessions` that found it,
+`share` of the level's sessions). Per-session medians count sessions with none as 0; a median of nothing is `null`. Each
+`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`),
+`width`, `height`, `background` (the screenshot, or `null`), `plane` (`xy` or `xz`), `cell`, `origin` (the grid's corner), `cols`,
+`rows`, `count`, `outside` (events outside `bounds`, not drawn), `maxCount` and `hotCells[]` (up to 5, most events first, then
+by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in the plane's coordinates). Only reports: no
+counts fail the run.
 
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
 `memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),

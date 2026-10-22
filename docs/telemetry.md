@@ -43,3 +43,43 @@ engineering research, not legal advice.
 - Which test to run on these events, and why: [Three Statistical Tests Every Game Developer Should Know](gdc/three-statistical-tests.md).
 - Which runs to compare an upgrade's win rate with, and why per-run averages mislead: [Slay the Spire: Metrics Driven Design and Balance](gdc/slay-the-spire-metrics-driven-balance.md).
 - A/A runs, independent samples, when to assign a variant, downstream metrics and audience mix (Swrve, Kongregate and SocialPoint talks): [gdc/folds-procgen-balance-store.md](gdc/folds-procgen-balance-store.md).
+
+## Playtest events and heat maps
+
+The events the `godot-playtest` skill names, ready to use, built on the same `TelemetrySchema` and consent rules as every
+other event: analytics, recorded only after the player agrees, numbers and fixed labels only, a random session id.
+
+| Event | Fields besides `level`, `x`, `y`, `z`, `level_seconds` | Raised by `PlaytestTracker` when |
+|---|---|---|
+| `stuck` | `seconds` | no progress and no cell entered for the first time for 120 s; sent when the stall ends, with its whole length |
+| `revisit` | `visits` | the player re-enters a cell of the level after at least 10 s away |
+| `solved_but_stayed` | `puzzle`, `seconds` | the player is still within 8 units of a solved puzzle 30 s later (or until `LeftPuzzle`) |
+| `item_found` | `item` | `ItemFound(item)`; also progress |
+| `death` | `checkpoint` | `Died(checkpoint)` |
+| `hint_requested` | | `HintRequested()` |
+| `level_time` | `seconds`, `result` (`finished`, `quit`, `failed`); no position | `EndLevel(result)` |
+
+- The schema is `ci/godot/templates/playtest-events.json` for any language, and `PlaytestEvents.Definitions(levels)` in
+  `examples/breakout/src/Breakout.Core/Telemetry/Playtest.cs`, where `level` is a label whose values are the game's level
+  ids, so a typo throws in development as any schema mistake does. `PlaytestTests` keep the two equal.
+- `PlaytestTracker` takes the game's clock (paused time does not count) and the player's position every frame; the cell
+  size, the 120 s, 30 s and 10 s and the radius are `PlaytestOptions`. Positions are rounded to hundredths and clamped to
+  a million units. Its detectors are tested with a fake clock in `PlaytestTests`. The skill's "deaths" is one `death`
+  event per death, so it can carry its position.
+- For a playtest build, a sink that writes each batch to a file (`user://playtest/<session>.json`) is enough; collect the
+  files from the testers' machines into one folder.
+
+`godot-ci.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
+line) and writes `playtest-results/`: per level, the median level time, deaths and stalls per session (sessions without
+any count as 0, so one tester stuck for ten minutes is not averaged away), the share of sessions that found each item, and
+one PNG heat map per level and event type, on a grid, alone or over a level screenshot that `playtest.json` places in the
+world ([reference.md](reference.md)). A batch sent twice counts once (same session and `seq`); events that do not fit the
+schema, and files that are not JSON, are listed and left out.
+
+Why the PNGs are drawn by a C# file compiled into PowerShell (`ci/godot/tools/Heatmap.cs`, as `Sfxr.cs` is) rather than
+otherwise: `System.Drawing` works only on Windows from .NET 6; PowerShell loops over pixels take seconds a picture; and
+Godot's `Image` would mean downloading and starting the engine to read a folder of JSON, on machines where the sessions
+are often read (a laptop, a CI job without Godot). The PNG writer stores rows unfiltered, so the same counts always make
+the same file; the reader takes 8-bit grey, RGB, palette and RGBA pictures with all five row filters. Measured on
+2026-10-22: Godot 4.7.2 opened the maps it wrote (`Image.load_from_file`, the same pixels), and the reader read a PNG Godot
+saved (`save_png`) and a hand-filtered one with every pixel equal.

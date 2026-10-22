@@ -1,0 +1,81 @@
+{
+  "$comment": "Playtest telemetry events (godot-playtest, docs/telemetry.md). Analytics: record them only with the player's consent. A game sends them in the kit's batch format ({schema, session, build, consent, events: [{event, v, seq, t, fields}]}) and godot-ci.ps1 playtest reads a folder of such files against this file. 'level' is a label: its allowed values are the game's level ids (playtest.json levels, or PlaytestEvents.Definitions(levels) in Breakout.Core). x, y, z: where it happened, in world units (z is 0 in 2D); level_seconds: game time since the level started. Breakout.Core's PlaytestTests keep this file and PlaytestEvents equal.",
+  "version": 1,
+  "purpose": "analytics",
+  "events": {
+    "stuck": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "seconds": { "kind": "number", "min": 0, "max": 86400 }
+      }
+    },
+    "revisit": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "visits": { "kind": "integer", "min": 2, "max": 100000 }
+      }
+    },
+    "solved_but_stayed": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "puzzle": { "kind": "integer", "min": 0, "max": 100000 },
+        "seconds": { "kind": "number", "min": 0, "max": 86400 }
+      }
+    },
+    "item_found": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "item": { "kind": "integer", "min": 0, "max": 100000 }
+      }
+    },
+    "death": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "checkpoint": { "kind": "integer", "min": 0, "max": 100000 }
+      }
+    },
+    "hint_requested": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "x": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "y": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "z": { "kind": "number", "min": -1000000, "max": 1000000 },
+        "level_seconds": { "kind": "number", "min": 0, "max": 86400 }
+      }
+    },
+    "level_time": {
+      "v": 1,
+      "fields": {
+        "level": { "kind": "label" },
+        "seconds": { "kind": "number", "min": 0, "max": 86400 },
+        "result": { "kind": "label", "allowed": ["finished", "quit", "failed"] }
+      }
+    }
+  }
+}

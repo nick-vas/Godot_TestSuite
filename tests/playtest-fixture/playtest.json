@@ -1,0 +1,7 @@
+{
+  "cell": 64,
+  "levels": {
+    "hub": {},
+    "cave": { "plane": "xz", "cell": 2, "bounds": [0, 0, 20, 10] }
+  }
+}
