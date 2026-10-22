@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Publisher contracts: Jan Willem Nijman's red flags from his comments on a 2020 publishing agreement draft
+  (`docs/publisher-contracts.md`, clause by clause with what to ask for; `godot-legal` section 6): markups and fixed
+  splits, recoup before any revenue, one-sided termination and breach clauses, unpublishing, reserves, sequel fees, and
+  a worked example of what a 15% markup and a 50/50 split cost against his 70/30 benchmark.
 - Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
   makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
   0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility
