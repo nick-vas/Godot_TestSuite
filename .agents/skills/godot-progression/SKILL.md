@@ -22,7 +22,12 @@ Data tables and the `data` runner are `godot-data`; seeded loot generation is `g
 - **A bad roll still pays.** Every loot table has a consolation entry ("even if you get the booby prize that that still
   feels pretty cool", Tom Chilton).
 - **Rare rewards start as a lottery and get easier.** A drop chance plus a pity counter or a time ramp, both in data; log
-  attempts until success, and test the worst streak, not the average.
+  attempts until success, and test the worst streak, not the average: TF2's 25% chance every 25 minutes still left one
+  player in a thousand with nothing.
+- **Scarce but never empty.** Half-Life: Alyx wanted players to "always feel like you have ammo, but never as much as
+  you’d like": pickups are placed by hand, and the game quietly removes some ahead of a player who already carries plenty,
+  never those in lockers and other places worth searching. Testers had ended the game with anywhere from almost nothing to
+  over 1,000 rounds.
 - **Keep the power band flat.** Cards and items differ by play style, not raw strength ("the same semi-flat tier that all
   good card games strive for"); a couple of outliers ruin the game. A power score per row (cost against effect) with a
   `min`/`max` in `data.json`.

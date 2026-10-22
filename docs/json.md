@@ -60,6 +60,7 @@ Branch on `error.code`; `message` can change.
 | `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `no-asset-manifest` | `credits`: the project has no `assets.json` | - |
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
+| `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
 | `failed` | Generic failure without a specific code | `error.message` |
@@ -69,7 +70,9 @@ Branch on `error.code`; `message` can change.
 **detect**: `project`, `name`, `csharp`, `solution`, `godotVersion`, `runners[]`, `goDotTestScene`,
 `presets[]` (`name`, `platform`).
 
-**doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`.
+**doctor**: `checks[]` (`status` OK/INFO/WARN/FAIL, `message`, `fix`), `problems`, `warnings`. Checks are messages, not
+codes; the Steamworks, trailer, tag and privacy checks are described in [steam.md](steam.md#kit-checks) and
+[store-and-legal.md](store-and-legal.md#kit-checks).
 
 **build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
@@ -183,7 +186,20 @@ The plugin's Stop hook and the `retro` skill read it.
 **export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
-release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
+release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
+and `androidVersionCode` (major\*1,000,000 + minor\*1,000 + patch, `1002003`, set as `version/code` of the Android presets
+for the export only; `null` when the numbers make none, which fails with `invalid-arguments` if an Android preset is
+exported). With `-GameVersion auto` also `tag` (the nearest tag matching `v[0-9]*`, `null` without one), `commits` (since
+that tag, or in all without one) and `commit` (short hash), and the version is, as `git describe --tags --long` reads:
+
+| Checkout | `numbers` | `full` |
+|---|---|---|
+| On the tag `v1.2.3-rc.1` | `1.2.3` | `1.2.3-rc.1` (as `-GameVersion v1.2.3-rc.1`) |
+| 4 commits after `v1.2.3` | `1.2.3.4` | `1.2.3+4.gabc1234` |
+| No tag, 12 commits | `0.0.0.12` | `0.0.0+12.gabc1234` |
+
+After a tag the numbers are its major.minor.patch (missing ones 0, a fourth one replaced) and the commit count; the
+Android version code leaves the count out, so builds between two tags share one: tag each build you upload to a store.
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
@@ -251,7 +267,11 @@ and `noticesFile`.
 
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`), `nextActions[]`
 (`id`, `text`, `auto`, `check`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
-(tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `cardId`, `boardColumn`), `trelloBoard`, `warnings[]`.
+(tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `cardId`, `boardColumn`), `trelloBoard`,
+`release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
+`deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
+`release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
+see [plan.md](plan.md#release-dates)).
 `plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved`, `warnings`).
 
 **status** (read-only; it never fails on what it finds):

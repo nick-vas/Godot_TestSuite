@@ -1,0 +1,21 @@
+// Deliberately broken for tests/Test-Steam.ps1: an AppID that is not a number, a ContentRoot from one machine, the
+// default branch set live, a depot without a FileMapping, a depot ID that is not a number, a depot build script that
+// does not exist, and a password.
+"AppBuild"
+{
+	"AppID" "MyGame"
+	"ContentRoot" "C:\Builds\game\"
+	"SetLive" "default"
+	"Password" "hunter2"
+	"Depots"
+	{
+		"1001"
+		{
+			"FileExclusion" "*.pdb"
+		}
+		"linux"
+		{
+		}
+		"1003" "missing_depot.vdf"
+	}
+}

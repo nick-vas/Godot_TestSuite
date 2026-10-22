@@ -1,7 +1,7 @@
 # Steam and Steam Deck: sources and measurements
 
 The research behind the `godot-steam` and `godot-steam-deck` skills, the `textsize` runner, the `steam-removed-api` and
-`steam-env-dotnet` architecture rules, `doctor`'s GDExtension and Steam package checks, the `SteamAppId=480` default,
+`steam-env-dotnet` architecture rules, `doctor`'s GDExtension, Steam package and Steamworks file checks, the `SteamAppId=480` default,
 and Breakout's `Platform/` (`IPlatformServices`, `LocalPlatform`, `BreakoutProgress`) and `SaveStore.SaveResolved`,
 gathered on 2026-10-21. Tests ran on Godot 4.7.2 mono and standard, .NET 8 (SDK 8.0.131), Linux x86_64, with no Steam
 client and no Steamworks partner account. Marks: **tested** means run here, **doc** means stated by Valve or Godot,
@@ -202,11 +202,42 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
   4.23.2's macOS names). `Get-SteamPackageProblems` reads the game's `.csproj`: fails on `Steamworks.NET.AnyCPU`
   2026.165.0 to 2026.165.2 (fix: pin 2026.164.4 or add a resolver), warns on NuGet `Steamworks.NET`, and warns on
   `Facepunch.Steamworks` when a preset exports to anything but Windows.
+- **Doctor's Steamworks files** (`ci/godot/lib/Steam.ps1`): a game keeps copies of what it uploads to Steamworks in
+  `steam/` (with an empty `.gdignore`), and doctor reads them against the game's `.cs` and `.gd` files (outside `addons/`
+  and folders with a `.gdignore`). Only string literals are read: a name held in a constant or built at run time is not
+  followed. Files are VDF (Valve's KeyValues text), read by `ConvertFrom-Vdf` without escape sequences, as steamcmd reads
+  `"..\content\"`; a `.vdf` that does not parse warns.
+  - **Rich presence**: any `.vdf` in `steam/` whose root is `"lang"`, one language per file (`"Language" "english"`
+    with `"Tokens"`) or all in one (`"english" { "Tokens" { ... } }`). A `steam_display` value the code sets
+    (`setRichPresence("steam_display", "#Token")` in any binding) that does not start with `#` fails, and so does a token
+    missing from the English tokens, since Steam then shows nothing; a token in the file without `#`, a `{#Token}` it
+    refers to that is not defined, and a file with no English warn. Tokens in the code with no file in `steam/`: INFO.
+  - **Achievements and stats**: `steam/achievements.json`, `{ "achievements": [...], "stats": [...] }` with the API
+    names as created in Steamworks (Breakout's `PlatformCatalog` rule: letters, digits and underscores, each once; a
+    name that breaks it warns). A name the code passes to `SetAchievement`, `ClearAchievement`, `GetAchievement`,
+    `IndicateAchievementProgress`, `UnlockAchievement`, GodotSteam's `setAchievement` or `Call("setAchievement", ...)`
+    or Facepunch's `new Achievement(...)`, or to `SteamUserStats.SetStat`/`GetStat`/`AddStat` or GodotSteam's
+    `Steam.setStatInt`/`setStatFloat`/`getStatInt`/`getStatFloat`, that the file does not list (compared with case)
+    fails: it would never reach Steam. A list is checked only for the keys it has; achievements in the code with no
+    file: INFO.
+  - **steamcmd app build scripts**: any `.vdf` in `steam/` whose root is `"AppBuild"`, with paths relative to the
+    script as steamcmd takes them. Fails: `AppID` not a number, no `Depots`, a depot ID that is not a number, a depot
+    with no `FileMapping` holding `LocalPath` and `DepotPath` (inline or in the depot build script it names), a depot
+    build script that does not exist, and a key or value that looks like a secret (a password, token, login or a
+    32-character hex key; steamcmd takes the login on its command line). Warns: `AppID` 480 (Spacewar), no
+    `ContentRoot` or an absolute one (one machine only), `SetLive "default"` ("you can not set the build live on the
+    default branch automatically"), and a `steam_appid.txt` in `ContentRoot` that a depot does not exclude with
+    `FileExclusion`. A `ContentRoot` that does not exist yet (the export has not run) is INFO.
 - **Self-test** `tests/Test-Steam.ps1` on `tests/steam-fixture` (laid out like GodotSteam 4.23.2, no Godot needed): a
   Linux export finds every library; adding macOS reports the two misnamed libraries and not `libsteam_api.dylib`; the
   stale copy in `.godot/` is ignored; a Windows export finds its missing library; AnyCPU 2026.165.2 fails and 2026.164.4
   passes; NuGet `Steamworks.NET` warns; Facepunch passes for Windows only and warns with Linux; `Test-UsesSteam` is true
-  for the fixture and false for `examples/gdscript`.
+  for the fixture and false for `examples/gdscript`. The VDF reader keeps repeated keys and backslashes and throws on
+  broken braces and quotes. `steam-fixture/steam` holds a rich presence file, `achievements.json`, a working app build
+  script with a depot build script, and a broken one; `progress.gd` (GodotSteam) misspells an achievement and a stat,
+  sets a token the file lacks and a value without `#`, while `Platform.cs` (Steamworks.NET) is right. Each of the 16
+  problems is named and nothing else, the depot that excludes `steam_appid.txt` passes, and doctor fails on a copy of
+  the fixture.
 - **`SteamAppId=480`**: `Test-UsesSteam` (`ci/godot/lib/Detect.ps1`) is true when the project has `addons/godotsteam` or
   a `.csproj` that references `Steamworks.NET*`, `Facepunch.Steamworks*` or `GodotSteam*`. `ci/godot/godot-ci.ps1` then
   sets `SteamAppId=480` for every command, unless `SteamAppId` is already set, so a relaunch through Steam cannot end a

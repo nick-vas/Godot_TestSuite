@@ -64,6 +64,8 @@ param(
     [string[]]$Browser = @('chromium'),
     # export: the game's version, e.g. a tag such as v1.2.3-rc.1. Its numbers (1.2.3) become config/version for this export
     # only (the Windows file version, macOS and Android versions); all of it becomes the C# assembly's InformationalVersion.
+    # Android presets also get version/code major*1,000,000 + minor*1,000 + patch. auto: from git, the nearest v* tag and
+    # the commits since it (v1.2.3 and 4 commits: 1.2.3.4, 1.2.3+4.g<commit>); needs the whole history, not a shallow clone.
     [string]$GameVersion,
     [string]$Results = 'test-results',
     [string]$Output = 'build',
@@ -133,7 +135,7 @@ param(
     [double]$MaxOnsetMs = 20,
     # setup: also install export templates.
     [switch]$Templates,
-    # detect: also write the values to $GITHUB_OUTPUT.
+    # detect: also write the values to $GITHUB_OUTPUT. export: also write version and android-version-code there.
     [switch]$GitHubOutput,
     # init: also register an editor-bridge MCP server for the project.
     [ValidateSet('none', 'godot-mcp', 'godot-ai')]
@@ -170,7 +172,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Addons') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Addons') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -361,31 +363,68 @@ function Invoke-Tests {
     Write-CiLog "All runners passed: $($info.Runners -join ', ')$(if ($excused) { " ($($excused -join ', '): see above, not a clean pass)" })"
 }
 
+# export -GameVersion, checked (and with auto, read from git) before Godot is downloaded, so a typo or a shallow clone
+# fails in seconds: numbers, full, androidVersionCode, and with auto tag, commits and commit.
+function Resolve-ExportVersion {
+    if ($GameVersion -eq 'auto') {
+        $version = Get-GitGameVersion $info.ProjectDir
+    } else {
+        $version = ConvertTo-GameVersion $GameVersion
+        if ($null -eq $version) { Stop-GodotCi "-GameVersion '$GameVersion' does not start with a version number such as 1.2.3 (or is auto)" 'invalid-arguments' }
+    }
+    $version.androidVersionCode = Get-AndroidVersionCode $version.numbers
+    if (@(Get-AndroidPresetNames).Count -gt 0 -and $null -eq $version.androidVersionCode) {
+        $hint = if ($version.numbers -like '0.0.0*') { '; tag a release such as v0.1.0 first' } else { '' }
+        Stop-GodotCi ("Android's version code is major*1,000,000 + minor*1,000 + patch, from 1 to 2,100,000,000 with minor and " +
+            "patch under 1,000, and $($version.numbers) does not make one$hint") 'invalid-arguments'
+    }
+    return $version
+}
+
+# The presets this export makes that are for Android.
+function Get-AndroidPresetNames {
+    $details = Get-ExportPresetDetails $info.ProjectDir
+    return @($presets | Where-Object { $details.Contains($_) -and $details[$_].Platform -eq 'Android' })
+}
+
 function Invoke-Export {
     if ($presets.Count -eq 0) { Stop-GodotCi "No export presets in $(Join-Path $info.ProjectDir 'export_presets.cfg')" 'no-presets' }
     $projectFile = Join-Path $info.ProjectDir 'project.godot'
+    $presetsFile = Join-Path $info.ProjectDir 'export_presets.cfg'
     $originalProject = $null
-    if ($GameVersion) {
-        $match = [regex]::Match($GameVersion, '^v?(?<numbers>\d+(\.\d+){0,3})(?<label>[-+].*)?$')
-        if (-not $match.Success) { Stop-GodotCi "-GameVersion '$GameVersion' does not start with a version number such as 1.2.3" 'invalid-arguments' }
-        $numbers = $match.Groups['numbers'].Value
-        $full = $GameVersion -replace '^v', ''
-        # Godot exports only numbers and dots (anything else: a warning and 1.0.0.0 on Windows), and ignores override.cfg,
-        # so project.godot itself is changed for the export and put back afterwards. Godot's dotnet publish reads the
-        # assembly versions from the environment (a <Version> in the csproj would win); in a git checkout the .NET SDK
-        # appends +<commit> to the InformationalVersion by itself.
-        $originalProject = [System.IO.File]::ReadAllText($projectFile)
-        $line = "config/version=`"$numbers`""
-        $patched = if ($originalProject -match '(?m)^config/version=') { $originalProject -replace '(?m)^config/version=[^\r\n]*', $line }
-            else { $originalProject -replace '(?m)^\[application\]\s*$', "[application]`n`n$line" }
-        [System.IO.File]::WriteAllText($projectFile, $patched)
-        $env:Version = $numbers; $env:InformationalVersion = $full
-        Write-CiLog "Version $numbers ($full)"
-        Set-JsonField gameVersion ([ordered]@{ numbers = $numbers; full = $full })
-    }
-    try { Invoke-ExportPresets }
-    finally {
+    $originalPresets = $null
+    $version = $script:ExportVersion
+    try {
+        if ($version) {
+            $numbers = $version.numbers; $full = $version.full
+            # Godot exports only numbers and dots (anything else: a warning and 1.0.0.0 on Windows), and ignores override.cfg,
+            # so project.godot itself is changed for the export and put back afterwards. Godot's dotnet publish reads the
+            # assembly versions from the environment (a <Version> in the csproj would win); in a git checkout the .NET SDK
+            # appends +<commit> to the InformationalVersion by itself.
+            $originalProject = [System.IO.File]::ReadAllText($projectFile)
+            $line = "config/version=`"$numbers`""
+            $patched = if ($originalProject -match '(?m)^config/version=') { $originalProject -replace '(?m)^config/version=[^\r\n]*', $line }
+                else { $originalProject -replace '(?m)^\[application\]\s*$', "[application]`n`n$line" }
+            [System.IO.File]::WriteAllText($projectFile, $patched)
+            $env:Version = $numbers; $env:InformationalVersion = $full
+            Write-CiLog "Version $numbers ($full)"
+            # Android takes its version code from the preset (version/code), not from project.godot: set for this export
+            # only too, as GameCI does.
+            $android = @(Get-AndroidPresetNames)
+            if ($android.Count -gt 0) {
+                $originalPresets = [System.IO.File]::ReadAllText($presetsFile)
+                [System.IO.File]::WriteAllText($presetsFile, (Set-AndroidVersionCode $originalPresets $version.androidVersionCode))
+                Write-CiLog "Android version code $($version.androidVersionCode) ($($android -join ', '))"
+            }
+            Set-JsonField gameVersion $version
+            if ($GitHubOutput -and $env:GITHUB_OUTPUT) {
+                Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value @("version=$full", "android-version-code=$($version.androidVersionCode)")
+            }
+        }
+        Invoke-ExportPresets
+    } finally {
         if ($null -ne $originalProject) { [System.IO.File]::WriteAllText($projectFile, $originalProject) }
+        if ($null -ne $originalPresets) { [System.IO.File]::WriteAllText($presetsFile, $originalPresets) }
         Remove-Item Env:Version, Env:InformationalVersion -ErrorAction SilentlyContinue
     }
 }
@@ -492,6 +531,7 @@ if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', '
     Start-RunLog (Join-Path ([System.IO.Path]::GetFullPath($Results)) 'godot-ci.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
+$script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
     'init' {

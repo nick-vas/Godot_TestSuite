@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://stats.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+speed = 2.5
+health = 20
+metadata/note = "kept by the editor"
