@@ -1,0 +1,1 @@
+{ "frames": 600, "args": ["--autoplay"], "expect": ["[Run] level 1 done", "[Run] ending reached"] }
