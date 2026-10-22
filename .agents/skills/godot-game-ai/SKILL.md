@@ -85,75 +85,17 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 
 ### Aiming projectiles
 
-From Chris Stark's "Predictable Projectiles" (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/predictable-projectiles.md`); the formulas
-are derived for the kit, not quoted. `Aim.Lead` takes `Vector2` or `Vector3`; arcs take `Vector3` (a 2D side view
-passes z = 0 and gravity (0, 980, 0)). Null means there is no shot.
-
-- Lead anything slow enough to dodge with `Aim.Lead(muzzle, target, targetVelocity, speed)`. The meeting time solves
-  `(V·V - s²) t² + 2 (D·V) t + D·D = 0` with `D = target - muzzle`: the smallest positive root; `a = 0` (equal speeds)
-  still hits a target closing in (`t = -c / b`); a negative discriminant means no shot. Against 1000 seeded targets at
-  60 to 95% of the bolt's speed it hit 100%, `position + velocity * distance / speed` 3.6%, the current position 2.2%.
-- Aim at the collider's centre, not the origin at its feet, with a velocity averaged over a short window and the vertical
-  part dropped (`VelocityHistory.Average(up)`), so a jump or a jink does not throw the shot.
-- No solution: solve before the fire animation and do not fire, or at the release frame fire at the current position.
-  Check walls (and friendlies, if they block shots) along the line to the predicted point.
-- Arcs: `Aim.Ballistic(muzzle, target, velocity, gravity, settings)` leads on the ground plane with the throw's horizontal
-  speed, then solves the launch angle (low arc; `highArc: true` lobs). Designers set `BallisticSettings(MaxRange,
-  GravityScale, LaunchAngleDeg = 45, MinRange = 2.5f, MaxAngleDeg = 70)` and the speed is derived; take `MaxRange` from
-  `Aim.MaxRangeUnderCeiling(clearance)` (4 × the lowest ceiling above the throw point, at 45 degrees). Too close, too
-  steep or unreachable: it throws straight, gravity on. The solved angle shifts the flight time, so a running target is
-  missed by 1.65 m on average (fine for a blast); `refinements: 4` brings it under 0.02 m.
-- Miss on purpose, or the AI is an aimbot: `Aim.Scatter` rolls yaw and pitch within ±2 degrees each (the talk's default);
-  `tilt: 0.75f` halves the vertical range and sends most misses over low cover. Never scatter far up or into the ground;
-  lift the aim point of short targets above cover, but not above their collider. For area attacks, telegraph instead of
-  scattering (a 3D sound in flight, a loud impact, a danger decal) and always hit the predicted spot.
-- Up close, stop ranged attacks (or throw straight); draw launch point, predicted point, path and impact while tuning.
+Lead anything slow enough to dodge with `Aim.Lead` (the exact intercept: the smallest positive root of a quadratic; null
+means no shot), arc with `Aim.Ballistic`, and miss on purpose with `Aim.Scatter` (±2 degrees) or the AI is an aimbot.
+`position + velocity * distance / speed` hit 3.6% of fast targets where `Aim.Lead` hit 100%. Details, the designer knobs
+and the fallbacks: [aiming.md](aiming.md).
 
 ## 6. Perception
 
-Perception is on or off: is the target there? What it means (an enemy, a noise worth a look) is the decision layer's
-job. `VisionSensor`, `VisionPie`, `VisionModifiers` and `TargetMemory` are in `Ai/Perception.cs`.
-
-- Cheapest first: pick which entities to try (the player, a body left on the floor), test shape and range in the eye's
-  local space, and cast a ray last. `VisionSensor.CanSee` casts no ray for a point outside the shape.
-- The shape is a pie: half-angle, far and optional near distance (3D adds top and bottom cut-offs). Hearing is a
-  radius; a small circle round the agent is a "sixth sense" for someone standing at its back. Nested shapes can carry
-  danger levels.
-- Sample several points on the target (head, hips, a hand) and stop at the first clear one: a twig hides a single
-  point. The node's origin is at the feet, behind every crate. Far away, a skeleton LOD may stop updating bones: fall
-  back to fixed offsets from the root.
-- Once the weapon is out, see from the muzzle (pass it as `eye`). Eyes above the gun see what the gun cannot hit, and
-  the agent loops between "I see it" and "I cannot shoot it".
-- Modifiers are a stack: each effect pushes and pops its own handle (`var h = Modifiers.Push("flashbang", 0)`, later
-  `Pop(h)`), so a flashbang wearing off keeps a designer's permanent blind. Factors above 1 count as 1: modifiers only
-  reduce, because players learn the ranges. Show the player why (a hand over the eyes).
-- Decisions read a `TargetMemory`, not this frame's ray: the last known position and time since seen keep a target
-  through a moment behind a pillar, and the search starts where it was last seen.
-- Aim the sensor from a dedicated node the animation drives, not the head bone, which sweeps it around; delay its turn
-  after a 180 so the player escapes just in time. If a target moving beside the agent flickers in and out, let the
-  sensor follow the target until it is occluded.
-- Smoke and tall grass: sum the depth the ray travels inside them, with a threshold per material. Whether a moving
-  object occludes can depend on state (Assassin's Creed Syndicate's carriages stopped hiding you once combat began).
-  Neither is in the core.
-
-Godot wiring, in `_PhysicsProcess` (the direct space state is only safe to query during the physics step):
-
-```csharp
-static LineOfSight RayTo(CollisionObject2D self, CollisionObject2D target, uint occluderMask)
-{
-    var space = self.GetWorld2D().DirectSpaceState;
-    var exclude = new Godot.Collections.Array<Rid> { self.GetRid(), target.GetRid() };
-    return (from, to) => space.IntersectRay(PhysicsRayQueryParameters2D.Create(
-        new Vector2(from.X, from.Y), new Vector2(to.X, to.Y), occluderMask, exclude)).Count == 0;
-}
-```
-
-- Exclude the observer and the target and mask to occluder layers. With the characters' layer in the mask and the target
-  not excluded, the target's own body blocks every ray. This 2D wiring ran once on 4.7.2 headless (a blocked head with
-  clear hips was seen, in 2 rays); it has no test in the repository. 3D (`PhysicsRayQueryParameters3D`) was not run.
-- Budget rays: queue sight requests and run at most N per physics frame, highest priority first (interacting with the
-  player, near the camera, in combat), the rest next frame; reuse a result when several agents test the same point.
-  Not tested: the kit has no scheduler. Measure N with `bench`.
+Perception answers "is the target there?"; what it means is the decision layer's job (`Ai/Perception.cs`). Test shape and
+range before casting a ray, sample several points on the target, see from the muzzle once the weapon is out, stack
+modifiers with handles, and decide from a `TargetMemory`, not this frame's ray. Rules, Godot ray wiring and budgets:
+[perception.md](perception.md).
 
 ## 7. Navigation (Godot 4.7)
 
