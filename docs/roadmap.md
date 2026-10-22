@@ -178,7 +178,7 @@ Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could cl
 | Feature | Why | Smallest change |
 |---|---|---|
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
-| Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
+| Re-run `Evals` after the sandbox fix | Run 4 confirmed the subscription token but scored a sandbox that refused every command (`docs/research.md`) | Run the workflow once with `runs` 1 on `fix-score-bug` and `explain-failure`, check that the bwrap step passes, and record the scores |
 
 ## To do: audio
 
@@ -295,6 +295,17 @@ From this pass (`docs/mobile-web.md`):
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
 | Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |
 
+## To do: add-ons and GDExtensions
+
+| Item | Why | How |
+|---|---|---|
+| An add-on's code without an `assets.json` entry | `credits` writes notices only for what `assets.json` lists, and add-on code ships with the game (`docs/addons.md`) | WARN in `doctor` for `addons/<name>/LICENSE*` with no entry covering `addons/<name>/**`; fill `copyright` from the licence's first `Copyright` line |
+| MPL-2.0 in `credits` | gdext (Rust) is MPL-2.0, which `Credits.ps1` has no rule for | Read the licence's notice rules, add the policy row and the SPDX text |
+| Known-status list for add-ons | godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by name only through their folders, which were not confirmed | Confirm each add-on's folder or `entry_symbol` from its release, then a small JSON refreshed by `Invoke-Canary.ps1` |
+| FMOD's licence and credit terms | fmod.com returns a JavaScript-only page to curl and fails in WebFetch | Owner: paste the terms, or allow the host |
+| Feature flags not measured | macOS with one architecture, and Web with `variant/extensions_support` on, were not exported | Export both with an extension no key fits and read "Possible feature flags" |
+| Dialogue Manager in C# | It sets `[dialogue_manager] runtime/advanced/uses_dotnet` only in the editor when it finds the `.sln`; what fails at run time without it was not checked | Run a C# game that uses it, exported without opening the editor |
+
 ## To do: CI, from GameCI's documentation
 
 GameCI (Unity's CI, `docs/` of game-ci/documentation, MIT) was read in October 2026. Done: cache keys per Godot build
@@ -334,3 +345,24 @@ Valve's talks, handbook, Cabal article and developer commentary were read in Oct
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 - [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
       use up every key item, then check progress is still possible), both from the commentaries.
+
+## To do: from the technical sources (TRIBES, the maths book, a Unity checklist, a GPU debugging talk)
+
+Read in October 2026: Frohnmayer and Gift's TRIBES networking paper, Burzynski's *Mathematics for Game Developers*, The
+Gamedev Guru's Unity performance checklist and Adam Sawicki's "Make Your Game Friendly for Graphics Debugging and
+Optimization" (AMD, Digital Dragons 2019). Done: `Net/BitPacker.cs` and `Net/EventStream.cs` with their tests, the
+`Economy/EconomySim.cs` simulation, and notes in `godot-multiplayer`, `godot-math`, `godot-performance`,
+`godot-diagnose`, `godot-debug-tools` and `godot-progression`. Not done or not verified:
+
+| Item | Why it is open | How |
+|---|---|---|
+| Run `shot`, `bench` or `export -Run` with `--gpu-validation` (and `--gpu-abort`, `--accurate-breadcrumbs`) and fail on validation errors, with a new code in `docs/json.md` | The flags exist in 4.7.2's `--help`, but this container has no Vulkan, and the Compatibility renderer has no Vulkan layers; `--accurate-breadcrumbs` and `--extra-gpu-memory-tracking` are Vulkan only | A Vulkan-capable runner (a GitHub GPU runner, or Mesa's lavapipe if it can be installed; neither checked), then a `-GpuValidation` switch that passes the flag and scans the log |
+| Shader precision qualifiers (`lowp`, `mediump`, `highp`) in `godot-shaders-vfx` | Cited from the shading-language reference only; headless Godot has no renderer, so nothing was compiled | Quote a shader that uses them in the skill and let `tests/Test-SkillShaders.ps1` compile it (Compatibility, under Xvfb); check the Mobile renderer on a Vulkan machine |
+| Light and shadow limits on phones in `godot-mobile-web` | Compatibility's `rendering/limits/opengl/max_lights_per_object` (8) and `max_renderable_lights` (32) were checked; the Mobile renderer's per-mesh limits were not: 4.7.2's `rendering/limits/` settings have none for it (Forward+ has `cluster_builder/max_clustered_elements`, 512) | Read the Mobile renderer's source or class reference for its per-object light limit, measure on a device, then add both to the skill |
+| A dialogue tool for `godot-narrative`: Ink, Yarn Spinner or Dialogic | Their licences and Godot 4.7 C# support were not looked up in this pass | Read each repository's licence and latest release, try each in a copy of Breakout on 4.7.2; if none fits, a JSON dialogue graph in Breakout.Core with keys through `Tr()`, checked by the `data` and `l10n` runners |
+| A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off | Left out on purpose: a game that interpolates itself, or one locked to its tick rate, would be warned for nothing. The skills say it instead | Only if it can be made quiet: warn when the setting is off, a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess`, and the game sets no `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way |
+| `GhostReplicator` charging packed bits per group instead of 4 bytes a value, and a client-set link budget checked in `ReplicationTests` | Kept out to leave the tested replicator unchanged; `BitPacker` measures the saving on its own | A per-group bit size given to the replicator; a `LinkBudget` (packets a second times bytes, from the client, capped by the server) and a test that the client never receives more than it asked for |
+| `bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram | Not built in this pass; each needs a new failure code in `docs/json.md` | `Measure.ps1` already has `drawCalls.avg`; `bench.gd` can read `Time.GetTicksMsec()` at its first frame |
+| `doctor`: duplicate files under `res://`, and occluders with occlusion culling off; a build size breakdown on `export -Json` | Not built in this pass | Hash files (skipping `.godot/`, `.import` and `.gdignore` folders); sum `.godot/imported/*` per source file; each with a fixture |
+| A `data` rule that every currency has a sink, and adaptive difficulty (`DifficultyDirector`) | `EconomySim` checks sinks in code; the data rule and difficulty curves were not built | A `sinks` check beside `totals` in `data.json`; a director with slow, bounded steps and hysteresis, tested so it never flips every attempt |
+| A test pinning the maths book's 3D yaw sign and cross-product area | Checked headless in Godot 4.7.2 for the skill; Breakout.Core uses `System.Numerics`, whose conventions differ, so a test there would not prove Godot's | A GDScript or gdUnit4 test in `examples/breakout/game` |
