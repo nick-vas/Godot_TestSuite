@@ -1,6 +1,8 @@
 # Measures the tokens, cost and time Claude Code spends on the tasks in benchmark/token-benchmark.json under each profile
-# (benchmark/Invoke-TokenBenchmark.ps1). Manual only: each run calls the model and costs money. Needs the repository
-# secret ANTHROPIC_API_KEY.
+# (benchmark/Invoke-TokenBenchmark.ps1). Manual only: each run calls the model. Authenticates with a Claude subscription,
+# not an API key: the repository secret CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals
+# workflow uses). Runs count against that plan's usage, meant for ordinary individual use, so keep runs small (one task,
+# -Repeat 1) and start them by hand. The cost columns are Claude Code's own figure, not a charge on the plan.
 name: Token benchmark
 
 on:
@@ -27,13 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - name: Claude Code
         shell: pwsh
         run: |
-          if (-not $env:ANTHROPIC_API_KEY) { throw 'Add the ANTHROPIC_API_KEY repository secret to run the benchmark' }
+          if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run the benchmark' }
           npm install -g @anthropic-ai/claude-code
       - name: Run the benchmark
         shell: pwsh
