@@ -32,6 +32,11 @@
           "check": "manual"
         },
         {
+          "id": "concept.name",
+          "text": "Game name searched before a logo or store page: the web, Steam and the trademark databases where it will sell (any video game with the same or a similar name conflicts; godot-legal)",
+          "check": "manual"
+        },
+        {
           "id": "concept.kill",
           "text": "Kill criteria for the prototype written down (e.g. 'a stranger doesn't ask for a second run')",
           "check": "manual"
@@ -253,7 +258,7 @@
         },
         {
           "id": "launch.legal",
-          "text": "End-user licence (or the store's own terms), refund rules and the game's name checked",
+          "text": "End-user licence (or the store's own terms) and refund rules checked; copyright and trademark registration decided (godot-legal)",
           "check": "manual"
         },
         {

@@ -2,7 +2,7 @@
 # Self-test of the plan's gates on a fresh plan: slice.debt and prototype.trailer are automatic and turn true when
 # docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
 # `bench` command, the trailer template asks what its gate says, and every gate id, template and godot-ci.ps1 flag that
-# the plan or the planning and store-page skills quote exists. No Godot needed.
+# the plan or any skill quotes exists. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -33,10 +33,12 @@ foreach ($phase in $template.phases) {
     }
 }
 
-# Gate ids the planning skill names exist in the template (plan.json is copied once, so a renamed gate would strand them).
-$skill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-plan/SKILL.md') -Raw
-foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post)\.[a-z0-9]+)`')) {
-    Assert-True ($quoted.Groups['id'].Value -in $gateIds) "godot-game-plan names gate $($quoted.Groups['id'].Value), which plan.json has"
+# Gate ids any skill names exist in the template (plan.json is copied once, so a renamed gate would strand them).
+foreach ($skillFile in @(Get-ChildItem -LiteralPath (Join-Path $root '.agents/skills') -Filter 'SKILL.md' -Recurse)) {
+    $skill = Get-Content -LiteralPath $skillFile.FullName -Raw
+    foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post)\.[a-z0-9]+)`')) {
+        Assert-True ($quoted.Groups['id'].Value -in $gateIds) "$($skillFile.Directory.Name) names gate $($quoted.Groups['id'].Value), which plan.json has"
+    }
 }
 
 # Templates the planning and store-page skills tell an agent to copy exist.
@@ -46,7 +48,8 @@ foreach ($skillName in 'godot-game-plan', 'godot-store-page') {
         Assert-True (Test-Path -LiteralPath (Join-Path $templates $quoted.Groups['file'].Value)) "$skillName names templates/$($quoted.Groups['file'].Value), which exists"
     }
 }
-Assert-True ($skill -match 'prototype\.trailer') 'godot-game-plan explains prototype.trailer'
+$planSkill = Get-Content -LiteralPath (Join-Path $root '.agents/skills/godot-game-plan/SKILL.md') -Raw
+Assert-True ($planSkill -match 'prototype\.trailer') 'godot-game-plan explains prototype.trailer'
 
 # The trailer template asks what the gate promises, in the talk's order: genre, then hook, content last; three standout
 # moments; a feedback column for every mechanic.
