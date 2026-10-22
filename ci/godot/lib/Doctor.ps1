@@ -345,6 +345,9 @@ function Invoke-Doctor($Info) {
         }
     }
 
+    $platformProblems = Get-PlatformPresetProblems $project $projectGodot $gameCsproj $details
+    foreach ($problem in $platformProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
+
     # --- Report -----------------------------------------------------------------------------------
     $colors = @{ OK = 'Green'; INFO = 'Cyan'; WARN = 'Yellow'; FAIL = 'Red' }
     foreach ($check in $checks) {

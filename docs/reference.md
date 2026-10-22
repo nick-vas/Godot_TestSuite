@@ -8,12 +8,13 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
-| `-Run` | off | `export`: launch builds this machine can run |
+| `-Run` | off | `export`: launch builds this machine can run; Web builds open in a browser (a debug export of the preset, served on 127.0.0.1, with cross-origin isolation headers only for a threads build) |
+| `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `GODOT_CI_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `GODOT_CI_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
@@ -97,6 +98,7 @@ More on each framework, the five most popular Godot test projects, and how to se
 | `culture-parse` | C# `float.Parse`, `double.Parse`, `decimal.Parse` (or `TryParse`) without `CultureInfo`, `NumberFormatInfo` or another format provider on the line: on a German system `"0.5"` parses as 5, on a French one it throws |
 | `steam-removed-api` | a call to `IsSteamRunningOnSteamDeck` or `RequestCurrentStats` (either casing): removed or deprecated in Steamworks SDK 1.65, and gone from GodotSteam 4.21+ and Steamworks.NET 1.65 |
 | `steam-env-dotnet` | C# `Environment.SetEnvironmentVariable("SteamAppId"` or `SteamGameId`: on Linux and macOS .NET keeps its own copy of the environment, so the native Steam API never sees it; `OS.SetEnvironment` works |
+| `frame-dependent-lerp` | `_Process`/`_process` lerps a value toward a target and assigns it back to the same value, with a weight that has no `delta` in it: `Position = Position.Lerp(target, 0.1f)`, `x = Mathf.Lerp(x, target, 0.1f)`, `x += (target - x) * 0.1f`, GDScript `lerp`, `lerpf`, `lerp_angle`, `.lerp`, `.slerp`. A fixed fraction per frame converges faster at 144 fps than at 30 and ignores time scale; `1 - Mathf.Exp(-rate * delta)` does not. Not flagged: a weight that names `delta` (or a variable assigned from it), a lerp between two other values, `_physics_process` (a fixed rate), a call split over lines or made from a helper method ([why](gdc/juicing-your-cameras.md)) |
 
 Each rule is `warning` (default: reported, never fails), `error` (fails the runner) or `off`. Test folders and `addons/` are
 not scanned. The fixtures in `tests/architecture-fixtures` show one example of each.
@@ -189,6 +191,19 @@ scale comes from the project settings and the letters' height from the font. A f
 
 ```json
 { "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12 }
+```
+
+**`layout.json`** (optional, in the Godot project folder) turns on the `layout` runner, which lays out the listed scenes (the main
+scene by default), headless, at each profile and fails on controls that are off screen, outside the profile's safe area, or too small
+to touch (`minTouchDp`, 48) or click (`minPointerPx`, 24 CSS px). Profiles: `phone_portrait` (1080x2400 at 420 dpi, a 128 px top inset
+and 66 px bottom), `phone_landscape`, `tablet` (2048x1536 at 264 dpi) and `ultrawide` (3440x1440, mouse), or
+`name:WIDTHxHEIGHT@DPI[:touch][:insets=L,T,R,B]`. If the game has a `SafeArea` autoload with `set_insets`/`SetInsets(left, top, right,
+bottom)`, each profile's insets are passed to it first, so the game's own safe-area handling is measured. `checks` limits what is
+reported. `-Runners layout` runs it without the file, with the defaults.
+
+```json
+{ "scenes": ["res://ui/menu.tscn"], "profiles": ["phone_portrait", "tablet", "foldable:1812x2176@374:touch:insets=0,96,0,48"],
+  "minTouchDp": 48, "minPointerPx": 24, "checks": ["off-screen", "unsafe-area", "small-target"] }
 ```
 
 **`data.json`** (optional, in the Godot project folder) turns on the `data` runner, which checks the game's data tables without
