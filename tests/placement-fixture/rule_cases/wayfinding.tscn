@@ -1,0 +1,35 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(100, 1, 100)
+
+[sub_resource type="Curve3D" id="Curve3D_slide"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -40),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[node name="Level" type="Node3D"]
+
+[node name="Ground" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.5, 0)
+
+[node name="Shape" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("BoxShape3D_ground")
+
+[node name="Golem" type="CharacterBody3D" parent="." groups=["landmark"]]
+position = Vector3(-5, 0, 10)
+
+[node name="Slide" type="Path3D" parent="." groups=["route"]]
+curve = SubResource("Curve3D_slide")
+metadata/one_way = true
+
+[node name="Peak" type="Node3D" parent="." groups=["landmark"]]
+position = Vector3(0, 0, -80)
+metadata/placement_skip = {
+"landmark_seen": "the slide ends the level at the peak"
+}
+
+[node name="Summit" type="Marker3D" parent="Peak"]
+position = Vector3(0, 40, 0)

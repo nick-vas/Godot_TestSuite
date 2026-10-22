@@ -115,7 +115,12 @@ group and fails once, one line per finding: scene, node path, position, rule, me
 | `interactable` | `ground_in_reach` | a ray down hits ground within the player's reach |
 | `zipline` | `zipline_clear` | a capsule swept under the rope to its `End` child hits nothing |
 | | `zipline_angle` | the rope is no steeper than the movement code allows |
+| `landmark` | `landmark_still` | it is no moving body and did not move in 30 physics frames |
+| | `landmark_seen` | it is in view ahead from at least two separate stretches of the `route` paths |
+| `route` (a `Path3D`) | `landmark_ahead` | walked each way (metadata `one_way` skips the way back), a landmark is in view ahead on a quarter of it |
 
+- The wayfinding rules and why they matter: `godot-game-design` section 7. They aim at a landmark's `Marker3D` children
+  (the top of a tower), from `eye_height` within `view_fov`; only what has collision hides a landmark.
 - **Limits come from gameplay code**: `check.reach = Player.REACH` with `const Player := preload("res://player.gd")`.
   A copied number keeps passing after the code changes; yesterday's valid zip line must fail the day the limit drops.
 - **A bug found once becomes a rule for its whole type**: one torch out of reach means a check of every torch.

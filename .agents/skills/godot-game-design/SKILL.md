@@ -1,6 +1,6 @@
 ---
 name: godot-game-design
-description: Use when deciding what a game or feature should be, whether it is fun, what to cut, or when drafting or reviewing a GDD, a pitch, pillars or a core loop.
+description: Use when deciding what a game or feature should be, whether it is fun, what to cut, when drafting or reviewing a GDD, a pitch, pillars or a core loop, or when a level's layout loses players.
 ---
 
 # Game design: naming the fun
@@ -153,6 +153,28 @@ Quests, from Sasko's ten lessons (The Witcher 3, Cyberpunk 2077). For each quest
 5. Where does the player see each consequence? One they never notice does not exist for them.
 6. Does each detail mean something to the player? Key facts come when the player is focused, not in a walk-and-talk.
 7. Is it as new as it can be while staying familiar, and are a rule's normal uses taught before a quest breaks it?
+
+## 7. Levels players find their way in
+
+Getting lost is the player's mental map disagreeing with the world. Kevin Lynch (*The Image of the City*, 1960) found
+five elements people map places with; Nick Aweijian's GDC talk applies them to levels
+(`${CLAUDE_PLUGIN_ROOT}/docs/gdc/cognitive-maps.md`). Audit a level by naming each one; "that could be a landmark" means
+it is not one yet, so make it clearer.
+
+| Element | The level fails when |
+|---|---|
+| **Paths** (trails, roads, corridors) | a player who strays meets none to catch them; it was only walked one way (the way back looks different) |
+| **Landmarks** (one memorable thing) | it moves (a creature, a drifting airship); it looks the same from every side; it is seen from one spot only |
+| **Districts** (areas with a character) | a top-down view squinted at does not show them; look, sound and verbs (the jumping area, the driving area) are mixed |
+| **Edges** (walls, cliffs, level bounds) | they are blurred, so the map in the player's head is blurred too |
+| **Nodes** (hubs, junctions) | many ways meet but there is no reason to stay: make it a place, not a pass-through |
+
+- Lay the elements out top-down first, then play the level to check each still reads at eye level.
+- Playtest navigation with the HUD, minimap and waypoint markers off (`--no-hud`, `godot-automation-hooks`): turn-by-turn
+  guidance lowers route memory, so it hides a layout that does not guide.
+- In 3D, check it every run: put landmarks in group `landmark` and the routes players travel (`Path3D`) in group `route`;
+  `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
+  route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
 ## In a review
 
