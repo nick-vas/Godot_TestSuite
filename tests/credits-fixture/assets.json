@@ -7,5 +7,7 @@
   { "path": "art/no_author.png", "source": "https://opengameart.org/content/tree", "licence": "CC-BY-4.0" },
   { "path": "music/theme.ogg", "author": "Max Mo", "source": "https://example.org/theme", "licence": "CC-BY-NC-4.0" },
   { "path": "shaders/water.gdshader", "author": "Lu Li", "source": "https://godotshaders.com/shader/water", "licence": "MIT" },
-  { "path": "art/player/**", "source": "own", "licence": "own" }
+  { "path": "art/player/**", "source": "own", "licence": "own" },
+  { "path": "art/boss/**", "source": "commissioned", "author": "Ivy Ng", "licence": "proprietary", "agreement": "WFH-2026-03", "rights": "assigned" },
+  { "path": "music/credits.ogg", "title": "Last Light", "source": "commissioned", "author": "Max Mo", "licence": "CC-BY-4.0", "agreement": "MM-2026-01", "rights": "licensed", "uses": ["game", "trailer"] }
 ] }
