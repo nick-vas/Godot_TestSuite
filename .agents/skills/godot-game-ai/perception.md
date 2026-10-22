@@ -18,6 +18,19 @@ job. `VisionSensor`, `VisionPie`, `VisionModifiers` and `TargetMemory` are in `A
   reduce, because players learn the ranges. Show the player why (a hand over the eyes).
 - Decisions read a `TargetMemory`, not this frame's ray: the last known position and time since seen keep a target
   through a moment behind a pillar, and the search starts where it was last seen.
+- Keep more in the target record than the core does (Daniel Brewer, "Knowledge is Power", GDC AI Summit): which sense
+  noticed it (a noise makes the agent turn and look, not jump into combat); first-hand or told by another agent (the
+  guard who saw the player runs for the alarm, which is fair and lets the player stop him); and whether it is
+  reachable. When a path ends short (`NavigationFinished` with `IsTargetReached()` false, `godot-game-ai` section 7),
+  mark the target unreachable with its position, do not path to it again until it has moved well away, and fall back
+  meanwhile (another target, a ranged attack).
+- React after a human delay, not on the frame of first sight (Steve Rabin, "The Simplest AI Trick in the Book", GDC AI
+  Summit): about 0.2 s for a simple reaction (humanbenchmark.com's median is 0.25 s), 0.15 s to a sound, 0.4 s when the
+  agent must first tell friend from foe; add more for distraction, a stimulus hard to make out, and aiming.
+- Refresh sensors on a budget, each with a maximum stale time per character type (Troy Humphreys, Evolve's sensor
+  manager): a ranged enemy's line of sight every frame or often, a melee one's only sometimes. A coarse scale (every
+  frame, often, sometimes, never) instead of seconds lets the budget be retuned without touching characters; the
+  manager runs the sensors closest to stale first, as many as the frame allows.
 - Aim the sensor from a dedicated node the animation drives, not the head bone, which sweeps it around; delay its turn
   after a 180 so the player escapes just in time. If a target moving beside the agent flickers in and out, let the
   sensor follow the target until it is occluded.

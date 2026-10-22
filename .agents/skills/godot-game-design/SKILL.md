@@ -97,7 +97,9 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
 - **Be the generous judge.** Forgiving hitboxes and timing windows by default (Levelhead's numbers and tested code:
   `godot-input`, Forgiveness); find what really makes a part hard (often the controls) before lowering difficulty.
 - **Readable opponents.** An enemy that always picks the best move is not fun; give it habits and mistakes. Do not add moves
-  the AI cannot use and tests cannot cover: cut them.
+  the AI cannot use and tests cannot cover: cut them. Escalate a fight each phase (new attacks, faster reactions), not
+  only by removing weak points (Jan Muller, Insomniac, GDC).
+- **One role per companion**: teacher, VIP or soldier, never a VIP who fights ([pacing.md](pacing.md)).
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
 
 ## 6. Puzzles and quests (Croteam, LineLight, CD Projekt Red)
@@ -110,6 +112,11 @@ Puzzles, as Croteam tuned The Talos Principle's 200 gray rooms:
 - Never one linear path: hubs with several puzzles open, gates that count solved puzzles, so a stuck player goes elsewhere.
 - Rewards for explorers stay off counters and achievements; only count what takes skill to get.
 - Hints are tuned with stuck players, not by the designer who knows the answer.
+
+Zachtronics' measure (Zach Barth): **bounce**, the share of players who open a puzzle and never solve it, logged per
+puzzle (`godot-telemetry`); a spike against its neighbours marks a puzzle to replace. The first puzzles work for nearly
+everyone, the last is not the hardest; teach with a working solution beside an empty one; cut limits that were never
+meant as difficulty. Details: [pacing.md](pacing.md).
 
 Puzzle levels, as Brett Taylor cut and rebuilt LineLight's (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/puzzle-game-magic-secrets.md`):
 
@@ -176,6 +183,10 @@ it is not one yet, so make it clearer.
   `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
+Pacing (Dan Taylor, "Ten Principles for Good Level Design"): each level introduces, showcases or subverts a mechanic;
+the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first; the
+way back plays differently. Details: [pacing.md](pacing.md).
+
 ## In a review
 
 1. Say the core loop in one sentence. If it needs two, it is two loops; find which one the game is about.
@@ -184,7 +195,11 @@ it is not one yet, so make it clearer.
 4. Look for choices that are not choices, goals the player cannot see, and failures they cannot read. Players can review
    the current objective and see progress in numbers ("3 of 5"), and change difficulty at any time without losing
    progress (Xbox Accessibility Guidelines 108 and 109, in `docs/wcag-ui.md`).
-5. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
+5. A problem every fix brings back: name the player promises it touches. If tuning or content could remove it, it is
+   only hard. If none could, two promises conflict (a "cursed problem", Alex Jaffe, GDC): weaken one with a barrier
+   (remove the move), a gate (make it costly), a carrot (reward something else) or a s'more (make it the fun), and
+   write in the ADR which promise gives way and what is lost.
+6. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
    people; ask the user to play, and record what they said in the GDD.
 
 Write conclusions into `docs/GDD.md` (with the user's confirmation, as `/game` does), never only into the conversation.

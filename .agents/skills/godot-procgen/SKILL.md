@@ -46,6 +46,14 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
   gave identical results in separate runs of Godot 4.7.2.
 - Strings (a level name) become seed parts through a stable hash: `(long)GD.Hash("crypt")`, not `"crypt".GetHashCode()`.
 - Generation never reads the clock, the frame count, physics results or `Dictionary` order of things added in varying order.
+  Nor do rolls players can time: Urban Dead seeded each attack with the current second, and a player found that
+  attacking every eight seconds always hit ("Dark Secrets of the RNG", GDC).
+- Derive a child's seed from its index path (`Seeds.Derive(runSeed, galaxy, system, planet)`), never from the seed its
+  parent rolled: then two parents that happen to share a seed copy their whole subtree, the "deep echo" of that talk.
+- Work spread over `WorkerThreadPool` or `Parallel.For` takes each item's randomness from its own derived seed
+  (`Seeds.Rng(runSeed, chunkX, chunkY)`), never one shared generator, so the output is the same on any core count
+  (Manny Ko, Activision, "Parallel Random Number Generation", GDC). In a .NET run of 1,000 chunks, one shared
+  generator, even behind a lock, gave a different fingerprint on every parallel run; derived seeds gave the serial one.
 
 ## Pick the technique
 
@@ -94,6 +102,17 @@ public static string Expand(RandomNumberGenerator rng, Dictionary<string, string
     });
 }
 ```
+
+**Streaks and droughts** ("Dark Secrets of the RNG"), tested in
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Procgen/Draws.cs` with `DrawsTests`. Whatever a die can roll,
+some player eventually gets: a die over seven pieces gave six in a row within 100,000 draws.
+
+- Where streaks hurt (the next piece, the next card), draw from a `ShuffleBag`: each item once per bag, then refill and
+  reshuffle. With k copies per bag, the end of one bag and the start of the next still give 2k in a row;
+  `noRepeatAcrossRefill: true` caps it at k.
+- A rare drop gets a pity timer (`PityRoll`): the chance rises with each miss, resets on a hit, and the roll after N
+  misses always hits. Raising its weight alone never guarantees a drop while other weights stay in the table. The
+  guarantee raises the average: 1% capped at 99 misses dropped 1.58% of the time, plus 0.1% a miss 3.15%.
 
 ## Mazes of hand-made rooms
 

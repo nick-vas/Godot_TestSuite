@@ -1,6 +1,6 @@
 ---
 name: godot-math
-description: Use when game code works with positions, directions, angles, distances, rotations, bounces, jump height and gravity, oscillation or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
+description: Use when game code works with positions, directions, angles, distances, rotations, bounces, jump height and gravity, oscillation, easing curves or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
 ---
 
 # Game math in Godot 4
@@ -85,6 +85,24 @@ at rate 5. `weight = Rate * delta` is only a linear approximation (99.58 at 30 f
 `Rate * delta` exceeds 1; Godot 4.7.2's `Camera2D` position smoothing computes `PositionSmoothingSpeed * delta` that way.
 Each axis or direction may use its own rate: follow vertically only once `IsOnFloor()`, or catch up faster when falling.
 The `architecture` runner warns about a fixed weight in `_Process` (`frame-dependent-lerp`).
+
+## Easing: bend t, not the value
+
+Any lerp, fade, slide or response curve gets its feel from a function of the 0..1 parameter t with f(0) = 0 and
+f(1) = 1, applied before the lerp ("Math for Game Programmers: Fast and Funky 1D Nonlinear Transformations", GDC):
+
+| Name in the talk | Formula | Godot 4.7.2 (checked headless) |
+|---|---|---|
+| smooth start n (ease-in) | `t * t` (n = 2), `t * t * t`; not `Mathf.Pow` | `Tween.TransitionType.Quad` (2), `Cubic` (3), `Quart` (4), `Quint` (5) with `EaseType.In`; `Mathf.Ease(t, 2)` |
+| smooth stop n (ease-out) | flip, power, flip: `1 - (1 - t) * (1 - t)`; not a square root | the same types with `EaseType.Out`; `Mathf.Ease(t, 0.5f)` |
+| crossfade start into stop by t | `(1 - t) * start + t * stop` | exactly `Mathf.SmoothStep(0, 1, t)`, 3t² - 2t³ (`Quad` with `InOut` is a different curve) |
+| arch, bell (out and back to 0) | `4 * t * (1 - t)`; smooth start times smooth stop | |
+
+- "Quad" is the second power, smaller than "Cubic": name curves by their power, not by the prefix.
+- A higher n arrives more gently: smooth stop 2 ends at zero speed but brakes abruptly, 3 also ends at zero
+  acceleration. Smoothstep still brakes abruptly at the ends.
+- `Mathf.Pow` with a fractional power is slow (the speaker measured it about ten times slower, some 200 cycles); between two
+  integer powers, blend them: `0.8f * t * t + 0.2f * t * t * t` is within 0.008 of t^2.2 on 0..1.
 
 ## Jumps designed by height and distance
 

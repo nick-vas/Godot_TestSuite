@@ -21,6 +21,12 @@ Add it deliberately, and verify it with the `juice` runner instead of by eye.
 | Particles | spark, dust, debris at the contact point | pre-warmed `GpuParticles2D`, one-shot, pooled (`godot-patterns` Object Pool) |
 | Telegraphs | a danger is readable before it lands | a wind-up animation or marker at least 300 ms ahead |
 | Numbers | damage and score pop where they happened | pooled labels with a short rise-and-fade tween |
+| Marks | a death or big hit leaves a trace: where it happened, and by fading, when (Move or Die's death paint, GDC) | a `Sprite2D` splat in the victim's colour, randomly rotated and scaled, drawn behind the play layer (`ZIndex`), its `Modulate` alpha tweened down over seconds; pooled, with a cap |
+| Rumble | the player who did not see it still feels it | `godot-input` haptics: one helper scaled by the player's setting, never the only cue |
+
+Feedback is information, not decoration. Nicolae Berbece layered Move or Die's death (sounds, paint, particles, shake,
+a colour split, a shockwave, rumble) until players knew someone had died elsewhere on screen without looking there.
+In the `juice` runner, `mark` and `rumble` are feedback names like any other.
 
 Keep feedback on the presentation side: it must never change gameplay state, so tests and bots stay deterministic
 (`godot-architecture`).

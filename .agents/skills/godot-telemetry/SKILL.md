@@ -79,6 +79,9 @@ have a lawyer read the privacy notice and the consent flow before release.
 - For balance, send one summary per run on victory or death, so quiet players count too: the floor reached, the result,
   the difficulty and the floor each option was taken on (Breakout's `run_end`, `RunSummary`). Reading it without being
   fooled: `godot-automation-hooks`, "Reading balance from run data".
+- Puzzle and level games also send `level_opened` and `level_solved` with the level id: the share opened but never
+  solved ("bounce", Zachtronics' difficulty measure) per level, in game order, shows which one stops players
+  (`godot-game-design`).
 - With `using Godot;` and `using System.Net.Http;` in one file, `HttpClient` is ambiguous (CS0104): keep the transport in
   a file without `using Godot;`, or name `System.Net.Http.HttpClient` in full.
 
