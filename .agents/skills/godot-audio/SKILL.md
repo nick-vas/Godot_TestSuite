@@ -73,6 +73,10 @@ CreateTween().TweenMethod(Callable.From<float>(db => layers.SetSyncStreamVolume(
 
 Repetition is what makes game audio sound cheap; unlimited voices are what make it muddy.
 
+- No sounds yet: `godot-ci.ps1 sfx -Sound jump,coin,hit -Count 3` writes placeholder WAVs to `sounds/sfx` (bfxr's synth,
+  each at -6 dBFS) with a `.bfxr` file that bfxr's editor opens; `sfx -Vary sounds/sfx/jump-1.bfxr -Count 5` makes
+  variations of one sound for a randomizer.
+
 - One `AudioStreamRandomizer` per repeated sound: at least five footstep samples, `RandomNoRepeats`, a little pitch and
   volume spread. `RandomPitch` is a ratio, not a percentage: 1.05 picks between 1/1.05 and 1.05 (about ±5%), log-uniform.
   `RandomVolumeOffsetDb = 2` picks between -2 and +2 dB. About 6 dB halves or doubles the amplitude, so ±2 dB is -21% to

@@ -106,6 +106,9 @@ jobs:
       - name: audio measures sound files, and doctor names missing buses
         shell: pwsh
         run: ./tests/Test-Audio.ps1
+      - name: sfx makes bfxr's sounds from a seed, as WAV and .bfxr
+        shell: pwsh
+        run: ./tests/Test-Sfx.ps1
       - name: The juice check matches events with their feedback
         shell: pwsh
         run: ./tests/Test-JuiceLog.ps1

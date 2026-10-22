@@ -84,6 +84,12 @@ three standout moments; each core mechanic with the on-screen feedback that show
 feedback cell is design work for the prototype (`godot-juice`); a scene the trailer needs and the game lacks becomes a task.
 Write it with the user, from their answers: it is a draft to argue over, and the launch trailer starts from it.
 
+Hellgate: London's lead said its biggest challenge was "realistically limiting ourselves": a new idea moves something
+out of the milestone or goes to the GDD's "Out of scope" section, parked; an optional mode gets a quick prototype
+and stays only if it keeps being played. A mod team called its own slipped dates "hasty and unplanned": promise a playable demo,
+not a date, until the slice gate passes. Story, lore and voice planning (voice recorded after content lock) are
+`godot-narrative`; rewards and update cadence are `godot-progression`.
+
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every
 milestone is a build someone can play. Sources and reasoning: `docs/plan.md`.

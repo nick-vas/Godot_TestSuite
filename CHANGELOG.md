@@ -6,7 +6,20 @@
   (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and
   `ResponseSystem` (the dialogue rule database of Left 4 Dead 2, Portal 2 and Dota 2: a flat query, most criteria wins,
   random ties, memory that expires, follow-ups looked up when a line ends, rules that remove themselves). New skill
-  `godot-playtest`; Valve's process in `godot-game-plan`; readability rules in the `STYLE.md` template.
+  `godot-playtest`; Valve's process in `godot-game-plan`; story that serves play and dialogue rules in `godot-narrative`;
+  scarce-but-never-empty resources and worst-case drop streaks in `godot-progression`; readability rules in the `STYLE.md`
+  template.
+- Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
+  Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
+  (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the
+  strongest stats, update cadence) and `godot-narrative` (a bible, timeline, canon tiers, reserved reveals and decisions
+  in the repository; voice recorded after content lock). The `data` runner gains `totals` (what a group's rows add up
+  to must reach a number or another table's field: the zones that left players 10% short of the next level) and
+  `names` (proper nouns one or two letters from a canonical name in dialogue, translations and scenes).
+- `sfx`: placeholder sound effects from a seed (coin, laser, explosion, powerup, hit, jump, blip), so a prototype has
+  sounds on day one. bfxr2's Bfxr synth ported to C# (`ci/godot/tools/Sfxr.cs`, Apache-2.0 and MIT) and compiled into
+  the session, so it needs no Godot; the same seed gives bfxr2's sound sample for sample. WAVs at `-PeakDb` (-6 dBFS),
+  `.bfxr` files bfxr2's editor opens, `-Vary` for variations of one sound, and an `assets.json` entry.
 - Google for Games' open source (Agones, Open Match, Quilkin, Open Saves, clean-chat, the GenAI demos; Apache-2.0;
   `docs/googleforgames.md`), without their Google Cloud setup: `godot-servers` and `godot-llm` skills; Breakout.Core
   gains a server lifecycle with a health watchdog, Agones' HTTP SDK, join tokens for Godot's authentication step, a

@@ -85,6 +85,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, frames over 20/33 ms, a timestamped hitch log, draw calls, GC via custom monitors; one CSV row per labelled run |
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames an agent can open, at any resolution; with a baseline, the percentage changed and a before, after and diff image |
 | **Hear the mix** | `audio -Mix -GameArgs '--autoplay' [-TargetLufs -18]` | every sound file's loudness and true peak by category (music, voice, ambience, UI, effects), clipping files and voice lines out of step flagged; with `-Mix`, the game's own mix recorded and judged against -24 LUFS (or -18 for handhelds) and -1 dBTP |
+| **Have sounds on day one** | `sfx -Sound jump,coin,hit -Count 3` | placeholder sound effects from a seed (bfxr's synth, the same sound as bfxr2 makes from the same seed) as WAVs at -6 dBFS and `.bfxr` files bfxr2's editor opens; `-Vary` makes variations of one sound; `assets.json` gains the entry |
 | **Fit every screen** | `layout` runner, `layout.json` | the game's screens on phones, a tablet and an ultrawide, headless: controls off screen, under a notch or too small to touch fail |
 | **Play it in browsers** | `export -Preset Web -Run -Browser chromium,firefox,msedge` | a debug build of each Web preset opened in real browsers through Playwright; script errors, failed requests and engines that never start fail; the download size raw and gzipped |
 | **Credit everyone** | `credits` | `CREDITS.md`, `credits.json` for a credits screen and `THIRD-PARTY-NOTICES.txt` (assets, Godot and its components, .NET) from `assets.json`; fails when a licence's credit or notice is missing |
@@ -118,6 +119,8 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-game-design` | deciding what a game or feature is for, whether it is fun, and what to cut: MDA's kinds of fun, design rules of thumb, gameplay patterns |
 | `godot-math` | vectors, angles, rotations, bounces and oscillation in Godot, and where textbook formulas and the engine disagree |
 | `godot-playtest` | running and reading playtests Valve's way, the fixes for what testers keep doing, and the telemetry that finds it |
+| `godot-progression` | rewards, loot, experience and unlocks, difficulty tuning, side systems and updates after launch, with a check that rewards add up to the next step |
+| `godot-narrative` | story, lore and voice: a bible, a timeline and canon in the repository, one spelling per name (checked), voice recorded last |
 | `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
 | `godot-asset-pipeline` | importing textures, pixel art and 3D models, Blender to glTF, LODs, palettes, free libraries and where each asset came from |

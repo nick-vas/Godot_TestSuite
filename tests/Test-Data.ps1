@@ -22,6 +22,13 @@ $expect = @{
                         "'shield' has 'prise', which data.json does not list (a typo of 'price'?)", "'shield' has no price")
     'table enemies' = @("res://data/enemies.csv is imported as a translation (Godot's default for .csv), so the exported game cannot read it: in the Import dock choose Import As > Keep File, and commit its .import", "'bat' hp is 0, below the minimum 1", "'bat' speed is not a number: 'fast'", "'ghost' drops names 'amulet', which is not in items")
     'table levels'  = @("'cave' enemies names 'dragon', which is not in enemies", "'cave' boss is not true or false: 'yes'")
+    # Totals per group (Mists of Pandaria: a zone's quests stopped 10% short of the next level): from another table, or a number.
+    'table zonequests' = @("zone 'steppes': xp adds up to 900, short of xpToNext 1000 (90%)", "zone 'steppes': gold adds up to 20, short of 100 (20%)",
+                           "totals atLeast 'zone.xpToNext' is neither a number nor table.field; did you mean 'zones'?",
+                           "totals names exp, which the table does not list; did you mean 'xp'?")
+    # Proper nouns one or two letters off a canonical name (Belrysa in a comic, Belysra in the game).
+    'names'         = @("dialogue/act1.json:2 'Belrysa' is close to 'Belysra' (add it to allow if it is a different word)",
+                        "dialogue/act1.json:4 'Starbreze' is close to 'Starbreeze' (add it to allow if it is a different word)")
     # Puzzle levels (godot-game-design section 6): one solution sentence and a purpose each, puzzle or action, never both.
     'table puzzles' = @("'back-in' has no solution", "'open-field' has no solution",
                         "'slow-lockstep' purpose is 'filler', not one of: teach, reinforce, moment, breather",
@@ -54,6 +61,9 @@ if ($long.Count -ne 1 -or $long[0] -ne 't0 -> t1 -> t2 -> t3 -> t4 -> t5 -> ... 
 $chain['t2000'] = [System.Collections.Generic.List[string]]::new()
 if (@(Find-DataCycles $chain).Count) { $failures += 'a chain without a cycle was reported' }
 if ($cases['table puzzles'] -match 'three-flippers') { $failures += "three-flippers is valid: $($cases['table puzzles'])" }
+if ($cases['table zonequests'] -match "'jade'|'peak'") { $failures += "jade reaches its total and peak needs none: $($cases['table zonequests'])" }
+if (@("$($cases['table zonequests'])" -split "`n").Count -ne 4) { $failures += "zonequests should report four problems: $($cases['table zonequests'])" }
+if ($cases['names'] -match "'Belysa'|'TYRAEL'|'There'") { $failures += "an allowed word, a name in capitals or an ordinary word was reported: $($cases['names'])" }
 
 # The levels table quoted in godot-game-design is the one tested here.
 function ConvertTo-RuleText($Rule) { (@($Rule.Keys) | Sort-Object | ForEach-Object { "$_=$(ConvertTo-Json $Rule[$_] -Compress)" }) -join ' ' }
