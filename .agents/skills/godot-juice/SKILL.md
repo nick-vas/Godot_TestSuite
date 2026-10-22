@@ -17,6 +17,7 @@ Add it deliberately, and verify it with the `juice` runner instead of by eye.
 | Hit-stop | a 30 to 80 ms freeze on a big hit sells the impact | pause the two actors (`ProcessMode`), not `Engine.TimeScale`, which also slows UI and audio |
 | Screen shake | weight; small and short | trauma squared on smooth noise, added to a camera the shake never moves; rotation only in 3D (see Screen shake); scale it by a 0 to 100% settings slider (XAG 117) |
 | Squash and stretch | elasticity on jumps, landings and hits | a `Tween` on the visual's `Scale`, never on the physics body |
+| Button press bounce | the button answers the finger | scale a child visual (a `TextureRect` or `Panel` with `MouseFilter = Ignore`), never the `Button`: Godot hit-tests a `Control` through its transform, so at 0.8 a click 5 px inside the corner missed (tested, 4.7.2). Touch builds need no hover look |
 | Flash | marks who was hit | a shader `flash` uniform on the visual for 1 to 3 frames; never more than three flashes a second over about 20% of the screen, less for saturated red (WCAG 2.3.1, XAG 118: a seizure risk): at a fast hit rate, flash only the first hit or tint instead |
 | Particles | spark, dust, debris at the contact point | pre-warmed `GpuParticles2D`, one-shot, pooled (`godot-patterns` Object Pool) |
 | Telegraphs | a danger is readable before it lands | a wind-up animation or marker at least 300 ms ahead |

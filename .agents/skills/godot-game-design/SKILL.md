@@ -176,6 +176,16 @@ it is not one yet, so make it clearer.
   `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
+## 8. Tutorials (Nicolae Berbece, GDC 2016)
+
+- Teach gradually through play: each mechanic first met where it is safe to watch it work (Half-Life 2 shows a barnacle
+  catching a bird before it can catch you); menus can be driven with the game's own moves.
+- No controls diagram before play, no pop-ups that stop the game, no walls of text; never hand out a mechanic in the
+  opening and then take it away. Show a panel only once it is used.
+- Rules on a timer show the time left by motion (Move or Die's rule text slowly scrolls up, then leaves), not a
+  countdown bar that pulls the eye off the words.
+- Test with people who have never played, and stay silent while they play.
+
 ## In a review
 
 1. Say the core loop in one sentence. If it needs two, it is two loops; find which one the game is about.
@@ -183,7 +193,11 @@ it is not one yet, so make it clearer.
 3. For each `must` feature: which pillar it serves, which kind of fun, and how a player would notice it is missing.
 4. Look for choices that are not choices, goals the player cannot see, and failures they cannot read. Players can review
    the current objective and see progress in numbers ("3 of 5"), and change difficulty at any time without losing
-   progress (Xbox Accessibility Guidelines 108 and 109, in `docs/wcag-ui.md`).
+   progress (Xbox Accessibility Guidelines 108 and 109, in `docs/wcag-ui.md`). Check access before challenge: in
+   AbleGamers' player panel, a game players could not play almost always lacked an access option (remapping, subtitles,
+   clear text, recolouring, a second channel), not an assist. Then: quick-time events and mashing can be skipped, the
+   skipped part still shown (Spider-Man plays the ideal run); a practice space to try remapped controls; skip offers
+   worded without mockery (Chris Power and Mark Barlet, GDC).
 5. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
    people; ask the user to play, and record what they said in the GDD.
 

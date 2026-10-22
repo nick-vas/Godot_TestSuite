@@ -45,6 +45,9 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
   microtrailer, so it should be gameplay throughout. H.264 and AAC, up to 1920x1080, 30 or 60 fps, 44.1 or 48 kHz audio.
   A release cannot go out while a trailer is still encoding. Capture its footage with the HUD, music and cursor off
   (capture mode and a free camera, `godot-debug-tools`); screenshots keep the UI.
+- **Accessibility:** a line in the description and the press kit naming the options (colour-blind mode, subtitles,
+  remapping), and a page listing them, what is missing included (XAG 121). Hue's press-kit bullet reached the reviews
+  that lifted it to a green Metacritic score; Dots and Flow Free had colour-blind options nobody found (Ian Hamilton, GDC).
 - **Tags:** at least 5 before launch, up to 20; the first 5 weigh most. Keep "Indie" and praise out of the top 5.
 - **Review rubric** (ask someone who has not seen the game, or the `look` skill on the page's screenshots): can they
   name the genre in 5 seconds? The hook? Is the gameplay visible? Is every screenshot readable at thumbnail size? If the

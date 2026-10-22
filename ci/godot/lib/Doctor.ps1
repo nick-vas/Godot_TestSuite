@@ -238,6 +238,18 @@ function Invoke-Doctor($Info) {
     } elseif ($ttsCalls) { Add-Check OK 'Text-to-speech: started at launch (audio/general/text_to_speech)' }
     elseif ($ttsOn) { Add-Check INFO 'audio/general/text_to_speech is on but no script calls tts_speak or TtsSpeak; Godot says it costs idle CPU' 'Turn it off unless an add-on speaks' }
 
+    # Screen readers: Godot 4.7.2 saves Disabled as accessibility/general/accessibility_support=2 (0 is Auto, the default,
+    # 1 Always Active), and the dummy driver has the same effect. Either one hides every menu from blind players
+    # (WCAG 4.1.2; a BBC game shipped without VoiceOver because the last build went unchecked,
+    # docs/gdc/folds-accessibility.md).
+    $a11yOff = @()
+    if ((Get-GodotProjectSetting $projectGodot 'accessibility/general/accessibility_support') -eq '2') { $a11yOff += 'accessibility_support is Disabled' }
+    if ((Get-GodotProjectSetting $projectGodot 'accessibility/general/accessibility_driver') -eq '"dummy"') { $a11yOff += 'accessibility_driver is dummy' }
+    if ($a11yOff) {
+        Add-Check WARN "Screen readers cannot read the game: $($a11yOff -join ' and ')" `
+            'Project Settings > Accessibility > General: Accessibility Support on Auto and the driver on accesskit (godot-ui-accessibility)'
+    }
+
     # Crash reporting: the Sentry addon starts before game code and attaches the Godot log unless told otherwise
     # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (godot-telemetry).
     if ((Test-Path -LiteralPath (Join-Path $project 'addons/sentry')) -or $projectGodot -match '(?m)^\[sentry\]') {
