@@ -1,0 +1,5 @@
+[
+  { "id": "radio_check", "who": "pilot", "concept": "RadioCheck", "lines": ["Radio check."], "then": { "concept": "SeeWitch" } },
+  { "id": "radio_witch", "who": "pilot", "concept": "RadioCheck", "criteria": "seen_witch=1",
+    "lines": [{ "text": "Witch spotted.", "voice": "voice/coach_witch_1.ogg" }] }
+]

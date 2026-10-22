@@ -17,5 +17,8 @@
   <ItemGroup>
     <!-- One save from every shipped version; SaveStoreTests loads each. -->
     <None Include="Saves/golden/*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The criteria grammar's cases, shared with the data runner's self-test (tests/Test-Data.ps1), and the game's dialogue table. -->
+    <None Include="criteria-examples.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../game/data/barks.json" Link="barks.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
