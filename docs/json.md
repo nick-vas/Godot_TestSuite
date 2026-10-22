@@ -147,7 +147,10 @@ else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene 
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
 also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
 differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the
-changes in red).
+changes in red). With `-ColorVision protan,deutan,tritan`, each shot also has `colorVision`: one absolute PNG path per kind asked
+for (`<name>.protan.png`, `<name>.deutan.png`, `<name>.tritan.png`), the picture as a protanope, deuteranope or tritanope sees
+it (Machado, Oliveira and Fernandes 2009, severity 1.0, in linear RGB). An unknown kind is `invalid-arguments`; a picture that
+could not be made is `shot-failed`.
 
 **audio**: `audio` with `targetLufs`, `toleranceLu` (2), `truePeakMaxDbtp` (-1), `files[]` (`file`, `category`: music, voice,
 ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `truePeakDbtp`, `rangeLu`; `integratedLufs` is

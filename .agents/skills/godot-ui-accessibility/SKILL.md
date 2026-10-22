@@ -46,6 +46,13 @@ Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. 
   }
   ```
 - Never colour alone: selected, locked, disabled, error, rarity and team states also get an icon, shape, pattern or word.
+- Colours that mean something (friendly, enemy, danger, faction A) are defined once, in the theme or one static class, and
+  scenes and code use the names; then a colour that fails a test is fixed everywhere at once.
+- Two things that must never be confused are blue and orange: they stay apart for protanopes, deuteranopes and tritanopes.
+  Red and green of similar brightness collapse into one olive for the first two.
+- Key markers (team, squad, enemy, loot, path) get a player-chosen colour in the settings, a `ColorPickerButton` or a row of
+  swatches. Recolour the markers and the UI rather than offer a filter over the whole screen: a filter changes the world the
+  player sees and still does not guarantee the markers differ. The options sit on an Accessibility page.
 - Clickable controls at least 24 x 24 px at 1080p (`CustomMinimumSize`), more on a TV; touch targets 15 mm on phones
   (59 px at 100 DPI), 24 mm on tablets, and resizable (XAG 107).
 - Text is `Label`s with a font, never painted into textures (logos aside): it scales, translates and can be read aloud.
@@ -114,4 +121,8 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   steps, and assert the screen it should reach. Flows send actions directly, so also check in Project Settings > Input
   Map that `ui_accept`, `ui_cancel` and the four directions each have a key and a joypad event.
 - Screenshots at every resolution in `docs/STYLE.md` and at 200% UI scale, critiqued with `/look` against this list.
+- The same screens as people with colour blindness see them: `shot -ColorVision protan,deutan,tritan` saves
+  `<name>.protan.png`, `.deutan.png` and `.tritan.png` next to each picture. Two states that look the same there need a
+  second cue, or other colours; ask a colour-blind player too, since they cannot report a cue they never see. The research:
+  `${CLAUDE_PLUGIN_ROOT}/docs/gdc/designing-for-color-blindness.md`.
 - Flows cannot yet assert which control has focus; check focus order by reading the scene until they can.

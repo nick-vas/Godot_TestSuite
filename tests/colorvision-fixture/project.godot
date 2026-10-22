@@ -1,0 +1,11 @@
+config_version=5
+
+[application]
+
+config/name="Colour vision fixture"
+run/main_scene="res://swatches.tscn"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

@@ -60,7 +60,7 @@ the scenes and code), `proposed` (see the end of this page). 4.1.1 Parsing is ob
 | 1.3.4 Orientation | AA | Transformed | Mobile builds work in both orientations unless the game needs one; elsewhere not applicable | `display/window/handheld/orientation` | review |
 | 1.3.5 Identify Input Purpose | AA | Transformed | Account forms only: e-mail fields bring up the e-mail keyboard | `LineEdit.virtual_keyboard_type` | review |
 | 1.3.6 Identify Purpose | AAA | Not applicable | Markup-specific | | |
-| 1.4.1 Use of Color | A | Applies | Selected, locked, disabled, error, rarity and team states never by colour alone: add an icon, shape, pattern or word | | look |
+| 1.4.1 Use of Color | A | Applies | Selected, locked, disabled, error, rarity and team states never by colour alone: add an icon, shape, pattern or word | | look, on `shot -ColorVision` pictures ([designing for colour blindness](gdc/designing-for-color-blindness.md)) |
 | 1.4.2 Audio Control | A | Transformed | Music, effects, voice and UI sounds each have a volume, separate from the master; a mute | one `AudioServer` bus each | review |
 | 1.4.3 Contrast (Minimum) | AA | Applies | Text 4.5:1; 3:1 only for large text (XAG 102: 36 px on PC, 52 px on console, at 1080p). Measured after post-processing, over the worst point of a moving backdrop | `SrgbToLinear().Luminance` | look, proposed |
 | 1.4.4 Resize Text | AA | Transformed | A UI scale setting up to 200% without clipped or lost text | `Window.ContentScaleFactor`, or theme font sizes | look (shot at 200%) |

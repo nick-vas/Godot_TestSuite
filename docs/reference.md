@@ -26,6 +26,7 @@
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
+| `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Mix` | off | `audio`: also record the game's own mix with Movie Maker (needs a display) and judge its loudness |
