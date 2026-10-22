@@ -12,6 +12,19 @@
   `runnerResults`. Measured on 4.7.2 (`docs/localization.md`): `has_char` walks `FontFile` and `FontVariation`
   fallbacks but never the system fonts `allow_system_fallback` draws from. Fixture: `tests/l10n-fixture/glyphs`
   (text-only bitmap fonts, no font file committed); `tests/Test-Localization.ps1` gains `-NoGodot`.
+- Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
+  three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
+  milestones), world rules, what failing costs, content counts and length, optional modes, open questions and a change
+  log; the parsed parts (pitch, `### F<n>` features) are unchanged. New `templates/GDD-jam.md` and a jam mode in
+  `godot-game-plan` (days, not weeks; "browser build?" first, since Godot 4.7 cannot export C# to the Web), with a
+  concept risk log, budget and runway categories, a business model and fairness rule, and sharper alpha and beta exit
+  criteria (a placeholders table in `templates/TECH-DEBT.md`, bug classes A and B). `godot-store-page` gains a marketing
+  cadence and a release ladder; `godot-legal` a checklist of other agreements (unpaid teams, the studio as contractor,
+  the game's own source licence, tabletop rules text: SRD 5.1 under CC BY 4.0 or OGL 1.0a, checked at Wizards of the
+  Coast's SRD page) and parody permissions; `godot-narrative` character sheets, events from the player's relationships
+  and quest templates as `data` tables; `godot-game-design` comparable-game teardowns, world size by traversal time and
+  Bartle's player types kept apart from MDA. *Untold History* read again: lessons 16-39 in `docs/studio-lessons.md`
+  (quotes checked word for word), each placed in one skill line where it adds something.
 - From the TRIBES networking paper, *Mathematics for Game Developers*, a Unity performance checklist and Adam Sawicki's
   GPU debugging talk: Breakout.Core gains `BitPacker` (`BitWriter`/`BitReader`: bools, ints in the bits their range
   needs, floats quantised in a range; a reader that disagrees with its writer throws) and `EventStream` (TRIBES'

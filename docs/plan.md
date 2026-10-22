@@ -108,7 +108,10 @@ the timeline as `release` ([json.md](json.md)): days and business days left and 
 
 `docs/GDD.md` (template: `ci/godot/templates/GDD.md`) is the game's scope. Features are headings of the form
 `### F3 Lives and game over`, each with a `Priority:` line (must, should, could, won't) and `Done when:` bullets. Tests that
-prove a feature carry a `GDD:F3` tag in their name or a comment; `examples/breakout` shows the convention.
+prove a feature carry a `GDD:F3` tag in their name or a comment; `examples/breakout` shows the convention. The other
+sections (audience and expected rating, the loop at three scales, the first session step by step, world rules, what
+failing costs, content counts and length, open questions, changes) are for people and agents; `status` reads only the
+pitch and the features.
 
 `status -Json` reads all of that, plus the plan, the latest runs, git activity and an inventory of the project, without
 judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging:
@@ -133,7 +136,22 @@ Trello connector at once (a cloud task gets only a fresh clone of a GitHub repos
 It runs only while the app is open and the computer awake; a missed Friday runs once when the PC wakes. The skill is not
 manual-only on purpose: a scheduled prompt can start only skills Claude is allowed to invoke.
 
+## Jam mode, risks, money and exit criteria
+
+`godot-game-plan` also covers what has no gate yet (planned gates are listed in [roadmap.md](roadmap.md)):
+- **Jam mode:** a jam of 2 to 9 days uses `ci/godot/templates/GDD-jam.md` and its day table instead of the seven
+  phases. The first question is "browser build?": Godot 4.7 refuses to export C# to the Web
+  ([mobile-web.md](mobile-web.md), measured: "Exporting to Web is currently not supported in Godot 4 when using
+  C#/.NET"), so a browser jam is made in GDScript.
+- **A risk log** at the concept stage (`docs/RISKS.md`): the top five risks with likelihood, impact, and how and when each
+  is retired; a system the developer has never built is one.
+- **Budget and runway** as categories the user fills in (people, outsourcing, workspace, software, licences, events,
+  marketing, ratings, taxes; cash, payouts, funding), the business model, and the fairness rule (never sell an
+  advantage over other players).
+- **Sharper alpha and beta exit:** a placeholders table in `docs/TECH-DEBT.md`, bug classes A and B, a statement of
+  completion at alpha, and a release plan at beta. The marketing cadence and the release ladder are in `godot-store-page`.
+
 ## Not covered (yet)
 
-Budget, team roles and live-ops staffing from the studio template (a solo plan has one role). Platform certification for
+Team roles and live-ops staffing from the studio template (a solo plan has one role). Platform certification for
 consoles. Regional ratings. Add them as gates in `plan.json` if they apply.
