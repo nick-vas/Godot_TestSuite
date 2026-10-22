@@ -50,6 +50,11 @@
           "check": "ci"
         },
         {
+          "id": "prototype.trailer",
+          "text": "Trailer script written before the game is built (docs/TRAILER.md): the genre clear in the first 5 seconds, then the hook, content last; three standout moments; every core mechanic with the on-screen feedback that shows a viewer the player caused it",
+          "check": "file:docs/TRAILER.md"
+        },
+        {
           "id": "prototype.loop",
           "text": "Core loop is playable from the main scene",
           "check": "manual"

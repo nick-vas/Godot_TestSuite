@@ -17,7 +17,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do done -Id concept.scope
 | Phase | Weeks | Exit gate in one line |
 |---|---|---|
 | Concept | 2 | Pitch, pillars, scope ladder, kill criteria written |
-| Prototype | 4 | A stranger played 15 min unprompted; verdict PROCEED/PIVOT/KILL |
+| Prototype | 4 | Trailer script written; a stranger played 15 min unprompted; verdict PROCEED/PIVOT/KILL |
 | Vertical slice | 8 | Menu -> level -> save -> quit, tests in CI, `export -Run` passes, tech debt listed, frame budget met at full density |
 | Production | 24 | Playable milestones every 2-6 weeks; feature freeze |
 | Alpha and beta | 8 | Feature-complete, playtested by strangers, perf and accessibility checked |
@@ -68,6 +68,13 @@ lists each hacked, stubbed or unstarted system with its cost at full size, and t
 (manual: `godot-ci.ps1 bench -Scene <busiest scene> -BudgetMs <n>` passes with that scene filled as the finished game will be), and a
 `slice.verdict` that rejects a feature list or a tech demo and takes more slice time while core gameplay is still moving.
 A plan made before these gates existed lacks them (plan.json is the game's after `init`): offer to add them.
+
+Derek Lieu, a trailer editor, writes the trailer before the game: if nobody can picture a trailer worth watching, the
+prototype is probably not worth building on (Lucas Pope's test). Hence `prototype.trailer` (automatic: `docs/TRAILER.md`,
+from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/TRAILER.md`): the genre in the first 5 seconds, then the hook, content last;
+three standout moments; each core mechanic with the on-screen feedback that shows a viewer the player caused it. An empty
+feedback cell is design work for the prototype (`godot-juice`); a scene the trailer needs and the game lacks becomes a task.
+Write it with the user, from their answers: it is a draft to argue over, and the launch trailer starts from it.
 
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every
