@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `export` runs an export again, up to twice, when Godot crashed (an exit code of 128 or more, or a negative one on
+  Windows): Godot 4.7.2 headless aborted with 134 after finished exports 4 times in 23 runs. The crashed run's file is
+  deleted first and the entry gets `retried`; an ordinary failure, a hang and a crash on every run still fail. The import
+  and the Web debug export share the same `Invoke-GodotRetried` (`Test-CrashRetry.ps1`).
 - Rotation as a UI flow, from the roadmap (Elder Scrolls: Blades tested rotating mid-action, during loading and between
   a press and its release): `flows` gains `resize: [width, height]` (sets the root window's size, which headless Godot
   4.7.2 handles as an OS resize: the stretch mode and aspect apply, the viewport's `size_changed` fires once and anchored
