@@ -5,12 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Breakout.Core.Controls;
 using Godot;
 
 /// <summary>One binding as plain data. Kind: key (physical position), keycode (label), mouse, joy_button or joy_axis.</summary>
 public sealed record BindingDto(string Kind, string Code, int Sign = 0);
 
-public sealed record BindingsFile(int Version, Dictionary<string, List<BindingDto>> Actions);
+/// <summary>Sticks: dead zones, sensitivity, inversion and swap (Breakout.Core's StickLayout); absent in older files.</summary>
+public sealed record BindingsFile(int Version, Dictionary<string, List<BindingDto>> Actions, StickLayout? Sticks = null);
 
 /// <summary>
 /// The player's control bindings: rebinding, saving as JSON under user:// and loading over the project's defaults.
@@ -27,6 +29,9 @@ public static class InputBindings
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,   // "Ctrl+Left", not "Ctrl+Left"
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    /// <summary>The player's stick settings, saved in the same file. Read stick values raw and pass them through it.</summary>
+    public static StickLayout Sticks { get; set; } = StickLayout.Default;
 
     /// <summary>The game's own actions; Godot defines about 90 ui_* ones that do not belong in a rebind menu.</summary>
     public static IEnumerable<StringName> GameActions() =>
@@ -127,7 +132,7 @@ public static class InputBindings
         var actions = new Dictionary<string, List<BindingDto>>();
         foreach (var a in GameActions())
             actions[a.ToString()] = InputMap.ActionGetEvents(a).Select(ToDto).OfType<BindingDto>().ToList();
-        return JsonSerializer.Serialize(new BindingsFile(FileVersion, actions), Json);
+        return JsonSerializer.Serialize(new BindingsFile(FileVersion, actions, Sticks), Json);
     }
 
     /// <summary>
@@ -147,6 +152,7 @@ public static class InputBindings
             InputMap.ActionEraseEvents(name);
             foreach (var e in events) InputMap.ActionAddEvent(name, e);
         }
+        if (file.Sticks is { Version: StickLayout.FileVersion }) Sticks = file.Sticks.Sanitized();
         return true;
     }
 
@@ -168,6 +174,7 @@ public static class InputBindings
     public static void ResetToDefaults()
     {
         InputMap.LoadFromProjectSettings();
+        Sticks = StickLayout.Default;
         System.IO.File.Delete(ProjectSettings.GlobalizePath(SavePath));
     }
 

@@ -17,6 +17,12 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
 - In C#, cache action names: `static readonly StringName Jump = "jump";`. A string literal converts to a new
   `StringName` on every call; the `architecture` runner flags it in `_Process` (`per-frame-alloc`).
 - Movement: `Input.GetVector(Left, Right, Up, Down)` gives a circular deadzone; `Input.GetAxis` for one axis.
+  They treat the per-action deadzone (`InputMap.ActionSetDeadzone`, 0.2 by default) differently (4.7.2
+  `core/input/input.cpp`): `GetAxis` is `GetActionStrength(positive) - GetActionStrength(negative)`, each action applying
+  its own deadzone per axis and rescaling past it. `GetVector` applies none per axis: it takes raw strengths, then one
+  circular deadzone, its `deadzone` argument or, when that is omitted, the mean of the four actions' deadzones (the
+  source: "get it from the average of the actions"), rescaled so full deflection is 1, and limited to length 1. An action
+  bound to several sticks or pads takes the strongest.
 - Contexts like Steam Input's action sets: menu actions (`ui_*`), gameplay actions, vehicle actions. Only one context
   handles input at a time, and conflicts matter only inside one.
 - Name actions the way a future Steam Input action manifest would (`jump`, `move`), so it maps one to one.
@@ -90,6 +96,23 @@ configuration reaches every function, and an on-screen keyboard for text fields 
 - No action that needs two buttons at once without an alternative; menus usable with single presses on the same device
   as the game (`godot-ui-accessibility`).
 
+Mobility settings (Karen Stevens, EA, GDC 2021; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/accessibility-mobility.md`):
+
+- Sticks: a deadzone the player sets (with a tremor, only a full push should count), an optional axial deadzone (a
+  drifting diagonal reads as straight up, down, left or right), sensitivity per axis that goes both lower and higher than
+  the default (Xbox Accessibility Guideline 107: at least 50% each way), and a stick swap for whichever hand hurts today,
+  each stick's settings following its role. Rescale past every deadzone: zeroing below it and passing the rest through
+  makes the output jump at the edge. Tested in `examples/breakout/src/Breakout.Core/Controls/StickSettings.cs`
+  (`StickSettings.Apply`, `StickLayout`), saved with the bindings (`InputBindings.Sticks`). Feed it
+  `Input.GetJoyAxis` values or `Input.GetVector(..., deadzone: 0f)`, or Godot's deadzone runs first and the two stack.
+- One-stick play where the genre allows (no camera stick, or a camera that follows), and few buttons: simple presses
+  rather than combos, one button that can stand for a multi-button press, and a reduced-button mode, down to one stick
+  and one button.
+- Options that turn off button mashing, quick-time events and hold-to-confirm meters (a single press instead), and
+  automatic actions where they fit: jump up a step, grab a ledge, aim assist.
+- Vibration off, important only, or all: give each rumble a category and route every call through one helper that
+  scales or drops `Input.StartJoyVibration(device, weak, strong, duration)` by the player's level; never the only cue.
+
 ## 8. Forgiveness
 
 Players press late, press early, forget they are holding a button and squeeze the pad in a panic; the rules should
@@ -148,4 +171,6 @@ Tests that run inside Godot (`godot-test-loop`), with input sent through `Input.
 - [ ] the prompt family follows a pad press, ignores mouse motion and small stick values, and switches back on a key
 - [ ] vendor ids and names map to the right family, and Nintendo's bottom button shows "B"
 - [ ] `doctor` lists no action without both a keyboard and a controller binding
+- [ ] stick settings: output never longer than 1, no jump at any deadzone edge, swap and invert as set, saved with the
+      bindings (`StickSettingsTests`, `ControlsTest`)
 - [ ] each forgiveness window checked to the tick (its last tick works, the next does not); one press, one jump
