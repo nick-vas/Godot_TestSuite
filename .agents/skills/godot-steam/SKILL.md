@@ -86,6 +86,8 @@ manual runs (Spacewar or your App ID) touch the real client: overlay, popups, cl
 - DLC has its own App ID; its depot ID is that App ID. `BIsDlcInstalled` is a client-side convenience, never a reason to
   grant items; check ownership on your server. A DLC depot can carry a `.pck` mounted with
   `ProjectSettings.LoadResourcePack` (`godot-modding`).
+- A soundtrack is a second product to sell beside the game; first check that the music's commission or licence allows
+  a separate release (`godot-legal`).
 - A demo is a separate app (type Demo) with its own depots; "Shared cloud APP ID" lets it share saves with the full game.
 - A dedicated server is a separate Tool app; its depot ships `steam_appid.txt` with the **base game's** App ID; tick
   "Include this tool in Dedicated Server package" for anonymous `steamcmd` downloads.

@@ -23,7 +23,8 @@ A short, written look back at the week and forward at the next one. Read the fac
 - **Outside eyes:** who outside the project played a build this week, and what they hit. None for two weeks is a risk.
   From their notes: where they wanted to do something the game did not allow, and which choices nobody picked.
 - **Pace:** hours worked against `weeklyHours`, and complaints that keep coming back; a tired developer stops acting on
-  feedback (TumbleSeed postmortem).
+  feedback (TumbleSeed postmortem). Ask whether the user still wants to play the current build: work they no
+  longer care about wears out the one person the game depends on.
 - **Risks:** at most three, each with one concrete mitigation.
 - **Next week:** three to five proposed tasks, must-have features and phase gates first, within the user's weekly hours
   (`weeklyHours` in `plan/plan.json`) and the work-in-progress limit.

@@ -28,7 +28,8 @@ The plan's gates `prototype.stranger` and `beta.playtest` say when; this says ho
    anchor on whoever speaks first). "People don’t know why they do what they do": trust what they did over what they say.
 4. **Survey with fixed scales**, the same every build so builds can be compared: each enemy's challenge from 1 (very
    easy) to 7 (very hard); weapons or tools ranked; "What were you trying to do in [area]?"; "What did you find that
-   nobody told you about?"; "Did anything look like a bug or a cheat?"; "Did you feel sick at any point?" Store answers
+   nobody told you about?"; "What would you add?" (the landmarks Google's 8-bit Maps is remembered for were a
+   tester's idea); "Did anything look like a bug or a cheat?"; "Did you feel sick at any point?" Store answers
    with the build id.
 5. **Write the session up** in `docs/playtests/<date>.md`: hypothesis, testers (new or repeat), stalls with places,
    survey answers, and the design changes proposed. The user decides which changes to make.
@@ -82,6 +83,9 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
 
 ## 6. Deciding
 
+- A finding says why it hurts the player, not only that it does ("This game is not fun, and here’s why…", Kenji
+  Eno's rule). A bug gets a class: A blocks finishing, crashes or loses data; B is major and seen by most players
+  (`godot-game-plan`).
 - A finding becomes a task only with the fix named; a cut gets an ADR. Portal's three questions: is it fun, how much
   work to make it fun, does it fit the game's purpose?
 - Story can be the fix: Portal's testers asked "when does the game start?" after puzzles with no narrator; GLaDOS gave
