@@ -173,7 +173,7 @@ function Invoke-Status($Info) {
     $runs = Get-LastRuns $Info.ProjectDir
     $lastTest = $runs.Contains('test') ? $runs['test'] : $null
 
-    $plan = $null; $tasks = @()
+    $plan = $null; $tasks = @(); $planDoc = $null
     $planPath = Get-PlanPath $Info
     if (Test-Path -LiteralPath $planPath) {
         $planDoc = Read-Plan $planPath
@@ -223,6 +223,16 @@ function Invoke-Status($Info) {
     foreach ($f in $flaky.tests | Where-Object { $_.count -ge 2 }) {
         $warnings.Add("$($f.runner) $($f.name) passed only on a retry in $($f.count) of the last $($flaky.testRuns) test runs ($($flaky.days) days): find the cause (timing, state left by another test, the network)")
     }
+    $duration = Get-TestDuration $history
+    $budget = if ($planDoc -and $planDoc.PSObject.Properties['testBudgetSeconds']) { [double]$planDoc.testBudgetSeconds } else { $null }
+    $duration['budgetSeconds'] = $budget
+    if ($null -ne $duration.medianSeconds) {
+        if ($budget -and $duration.medianSeconds -gt $budget) {
+            $warnings.Add("Passing test runs take a median of $($duration.medianSeconds) s, over the budget of $budget s (plan.json testBudgetSeconds): run the slow runners less often in the inner loop (-Runners, -Filter) or speed them up")
+        } elseif ($null -ne $duration.previousMedianSeconds -and $duration.medianSeconds -ge 1.5 * $duration.previousMedianSeconds -and $duration.medianSeconds - $duration.previousMedianSeconds -ge 30) {
+            $warnings.Add("Passing test runs grew from a median of $($duration.previousMedianSeconds) s to $($duration.medianSeconds) s: find what got slower before it becomes the norm")
+        }
+    }
     # Errors grouped by key across the history: whether the latest failure's error is new or was there before this change.
     $recurring = @(Get-RecurringErrors $history)
     foreach ($e in @(Get-OlderErrors $history $recurring) | Select-Object -First 3) {
@@ -246,6 +256,7 @@ function Invoke-Status($Info) {
     Set-JsonField look $look
     Set-JsonField runs $runs
     Set-JsonField flakyTests $flaky
+    Set-JsonField testDuration $duration
     Set-JsonField recurringErrors @($recurring | Select-Object -First 10)
     Set-JsonField quarantine @(foreach ($q in $quarantine.Entries) {
         [ordered]@{ runner = $q.Runner; name = $q.Name; owner = $q.Owner; until = $q.Until; reason = $q.Reason; expired = $q.Expired } })

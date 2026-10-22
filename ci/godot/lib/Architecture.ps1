@@ -1,6 +1,8 @@
 # The `architecture` runner: a static scan of the project's scripts for structures that make Godot games hard to change or
 # slow, without running Godot. Every rule is a warning unless architecture.json in the project says otherwise:
-#   { "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6 }
+#   { "rules": { "parent-path": "error", "per-frame-alloc": "off" }, "maxAutoloads": 6, "simulation": ["sim", "src/Rules"] }
+# "simulation" lists the folders (res:// relative, or globs) whose code must give the same result on every machine and run
+# (lockstep, rollback, replays); nondeterministic-sim checks only those.
 # Warnings are reported but never fail the run; errors fail it.
 
 $script:ArchitectureRules = [ordered]@{
@@ -16,6 +18,7 @@ $script:ArchitectureRules = [ordered]@{
     'steam-removed-api'      = 'Calls a Steamworks function that SDK 1.65 removed or deprecated: IsSteamRunningOnSteamDeck (choose defaults with GetSteamHardwareDefaultConfig) or RequestCurrentStats (Steam loads stats before launch) (godot-steam)'
     'steam-env-dotnet'       = 'Sets a Steam variable with .NET''s Environment.SetEnvironmentVariable, which the native Steam API never sees on Linux and macOS; use Godot''s OS.SetEnvironment (godot-steam)'
     'culture-parse'          = 'Parses a number without CultureInfo.InvariantCulture: on a German or French system "0.5" reads as 5 or throws, and CI machines never show it (godot-data)'
+    'nondeterministic-sim'   = 'Simulation code (architecture.json "simulation") that can give a different result on another machine or run, so lockstep, rollback and replays drift (godot-determinism)'
     'frame-dependent-lerp'   = 'Moves a fixed fraction of the way to its target every frame, so it converges faster at higher frame rates and ignores time scale; use 1 - Mathf.Exp(-rate * delta) as the weight (godot-math)'
 }
 
@@ -26,13 +29,14 @@ $script:UiBaseTypes = 'Control|Container|BoxContainer|HBoxContainer|VBoxContaine
     'ProgressBar|TextureProgressBar|Slider|HSlider|VSlider|SpinBox|ItemList|Tree|CanvasLayer'
 
 function Get-ArchitectureConfig([string]$ProjectDir) {
-    $config = [ordered]@{ maxAutoloads = 8; rules = [ordered]@{} }
+    $config = [ordered]@{ maxAutoloads = 8; rules = [ordered]@{}; simulation = @() }
     foreach ($rule in $script:ArchitectureRules.Keys) { $config.rules[$rule] = 'warning' }
     $file = Join-Path $ProjectDir 'architecture.json'
     if (Test-Path -LiteralPath $file) {
         try { $custom = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
         catch { Stop-GodotCi "architecture.json is not valid JSON: $($_.Exception.Message)" 'invalid-arguments' }
         if ($custom.Contains('maxAutoloads')) { $config.maxAutoloads = [int]$custom.maxAutoloads }
+        if ($custom.Contains('simulation')) { $config.simulation = @($custom.simulation | ForEach-Object { ("$_" -replace '^res://', '' -replace '\\', '/').Trim('/') } | Where-Object { $_ }) }
         if ($custom.Contains('rules')) {
             foreach ($rule in $custom.rules.Keys) {
                 if (-not $script:ArchitectureRules.Contains($rule)) { Stop-GodotCi "architecture.json: unknown rule '$rule' (rules: $($script:ArchitectureRules.Keys -join ', '))" 'invalid-arguments' }
@@ -134,6 +138,35 @@ function Find-FrameDependentLerp([string]$Line, [string]$Text, [bool]$IsCSharp) 
     return $null
 }
 
+# What makes simulation code differ between machines or runs (godot-determinism, docs/determinism.md), as the problem to
+# report, or $null. $Collections are the names this file declares as Dictionary or HashSet.
+function Find-NondeterministicCall([string]$Line, [bool]$IsCSharp, [string[]]$Collections) {
+    if ($IsCSharp) {
+        if ($Line -match '\b(Math|MathF|Mathf)\.(?<f>Sin|Cos|Tan|Asin|Acos|Atan2?|Sinh|Cosh|Tanh|Exp|Log(10|2)?|Pow|Cbrt)\s*\(') { return "$($Matches[1]).$($Matches.f) comes from each OS's C library and can differ in the last bit (Sqrt and + - * / are exact)" }
+        if ($Line -match '\bnew\s+(System\.)?Random\s*\(|\bRandom\.Shared\b') { return 'System.Random: no promise across .NET versions, and no state to save for rollback; use a seeded generator with saveable state' }
+        if ($Line -match '\bGD\.(Randf|Randi|RandRange|Randfn)\b') { return "GD.$($Matches[1]) is the global, unseeded generator" }
+        if ($Line -match '\b(DateTime\.(Now|UtcNow|Today)|Stopwatch|Environment\.TickCount(64)?|Time\.GetTicks(Msec|Usec)|Time\.GetUnixTime\w*)\b') { return "$($Matches[1]) reads the clock" }
+        if ($Line -match '\bHashCode\.Combine\b|\.GetHashCode\s*\(\s*\)') { return 'HashCode.Combine and string or tuple hashes change in every process' }
+        if ($Collections -and $Line -match '\bforeach\s*\(\s*[\w<>,\s()]+?\s+in\s+(this\.)?(?<c>\w+)(\.(Keys|Values))?\s*\)' -and $Matches.c -in $Collections) {
+            return "iterates the Dictionary or HashSet $($Matches.c), whose order follows its history of adds and removes; iterate sorted ids"
+        }
+    } else {
+        if ($Line -match '(?<![\w.])(?<f>sin|cos|tan|asin|acos|atan2?|sinh|cosh|tanh|exp|log|pow)\s*\(') { return "$($Matches.f)() comes from each OS's C library and can differ in the last bit" }
+        if ($Line -match '(?<![\w.])(?<f>randf|randi|randf_range|randi_range|randfn)\s*\(') { return "$($Matches.f)() is the global, unseeded generator; use a RandomNumberGenerator with a seed" }
+        if ($Line -match '\bTime\.(get_ticks_msec|get_ticks_usec|get_unix_time\w*)\b') { return "Time.$($Matches[1]) reads the clock" }
+    }
+    return $null
+}
+
+function Test-SimulationPath([string]$ResPath, [string[]]$Folders) {
+    $path = $ResPath -replace '^res://', ''
+    foreach ($folder in $Folders) {
+        if ($folder -match '[*?]') { if ($path -like $folder) { return $true } }
+        elseif ($path -eq $folder -or $path.StartsWith("$folder/", [StringComparison]::Ordinal)) { return $true }
+    }
+    return $false
+}
+
 function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
     $projectGodot = Get-Content -LiteralPath (Join-Path $ProjectDir 'project.godot') -Raw
     $autoloads = @(Get-ProjectSectionKeys $projectGodot 'autoload')
@@ -161,12 +194,21 @@ function Get-ArchitectureFindings([string]$ProjectDir, $Config) {
             ($isCSharp -and $text -match "(?m)class\s+\w+\s*:\s*($script:UiBaseTypes)\b") -or
             (-not $isCSharp -and $text -match "(?m)^extends\s+($script:UiBaseTypes)\b")
         $perFrame = Get-PerFrameLines $lines $isCSharp
+        $isSimulation = $Config.simulation.Count -gt 0 -and (Test-SimulationPath $relative $Config.simulation)
+        $collections = @(if ($isSimulation -and $isCSharp) {
+            [regex]::Matches($text, '\b(Dictionary|HashSet|SortedDictionary)<[^;=(]*?>\s+(?<n>\w+)\s*[=;{]') | Where-Object { $_.Groups[1].Value -ne 'SortedDictionary' } | ForEach-Object { $_.Groups['n'].Value }
+            [regex]::Matches($text, '\bvar\s+(?<n>\w+)\s*=\s*new\s+(Dictionary|HashSet)<') | ForEach-Object { $_.Groups['n'].Value }
+        })
         $perRenderedFrame = Get-PerFrameLines $lines $isCSharp $true
 
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]; $n = $i + 1
             if ($line -match $comment) { continue }
 
+            if ($isSimulation) {
+                $problem = Find-NondeterministicCall $line $isCSharp $collections
+                if ($problem) { & $add 'nondeterministic-sim' $relative $n $problem }
+            }
             if ($line -match 'GetNode(<[^>]*>)?\s*\(\s*"\.\./\.\.|get_node\s*\(\s*"\.\./\.\.|\$"?\.\./\.\.|GetParent\(\)\s*\.\s*GetParent\(\)|get_parent\(\)\s*\.\s*get_parent\(\)') {
                 & $add 'parent-path' $relative $n $line.Trim()
             }

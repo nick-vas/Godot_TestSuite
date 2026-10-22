@@ -1,5 +1,5 @@
 # `plan`: an A-to-Z plan for one developer. plan/plan.json holds phases, each with gates. A gate is either
-# checked automatically from the project ("check": "tests", "ci", "preset", "file:<path>") or marked done
+# checked automatically from the project ("check": "tests", "ci", "preset", "file:<path>", "runner:<name>") or marked done
 # by hand ("manual"). `plan` reports the current phase, what blocks it, and warns when a phase overruns
 # its timebox or too many tasks are in progress.
 
@@ -26,6 +26,8 @@ function Test-PlanGate($Gate, $Info) {
         '^manual$' { return $null }
         '^tests$' { return @($Info.Runners | Where-Object { $_ -notin 'validate', 'architecture', 'smoke' }).Count -gt 0 }
         '^preset$' { return $Info.Presets.Count -gt 0 }
+        # The runner is set up for the project (detected or listed), so every CI run enforces it.
+        '^runner:(?<runner>[a-z0-9]+)$' { return @($Info.Runners) -contains $Matches.runner }
         '^ci$' {
             $files = @(Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -File -ErrorAction SilentlyContinue)
             return @($files | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'Godot_TestSuite/\.github/workflows/godot\.yml' }).Count -gt 0
@@ -34,7 +36,7 @@ function Test-PlanGate($Gate, $Info) {
             $path = $Matches.path
             return (Test-Path -Path (Join-Path $root $path)) -or (Test-Path -Path (Join-Path $Info.ProjectDir $path))
         }
-        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, file:<path>)" 'invalid-plan' }
+        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, file:<path>, runner:<name>)" 'invalid-plan' }
     }
 }
 

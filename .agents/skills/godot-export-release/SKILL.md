@@ -36,6 +36,10 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 export -Json -Quiet -Preset Win
 - `-GameVersion` puts the numbers (`1.2.3`) in `application/config/version` for that export only, which becomes the
   Windows file version and the macOS and Android versions (where the preset leaves its own version fields empty), and all of it in the C# assembly's InformationalVersion
   (the SDK appends `+<commit>`). The release workflow passes the tag by itself (`game-version` input of the action).
+- `-GameVersion auto` reads it from git: `1.2.3` on the tag `v1.2.3`, `1.2.3.4` four commits later (`1.2.3+4.g<commit>`
+  in full), `0.0.0.<commits>` before the first tag. A shallow clone fails with `shallow-checkout`: check out with
+  `fetch-depth: 0`. Every `-GameVersion` also sets Android presets' `version/code` (major\*1,000,000 + minor\*1,000 +
+  patch); builds between two tags share one, so tag each build you upload.
 - Why not by hand: `config/version` takes numbers and dots only (`1.2.3-rc.1` only warns, and Windows gets 1.0.0.0;
   `doctor` warns); `override.cfg` is ignored by export; a `<Version>` in the csproj wins over the environment, so leave
   it out.
@@ -75,6 +79,9 @@ logged; write certificate and keystore files from base64 secrets to a temporary 
 Make the secret with `base64 -w0 release.keystore` (Linux), `base64 -i release.keystore` (macOS) or
 `[Convert]::ToBase64String([IO.File]::ReadAllBytes('release.keystore'))` (PowerShell); decode it once on your own machine
 and compare checksums before trusting it. `doctor` fails when a keystore, certificate or `config.vdf` is committed.
+The kit's `godot.yml` does the file handling: give it the secrets it names (`GODOT_ANDROID_KEYSTORE_RELEASE_BASE64`,
+`GODOT_WINDOWS_CODESIGN_CERTIFICATE_BASE64`, `GODOT_MACOS_CODESIGN_CERTIFICATE_BASE64`, ...; listed in
+`${CLAUDE_PLUGIN_ROOT}/docs/reference.md`) with `secrets: inherit`, and `environment: release` for a protected environment.
 Godot signs during export when these are set:
 
 | Platform | Godot's environment variables | Notes |

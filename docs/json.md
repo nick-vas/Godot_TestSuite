@@ -50,6 +50,7 @@ Branch on `error.code`; `message` can change.
 | `soak-unclean-stop` | `soak -RequireCleanStop`: the server did not quit with 0 within `-StopGraceSeconds` of SIGTERM | `soak.stop` |
 | `web-run-failed` | `export -Run`: a Web build did not start in a browser, or printed a page error, failed request, console error or Godot `ERROR`/`SCRIPT ERROR` | `webRuns[]` |
 | `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
+| `shot-changed` | `shot -Baseline -MaxChangedPercent <n>`: a picture differs from its baseline by more than n% of pixels, or changed size | `shots[].compare` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
@@ -59,6 +60,7 @@ Branch on `error.code`; `message` can change.
 | `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `no-asset-manifest` | `credits`: the project has no `assets.json` | - |
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
+| `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
 | `failed` | Generic failure without a specific code | `error.message` |
@@ -86,7 +88,9 @@ under it), `line`, `key` (the error key, see the run history below).
 The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`, `message`): findings that do not fail the
 run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
-`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder.
+`<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder. The `playthrough` runner has `run` and one
+case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
+missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
 case `table <name>` per table, each listing up to 50 problems, one per line.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,
@@ -182,7 +186,20 @@ The plugin's Stop hook and the `retro` skill read it.
 **export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
-release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
+release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
+and `androidVersionCode` (major\*1,000,000 + minor\*1,000 + patch, `1002003`, set as `version/code` of the Android presets
+for the export only; `null` when the numbers make none, which fails with `invalid-arguments` if an Android preset is
+exported). With `-GameVersion auto` also `tag` (the nearest tag matching `v[0-9]*`, `null` without one), `commits` (since
+that tag, or in all without one) and `commit` (short hash), and the version is, as `git describe --tags --long` reads:
+
+| Checkout | `numbers` | `full` |
+|---|---|---|
+| On the tag `v1.2.3-rc.1` | `1.2.3` | `1.2.3-rc.1` (as `-GameVersion v1.2.3-rc.1`) |
+| 4 commits after `v1.2.3` | `1.2.3.4` | `1.2.3+4.gabc1234` |
+| No tag, 12 commits | `0.0.0.12` | `0.0.0+12.gabc1234` |
+
+After a tag the numbers are its major.minor.patch (missing ones 0, a fourth one replaced) and the commit count; the
+Android version code leaves the count out, so builds between two tags share one: tag each build you upload to a store.
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
@@ -202,7 +219,8 @@ else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene 
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
 also has `compare`: `baseline` (the earlier PNG with the same name, or `null` when there is none), `changedPercent` (pixels that
 differ at quarter resolution, `null` without a baseline), `sizeChanged`, and `image` (`<name>.compare.png`: before, after, and the
-changes in red). With `-ColorVision protan,deutan,tritan`, each shot also has `colorVision`: one absolute PNG path per kind asked
+changes in red); `-MaxChangedPercent <n>` turns it into a check that fails with `shot-changed`, and a shot with no baseline picture
+is new, not changed. With `-ColorVision protan,deutan,tritan`, each shot also has `colorVision`: one absolute PNG path per kind asked
 for (`<name>.protan.png`, `<name>.deutan.png`, `<name>.tritan.png`), the picture as a protanope, deuteranope or tritanope sees
 it (Machado, Oliveira and Fernandes 2009, severity 1.0, in linear RGB). An unknown kind is `invalid-arguments`; a picture that
 could not be made is `shot-failed`.
@@ -263,6 +281,10 @@ see [plan.md](plan.md#release-dates)).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/godot-ci-history.jsonl`.
+- `testDuration`: `runners` (the usual scope), `runs` and `medianSeconds` (the last 10 passing test runs of that scope without
+  `-Filter`), `previousRuns` and `previousMedianSeconds` (the 10 before them), `budgetSeconds` (`testBudgetSeconds` in
+  `plan.json`, or `null`). Medians are `null` with no such runs. A warning when the median is over the budget, or 1.5 times
+  the previous median and at least 30 s more.
 - `flakyTests`: `days` (30), `testRuns` (test runs in that time) and `tests[]` (`runner`, `name`, `count`: runs in which it
   passed only on a retry, `last`), the 10 most frequent first. A test flaky in 2 or more runs is also a warning.
 - `recurringErrors[]`: the error keys of the history that were in at least one failed run, the most recently seen first

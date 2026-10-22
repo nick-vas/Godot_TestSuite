@@ -3,6 +3,7 @@
   "game": "",
   "pitch": "",
   "weeklyHours": 10,
+  "testBudgetSeconds": 900,
   "wipLimit": 2,
   "release": {
     "date": null,
@@ -167,8 +168,8 @@
         },
         {
           "id": "production.playthrough",
-          "text": "A bot or flow reaches the ending on every CI run, so no build ships that nobody finished",
-          "check": "manual"
+          "text": "A bot reaches the ending on every CI run (the playthrough runner: playthrough.json lists the milestones), so no build ships that nobody finished",
+          "check": "runner:playthrough"
         },
         {
           "id": "production.regression",
