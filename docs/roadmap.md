@@ -45,7 +45,6 @@ Notes from the question round, each to be fixed, built or written down before 1.
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
 | 8 | The sandbox bug took three eval runs to find; one transcript showed it | Keep transcripts from every eval run (done in #119) |
-| 9 | (same as 5) | |
 | 10 | A game's CI workflow calls the kit's `@main`, so every kit change reaches every game at once | `init` writes `@v1`; games move up on purpose |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
 | 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hypedot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
