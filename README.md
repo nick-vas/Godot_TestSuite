@@ -1,5 +1,11 @@
 # Godot Agent Kit
 
+[![Self-test](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/self-test.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/self-test.yml)
+[![Godot](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/godot.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/godot.yml)
+[![Token benchmark](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/token-benchmark.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/token-benchmark.yml)
+[![Evals](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/evals.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/evals.yml)
+[![Canary](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/canary.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/canary.yml)
+
 **Tools that let AI coding agents build, test, ship and plan Godot 4.7 games - for any genre, solo or small team.**
 
 An agent can already write GDScript and C#. What it lacks is a way to know whether the game still works, and a plan that says
