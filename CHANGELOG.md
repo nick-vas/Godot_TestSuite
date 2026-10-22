@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Add-ons and GDExtensions (`docs/addons.md`, skill `godot-addons`, `ci/godot/lib/Addons.ps1`): the state of 25 popular
+  add-ons on Godot 4.7, cross-checked with garciamarquez.dev's ranking. `doctor`'s GDExtension check now picks each
+  library as Godot does (measured on 4.7.2: every tag of a key must be a feature of the build, the most tags wins), for
+  each preset's release and debug builds and Android ABIs, with paths relative to the `.gdextension` and multi-line
+  `[dependencies]`. Before, it saw only `res://` paths, so the official template's and Debug Draw 3D's libraries were
+  never checked, and a build no key fits (Godot exports it with exit code 0 and no library) passed. New: an editor-only
+  extension exported, `compatibility_minimum` and `_maximum` against the project's Godot, the Godot Jolt extension on
+  4.4+, an add-on autoload the game uses but `project.godot` lacks, test add-ons shipped, and `forced_dd3d` in a preset.
 - `doctor` checks the instructions every agent session loads (IBM's context engineering: stale context poisons every
   session): `AGENTS.md`, `CLAUDE.md` and their `@` imports. It warns about kit calls with a command or flag the script
   does not have (read from its own parameters), files and `res://` paths that do not exist, imports that load nothing,
