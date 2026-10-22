@@ -46,6 +46,8 @@ Branch on `error.code`; `message` can change.
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
+| `web-run-failed` | `export -Run`: a Web build did not start in a browser, or printed a page error, failed request, console error or Godot `ERROR`/`SCRIPT ERROR` | `webRuns[]` |
+| `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
@@ -84,6 +86,10 @@ case `table <name>` per table, each listing up to 50 problems, one per line.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum and,
 when integer scaling cuts the game off, that; a case `run` when Godot fails or finds no visible text. Text under the
 recommended size is a warning (`text-below-recommended`) in `runnerResults[].warnings`; its log is `textsize.log`.
+The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
+(`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
+`unsafe-area`, `small-target`), separated by `; `; a case `run` when Godot fails, a scene cannot be loaded, a profile is
+not understood, or nothing was found to check. Its log is `layout.log`.
 The `l10n` runner has three cases, `duplicate keys`, `untranslated` and `missing keys`; a failure's message lists up to
 50 entries, one per line, as `res://file: 'KEY' reason`.
 
@@ -92,11 +98,39 @@ and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames i
 `details` holds up to six meaningful lines. When the report itself is vague, the runner's log is searched for the test.
 The same data is in `test-results/summary.json`.
 
-Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one line to `.godot/godot-ci-history.jsonl` in the
-project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. The plugin's Stop hook and the
-`retro` skill read it.
+`failureDelta` says what changed since the previous run, so a failure the latest change caused stands apart from one that
+was already there. It compares this run with the newest earlier `test` run in the project's history that had the **same
+scope**: the same runners and the same `-Filter` (a run that stopped before its tests, such as `build-failed`, is not a
+baseline). A filtered run is therefore never compared with a full one, and never reports the tests it skipped as fixed.
 
-**export**: `exports[]`: `preset`, `platform`, `file`; with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
+```json
+"failureDelta": { "comparedWith": "2026-10-21T09:00:00.0000000Z",
+  "new": [ { "runner": "gut", "name": "test/test_score.gd.test_x" } ], "stillFailing": [], "fixed": [], "truncated": false }
+```
+- `comparedWith`: the time (UTC) of the run compared with, or `null` when there is none (the first run, or the first with
+  this scope). Then `new`, `stillFailing` and `fixed` are `null` too: nothing is called new without a baseline.
+- `new`: failing now, not then. `stillFailing`: failing in both. `fixed`: failing then, not now. Items are `runner` and
+  `name` (the test's name as in `failures[]`; the message is left out because it can hold numbers that change).
+- A runner that failed without naming a failing test (it crashed, timed out or found no tests) counts as one failure
+  named `(runner)`.
+- Each side keeps at most 200 failures (the first 200 in ordinal order of `runner|name`); `truncated` is `true` when either
+  side had more. A failure beyond the other side's cut is then in none of the lists.
+
+Each `runnerResults[].failures[]` item also has `new`: `true` when it is in `failureDelta.new`, `false` when it is in
+`stillFailing`, `null` without a baseline (or beyond a cut). The console shows the same as one line, e.g. `Since the run of
+<time> with the same runners and filter: 1 new (gut: test_x), 2 still failing, 0 fixed`. The idea comes from Media
+Molecule's test reports ([gdc/media-molecule-open-bug-count.md](gdc/media-molecule-open-bug-count.md)).
+
+Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one line to `.godot/godot-ci-history.jsonl` in the
+project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
+runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
+`<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
+The plugin's Stop hook and the `retro` skill read it.
+
+**export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
+folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
+(Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
+release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`) and `full` (`1.2.3-rc.1`).
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`; a hitch is a frame longer than twice the median and
@@ -119,7 +153,10 @@ ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `
 `null` for silence), `warnings[]` (`file`, `message`: a file whose true peak is over -1 dBTP, or a voice or music file more than
 3 LU from its category's median; warnings never fail the run), `mix` (`null` without `-Mix`; else `file` (the recorded
 `mix.wav`), `scene`, `gameArgs`, and the same four measurements), `csv`. Written to `audio-results/audio.json` and
-`audio-results/loudness.csv`.
+`audio-results/loudness.csv`. Each `files[]` entry also has `onsetMs`: the start, in ms, of the first 10 ms
+window whose RMS level comes within 10 dB of the file's loudest 10 ms window (0 for a sound that starts on its hit; leading
+silence and a slow fade-in raise it; `null` for silence), also a column of `loudness.csv`. `onsetMaxMs` (20, `-MaxOnsetMs`) is
+the bound for `sfx` and `ui` files: one that starts later adds a warning.
 
 **credits**: `credits` with `ok`, `credits` (entries whose licence requires a visible credit), `thanks` (entries credited as a
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`

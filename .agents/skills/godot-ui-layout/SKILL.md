@@ -45,6 +45,7 @@ a screenshot at 1920x1080 showed it.
   through.
 - Text and icons need contrast that survives a post-process grade (posterize, tint, vignette); check with `shot`, not in the editor.
 - Gamepad and keyboard navigation, focus, contrast numbers, target sizes and screen readers: `godot-ui-accessibility`.
+- Phones, tablets and ultrawides, notches and safe areas: the `layout` runner checks every screen (`godot-mobile-web`).
 
 ## Test what you can
 

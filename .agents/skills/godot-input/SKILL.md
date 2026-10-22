@@ -60,6 +60,7 @@ in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Source
   `res://prompts` and record it in `assets.json` (`godot-asset-pipeline`). Fall back to text (`InputBindings.Label`).
 - `Input.JoyConnectionChanged` fires on plug and unplug. Pause the game when the controller in use disconnects.
   `input_devices/joypads/ignore_joypad_on_unfocused_application` stops a pad driving a game in the background.
+- Touch (fingers by index, the mouse Godot fakes from the first finger, on-screen sticks, target sizes): `godot-mobile-web`.
 
 ## 4. Godot 4.7 specifics
 
