@@ -110,6 +110,13 @@ Mobility settings (Karen Stevens, EA, GDC 2021; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/
   and one button.
 - Options that turn off button mashing, quick-time events and hold-to-confirm meters (a single press instead), and
   automatic actions where they fit: jump up a step, grab a ledge, aim assist.
+- Combat assists (God of War Ragnarök, Santa Monica Studio, GDC; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/folds-testing-misc.md`)
+  are opt-in and leave the defaults alone. Widen a window instead of removing it (a few more invulnerable frames on an
+  evade; timing and direction still count). Lock-on that retargets after a kill, holds while aiming and allows enemies
+  off screen; a camera that turns to the target when an attack starts, for players who cannot attack and steer the
+  camera at once. An action that carries intent moves to the stick already in use (push toward a stunned enemy to grab
+  it) rather than happening by itself. An assist that undoes a difficulty's intent is locked on that difficulty, sits in
+  the accessibility menu, and the game names it on each death while it is on.
 - Vibration off, important only, or all: give each rumble a category and route every call through one helper that
   scales or drops `Input.StartJoyVibration(device, weak, strong, duration)` by the player's level; never the only cue.
 

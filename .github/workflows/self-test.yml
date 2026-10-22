@@ -53,6 +53,9 @@ jobs:
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project $copy 2>$null | ConvertFrom-Json
           $messages = @($d.checks | ForEach-Object message)
           if ($messages -match 'text_to_speech is off' -or -not ($messages -match '^Text-to-speech: started at launch')) { throw "tts on: $($messages -join ' | ')" }
+      - name: A failed Godot download stops with download-failed
+        shell: pwsh
+        run: ./tests/Test-DownloadFailed.ps1
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1

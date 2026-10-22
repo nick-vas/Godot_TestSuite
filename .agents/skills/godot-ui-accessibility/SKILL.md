@@ -130,6 +130,10 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   accessibility): one setting with one value shown on both pages, never two copies that drift apart.
 - Text size belongs on that first screen: nearly 60% of Ragnarok's players moved it to large, one step above the default.
   Design at the default size, then check the largest for clipping and scrolling (`godot-ui-layout`).
+- Cognitive load (panel, GDC 2024): content warnings name each topic ("serious topics" lets nobody decide), come just
+  before the scene with a way to pause or hide it, and are listed on the store page too (the Dead Space remake). A phobia
+  option is a graded slider (Grounded's spiders, down to a blob), since the trigger differs per person. Control prompts
+  can stay on screen; saving works at any moment, so a hard part is never replayed.
 - A tested model (defaults, presets, `IsChanged`, reset; it saves only changed values, so a default improved in a patch
   reaches players who never touched it): `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Settings/GameSettings.cs`.
 

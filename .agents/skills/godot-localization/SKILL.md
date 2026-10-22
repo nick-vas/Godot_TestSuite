@@ -24,7 +24,9 @@ it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/
 - Variants of one line (player gender, age) are contexts of the same key, `Tr("WELCOME", "female")`, not new keys: each
   language fills every variant, repeating the text where it needs no difference.
 - In debug builds, print the key when a line of dialogue or a subtitle is shown (`GD.Print($"[l10n] {key}")`), so a
-  tester's log or recording names the row to fix.
+  tester's log or recording names the row to fix. After bot, soak and playtest runs, list the dialogue keys never logged:
+  that is the coverage, and a line that never plays is often set up wrong (Horizon Zero Dawn's contextual NPC lines,
+  Guerrilla's QA manager, GDC).
 
 ## 2. Tables: CSV or gettext
 

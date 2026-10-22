@@ -116,6 +116,8 @@ hidden; change the mechanic when that hides it; warp the logic and blend the loo
   does no prediction, interpolation or input acknowledgement: build those on top, or use netfox (MIT; GDScript,
   Netfox Sharp for C# is experimental). Resources and other objects cannot be synchronised.
 - `SceneMultiplayer.AllowObjectDecoding` stays false: decoded objects can run code.
+- In the `AuthCallback` (`SendAuth`/`CompleteAuth`) the client sends its build id and sorted enabled feature toggles;
+  the server drops a peer whose list differs, saying why (Sea of Thieves, Rare, GDC 2018).
 - Headless Godot runs at about 144 frames a second unless capped: set `Engine.MaxFps` on a server to its tick rate
   (about a third less CPU). A dedicated-server export adds the `dedicated_server` feature tag
   (`OS.HasFeature("dedicated_server")`).
