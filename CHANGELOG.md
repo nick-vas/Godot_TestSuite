@@ -8,7 +8,7 @@
   `plan -Json` returns the timeline as `release`. `doctor` reads `store/steam/trailer*` with ffprobe (H.264, AAC, 30 or
   60 fps, 44.1 or 48 kHz, up to 1920x1080) and `store/steam/tags.txt` (5 to 20, one per line, no duplicates); warns when
   telemetry, a `policyVersion` or an Android or iOS preset has no privacy policy (`store/privacy-policy.md` or
-  `PRIVACY.md`), or the policy does not say the version the code asks consent for; and checks the Steamworks files a
+  `PRIVACY.md`; Breakout now has one, written from what its telemetry records), or the policy does not say the version the code asks consent for; and checks the Steamworks files a
   game keeps in `steam/` against its code with a new VDF reader (`ci/godot/lib/Steam.ps1`): rich presence tokens set as
   `steam_display`, achievement and stat names against `steam/achievements.json`, and steamcmd app build scripts (a
   numeric `AppID`, a `FileMapping` per depot, no secrets, no `SetLive "default"`, no `steam_appid.txt` uploaded).

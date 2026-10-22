@@ -281,7 +281,6 @@ From this pass (`docs/store-and-legal.md`):
 | Next Fest registration deadlines in the release timeline (February 2027: register by January 10) | Valve publishes them per edition; the timeline checks only the demo review lead, which the Next Fest page states |
 | Public holidays in the timeline's business days | Valve does not say whose holidays count; the timeline counts Monday to Friday |
 | A trailer's container, length and minimum size | No source the kit read states them; `doctor` reports them as INFO |
-| Breakout's privacy policy (`doctor` warns that its `TelemetryClient` has none) | Breakout records consented telemetry but sends it nowhere; a sample policy would need the owner's wording |
 | A flow test that the credits screen is reachable from the main menu | Game-specific; the skill tells games to add one |
 | GodotSteam's licence, the Steamworks SDK redistribution terms, FMOD's credit terms, GOG's asset specs | 403, 404 or JavaScript-only pages from the cloud session, or partner-only |
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
