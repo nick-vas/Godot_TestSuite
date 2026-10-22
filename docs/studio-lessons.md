@@ -201,7 +201,9 @@ Every quote below was checked verbatim against the downloaded page.
 
 Source: John Szczepaniak, *The Untold History of Japanese Game Developers*, Volume 1 (2014). Copyrighted; quoted
 briefly as data. Input: the owner's copy of an excerpt (888 lines); line numbers refer to it. Every quote was checked verbatim with `grep -F`.
-The status marks compare each lesson with the Shmuplations lessons above (numbered 1-15).
+The status marks compare each lesson with the Shmuplations lessons above (numbered 1-15). A second read of the same
+excerpt on 2026-10-22 added lessons 16-39; the owner's other copies (a Google Doc and a PDF of Volume 1) stop at the same
+line, so the later chapters are still unread ([roadmap](roadmap.md)).
 
 ### What the file contains
 
@@ -293,6 +295,138 @@ Missing: everything from Nakamura/Game Preservation Society onwards (Yotsui, Kos
     "we came up with 20 or more ideas and concepts. Then we spent our time going to different companies around Japan" ... "We don’t want to do your project, but we are interested in doing something like this." (Katsutoshi Eguchi, 697)
     NEW (Cmode, the result, came from the counter-offer, not from the 20 ideas).
     Apply: keep a short list of one-page concepts; when a publisher or fund answers with its own brief, consider building to that.
+
+#### Second read (2026-10-22): process and team
+
+16. **Grow the commitment one step at a time, as interest proves itself.**
+    "It didn’t take too long before it became a project taking up 20% of my time. This soon turned into a 100% fulltime project" (Tatsuo Nomura, 442)
+    NEW (extends Untold 1: from a lunch idea to a demo, a fifth of his time, then full time).
+    Apply (`godot-game-plan`): an idea gets more hours only after its last cut got real reactions.
+
+17. **Internal testing collects ideas as well as bugs.**
+    "I remember that someone suggested the idea of having 8-bit style landmarks." (Tatsuo Nomura, 452)
+    NEW (the landmarks became the project's best-known part).
+    Apply (`godot-playtest`): the survey asks "What would you add?" next to what broke.
+
+18. **Decisions made in unplanned meetings leave out whoever was absent; write them down.**
+    "if you weren’t in the office at that point you didn’t go to the meeting, so it would then be your prerogative to catch up later" (Katsutoshi Eguchi on Eno's meetings called at 3 or 4 in the morning, 644)
+    NEW (a cautionary case).
+    Apply (`godot-game-plan`): agents never sit in on a meeting; a decision not in `docs/decisions/` or plan.json does not exist for them.
+
+19. **Keep every idea, dropped ones included, written down where others can find it; they come back years later.**
+    "They’re going through his old notes" (Katsutoshi Eguchi, 659); of the scrapped concepts, "they are still on Eno-san’s computer" (703)
+    NEW (it sits beside Untold 6, archive the code).
+    Apply (`godot-game-plan`): park dropped ideas in the GDD's "Out of scope" in the repository, not on one person's machine.
+
+20. **Hold the post-mortem with the people who were there, while someone plays the build.**
+    "we got everyone who was in the original WARP to come back, and talk about the challenges they faced" (Katsutoshi Eguchi, 655); "I wish more teams would discuss old projects, maybe while someone plays through them." (John Szczepaniak, 656)
+    NEW.
+    Apply (`retro`): run a project retro over a playthrough recording or a `playthrough` log, not from memory.
+
+21. **Every contributor holds part of the truth; take each account separately, and do not assume a disagreement means someone is wrong.**
+    "A game has as many truths as there are people who took a hand in its creation" (Yusaku Yamamoto, GAMESIDE foreword, 104-105); "Sometimes those contradictions are because one person is wrong. But sometimes, everyone is correct." (109-111)
+    NEW.
+    Apply (`retro`): collect each agent's or person's report on its own before merging, and record disagreements instead of averaging them.
+
+22. **Criticism counts only with the reason attached.**
+    "This game is not fun, and here’s why…" (Katsutoshi Eguchi quoting Kenji Eno, 531)
+    NEW.
+    Apply (`godot-playtest`): a finding says why it hurts the player, not only that it does.
+
+23. **Work you do not care about wears out the person the project depends on.**
+    "take our game, copy it, and change it a bit" (Katsutoshi Eguchi on the contract work at Eno's first studio, which closed after he stopped coming in, 537)
+    NEW (weaker evidence).
+    Apply (`weekly-review`): ask whether the user still wants to play the current build.
+
+#### Research, art and tools
+
+24. **Gather real reference first, as footage, before designing the place.**
+    "went on an epic cross-continent road trip with a video camera, for research" (John Szczepaniak's DVD notes on Yu Suzuki and Yoji Ishii before OutRun, 230)
+    NEW (the author's words, not the developers').
+    Apply (`look`): photos or video in `docs/reference/`, linked from STYLE.md, before art agents start.
+
+25. **Build content tools so the game can be made by more than the programmer.**
+    "creating the utilities and tools which allowed others to make games" (John Szczepaniak on Toru Hidaka, 801); "Created graphics, map, and audio utilities which in combination with his programming facilitated the creation of games." (DVD notes, 202)
+    NEW (the author's summary; Hidaka's own account is in the unread part of the chapter).
+    Apply (`godot-data`): content edited often gets a `@tool` script or a small editor plugin.
+
+26. **Learn the limits of your scripting layer early, and drop lower only where it is too slow.**
+    "Since BASIC is an interpreted language it tends to be slow." (Toru Hidaka, 867); "In one month I knew the limits of BASIC." (874)
+    NEW.
+    Apply (`godot-performance`): bench the hot loop in the first week; move to C# or a server only what `bench` shows over budget.
+
+27. **Hand-made base, digital finish.**
+    "He does hand drawings, then scans it and adds special effects." (Joseph Redon on Hitoshi Yoneda, 385)
+    NEW (minor).
+    Apply (`look`): the user's sketch or photo is the source; agents clean, colour and add effects and keep the original beside the result.
+
+#### Audio and voice
+
+28. **Actors perform with their bodies even in an audio-only game, and it can be heard.**
+    "They’re not acting and I want them to act." (Katsutoshi Eguchi quoting Kenji Eno directing Real Sound, 575)
+    NEW.
+    Apply (`godot-narrative`): give each line the scene's action and let actors move while recording.
+
+29. **Whoever runs a recording session needs the whole story; out-of-order takes make no sense without it.**
+    "he didn’t record the scenes in order, so the story didn’t make any sense to me" (Katsutoshi Eguchi, 579)
+    CONFIRMS Untold 13 (the artist reads the whole source) and Blizzard 26 (give actors the history).
+    Apply (`godot-narrative`): the session pack holds the synopsis and where each line falls.
+
+30. **To win the composer you want, send something playable and say why it has to be them.**
+    "We sent him a copy of D no Shokutaku while he was still in England, and he played it and thought it was good." (Katsutoshi Eguchi on Michael Nyman, 587); "why it had to be Michael Nyman, over and over again" (582)
+    NEW.
+    Apply (`godot-audio`, not added: that skill is at its size limit): a commission request carries a playable build or video and a one-page "why you".
+
+31. **Give the boot logo a short signature sound.**
+    "there should be a “turning on”" (Katsutoshi Eguchi on Eno and the Dreamcast's start-up sound, which Ryuichi Sakamoto wrote, 629)
+    NEW (optional).
+    Apply (`godot-juice`): a short sting under a short, skippable splash.
+
+32. **A game played by sound alone is a design space, not only an accessibility patch.**
+    "to make this game for the blind" (Katsutoshi Eguchi on Real Sound, 574)
+    NEW.
+    Apply (`godot-ui-accessibility`): for a turn-based or story game, "playable with the screen off" is a goal a test can measure.
+
+#### Release, business and legal
+
+33. **Launch in many languages from day one, not as a later port.**
+    "At Google, we always try to launch products globally." (Tatsuo Nomura, 454)
+    CONFIRMS the table at the top (decide localisation up front).
+    Apply (`godot-localization`): the `l10n` runner from the first milestone.
+
+34. **Clear every borrowed name, look and asset with its owner, even for a joke, and use the owner's own assets.**
+    "Yes, we did ask Nintendo for permissions." (Tatsuo Nomura, 446); Square Enix "provided us with the assets that were once used in Dragon Quest" (444)
+    NEW.
+    Apply (`godot-legal`): homage and parody still need permission.
+
+35. **Ideas you pitch are not protected; pitch with a prototype, and keep dated records.**
+    "six months later or whenever he would spot a game that clearly used his idea" (Katsutoshi Eguchi on Eno's pitches, 539)
+    NEW.
+    Apply (`godot-legal`): git history and dated design documents show what you made and when.
+
+36. **Do not announce a game before it is playable; public promises outlive the project.**
+    "we’re going to make a game that will sell 300'000 copies, it will be an RPG. No problem." (Eno to Famitsu, as Katsutoshi Eguchi tells it, 651); fans years later: "This is great, but where’s the RPG?" (653)
+    NEW.
+    Apply (`godot-store-page`): open the page once the slice works; never promise sales or unbuilt features.
+
+37. **The soundtrack is a second product; make sure the music agreement allows it.**
+    "My job was that I took the music from games which had been developed by the game companies, and I would take them to record companies and work out how to get them released as albums." (Katsutoshi Eguchi, 512)
+    NEW.
+    Apply (`godot-steam`, `godot-legal`): the commission or licence covers a separate soundtrack release.
+
+38. **Small releases, contests and even flops build the network the next game needs.**
+    "Even though it was a bit of a failure, that’s how we all got to know each other in the industry." (Katsutoshi Eguchi, 510); "So they decided to throw contests and competitions in order to attract prospective candidates" (Toru Hidaka on Enix, 825), and Yuji Horii won one twice: "For Horii-san that was the second time around." (822)
+    NEW.
+    Apply (`godot-game-plan`, jam mode): finish small games for jams and contests before the big one.
+
+39. **Nobody else will spread the word: ask players for reviews, and build a network of people who know the work.**
+    "There is no one to spread the word of this book apart from you, the reader." (John Szczepaniak, 127); "It’s very important to build relationships and build a big network, not just supporters but also people who know what they’re doing." (Katsutoshi Eguchi on crowdfunding, 689)
+    NEW.
+    Apply (`godot-store-page`): ask for reviews in the game's credits and in posts; keep the press and helper lists in the repository.
+
+An open question, not a lesson: whether store art should differ by region. Yoneda: "I think that my illustration was
+perhaps not appropriate for the foreign market." (341); Redon: "We have different tastes in America and Europe." (353).
+The author disagrees (346-349: "The new cover isn’t appropriate for any market."). Test regional art rather than assume it.
 
 No lesson in this excerpt CONTRADICTS a Shmuplations lesson.
 
