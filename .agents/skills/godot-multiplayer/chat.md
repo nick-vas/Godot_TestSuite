@@ -23,5 +23,7 @@ same from the platform side.
 - The settings for all of this are reachable from the first-boot screen and the pause menu, since getting to the chat
   is part of the chat (`godot-ui-accessibility`).
 
+Moderation (scoring, warn, mute, report, rate limits) is `ChatGuard` in `godot-servers`.
+
 Transcription and speech services in the cloud add a delay and usually a fee per request; a local engine answers sooner
 (Stevens). Godot has text to speech built in, not speech to text.
