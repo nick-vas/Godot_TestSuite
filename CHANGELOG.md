@@ -6,7 +6,9 @@
   - `test`: `failureDelta` names failures that are new, still failing or fixed since the last run of the same scope;
     `-Retry <n>` reruns a failed runner and lists what passed only on a retry in `flaky[]`; `quarantine.json` (owner,
     end date) keeps a known-flaky test from failing the run without hiding it (`invalid-quarantine`); `status` reports
-    repeat offenders and quarantines.
+    repeat offenders and quarantines. Godot error lines become error keys (numbers and line numbers taken out) recorded
+    with the commit in the run history, `engineErrors[]` items get a `key` and their file, and `status` lists
+    `recurringErrors[]` with when and at which commit each was first and last seen.
   - `setup`: a failed Godot or template download stops with `download-failed`.
   - Runners and commands: `bench` hotspots (where a level is slow), `soak -JunkPps` (when an ENet server falls over),
     `shot -ColorVision`, a subtitle size check in `textsize`, `audio`'s `onsetMs` for late action sounds, `layout`

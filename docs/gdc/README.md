@@ -16,6 +16,7 @@ a Godot kit.
 |---|---|---|
 | [Tools to Reduce Open Bug Count at Media Molecule](media-molecule-open-bug-count.md) | `test` names failures that are new since the last run (`failureDelta`) | [#43](https://github.com/nick-vas/Godot_TestSuite/pull/43) |
 | [Automated Testing of Gameplay Features in Sea of Thieves](sea-of-thieves-automated-testing.md) | `test -Retry` reports flaky tests; `quarantine.json` with an owner and end date | [#81](https://github.com/nick-vas/Godot_TestSuite/pull/81) |
+| [Automated Testing and Profiling for Call of Duty](call-of-duty-error-keys.md) | error keys in the run history; `status` lists recurring errors with the commit that first saw them | [#82](https://github.com/nick-vas/Godot_TestSuite/pull/82) |
 | [Automated Testing and Instant Replays in Retro City Rampage](retro-city-rampage-replays.md) | an always-on input log in Breakout.Core; skip to the bug's frame | [#67](https://github.com/nick-vas/Godot_TestSuite/pull/67) |
 | [Three Statistical Tests Every Game Developer Should Know](three-statistical-tests.md) | a tested helper for comparing two versions of a game | [#34](https://github.com/nick-vas/Godot_TestSuite/pull/34) |
 | [Assassin's Creed Origins: Monitoring and Validation of World Design Data](assassins-creed-origins-world-data.md) | the placement checker: every placed object against the game's own limits | [#48](https://github.com/nick-vas/Godot_TestSuite/pull/48) |
