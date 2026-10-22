@@ -6,6 +6,11 @@
     { "path": "models/gpl_tree.glb", "source": "https://example.com/tree", "author": "Someone", "licence": "GPL-3.0-only" },
     { "path": "fonts/*.ttf", "source": "https://example.com/font", "author": "Someone", "licence": "WTFPL" },
     { "path": "art/player/**", "source": "own", "licence": "proprietary" },
-    { "path": "audio/rain.ogg", "licence": "CC0-1.0" }
+    { "path": "audio/rain.ogg", "licence": "CC0-1.0" },
+    { "path": "art/enemy/**", "source": "commissioned", "author": "Ann Lee", "licence": "proprietary", "agreement": "contracts/2026-02-ann-lee-wfh.pdf", "rights": "assigned" },
+    { "path": "art/boss/**", "source": "commissioned", "author": "Jane Doe", "licence": "proprietary", "rights": "assigned" },
+    { "path": "art/logo.png", "source": "commissioned", "author": "Co-founder", "licence": "proprietary", "agreement": "founders-ip-assignment" },
+    { "path": "music/theme.ogg", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music", "agreement": "MM-2026-01", "rights": "licensed" },
+    { "path": "music/menu.ogg", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music", "agreement": "MM-2026-02", "rights": "licensed", "uses": ["game", "store"] }
   ]
 }
