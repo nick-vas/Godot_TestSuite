@@ -45,6 +45,10 @@ param(
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
+    # test: run a runner that failed again, up to this many times; a test that passes on a retry passes, but is listed in
+    # flaky[] and recorded in the history (status lists the repeat offenders). 0: no retries.
+    [ValidateRange(0, 5)]
+    [int]$Retry = 0,
     # Collect coverage (dotnet, gdunit4, godottest) into one report.
     [switch]$Coverage,
     # Fail when line coverage is below this percentage (implies -Coverage).
@@ -281,12 +285,19 @@ function Invoke-Tests {
     if ($info.Runners.Count -eq 0) { Write-CiLog 'No test runners detected or selected; build only'; return }
     $collect = $Coverage -or $MinCoverage -gt 0
     $resultsDir = [System.IO.Path]::GetFullPath($Results)
+    # quarantine.json: tests that still run but do not fail the run, each with an owner and an end date. A broken file stops
+    # the run rather than being half applied; an entry past its date no longer applies.
+    $quarantine = Read-Quarantine $info.ProjectDir
+    if ($quarantine.Problems.Count -gt 0) { Stop-GodotCi "$($quarantine.File): $($quarantine.Problems -join '; ')" 'invalid-quarantine' }
+    foreach ($q in $quarantine.Entries | Where-Object Expired) {
+        Write-CiLog "The quarantine of $($q.Runner) $($q.Name) ended on $($q.Until) (owner $($q.Owner)): it counts again. Fix the test or delete it, then remove the entry"
+    }
     # Everything but the log this run is writing.
     if (Test-Path -LiteralPath $resultsDir) {
         Get-ChildItem -LiteralPath $resultsDir -Force | Where-Object { $_.Name -ne 'godot-ci.log' } | Remove-Item -Recurse -Force
     }
     $runs = @(foreach ($runner in $info.Runners) {
-        Invoke-TestRunner -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) `
+        Invoke-TestRunnerWithRetry -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) -Retry $Retry -Quarantine $quarantine.Entries `
             -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'l10n', 'data') -Frames $Frames -GameArgs $GameArgs
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
@@ -294,18 +305,28 @@ function Invoke-Tests {
     # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
     $scope = Get-TestScope $info.Runners $Filter
     $failing = Get-FailureIds $runs
-    $delta = Get-FailureDelta $failing.Ids $failing.Truncated $scope @(Read-RunHistory $info.ProjectDir)
-    Set-TestRunHistory $scope $failing @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
+    $flakyIds = @(foreach ($r in $runs) { foreach ($f in $r.Flaky) { "$($r.Runner)|$($f.Name)" } })
+    $quarantinedIds = @(foreach ($r in $runs) { foreach ($q in $r.Quarantined) { "$($r.Runner)|$($q.Name)" } })
+    $delta = Get-FailureDelta $failing.Ids $failing.Truncated $scope @(Read-RunHistory $info.ProjectDir) @($flakyIds + $quarantinedIds)
+    Set-TestRunHistory $scope $failing @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner) -Extra ([ordered]@{
+        retry = $Retry; flaky = @($flakyIds | Select-Object -First $script:FailureIdCap); quarantined = @($quarantinedIds | Select-Object -First $script:FailureIdCap) })
     $deltaLine = Format-FailureDelta $delta
     if ($deltaLine) { Write-CiLog $deltaLine }
     Set-JsonField resultsDir $resultsDir
     Set-JsonField coverage ([ordered]@{ linePercent = $percent; minimum = $MinCoverage })
     Set-JsonField failureDelta $delta
+    Set-JsonField retry $Retry
+    Set-JsonField flaky @(foreach ($r in $runs) { foreach ($f in $r.Flaky) { [ordered]@{ runner = $r.Runner; name = $f.Name; message = $f.Message; failedAttempt = $f.FailedAttempt; passedAttempt = $r.Attempts } } })
+    Set-JsonField quarantined @(foreach ($r in $runs) { foreach ($q in $r.Quarantined) {
+        [ordered]@{ runner = $r.Runner; name = $q.Name; message = $q.Message; owner = $q.Owner; until = $q.Until; reason = $q.Reason } } })
     Set-JsonField runnerResults @(foreach ($result in $runs) {
         [ordered]@{ runner = $result.Runner; ok = $result.Ok; total = $result.Total; passed = $result.Passed; failed = $result.Failed
             skipped = $result.Skipped; failures = @(foreach ($f in $result.Failures) {
                 [ordered]@{ name = $f.Name; message = $f.Message; file = $f.File; line = $f.Line; details = $f.Details; new = (Get-FailureNewFlag $delta $result.Runner $f.Name) } })
-            warnings = @($result.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } }) } })
+            warnings = @($result.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } })
+            attempts = $result.Attempts
+            flaky = @(foreach ($f in $result.Flaky) { [ordered]@{ name = $f.Name; message = $f.Message; failedAttempt = $f.FailedAttempt } })
+            quarantined = @(foreach ($q in $result.Quarantined) { [ordered]@{ name = $q.Name; message = $q.Message; owner = $q.Owner; until = $q.Until; reason = $q.Reason } }) } })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }
@@ -314,7 +335,8 @@ function Invoke-Tests {
         if ($percent -lt $MinCoverage) { Stop-GodotCi "Line coverage $percent% is below the minimum of $MinCoverage%" 'coverage-below-minimum' }
         Write-CiLog "Line coverage $percent% meets the minimum of $MinCoverage%"
     }
-    Write-CiLog "All runners passed: $($info.Runners -join ', ')"
+    $excused = @(@($flakyIds | ForEach-Object { 'flaky' }) + @($quarantinedIds | ForEach-Object { 'quarantined' }) | Group-Object | ForEach-Object { "$($_.Count) $($_.Name)" })
+    Write-CiLog "All runners passed: $($info.Runners -join ', ')$(if ($excused) { " ($($excused -join ', '): see above, not a clean pass)" })"
 }
 
 function Invoke-Export {

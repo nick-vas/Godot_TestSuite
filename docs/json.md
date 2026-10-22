@@ -33,6 +33,7 @@ Branch on `error.code`; `message` can change.
 | `import-failed` | Godot import exited non-zero | stderr |
 | `engine-errors` | Godot printed `ERROR:`/`SCRIPT ERROR:` (even with exit 0) | `engineErrors[]` |
 | `tests-failed` | One or more runners failed or found zero tests | `runnerResults[]` |
+| `invalid-quarantine` | `test`: the project's `quarantine.json` is not valid JSON, or an entry lacks a known `runner`, `name`, `owner` or a `yyyy-MM-dd` `until`, or names a runner failure such as `(runner)` | `error.message` |
 | `coverage-below-minimum` | Line coverage under `-MinCoverage` | `coverage` |
 | `no-coverage` | `-MinCoverage` set but nothing was collected | - |
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
@@ -131,10 +132,38 @@ Each `runnerResults[].failures[]` item also has `new`: `true` when it is in `fai
 <time> with the same runners and filter: 1 new (gut: test_x), 2 still failing, 0 fixed`. The idea comes from Media
 Molecule's test reports ([gdc/media-molecule-open-bug-count.md](gdc/media-molecule-open-bug-count.md)).
 
+`flaky[]` and `quarantined[]` list what passed without being clean, so a green run never hides them (both are empty
+arrays when there is nothing to list; `retry` is the `-Retry` value):
+
+```json
+"flaky": [ { "runner": "gut", "name": "test/test_net.gd.test_join", "message": "timed out", "failedAttempt": 1, "passedAttempt": 2 } ],
+"quarantined": [ { "runner": "gut", "name": "test/test_ai.gd.test_flank", "message": "[2] expected to equal [3]",
+                   "owner": "sam", "until": "2026-11-12", "reason": "fails on CI only, #41" } ]
+```
+- `-Retry <n>` (0 to 5, default 0): a runner that failed is run again, whole and with the same `-Filter`, up to n times,
+  until an attempt passes. A test that failed in an earlier attempt but not in the last is **flaky**: the runner passes
+  but the test is listed in `flaky[]`, in the runner's `flaky[]` (`name`, `message`, `failedAttempt`), in `summary.md`
+  and in the history line. A runner that failed without naming a test and then passed is listed as `(runner)`. A test
+  that fails in the last attempt fails the run as usual. Each runner entry has `attempts`; a failed attempt's results stay
+  in `<Results>/<runner>.attempt<N>/`.
+- `quarantine.json` in the project lists tests that still run but do not fail the run:
+  `{ "tests": [ { "runner", "name", "owner", "until", "reason" } ] }`. `runner` is `dotnet`, `gdunit4`, `godottest` or
+  `gut` (the kit's own checks cannot be quarantined); `name` is the test's name exactly as in `failures[].name`; `until`
+  is a date (`2026-11-12`), included. A quarantined test that fails is moved from `failures[]` to `quarantined[]` (and
+  from `failed`, so `total` is `passed + failed + skipped` plus the quarantined ones). The runner then passes only if no
+  other test failed, it reported tests and it exited 0 or 1: a crash, a time-out, `(runner)`, `gdUnit4 (tests not run)`
+  or any other test still fail it. After `until` the entry no longer applies and `doctor` reports a `FAIL` until the
+  test is fixed or deleted and the entry removed; an entry more than 28 days away is a `WARN`.
+- Flaky and quarantined tests are in neither `failures` nor `failureDelta`'s lists, and a test that failed in the
+  compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
+  ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
+
 Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one line to `.godot/godot-ci-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
+It also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each). Lines only gain keys; a reader
+ignores the ones it does not know.
 The plugin's Stop hook and the `retro` skill read it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`, and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
@@ -208,6 +237,10 @@ and `noticesFile`.
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/godot-ci-history.jsonl`.
+- `flakyTests`: `days` (30), `testRuns` (test runs in that time) and `tests[]` (`runner`, `name`, `count`: runs in which it
+  passed only on a retry, `last`), the 10 most frequent first. A test flaky in 2 or more runs is also a warning.
+- `quarantine[]`: the entries of `quarantine.json` (`runner`, `name`, `owner`, `until`, `reason`, `expired`); an expired
+  entry or a broken file is also a warning.
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
@@ -215,4 +248,5 @@ and `noticesFile`.
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
   unknown kind of fun, features with no plan task, tags or tasks naming
-  features the GDD does not have, a failed or missing latest test run, plan overruns.
+  features the GDD does not have, a failed or missing latest test run, plan overruns, repeatedly flaky tests and ended
+  quarantines.

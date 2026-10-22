@@ -215,3 +215,32 @@ function Invoke-TestRunner {
     $summary | Add-Member -NotePropertyName Warnings -NotePropertyValue $warnings
     return $summary
 }
+
+# Invoke-TestRunner with test -Retry and quarantine.json. A runner that still fails after its quarantined tests are set
+# aside is run again, whole and with the same -Filter, up to $Retry more times, until an attempt passes; each failed
+# attempt's results are kept next to the last one as <runner>.attempt<N>. The result is the last attempt's, plus Attempts
+# and Flaky: the tests that failed in an earlier attempt but not in the last, which the run reports and records, so a pass
+# on a retry is never a silent green. The whole runner is rerun because not every framework's filter can name a list of
+# tests, and the run's own -Filter must still apply.
+function Invoke-TestRunnerWithRetry {
+    param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs,
+        [int]$Retry = 0, [object[]]$Quarantine = @())
+
+    $attempts = [System.Collections.Generic.List[object]]::new()
+    while ($true) {
+        $result = Invoke-TestRunner -Runner $Runner -Info $Info -ResultsDir $ResultsDir -Filter $Filter -Coverage $Coverage -Frames $Frames -GameArgs $GameArgs
+        $result = Set-RunQuarantine $result $Quarantine
+        $attempts.Add($result)
+        if ($result.Ok -or $attempts.Count -gt $Retry) { break }
+        $kept = "$ResultsDir.attempt$($attempts.Count)"
+        if (Test-Path -LiteralPath $kept) { Remove-Item -LiteralPath $kept -Recurse -Force }
+        Move-Item -LiteralPath $ResultsDir -Destination $kept
+        Write-CiLog "$Runner failed on attempt $($attempts.Count) of $($Retry + 1); running it again (-Retry $Retry). That attempt's results: $kept"
+    }
+    $flaky = @(Get-FlakyTests $attempts.ToArray())
+    foreach ($f in $flaky) { Write-CiLog "FLAKY ${Runner}: $($f.Name) failed on attempt $($f.FailedAttempt) and passed on attempt $($attempts.Count)$(if ($f.Message) { " ($($f.Message))" })" }
+    foreach ($q in $result.Quarantined) { Write-CiLog "QUARANTINED ${Runner}: $($q.Name) failed; not counted until $($q.Until) (owner $($q.Owner))" }
+    $result | Add-Member -Force -NotePropertyName Attempts -NotePropertyValue $attempts.Count
+    $result | Add-Member -Force -NotePropertyName Flaky -NotePropertyValue $flaky
+    return $result
+}

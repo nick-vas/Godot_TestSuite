@@ -32,7 +32,9 @@ after the last passing `test` run, unless you say why the tests could not run.
 | "It runs fine in the editor" | The editor hides missing exports, trimmed C# and release-only errors. Run the suite. |
 | "I only changed a scene / a constant" | `validate` and `smoke` exist for exactly the files no unit test touches. |
 | "The unit test I wrote passes" | You ran one test. Other code may now fail. Run all of it. |
-| "That failure is a flake" | A flake is a diagnosis, not a reason. Re-run once to confirm, then root-cause. Never skip the test. |
+| "That failure is a flake" | A flake is a diagnosis, not a reason. Re-run once to confirm (`test -Retry 1`), then root-cause. Never skip the test. |
+| "It passed on the retry, so it's green" | `flaky[]` lists it: report it by name. A test that fails now and then may hide a real bug. |
+| "Quarantine it and move on" | Only the user decides that, with an owner and an end date in `quarantine.json`. Report `quarantined[]` too. |
 | "No time to run everything" | The suite is the time saver. A wrong "done" costs a round trip. |
 | "The last run was green" | That was before your change. Fresh evidence only. |
 | "Zero tests ran, so nothing failed" | Zero tests fails by design. The framework is not wired; see `godot-test-frameworks`. |

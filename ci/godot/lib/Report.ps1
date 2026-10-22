@@ -112,7 +112,7 @@ function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode)
     $logLines = @(Get-ChildItem -LiteralPath $ResultsDir -File -Filter '*.log' | ForEach-Object { Get-Content -LiteralPath $_.FullName })
     return [pscustomobject]@{
         Runner = $Runner; Ok = $ok; Total = $totals.Total; Passed = $totals.Passed
-        Failed = $totals.Failed; Skipped = $totals.Skipped
+        Failed = $totals.Failed; Skipped = $totals.Skipped; ExitCode = $ExitCode
         Failures = @($totals.Failures | Select-Object -First 10 | ForEach-Object { Resolve-FailureDetail $_ $logLines })
         # Every failing test's name, for comparing with the previous run (Get-FailureIds); Failures keeps the first 10 only.
         FailedNames = @($totals.Failures | ForEach-Object Name)
@@ -233,7 +233,7 @@ function ConvertFrom-GoDotTestLog([string]$LogFile, [string]$JUnitFile) {
 # One coverage report across runners: <results>/coverage/index.html (+ the job summary on GitHub).
 function Merge-Coverage([string]$ResultsDir) {
     $reports = @(Get-ChildItem -LiteralPath $ResultsDir -Recurse -File -Filter '*.cobertura.xml' |
-        Where-Object { $_.FullName -notmatch '[\\/]In[\\/]' })
+        Where-Object { $_.FullName -notmatch '[\\/]In[\\/]|\.attempt\d+[\\/]' })   # <runner>.attempt1/: a failed attempt kept for -Retry
     if ($reports.Count -eq 0) { Write-CiLog 'No coverage data was produced'; return $null }
     $target = Join-Path $ResultsDir 'coverage'
     $tool = Get-DotnetTool 'dotnet-reportgenerator-globaltool' 'reportgenerator'
@@ -254,11 +254,13 @@ function Merge-Coverage([string]$ResultsDir) {
 function Write-RunSummary([string]$ResultsDir, $Info, [object[]]$Results, $Coverage, [double]$MinCoverage) {
     $ok = @($Results | Where-Object { -not $_.Ok }).Count -eq 0
     $coverageOk = $MinCoverage -le 0 -or ($null -ne $Coverage -and $Coverage -ge $MinCoverage)
+    # Flaky (passed on a retry) and quarantined failures: present on results from Invoke-TestRunnerWithRetry.
+    $listOf = { param($Run, [string]$Key) @(if ($Run.PSObject.Properties[$Key]) { $Run.$Key | Where-Object { $_ } }) }
     $summary = [ordered]@{
         name = $Info.Name; godotVersion = $Info.GodotVersion; ok = ($ok -and $coverageOk)
         runners = @($Results | ForEach-Object {
             [ordered]@{ runner = $_.Runner; ok = $_.Ok; total = $_.Total; passed = $_.Passed; failed = $_.Failed
-                skipped = $_.Skipped; failures = @($_.Failures) } })
+                skipped = $_.Skipped; failures = @($_.Failures); flaky = @(& $listOf $_ 'Flaky'); quarantined = @(& $listOf $_ 'Quarantined') } })
         coverage = $Coverage; minCoverage = $MinCoverage
     }
     $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir 'summary.json') -Encoding utf8
@@ -266,7 +268,10 @@ function Write-RunSummary([string]$ResultsDir, $Info, [object[]]$Results, $Cover
     $mark = { param($good) if ($good) { 'pass' } else { 'FAIL' } }
     $md = [System.Collections.Generic.List[string]]::new()
     $md.Add("| Runner | Result | Passed | Failed | Skipped |"); $md.Add('|---|---|---:|---:|---:|')
-    foreach ($r in $Results) { $md.Add("| $($r.Runner) | $(& $mark $r.Ok) | $($r.Passed) | $($r.Failed) | $($r.Skipped) |") }
+    foreach ($r in $Results) {
+        $notes = @($(if (@(& $listOf $r 'Flaky').Count) { "$(@(& $listOf $r 'Flaky').Count) flaky" }), $(if (@(& $listOf $r 'Quarantined').Count) { "$(@(& $listOf $r 'Quarantined').Count) quarantined" }) | Where-Object { $_ })
+        $md.Add("| $($r.Runner) | $(& $mark $r.Ok)$(if ($notes) { " ($($notes -join ', '))" }) | $($r.Passed) | $($r.Failed) | $($r.Skipped) |")
+    }
     if ($null -ne $Coverage) {
         $line = "**Line coverage: $Coverage%**"
         if ($MinCoverage -gt 0) { $line += " (minimum $MinCoverage%: $(& $mark $coverageOk))" }
@@ -274,6 +279,12 @@ function Write-RunSummary([string]$ResultsDir, $Info, [object[]]$Results, $Cover
     }
     $failures = @($Results | ForEach-Object { $runner = $_.Runner; $_.Failures | ForEach-Object { "- ``$runner`` **$($_.Name)**: $($_.Message)" } })
     if ($failures) { $md.Add(''); $md.Add('**Failures**'); $failures | Select-Object -First 15 | ForEach-Object { $md.Add($_) } }
+    # A pass on a retry and an excused failure are never silent: both are listed under the table.
+    $flaky = @($Results | ForEach-Object { $runner = $_.Runner; & $listOf $_ 'Flaky' | ForEach-Object { "- ``$runner`` **$($_.Name)** failed on attempt $($_.FailedAttempt), then passed: $($_.Message)" } })
+    if ($flaky) { $md.Add(''); $md.Add("**Passed only on a retry (flaky)** ($($flaky.Count))"); $flaky | Select-Object -First 15 | ForEach-Object { $md.Add($_) } }
+    $quarantined = @($Results | ForEach-Object { $runner = $_.Runner; & $listOf $_ 'Quarantined' | ForEach-Object {
+        "- ``$runner`` **$($_.Name)** failed but is quarantined until $($_.Until) (owner $($_.Owner)$(if ($_.Reason) { ": $($_.Reason)" })): $($_.Message)" } })
+    if ($quarantined) { $md.Add(''); $md.Add("**Quarantined, failing** ($($quarantined.Count))"); $quarantined | Select-Object -First 15 | ForEach-Object { $md.Add($_) } }
     # Warnings fail nothing, so this list is the only place a pull request shows them.
     $warnings = @($Results | Where-Object { $_.PSObject.Properties['Warnings'] } | ForEach-Object { $_.Warnings } | Where-Object { $_ })
     if ($warnings) {
@@ -334,8 +345,9 @@ function Read-RunHistory([string]$ProjectDir) {
 
 # Compares this run's failure ids with the newest earlier test run of the same scope in $History. Without one,
 # comparedWith and the three lists are null: nothing claims to be new without a baseline. When either side was cut at
-# the cap, an id past the other side's cut is in neither list, because whether it failed there is unknown.
-function Get-FailureDelta([string[]]$Ids, [bool]$Truncated, $Scope, [object[]]$History) {
+# the cap, an id past the other side's cut is in neither list, because whether it failed there is unknown. $Excused are ids
+# that failed this run but do not count (flaky: passed on a retry; quarantined): they are not "fixed".
+function Get-FailureDelta([string[]]$Ids, [bool]$Truncated, $Scope, [object[]]$History, [string[]]$Excused = @()) {
     $previous = $null
     # Newest first: the scan usually stops at the last line.
     for ($i = $History.Count - 1; $i -ge 0 -and -not $previous; $i--) {
@@ -352,6 +364,7 @@ function Get-FailureDelta([string[]]$Ids, [bool]$Truncated, $Scope, [object[]]$H
     [Array]::Sort($before, [StringComparer]::Ordinal)
     $beforeCut = [bool]($previous.PSObject.Properties['failuresTruncated'] -and $previous.failuresTruncated)
     $nowSet = [System.Collections.Generic.HashSet[string]]::new($now, [StringComparer]::Ordinal)
+    foreach ($id in $Excused | Where-Object { $_ }) { [void]$nowSet.Add($id) }
     $beforeSet = [System.Collections.Generic.HashSet[string]]::new($before, [StringComparer]::Ordinal)
     $known = {
         param([string]$Id, [bool]$Cut, [string[]]$List)
@@ -384,6 +397,135 @@ function Format-FailureDelta($Delta) {
     $more = if ($Delta.new.Count -gt 3) { ", and $($Delta.new.Count - 3) more" } else { '' }
     $newText = if ($names) { "$($Delta.new.Count) new ($($names -join '; ')$more)" } else { '0 new' }
     return "Since the run of $($Delta.comparedWith) with the same runners and filter: $newText, $($Delta.stillFailing.Count) still failing, $($Delta.fixed.Count) fixed"
+}
+
+# Flaky and quarantined tests, after Rare's build system for Sea of Thieves (docs/gdc/sea-of-thieves-automated-testing.md):
+# a failed test was run again at once and turned the build red only if it failed again, every failure that passed on the
+# rerun was recorded and the worst offenders were looked at each week, and a test that kept failing went to a quarantine,
+# still run but not failing the build, with an owner and a few weeks to fix it before it was deleted. Here a pass on a
+# retry is never silent (flaky[] in the JSON, the summary and the history), and a quarantine names one test of one test
+# framework, with an owner and an end date; it never covers a crash, a runner that found no tests, or another test.
+
+# The runners a quarantine can apply to. The kit's own checks (validate, smoke, flows, ...) are not one behaviour per
+# case: excusing one could hide anything.
+$script:QuarantineRunners = @('dotnet', 'gdunit4', 'godottest', 'gut')
+# Failures the kit makes up when a runner itself went wrong; they are never excused.
+$script:KitFailureNames = @('(runner)', 'gdUnit4 (tests not run)')
+
+# quarantine.json in the project: { "tests": [ { "runner", "name", "owner", "until": "yyyy-MM-dd", "reason" } ] }.
+# Entries are checked, not trusted: a problem is returned (test stops on it, doctor reports it, status warns), never
+# skipped. An entry applies through its "until" day; after that it is Expired and its test counts again.
+function Read-Quarantine([string]$ProjectDir, [datetime]$Today = [datetime]::Today) {
+    $file = Join-Path $ProjectDir 'quarantine.json'
+    $entries = [System.Collections.Generic.List[object]]::new()
+    $problems = [System.Collections.Generic.List[string]]::new()
+    if (-not (Test-Path -LiteralPath $file)) { return [pscustomobject]@{ File = $null; Entries = @(); Problems = @() } }
+    $doc = $null
+    try { $doc = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable } catch { $problems.Add("not valid JSON: $($_.Exception.Message)") }
+    if ($doc -and ($doc -isnot [System.Collections.IDictionary] -or -not $doc.Contains('tests') -or $doc['tests'] -isnot [System.Collections.IList])) {
+        $problems.Add('needs "tests": [ { "runner", "name", "owner", "until" } ]')
+    } elseif ($doc) {
+        $n = 0
+        foreach ($item in $doc['tests']) {
+            $n++
+            if ($item -isnot [System.Collections.IDictionary]) { $problems.Add("entry $n is not an object"); continue }
+            $field = { param($Key) if ($item.Contains($Key) -and $null -ne $item[$Key]) { ([string]$item[$Key]).Trim() } else { '' } }
+            $runner = & $field 'runner'; $name = & $field 'name'; $owner = & $field 'owner'; $untilText = & $field 'until'
+            $what = if ($name) { "entry $n ($name)" } else { "entry $n" }
+            $until = [datetime]::MinValue
+            if ($runner -notin $script:QuarantineRunners) { $problems.Add("${what}: runner must be one of $($script:QuarantineRunners -join ', '), not '$runner'"); continue }
+            if (-not $name) { $problems.Add("${what}: name is missing (the test's name as in runnerResults[].failures[].name)"); continue }
+            if ($name -in $script:KitFailureNames) { $problems.Add("${what}: '$name' means the runner itself failed, which a quarantine never covers"); continue }
+            if (-not $owner) { $problems.Add("${what}: owner is missing (who will fix or delete the test)"); continue }
+            if (-not [datetime]::TryParseExact($untilText, 'yyyy-MM-dd', [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$until)) {
+                $problems.Add("${what}: until must be a date such as 2026-11-30, not '$untilText'"); continue
+            }
+            $entries.Add([pscustomobject]@{ Runner = $runner; Name = $name; Owner = $owner; Until = $untilText
+                Reason = (& $field 'reason'); Expired = ($Today.Date -gt $until.Date); DaysLeft = [int]($until.Date - $Today.Date).TotalDays })
+        }
+    }
+    return [pscustomobject]@{ File = $file; Entries = $entries.ToArray(); Problems = $problems.ToArray() }
+}
+
+# Moves the failures of a runner's quarantined tests out of its result into .Quarantined, so they no longer fail it. The
+# runner passes only when nothing else failed, it reported tests, and its exit code is 0 or 1 (a framework's "some tests
+# failed"): a crash, a time-out or a runner that found nothing still fails, as does any test that is not in quarantine.
+function Set-RunQuarantine($Run, [object[]]$Entries) {
+    $active = @($Entries | Where-Object { $_ -and $_.Runner -eq $Run.Runner -and -not $_.Expired })
+    $excused = [System.Collections.Generic.List[object]]::new()
+    if ($active.Count -gt 0 -and -not $Run.Ok) {
+        $byName = @{}
+        foreach ($entry in $active) { $byName[$entry.Name] = $entry }
+        $kept = [System.Collections.Generic.List[string]]::new()
+        foreach ($name in $Run.FailedNames) {
+            # Hashtable keys ignore case; test names do not.
+            if ($byName.ContainsKey($name) -and $byName[$name].Name -ceq $name) {
+                $detail = @($Run.Failures | Where-Object { $_.Name -ceq $name } | Select-Object -First 1)
+                $entry = $byName[$name]
+                $excused.Add([pscustomobject]@{ Name = $name; Message = $(if ($detail) { $detail[0].Message } else { '' })
+                    Owner = $entry.Owner; Until = $entry.Until; Reason = $entry.Reason })
+            } else { $kept.Add($name) }
+        }
+        if ($excused.Count -gt 0) {
+            $excusedNames = @($excused | ForEach-Object Name)
+            $Run.Failures = @($Run.Failures | Where-Object { $_.Name -cnotin $excusedNames })
+            $Run.FailedNames = $kept.ToArray()
+            $Run.Failed = [math]::Max(0, $Run.Failed - $excused.Count)
+            $Run.Ok = $kept.Count -eq 0 -and $Run.Total -gt 0 -and $Run.ExitCode -in 0, 1
+        }
+    }
+    $Run | Add-Member -Force -NotePropertyName Quarantined -NotePropertyValue $excused.ToArray()
+    return $Run
+}
+
+# The tests that failed in an earlier attempt of a runner but not in its last one: they passed on a retry. Each attempt is a
+# runner result (Write-TestSummary, after Set-RunQuarantine). A runner that failed without naming a test counts as
+# "(runner)", as in Get-FailureIds, so a crash that went away on the retry is reported too.
+function Get-FlakyTests([object[]]$Attempts) {
+    $flaky = [ordered]@{}
+    if ($Attempts.Count -lt 2) { return @() }
+    $failing = {
+        param($Attempt)
+        $names = @($Attempt.FailedNames | Where-Object { $_ })
+        if (-not $Attempt.Ok -and $names.Count -eq 0) { $names = @('(runner)') }
+        return $names
+    }
+    $final = [System.Collections.Generic.HashSet[string]]::new([string[]]@(& $failing $Attempts[$Attempts.Count - 1]), [StringComparer]::Ordinal)
+    for ($i = 0; $i -lt $Attempts.Count - 1; $i++) {
+        foreach ($name in @(& $failing $Attempts[$i])) {
+            if ($final.Contains($name) -or $flaky.Contains($name)) { continue }
+            $detail = @($Attempts[$i].Failures | Where-Object { $_.Name -ceq $name } | Select-Object -First 1)
+            $message = if ($detail) { $detail[0].Message } elseif ($name -eq '(runner)') { "the runner failed without naming a test (exit code $($Attempts[$i].ExitCode))" } else { '' }
+            $flaky[$name] = [pscustomobject]@{ Name = $name; Message = $message; FailedAttempt = $i + 1 }
+        }
+    }
+    return @($flaky.Values)
+}
+
+# The tests that passed only on a retry most often in the recent history: Rare's weekly list of the worst offenders, since a
+# flaky test can hide a real bug in the test or in the game. Counts each test run of the last $Days days whose line has
+# "flaky" ids; the 10 most frequent come first.
+function Get-FlakyOffenders([object[]]$History, [int]$Days = 30, [datetime]$Now = (Get-Date)) {
+    $since = $Now.ToUniversalTime().AddDays(-$Days)
+    $counts = @{}; $last = @{}; $runs = 0
+    foreach ($entry in $History) {
+        if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test' -or -not $entry.PSObject.Properties['time']) { continue }
+        $time = if ($entry.time -is [datetime]) { $entry.time.ToUniversalTime() } else {
+            try { [datetime]::Parse([string]$entry.time, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal) } catch { continue } }
+        if ($time -lt $since) { continue }
+        $runs++
+        if (-not $entry.PSObject.Properties['flaky']) { continue }
+        foreach ($id in @($entry.flaky | Where-Object { $_ } | ForEach-Object { [string]$_ } | Select-Object -Unique)) {
+            $counts[$id] = 1 + $(if ($counts.ContainsKey($id)) { $counts[$id] } else { 0 })
+            $last[$id] = $time
+        }
+    }
+    $tests = @($counts.Keys | Sort-Object @{ Expression = { $counts[$_] }; Descending = $true }, @{ Expression = { $last[$_] }; Descending = $true }, @{ Expression = { $_ } } |
+        Select-Object -First 10 | ForEach-Object {
+            $runner, $name = $_ -split '\|', 2
+            [ordered]@{ runner = $runner; name = $name; count = $counts[$_]; last = $last[$_].ToString('o') }
+        })
+    return [ordered]@{ days = $Days; testRuns = $runs; tests = $tests }
 }
 
 # Installs a .NET global tool into the shared tools folder once; returns its path.
