@@ -380,3 +380,24 @@ categories, business model, alpha and beta exit criteria and the placeholders ta
       (`godot-progression`); a camera cost checklist (`concept.decisions`); a five-Ws premise and the player's verbs in
       bold in the story summary; a turn written as named phases with a test per transition; a team-shape note and the
       retro question "what recurring job has no owner?".
+
+## To do: from the technical sources (TRIBES, the maths book, a Unity checklist, a GPU debugging talk)
+
+Read in October 2026: Frohnmayer and Gift's TRIBES networking paper, Burzynski's *Mathematics for Game Developers*, The
+Gamedev Guru's Unity performance checklist and Adam Sawicki's "Make Your Game Friendly for Graphics Debugging and
+Optimization" (AMD, Digital Dragons 2019). Done: `Net/BitPacker.cs` and `Net/EventStream.cs` with their tests, the
+`Economy/EconomySim.cs` simulation, and notes in `godot-multiplayer`, `godot-math`, `godot-performance`,
+`godot-diagnose`, `godot-debug-tools` and `godot-progression`. Not done or not verified:
+
+| Item | Why it is open | How |
+|---|---|---|
+| Run `shot`, `bench` or `export -Run` with `--gpu-validation` (and `--gpu-abort`, `--accurate-breadcrumbs`) and fail on validation errors, with a new code in `docs/json.md` | The flags exist in 4.7.2's `--help`, but this container has no Vulkan, and the Compatibility renderer has no Vulkan layers; `--accurate-breadcrumbs` and `--extra-gpu-memory-tracking` are Vulkan only | A Vulkan-capable runner (a GitHub GPU runner, or Mesa's lavapipe if it can be installed; neither checked), then a `-GpuValidation` switch that passes the flag and scans the log |
+| Shader precision qualifiers (`lowp`, `mediump`, `highp`) in `godot-shaders-vfx` | Cited from the shading-language reference only; headless Godot has no renderer, so nothing was compiled | Quote a shader that uses them in the skill and let `tests/Test-SkillShaders.ps1` compile it (Compatibility, under Xvfb); check the Mobile renderer on a Vulkan machine |
+| Light and shadow limits on phones in `godot-mobile-web` | Compatibility's `rendering/limits/opengl/max_lights_per_object` (8) and `max_renderable_lights` (32) were checked; the Mobile renderer's per-mesh limits were not: 4.7.2's `rendering/limits/` settings have none for it (Forward+ has `cluster_builder/max_clustered_elements`, 512) | Read the Mobile renderer's source or class reference for its per-object light limit, measure on a device, then add both to the skill |
+| A dialogue tool for `godot-narrative`: Ink, Yarn Spinner or Dialogic | Their licences and Godot 4.7 C# support were not looked up in this pass | Read each repository's licence and latest release, try each in a copy of Breakout on 4.7.2; if none fits, a JSON dialogue graph in Breakout.Core with keys through `Tr()`, checked by the `data` and `l10n` runners |
+| A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off | Left out on purpose: a game that interpolates itself, or one locked to its tick rate, would be warned for nothing. The skills say it instead | Only if it can be made quiet: warn when the setting is off, a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess`, and the game sets no `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way |
+| `GhostReplicator` charging packed bits per group instead of 4 bytes a value, and a client-set link budget checked in `ReplicationTests` | Kept out to leave the tested replicator unchanged; `BitPacker` measures the saving on its own | A per-group bit size given to the replicator; a `LinkBudget` (packets a second times bytes, from the client, capped by the server) and a test that the client never receives more than it asked for |
+| `bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram | Not built in this pass; each needs a new failure code in `docs/json.md` | `Measure.ps1` already has `drawCalls.avg`; `bench.gd` can read `Time.GetTicksMsec()` at its first frame |
+| `doctor`: duplicate files under `res://`, and occluders with occlusion culling off; a build size breakdown on `export -Json` | Not built in this pass | Hash files (skipping `.godot/`, `.import` and `.gdignore` folders); sum `.godot/imported/*` per source file; each with a fixture |
+| A `data` rule that every currency has a sink, and adaptive difficulty (`DifficultyDirector`) | `EconomySim` checks sinks in code; the data rule and difficulty curves were not built | A `sinks` check beside `totals` in `data.json`; a director with slow, bounded steps and hysteresis, tested so it never flips every attempt |
+| A test pinning the maths book's 3D yaw sign and cross-product area | Checked headless in Godot 4.7.2 for the skill; Breakout.Core uses `System.Numerics`, whose conventions differ, so a test there would not prove Godot's | A GDScript or gdUnit4 test in `examples/breakout/game` |

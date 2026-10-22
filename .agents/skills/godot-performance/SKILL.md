@@ -163,6 +163,9 @@ A one-frame spike the first time something appears (first enemy hit, first popup
   driver, GPU, display queue) once put the screen about 200 ms behind the input (Piotr Mintus, GDC 2018); they stretched
   the simulation 1 ms a frame until the display queue drained. Keep `rendering/rendering_device/vsync/frame_queue_size`
   at its default 2 and measure input lag in the GPU-bound case, not only in the menu.
+- Movement that judders on a 144 Hz screen while the frame rate is fine: a body moved in `_PhysicsProcess` at 60 Hz
+  with `physics/common/physics_interpolation` off (the default). Turn it on, and call `ResetPhysicsInterpolation()`
+  after a teleport.
 
 ## Cheap wins
 
@@ -178,6 +181,29 @@ A one-frame spike the first time something appears (first enemy hit, first popup
   longer, so it never flips frame to frame.
 - AI that re-plans, paths or rebuilds influence maps for many agents in one frame: spread it under a fixed per-frame budget
   (`godot-game-ai`, `FrameBudget`); 200 GOAP re-plans took 4 to 10 ms in one frame here, about 1 ms a frame over 4 to 6.
+
+## A Unity checklist, in Godot 4.7
+
+Items from The Gamedev Guru's *Performance Optimization Checklist* (Unity 2020+, Lite v2) whose Godot counterpart exists
+in 4.7.2 (checked headless); its draw-call targets ("< 100 on mobile, < 1000 on desktop") are a starting point for a
+budget, not Godot measurements.
+
+- "Restrict cameras' culling mask": `Camera3D.CullMask` against `VisualInstance3D.Layers`, so a minimap or second
+  camera draws only its layers.
+- "Use occlusion culling in interiors": `OccluderInstance3D` does nothing until
+  `rendering/occlusion_culling/use_occlusion_culling` is on (default off).
+- "Pause out-of-screen subsystems": `VisibleOnScreenEnabler2D/3D` stops its target's processing off screen.
+- "Adapt the budget allocated to physics": `physics/common/max_physics_steps_per_frame` (default 8) caps the steps one
+  frame may catch up on, so a slow frame cannot snowball into ever slower ones.
+- Simple colliders: `ConcavePolygonShape3D` (the importer's `-col`) for static level geometry only; moving bodies get
+  convex or primitive shapes. Give each kind of body its own `CollisionLayer` and a `CollisionMask` with only the
+  pairs that must meet.
+- Baked over real-time light: `LightmapGI` with static lights instead of SDFGI or VoxelGI where the scene allows;
+  `ReflectionProbe.UpdateModeEnum.Once`, not `Always`.
+- "Avoid multi-pass shaders": `Material.NextPass` draws the mesh again. "Don't use GrabPass on mobile": a shader that
+  reads `hint_screen_texture` copies the screen.
+- Loading screens: a small scene that stays animated while `ResourceLoader.LoadThreadedRequest` loads the next one and
+  `LoadThreadedGetStatus` reports progress. Measure load time too (a test scene and the real one, debug build included).
 
 ## Done means
 
