@@ -397,6 +397,8 @@ public sealed class AiTests
         Assert.True(failures["origin stand point"] == 0, report);
         Assert.True(failures["far stand point"] > 50, report);
         Assert.True(failures["origin reach"] == 0 && failures["far reach"] == 0, report);
+    }
+
     // A guard at the origin looking along +X, seeing 300 units within 0.6 rad either side, nothing closer than 10.
     static VisionSensor Eyes() => new(new VisionPie(HalfAngle: 0.6f, Far: 300, Near: 10));
 
