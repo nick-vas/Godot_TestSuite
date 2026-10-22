@@ -75,6 +75,7 @@ have a lawyer read the privacy notice and the consent flow before release.
   holds up quitting more than a moment; what is left waits on disk for the next launch.
 - A failed send keeps the events; events older than a week are dropped unsent. Sample whole sessions
   (`analyticsSampleRate`), never single events, so funnels stay whole; never sample crashes.
+- Comparing two versions from these events (an A/B test): `godot-automation-hooks`, "Comparing two versions".
 - With `using Godot;` and `using System.Net.Http;` in one file, `HttpClient` is ambiguous (CS0104): keep the transport in
   a file without `using Godot;`, or name `System.Net.Http.HttpClient` in full.
 

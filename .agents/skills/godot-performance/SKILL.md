@@ -165,6 +165,8 @@ A one-frame spike the first time something appears (first enemy hit, first popup
 - Shadow map 2048 with low soft-shadow quality is enough for a tilted top-down camera.
 - Content that rarely changes (a board drawn on the floor): a `SubViewport` with `UpdateMode.Once`, re-triggered only on change.
 - Turn fog off on additive particle materials (fog darkens them).
+- AI that re-plans, paths or rebuilds influence maps for many agents in one frame: spread it under a fixed per-frame budget
+  (`godot-game-ai`, `FrameBudget`); 200 GOAP re-plans took 4 to 10 ms in one frame here, about 1 ms a frame over 4 to 6.
 
 ## Done means
 
