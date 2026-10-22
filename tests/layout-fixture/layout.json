@@ -1,2 +1,3 @@
-{ "scenes": ["res://ui/menu.tscn", "res://ui/good.tscn"],
-  "profiles": ["phone_portrait", "phone_landscape", "tablet", "ultrawide", "foldable:1812x2176@374:touch:insets=0,96,0,48"] }
+{ "scenes": ["res://ui/menu.tscn", "res://ui/good.tscn", "res://ui/hud.tscn", "res://ui/hud_good.tscn"],
+  "profiles": ["phone_portrait", "phone_landscape", "tablet", "ultrawide", "foldable:1812x2176@374:touch:insets=0,96,0,48"],
+  "minControlDp": 75 }
