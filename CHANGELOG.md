@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `doctor` checks the instructions every agent session loads (IBM's context engineering: stale context poisons every
+  session): `AGENTS.md`, `CLAUDE.md` and their `@` imports. It warns about kit calls with a command or flag the script
+  does not have (read from its own parameters), files and `res://` paths that do not exist, imports that load nothing,
+  and files over 200 lines; lines kept from the kit's template are skipped. `tests/Test-Context.ps1` also holds the
+  template, skills and docs to the real flags. The kit's own `AGENTS.md` named `licences/` without its folder.
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the
