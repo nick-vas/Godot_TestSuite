@@ -332,10 +332,7 @@ Valve's talks, handbook, Cabal article and developer commentary were read in Oct
 - [ ] A dialogue authoring path: a `data.json` table for `ResponseSystem` rows (who, concept, criteria, lines, then,
       remember), so the `data` runner checks criteria syntax, follow-up targets and missing voice files.
 - [ ] Playtest telemetry in a real game: Breakout has no levels to walk, so nothing raises `PlaytestTracker`'s events
-      yet, and there is no file sink for playtest builds or GDScript tracker. The session that wrote `playtest` could not
-      start PowerShell (its sandbox refused `pwsh`), so `Test-Playtest.ps1`, `Test-LibNames.ps1`, `Test-Skills.ps1`,
-      `Test-DocLinks.ps1` and PSScriptAnalyzer were first run by the self-test, not locally; the PNG code and the C#
-      detectors were run (dotnet, and Godot 4.7.2 reading the maps).
+      yet, and there is no file sink for playtest builds or GDScript tracker.
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 - [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
