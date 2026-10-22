@@ -1,0 +1,12 @@
+[
+  { "id": "three-flippers", "kind": "puzzle", "purpose": "teach", "mechanics": ["flipper", "moving-street"],
+    "solution": "Set the three flippers so the street joins the path." },
+  { "id": "back-in", "kind": "puzzle", "purpose": "moment", "mechanics": ["cover-up"],
+    "solution": "Back the tail into both cover-ups to open the gate." },
+  { "id": "open-field", "kind": "puzzle", "purpose": "breather", "mechanics": ["moving-street"],
+    "solution": "Ride the street across the open field to the exit." },
+  { "id": "lockstep-sync", "kind": "puzzle", "purpose": "reinforce", "mechanics": ["lockstep", "moving-street"],
+    "solution": "Move in step with the lockstep so it reaches the corner first." },
+  { "id": "timed-gap", "kind": "action", "purpose": "moment", "mechanics": ["lockstep"],
+    "solution": "Slip past the lockstep while it turns, in a window of 1.5 seconds." }
+]
