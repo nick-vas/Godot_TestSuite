@@ -55,14 +55,14 @@ limit that no setting changes (`gdUnit4.api` 5.0.0). On a machine busy with othe
 same failure appears with "due to compilation failure" as its cause, and a second run, with the build already done,
 usually passes. On CI runners it has not happened.
 ```xml
-<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
 <PackageReference Include="gdUnit4.api" Version="5.0.0" />
 <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />  <!-- 3.1.x needs a pre-release api -->
 <PackageReference Include="coverlet.collector" Version="10.1.0" />    <!-- for coverage -->
 ```
 gdUnit4Net writes a `gdunit4_testadapter_v5/` folder into the project; add it to `.gitignore`.
 
-**GoDotTest**: reference `Chickensoft.GoDotTest`. 2.0.47 is verified on Godot 4.7.2; older
+**GoDotTest**: reference `Chickensoft.GoDotTest`. 2.0.49 is verified on Godot 4.7.2; older
 GoDotTest versions target older Godot minors. Add a small scene whose script calls `GoTest.RunTests(...)`, like
 [`GoDotTestRunner.cs`](../examples/breakout/game/test/godottest/GoDotTestRunner.cs); the suite finds it.
 

@@ -47,5 +47,5 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Targets
 
-Godot 4.7.2 mono, .NET 8, PowerShell 7.2+. gdUnit4.api 5.0.0, gdUnit4.test.adapter 3.0.0, Chickensoft.GoDotTest 2.0.47,
+Godot 4.7.2 mono, .NET 8, PowerShell 7.2+. gdUnit4.api 5.0.0, gdUnit4.test.adapter 3.0.0, Chickensoft.GoDotTest 2.0.49,
 GUT v9.7.1, coverlet.collector 10.1.0.
