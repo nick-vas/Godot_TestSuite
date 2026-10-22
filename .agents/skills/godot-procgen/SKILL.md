@@ -114,7 +114,9 @@ Generate data first (a grid, a graph, a list), with no nodes; build the scene fr
 - **Same seed, same output**: generate twice and compare a fingerprint of the data (e.g. `GD.Hash` of the tile array).
 - **Every seed valid**: a test runs the generator for seeds 1 to 1000 (it is pure data, so this takes moments) and asserts the
   hard rules for each, naming the first failing seed.
-- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within a tolerance.
+- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within
+  `Stats.BinomialTolerance(p, rolls, groups: n)` (Breakout's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
+  30% chance, failing a correct generator once in 1,000; more rolls to catch smaller errors (four times the rolls, half the tolerance).
 - **One vocabulary**: placement labels (usage, tier, category) are declared once; a test loads every item and place
   (`DirAccess.GetFilesAt`, `ResourceLoader.Load<T>`) and fails on a label that is not declared.
 - **A pinned seed**: one seed's fingerprint is written into a test, so an unintended change to the generator shows up. When the
