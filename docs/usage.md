@@ -122,6 +122,12 @@ pwsh ci/godot/godot-ci.ps1 -Runners none                                        
 ```
 The workflow takes the same values as `runners` and `filter` inputs, e.g. for a manual `workflow_dispatch`.
 
+A test that fails now and then: `-Retry 1` (workflow input `retry: 1`) runs a failed runner once more and passes if the
+retry does, but lists every test that passed only on the retry in `flaky[]` and `summary.md` and records it, so `status`
+can name the repeat offenders. A test that keeps failing can go into the project's `quarantine.json` for a few weeks, with
+an owner: it still runs and is reported, but does not fail the run; after its date `doctor` fails until it is fixed or
+deleted. The policy is Rare's for Sea of Thieves ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
+
 ### 10. Several games in one repository
 
 ```powershell

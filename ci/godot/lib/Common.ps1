@@ -64,12 +64,14 @@ function Start-RunHistory([string]$Command, [string]$ProjectDir) {
 }
 
 # A test run's part of its history line: the runners that failed, the scope (runners and -Filter) and the failing test
-# ids (Get-FailureIds), which the next run with the same scope compares itself with (Get-FailureDelta).
-function Set-TestRunHistory($Scope, $Failing, [string[]]$FailedRunners) {
+# ids (Get-FailureIds), which the next run with the same scope compares itself with (Get-FailureDelta). -Extra adds more
+# keys to the line (test -Retry's flaky and quarantined ids); readers skip keys they do not know, so lines only grow.
+function Set-TestRunHistory($Scope, $Failing, [string[]]$FailedRunners, [System.Collections.IDictionary]$Extra = @{}) {
     $script:HistoryTestRun = [ordered]@{
         failedRunners = @($FailedRunners | Where-Object { $_ }); scope = $Scope
         failures = @($Failing.Ids); failuresTruncated = [bool]$Failing.Truncated
     }
+    foreach ($key in $Extra.Keys) { $script:HistoryTestRun[$key] = $Extra[$key] }
 }
 
 function Add-RunHistory([bool]$Ok, [string]$Code) {

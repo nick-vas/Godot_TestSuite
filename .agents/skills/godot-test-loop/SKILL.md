@@ -47,6 +47,10 @@ runners and `-Filter`, so your change (or the test you just wrote) caused them; 
 `failures[]` item says the same in its `new` field. `comparedWith: null` means no earlier run had that scope, so nothing
 is known to be new: run the full suite once before changing code, and it becomes the baseline for the next full run.
 
+`ok: true` can still carry `flaky[]` (with `-Retry`, tests that failed and then passed on a retry) and `quarantined[]`
+(failing tests the project's `quarantine.json` excuses until a date). Neither is a clean pass: name them in your report.
+A flaky test may hide a real bug (timing, state left by another test); `status -Json` lists repeat offenders in `flakyTests`.
+
 Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSON has the answer.
 
 ## Rules
@@ -56,3 +60,6 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
   a known engine message only, never for your own errors.
 - Never skip, delete or loosen a test to get green. Fix the code or ask.
 - New bug -> first a regression test that fails, then the fix.
+- Wait for a result by polling a condition with a generous time-out, never a fixed number of frames or seconds: a fixed
+  wait breaks when work moves a frame and wastes time on every run. GUT: `assert_true(await wait_until(func(): return door.is_open, 5))`.
+- Never add a test to `quarantine.json` to get green on your own: it needs the user's agreement, an owner and an end date.

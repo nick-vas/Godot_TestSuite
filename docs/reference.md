@@ -10,6 +10,7 @@
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
 | `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
+| `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
@@ -51,6 +52,7 @@
 | Input | Default | |
 |---|---|---|
 | `project`, `godot-version`, `runners`, `filter` | detected | As the script parameters |
+| `retry` | `0` | As `-Retry` |
 | `coverage`, `min-coverage` | off | Coverage report; fail below a percentage |
 | `pr-comment` | `true` | Results comment on pull requests (needs `pull-requests: write`) |
 | `exports` | none | `all`, or a comma list of preset names |

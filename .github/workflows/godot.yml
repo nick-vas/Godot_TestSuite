@@ -29,6 +29,10 @@ on:
         description: Test filter passed to each runner
         type: string
         default: ""
+      retry:
+        description: Run a failed test runner again up to this many times (0-5); tests that pass only on a retry are listed as flaky, never hidden
+        type: number
+        default: 0
       coverage:
         description: Collect coverage and add it to the job summary
         type: boolean
@@ -108,6 +112,7 @@ jobs:
           godot-version: ${{ inputs.godot-version }}
           runners: ${{ inputs.runners }}
           filter: ${{ inputs.filter }}
+          retry: ${{ inputs.retry }}
           coverage: ${{ inputs.coverage }}
           min-coverage: ${{ inputs.min-coverage }}
           retention-days: ${{ inputs.retention-days }}

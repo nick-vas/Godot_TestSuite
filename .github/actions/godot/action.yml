@@ -16,6 +16,9 @@ inputs:
   filter:
     description: Test filter passed to each runner
     default: ""
+  retry:
+    description: "Run a failed test runner again up to this many times (0-5); tests that pass only on a retry are listed as flaky, never hidden"
+    default: "0"
   coverage:
     description: Collect coverage into the results artifact and job summary
     default: "false"
@@ -112,6 +115,7 @@ runs:
         GODOT_VERSION_INPUT: ${{ steps.detect.outputs.godot-version }}
         RUNNERS: ${{ inputs.runners }}
         FILTER: ${{ inputs.filter }}
+        RETRY: ${{ inputs.retry }}
         COVERAGE: ${{ inputs.coverage }}
         MIN_COVERAGE: ${{ inputs.min-coverage }}
         PRESET: ${{ inputs.preset }}
@@ -132,6 +136,7 @@ runs:
         $params = @{ Project = $env:PROJECT; GodotVersion = $env:GODOT_VERSION_INPUT; Results = $results; Output = $output }
         if ($env:RUNNERS) { $params.Runners = $env:RUNNERS }
         if ($env:FILTER) { $params.Filter = $env:FILTER }
+        if ($env:COMMAND -eq 'test' -and [int]$env:RETRY -gt 0) { $params.Retry = [int]$env:RETRY }
         if ($env:COVERAGE -eq 'true') { $params.Coverage = $true }
         if ($env:PRESET) { $params.Preset = $env:PRESET }
         if ([double]$env:MIN_COVERAGE -gt 0) { $params.MinCoverage = [double]$env:MIN_COVERAGE }

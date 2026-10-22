@@ -217,6 +217,15 @@ function Invoke-Status($Info) {
     if ($lastTest -and -not $lastTest.ok) { $warnings.Add("The latest test run failed ($($lastTest.code), $(Format-RunTime $lastTest.time))") }
     if (-not $lastTest) { $warnings.Add('No test run is recorded yet; run test -Json -Quiet') }
 
+    # Tests that passed only on a retry (test -Retry), most often first: each may hide a real bug in the test or the game.
+    $flaky = Get-FlakyOffenders @(Read-RunHistory $Info.ProjectDir)
+    foreach ($f in $flaky.tests | Where-Object { $_.count -ge 2 }) {
+        $warnings.Add("$($f.runner) $($f.name) passed only on a retry in $($f.count) of the last $($flaky.testRuns) test runs ($($flaky.days) days): find the cause (timing, state left by another test, the network)")
+    }
+    $quarantine = Read-Quarantine $Info.ProjectDir
+    foreach ($problem in $quarantine.Problems) { $warnings.Add("quarantine.json: $problem") }
+    foreach ($q in $quarantine.Entries | Where-Object Expired) { $warnings.Add("The quarantine of $($q.Runner) $($q.Name) ended on $($q.Until) (owner $($q.Owner)): fix the test or delete it") }
+
     $decisions = @(Get-Decisions $Info)
     foreach ($d in $decisions | Where-Object { $_.status -match '^Proposed' }) { $warnings.Add("Decision $($d.number) $($d.title) awaits the user's answer") }
 
@@ -230,6 +239,9 @@ function Invoke-Status($Info) {
     $look = Get-LookSetup $Info
     Set-JsonField look $look
     Set-JsonField runs $runs
+    Set-JsonField flakyTests $flaky
+    Set-JsonField quarantine @(foreach ($q in $quarantine.Entries) {
+        [ordered]@{ runner = $q.Runner; name = $q.Name; owner = $q.Owner; until = $q.Until; reason = $q.Reason; expired = $q.Expired } })
     Set-JsonField git $git
     Set-JsonField inventory $inventory
     Set-JsonField warnings @($warnings)
@@ -246,6 +258,8 @@ function Invoke-Status($Info) {
         if ($plan) { Write-Console "Plan: $($plan.currentPhase ? $plan.currentPhase.name : 'complete'); board $(($plan.columns.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ' | ')" }
         else { Write-Console "Plan: none ($(Format-KitCommand 'plan -Do init'))" }
         if ($lastTest) { Write-Console "Last test run: $(Format-RunTime $lastTest.time) $(if ($lastTest.ok) { 'passed' } else { "failed ($($lastTest.code))" })" }
+        if ($flaky.tests) { Write-Console "Flaky in the last $($flaky.days) days: $(($flaky.tests | Select-Object -First 3 | ForEach-Object { "$($_.name) x$($_.count)" }) -join ', ')" }
+        if ($quarantine.Entries) { Write-Console "Quarantined: $(($quarantine.Entries | ForEach-Object { "$($_.Name) (until $($_.Until)$(if ($_.Expired) { ', ENDED' }))" }) -join ', ')" }
         if ($git) { Write-Console "Git: $($git.commits7Days) commit(s) this week, $($git.uncommitted) uncommitted change(s), last commit $($git.lastCommit)" }
         Write-Console "Look: $(if ($look.styleGuide) { "style guide ($($look.resolutions -join ', '))" } else { 'no style guide (/look writes one)' }); $(if ($look.juiceRules) { "$($look.juiceRules) juice rule(s)" } else { 'no juice.json' })"
         if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }

@@ -321,6 +321,19 @@ function Invoke-Doctor($Info) {
     if ($testsWithoutCoverage.Count -gt 0) {
         Add-Check INFO "No coverage for $($testsWithoutCoverage.Name -join ', ') (-Coverage needs coverlet.collector)" 'dotnet add package coverlet.collector'
     }
+    # quarantine.json: a test in quarantine still runs but does not fail the run, for a few weeks, with an owner. After its
+    # date the test counts again, and this is a FAIL until it is fixed or deleted (Rare's rule for Sea of Thieves).
+    $quarantine = Read-Quarantine $project
+    $quarantineFix = 'Each entry: runner (dotnet, gdunit4, godottest or gut), name (as in runnerResults[].failures[].name), owner, until (yyyy-MM-dd), reason'
+    foreach ($problem in $quarantine.Problems) { Add-Check FAIL "quarantine.json: $problem" $quarantineFix }
+    foreach ($q in $quarantine.Entries | Where-Object Expired) {
+        Add-Check FAIL "The quarantine of $($q.Runner) $($q.Name) ended on $($q.Until) (owner $($q.Owner)); its failures count again" 'Fix the test or delete it, then remove its quarantine.json entry'
+    }
+    foreach ($q in $quarantine.Entries | Where-Object { -not $_.Expired -and $_.DaysLeft -gt 28 }) {
+        Add-Check WARN "The quarantine of $($q.Runner) $($q.Name) lasts $($q.DaysLeft) more days" 'Keep it to a few weeks: a test nobody fixes by then is not worth keeping'
+    }
+    $active = @($quarantine.Entries | Where-Object { -not $_.Expired })
+    if ($active) { Add-Check INFO "$($active.Count) test(s) in quarantine.json run but do not fail the run: $(($active | ForEach-Object { "$($_.Name) (owner $($_.Owner), until $($_.Until))" }) -join '; ')" }
 
     # --- Release builds ---------------------------------------------------------------------------
     if ($isCSharp -and $gameCsproj -match 'Microsoft\.NET\.Test\.Sdk|gdUnit4|Chickensoft\.GoDotTest' -and $gameCsproj -notmatch 'ExportRelease') {
