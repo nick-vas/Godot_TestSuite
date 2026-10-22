@@ -5,8 +5,8 @@ description: Use when a Godot game stutters, hitches, drops frames, runs hot, or
 
 # Frame pacing and performance (Godot 4.7, C#)
 
-Measure first, change one thing, measure again. Average FPS hides what players feel; the numbers that matter are
-per-frame times, the slowest frames, and when they happen. Sources for the C# measurements:
+Budget, measure, change one thing, measure again. Average FPS hides what players feel; the numbers that matter are
+per-frame times, the slowest frames, and when and where they happen. Sources for the C# measurements:
 `${CLAUDE_PLUGIN_ROOT}/docs/profiling-and-builds.md`.
 
 ## Measure
@@ -17,7 +17,8 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -Scene res:/
 ```
 
 `bench` records the wall-clock time of every frame after a warm-up and returns `fps.low1`/`fps.low01` (1% and 0.1% lows),
-`frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a timestamped `hitches[]` log, draw calls, and every custom monitor's delta.
+`frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a timestamped `hitches[]` log, the slowest places (`hotspots`), draw calls,
+and every custom monitor's delta.
 Each run appends a labelled row to `bench-results/bench.csv`, so runs stay comparable. Several benchmark runs are a good job
 for the `godot-verifier` subagent, which returns the numbers without the logs. `-BudgetMs` fails the run
 (`bench-over-budget`) when p99 is above the budget.
@@ -29,6 +30,54 @@ for the `godot-verifier` subagent, which returns the numbers without the logs. `
 - **Use a display.** Without `-Headless`, frames are really drawn. `-Headless` measures CPU time only (draw calls 0) and is what CI can run.
 - **Read the hitch timestamps.** If a hitch moves when you change `-Warmup`, it is a measurement artifact; if it stays tied to a
   game event (first hit of a fight), it is real.
+
+## Budget per area
+
+Before optimising, write the budget down: 33.3 ms a frame at 30 fps, 16.7 ms at 60. First take off what every frame pays
+(HUD, post-processing, the player) and a margin of about 2 ms for the day something goes wrong; then split what is left
+per area with whoever owns the art and design, by what the area is for: a combat arena spends it on AI, physics and
+effects, a vista on scenery, a lighting showcase on lights. Bench each area against its own number (`-BudgetMs`, with
+`-Scene` or a `-GameArgs` flag that starts there). An area over budget becomes a task for its owner (`plan -Do add -Title`)
+with the milliseconds over and several ways to win them back: the owner picks which.
+
+## Where it is slow
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -Scene res://levels/Canyon.tscn -GameArgs '--autoplay' -Seconds 120 -HotspotCell 20
+```
+
+A level's frame times say that it is slow, not where; without a place, optimising means wandering the level. `bench` pairs
+each frame with the root viewport's camera (the `Camera3D`'s position, or the screen centre under a `Camera2D`) and
+returns `hotspots`: grid cells (10 m in 3D, 512 px in 2D, or `-HotspotCell`) with the worst p99 first, each with
+`centre`, `frames`, `p99Ms` and `maxMs`. Each `hitches[]` entry has a `pos` too.
+
+1. Cover the level the same way every run: a bot route, an autoplay flag or a scripted fly-through (`godot-automation-hooks`).
+2. Start at `hotspots[0].centre`. A cell with few `frames` was crossed quickly, so one slow frame sets its p99: read
+   `maxMs` and the hitches there before believing it.
+3. Bench a short run that starts at that place, with a window and `-Uncapped`, and compare `gpuMs.avg` with
+   `frameMs.avg`: GPU time well under the frame time means the CPU is the limit (scripts, physics, AI, spawning); close
+   to it means drawing is.
+4. Fix one thing, run the same route, compare the cell. `camera` `none` (no camera, or one inside a `SubViewport`) gives
+   no places: use `hitches[].t` instead.
+
+## What slow places usually hold
+
+In Halo 4's last year of optimisation most fixes were content, not code, and kept the look
+(`${CLAUDE_PLUGIN_ROOT}/docs/gdc/halo-4-content-performance.md`):
+
+- **Forgotten things.** Dynamic lights left in a corner nobody visits (a few tiny spot lights cost 3 ms of a 33 ms frame), light ranges far
+  bigger than the light looks (`OmniLight3D.OmniRange`, `SpotLight3D.SpotRange`, with `ShadowEnabled`), scenery drawn
+  far beyond where anyone can see it (pull in `VisibilityRangeEnd`, `godot-asset-pipeline`), two post effects doing one job.
+- **One huge mesh.** A terrain or building in one piece is processed whole when a sliver is on screen; Godot culls per
+  `MeshInstance3D`, so cut it into chunks.
+- **Detail too small to see** where the asset is used (made for a close-up, placed far away): delete it or add a LOD.
+- **Transparency where it is not needed.** Cut alpha-blended cards (sky, distant ridges, water) so only the edge strip
+  blends and the inside is opaque; fewer, richer particles instead of many layers (`godot-shaders-vfx`).
+- **General shaders.** Copy a shader for one use and drop the terms that do not show there, or pack channels.
+- **Spawning all at once.** Stagger AI and physics objects spawned before anyone can see them; simplify collision
+  shapes that rays hit often.
+- **Prove it looks the same, blind.** Show the art lead several copies, one optimised; if they cannot pick it out, keep it.
+- **Content players build** cannot be tuned: give them a placement budget.
 
 ## C#: zero garbage in the frame loop
 
@@ -122,5 +171,7 @@ A one-frame spike the first time something appears (first enemy hit, first popup
 ## Done means
 
 The worst-case scene meets the budget with V-Sync on and off, at the target resolution, in the window modes you ship (windowed,
-borderless, fullscreen), with zero GC collections in the frame loop. Record the `bench.csv` rows in the plan's beta gate
+borderless, fullscreen) and every other mode (split screen), with zero GC collections in the frame loop, and no area over
+its own budget. In-game counters and profilers cost time themselves: confirm the final numbers on a release export that
+logs frame times and little else. Record the `bench.csv` rows in the plan's beta gate
 (`godot-game-plan`) and keep the numbers from before and after each optimisation.

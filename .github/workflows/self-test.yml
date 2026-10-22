@@ -302,6 +302,9 @@ jobs:
           if ($rows.Count -ne 3) { throw "expected 3 rows in bench.csv, got $($rows.Count)" }
           # The budget check ends with a command that fails on purpose; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
+      - name: bench names the slow place (hotspots by camera position)
+        shell: pwsh
+        run: ./tests/Test-BenchHotspots.ps1
       - name: shot
         shell: pwsh
         run: |
