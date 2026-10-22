@@ -1,7 +1,9 @@
 # {{GAME}}: style guide
 
 <!-- Written once with the user by /look, then the reference for every screenshot critique. The "Resolutions:" line is read
-     by tools: keep it on one line, comma-separated, the design resolution first. -->
+     by tools: keep it on one line, comma-separated, the design resolution first. The Palette table is read by `shot`: every
+     #RRGGBB in its rows is a palette colour (put a ramp's shades in one cell, space-separated), and each screenshot reports
+     the share of its pixels in colours off the palette. -->
 
 Resolutions: 1920x1080, 1280x720, 3840x2160
 
@@ -13,6 +15,10 @@ Resolutions: 1920x1080, 1280x720, 3840x2160
 | Text | #F2F2F2 | 14.8:1 | |
 | Accent | #FF8A5B | 7.1:1 | the one thing to look at |
 | Danger | #F2555A | 4.9:1 | damage, warnings |
+
+Every colour the game draws with is in this table; anti-aliased edges and translucent blends of two of them are fine.
+`shot` reports each screenshot's share of other colours (`shots[].palette`), and fails over a limit with
+`-MaxOffPalettePercent`.
 
 Every text colour is at least 4.5:1 on the backgrounds it is used on (WCAG 1.4.3). Work the ratio out with WCAG's
 formula (`godot-ui-accessibility`); do not judge it by eye.
