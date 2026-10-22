@@ -12,8 +12,10 @@ $project = Join-Path $temp 'game'
 New-Item -ItemType Directory -Force $project | Out-Null
 Copy-Item -Path (Join-Path $PSScriptRoot 'colorvision-fixture/*') -Destination $project -Recurse
 function Invoke-KitShot([string[]]$More) {
-    $json = & pwsh -NoProfile -File $kit shot -Project $project -Scene res://swatches.tscn -Resolution 640x360 -Frames 5 -Json @More 2>$null
-    return ($json | Out-String | ConvertFrom-Json)
+    $err = Join-Path $temp 'stderr.txt'
+    $json = & pwsh -NoProfile -File $kit shot -Project $project -Scene res://swatches.tscn -Resolution 640x360 -Frames 5 -Json @More 2>$err
+    try { return ($json | Out-String | ConvertFrom-Json) }
+    catch { throw "shot $($More -join ' ') printed no JSON: $((Get-Content -LiteralPath $err -Raw) -replace '\s+$', '')" }
 }
 $before = Join-Path $temp 'before'; $after = Join-Path $temp 'after'
 $first = Invoke-KitShot @('-Output', $before)

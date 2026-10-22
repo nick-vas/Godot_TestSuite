@@ -18,6 +18,12 @@ foreach ($file in $files) {
         if ($builtin) { $failures += "$name ($($file.Name)) shadows the built-in $($builtin.CommandType.ToString().ToLowerInvariant()) $name" }
     }
 }
+# Every parameter docs/reference.md documents exists on godot-ci.ps1: a lost edit once removed -FixedFps and
+# -MaxChangedPercent from the script while the docs and tests still named them.
+$entry = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'ci/godot/godot-ci.ps1'), [ref]$null, [ref]$null)
+$parameters = @($entry.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
+$documented = @(Select-String -LiteralPath (Join-Path $root 'docs/reference.md') -Pattern '^\| `-(?<p>[A-Za-z]+)`' | ForEach-Object { $_.Matches[0].Groups['p'].Value } | Sort-Object -Unique)
+foreach ($p in $documented) { if ($p -notin $parameters) { $failures += "docs/reference.md documents -$p, which godot-ci.ps1 does not have" } }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host "$($defined.Count) functions in ci/godot, each defined once and none named like a built-in alias or cmdlet"
+Write-Host "$($defined.Count) functions in ci/godot, each defined once and none named like a built-in alias or cmdlet; $($documented.Count) documented parameters, all on godot-ci.ps1"
 exit 0
