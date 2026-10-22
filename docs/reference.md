@@ -30,6 +30,7 @@
 | `-Headless` | off | `bench`: no window (CPU timings only; works without a display) |
 | `-Mix` | off | `audio`: also record the game's own mix with Movie Maker (needs a display) and judge its loudness |
 | `-TargetLufs` | `-24` | `audio -Mix`: the integrated loudness the mix must reach, within 2 LU; `-18` for phones and handhelds |
+| `-MaxOnsetMs` | `20` | `audio`: warn when an `sfx` or `ui` file takes longer than this to come within 10 dB of its loudest 10 ms (`onsetMs`) |
 | `-Clients` | `4` | `soak`: headless clients started next to the one server |
 | `-MaxGrowthMbPerHour` | `0` (report only) | `soak`: fail (`soak-leak`) when a process's memory grows faster than this |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |

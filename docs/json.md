@@ -128,7 +128,10 @@ ambience, ui or sfx from the folder or file name; `seconds`, `integratedLufs`, `
 `null` for silence), `warnings[]` (`file`, `message`: a file whose true peak is over -1 dBTP, or a voice or music file more than
 3 LU from its category's median; warnings never fail the run), `mix` (`null` without `-Mix`; else `file` (the recorded
 `mix.wav`), `scene`, `gameArgs`, and the same four measurements), `csv`. Written to `audio-results/audio.json` and
-`audio-results/loudness.csv`.
+`audio-results/loudness.csv`. Each `files[]` entry also has `onsetMs`: the start, in ms, of the first 10 ms
+window whose RMS level comes within 10 dB of the file's loudest 10 ms window (0 for a sound that starts on its hit; leading
+silence and a slow fade-in raise it; `null` for silence), also a column of `loudness.csv`. `onsetMaxMs` (20, `-MaxOnsetMs`) is
+the bound for `sfx` and `ui` files: one that starts later adds a warning.
 
 **credits**: `credits` with `ok`, `credits` (entries whose licence requires a visible credit), `thanks` (entries credited as a
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`
