@@ -1,0 +1,5 @@
+{
+  "tables": {
+    "barks": { "file": "data/barks.json", "kind": "responses", "facts": ["lives", "combo", "level"] }
+  }
+}

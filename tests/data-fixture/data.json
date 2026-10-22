@@ -168,6 +168,23 @@
         }
       ]
     },
+    "barks": {
+      "file": "data/barks.json",
+      "kind": "responses",
+      "facts": ["health", "danger", "lights", "near", "beside"]
+    },
+    "radio": {
+      "file": "data/radio.json",
+      "kind": "responses",
+      "voiced": true
+    },
+    "quotes": {
+      "file": "data/radio.json",
+      "kind": "barks",
+      "id": "id",
+      "extra": "allow",
+      "fields": {}
+    },
     "characters": {
       "file": "data/characters.json",
       "id": "id",

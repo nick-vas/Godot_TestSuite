@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- Dialogue tables, from the roadmap's Valve list: a `data.json` table of `"kind": "responses"` holds `ResponseSystem`'s
+  rules (id, who, concept, criteria, lines with optional voice files, then, remember, once), and the `data` runner fails
+  criteria syntax errors with the column, a `then` no rule answers (across all responses tables, with the near name),
+  voice files that do not exist (and lines without one when `"voiced": true`), rules with the same who, concept and
+  criteria, and criteria that contradict each other; a fact read but never remembered nor listed in `facts` is a
+  `fact-never-written` warning. `"type": "criteria"` checks the grammar in any table. Breakout.Core gains
+  `ResponseTable.Load` (rules from the same JSON, every bad row reported at once), `Rule.Voices` and `Rule.VoiceOf`, and
+  one strict criteria grammar, `CriteriaSyntax` (`Criterion.Parse` no longer accepts `a=` or `a=1;b=2` as one
+  criterion); 37 shared cases in `criteria-examples.json` keep the C# and PowerShell parsers in agreement. Breakout has a
+  green dialogue table (`game/data/barks.json`), and `tests/data-fixture` a broken one per check.
 - Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
   three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
   milestones), world rules, what failing costs, content counts and length, optional modes, open questions and a change

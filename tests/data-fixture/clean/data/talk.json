@@ -1,0 +1,8 @@
+[
+  { "id": "hello", "who": "guide", "concept": "Meet", "criteria": "!met", "lines": [{ "text": "Hello there.", "voice": "res://voice/hello.ogg" }],
+    "remember": [{ "fact": "met", "world": true }], "then": { "who": "smith", "concept": "Greet" }, "once": true },
+  { "id": "again", "who": "guide", "concept": "Meet", "criteria": "met=true", "lines": ["Back again?"] },
+  { "id": "smith_greet", "who": "smith", "concept": "Greet", "criteria": "gold>=10;gold<100", "lines": ["Buying?"] },
+  { "id": "anyone_greet", "concept": "Greet", "lines": ["Hm."] },
+  { "id": "smith_low", "who": "smith", "concept": "Greet", "criteria": "!gold", "lines": ["Come back with coin."] }
+]

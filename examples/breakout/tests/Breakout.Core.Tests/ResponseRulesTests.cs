@@ -173,8 +173,9 @@ public sealed class ResponseRulesTests
         Assert.Equal(new Criterion("weapon", s["shotgun"], s["shotgun"]), Criterion.Parse("weapon = shotgun", s));
         Assert.Equal(new Criterion("alone", 1, 1), Criterion.Parse("alone=true", s));
         Assert.NotEqual(s["shotgun"], s["pistol"]);
-        Assert.Throws<FormatException>(() => Criterion.Parse("health<lots", s));
-        Assert.Throws<FormatException>(() => Criterion.Parse("health", s));
+        Assert.ThrowsAny<FormatException>(() => Criterion.Parse("health<lots", s));
+        Assert.ThrowsAny<FormatException>(() => Criterion.Parse("health", s));
+        Assert.ThrowsAny<FormatException>(() => Criterion.Parse("a=1;b=2", s));   // one criterion; ParseAll reads a list
         Assert.Throws<ArgumentException>(() => new ResponseSystem([new Rule("empty", "Idle", null, [], [])], s));
     }
 }
