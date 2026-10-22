@@ -24,7 +24,10 @@ draining servers, join tokens, matchmaking and chat moderation are `godot-server
 ## 2. Client-server, step by step (Gambetta; Valve's Source networking)
 
 - **Fixed tick.** Server and clients simulate in fixed steps with the same code (`Sim.Move`); rendering interpolates
-  between steps. Valve uses 66 ticks a second, Valorant 128; 30 to 60 suits most games.
+  between steps. Valve uses 66 ticks a second, Valorant 128; 30 to 60 suits most games. In Godot 4.7 that is physics
+  interpolation, off by default (`physics/common/physics_interpolation`): without it a body moved in `_PhysicsProcess`
+  at 60 Hz judders on a 144 Hz screen. After a spawn, respawn or teleport call `ResetPhysicsInterpolation()`, or the
+  body slides from its old place (TRIBES "tweens" frames between ticks).
 - **Inputs, not positions.** Each client sends numbered inputs, every packet repeating the last 3 unconfirmed ones: at
   5% loss nothing is lost; with one copy, every lost packet is a correction the player sees.
 - **Server queue.** The server applies each client's inputs one per tick, in order, waits a few ticks for a missing
@@ -65,7 +68,7 @@ player only what matters to them, as partial updates. Breakout's `Net/Replicatio
 | Data | Needs | Example | In Godot 4.7 |
 |---|---|---|---|
 | Not guaranteed | Nothing; late is useless | an effect, a footstep | `Unreliable` RPC |
-| Guaranteed | Every one, in order | chat, a goal, a spawn, a kill | `Reliable` RPC, `MultiplayerSpawner` |
+| Guaranteed | Every one, in order | chat, a goal, a spawn, a kill | `Reliable` RPC, `MultiplayerSpawner`; in the state packets when it names an object (below) |
 | Most recent state | Only the latest value | position, health, ammo | `MultiplayerSynchronizer` with `Always`, or a replicator (below) |
 | Soonest possible | Every packet | inputs (3 copies), the player's own state | in every snapshot |
 | Static | Once, at connection | weapon and vehicle definitions | the game's data; send its id |
@@ -74,6 +77,17 @@ The rules, in short (detail and measurements in [tribes.md](tribes.md)): `OnChan
 values that rarely change; number unreliable packets and resend nothing, each kind of data deciding what a loss means;
 keep a dirty bit per state group per client; send each client only its scope, most important first within a byte
 budget, and cap how many creations or overdue objects jump the queue per packet (`GhostReplicator.MaxOverridesPerPacket`).
+
+- **Events with the state.** A `Reliable` RPC beside a synchronizer travels on its own, so "player 7 spawned" can
+  reach a client before player 7 does. Send events in the state packets, numbered; a lost packet's events go back to
+  the head of the queue, and an event naming an object goes only once that object's creation is in the same packet or
+  acknowledged (`Net/EventStream.cs`; at 20% loss, 11 events reached the client before their object without the wait,
+  0 with it).
+- **Bits, not bytes.** A bool in 1 bit, an int in what its range needs, a float as a step in a range
+  (`Net/BitPacker.cs`): a position at 1/1024 m in a 2 km world, health, an animation and a flag fit in 7 bytes instead
+  of 20 at 4 bytes a value. Godot's `StreamPeerBuffer` works in whole bytes.
+- **The client sets its rate.** Each client says how many packets a second and how many bytes each it can take, and
+  may change it while playing; the server caps that by its own uplink and feeds it to the byte budget.
 
 Halo: Reach's rules for each mechanic (predict the look and let the host decide the outcome; ask where the lag is
 hidden; change the mechanic when that hides it; warp the logic and blend the look): [halo-reach.md](halo-reach.md).

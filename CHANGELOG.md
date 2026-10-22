@@ -11,6 +11,23 @@
   (`no-palette` when there is nothing to check against). The pixels are read by `ci/godot/tools/Palette.cs`, compiled
   with `Add-Type` (no Godot, no Python; about 0.3 s a 1080p picture). The style guide template says the table is read.
   Self-test: `Test-Palette.ps1` (`-NoGodot` for its synthetic part); method and measurements in `docs/art.md`.
+- From the TRIBES networking paper, *Mathematics for Game Developers*, a Unity performance checklist and Adam Sawicki's
+  GPU debugging talk: Breakout.Core gains `BitPacker` (`BitWriter`/`BitReader`: bools, ints in the bits their range
+  needs, floats quantised in a range; a reader that disagrees with its writer throws) and `EventStream` (TRIBES'
+  events in the same packets as ghost state: numbered, a lost packet's events resent ahead of newer ones, and an event
+  naming an object sent only once its creation is in the packet or acknowledged; at 20% loss, 0 events before their
+  object, 11 without the wait), plus `EconomySim` (currency sources and sinks per hour, seeded over 10 to 1000 hours,
+  currencies without a sink, hours a player ran short). Skills: physics interpolation, events with state, bit packing
+  and client-set rates in `godot-multiplayer`; the 3D turn direction, the cross product as an area and the exercise
+  key's errors in `godot-math` (its worked examples match, its answer key does not); Godot 4.7 counterparts of the Unity
+  checklist in `godot-performance`; `--gpu-validation`, `--gpu-abort`, `--accurate-breadcrumbs` and
+  `--single-threaded-scene` in `godot-diagnose`; RenderDoc labels in `godot-debug-tools`; currencies in
+  `godot-progression`. What could not be run or checked here (Vulkan-only flags, shader precision, Mobile light limits,
+  dialogue tool licences) is in `docs/roadmap.md`.
+- Publisher contracts: Jan Willem Nijman's red flags from his comments on a 2020 publishing agreement draft
+  (`docs/publisher-contracts.md`, clause by clause with what to ask for; `godot-legal` section 6): markups and fixed
+  splits, recoup before any revenue, one-sided termination and breach clauses, unpublishing, reserves, sequel fees, and
+  a worked example of what a 15% markup and a 50/50 split cost against his 70/30 benchmark.
 - Add-ons and GDExtensions (`docs/addons.md`, skill `godot-addons`, `ci/godot/lib/Addons.ps1`): the state of 25 popular
   add-ons on Godot 4.7, cross-checked with garciamarquez.dev's ranking. `doctor`'s GDExtension check now picks each
   library as Godot does (measured on 4.7.2: every tag of a key must be a feature of the build, the most tags wins), for

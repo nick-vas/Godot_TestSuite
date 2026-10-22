@@ -80,9 +80,26 @@ drops) already fails when empty.
 - **Switch a system off where it interacts badly** (mail before a faction is chosen) instead of patching each case.
 - **A game inside your game gives way to it**: it shrinks, pauses, and has quieter sounds so the host's cues are heard.
 
+## 5. Currencies: sources and sinks
+
+Every currency enters through sources (rewards, loot sold, daily bonuses) and leaves through sinks (repairs, fees,
+upgrades). "If sources exceed sinks: Inflation", and the owner's list of skill gaps asks to "verify economy stability
+over: 10 hours 100 hours 1000 hours". Write each flow down per hour of play, from the design and later from telemetry,
+and simulate it: Breakout's `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Economy/EconomySim.cs`, tested in
+`EconomySimTests`.
+
+- **Net change per hour** (`PlannedNetPerHour`, and `NetPerHour` from a seeded run) stays inside a band you choose:
+  slightly positive lets players save for something big; well above it, prices stop meaning anything.
+- **Every currency has a sink** (`WithoutSink`): a source alone only piles up, the usual shape of an exploit.
+- **Hours short, not only the balance.** A sink takes only what the player has, so sinks above sources show a net
+  change near 0 that looks healthy; `ShortHours` (hours a sink could not be paid in full) shows the dead economy: 94 of
+  100 hours with 500 in and 700 out.
+- Run 10, 100 and 1000 hours on each change to a rate, with the same seed.
+
 ## In a review
 
 - Every reward marked power or cosmetic; no repeatable power-only source; nothing missable.
 - Loot tables have a consolation entry; rare drops have a pity rule; worst streaks tested.
 - `totals` on every table whose sum gates progress; the `data` runner green.
 - Difficulty changes made on enemies, checked with the strongest stats as well as the expected ones.
+- Each currency has a sink; its net change per hour stays in its band and no hours run short over 10, 100 and 1000 hours.
