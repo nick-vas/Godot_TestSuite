@@ -53,6 +53,7 @@
 | `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board; `link -Column` the card's list, `link -Board` the plan's board |
 | `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
+| `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
 | `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the `godot-verifier` subagent |
 | `-Plugin` | off | `init`: AGENTS.md and CLAUDE.md, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |

@@ -200,6 +200,8 @@ From the art pass (`docs/art.md`):
 | Sonniss bundle licence, Freesound FAQ | Both sites returned 403; the owner should read the bundle's License.pdf and https://freesound.org/help/faq/ |
 | Godot's Texture Atlas importer headless | It wrote no atlas and once hung; the cause is not known, so the skill packs sheets another way |
 | Palette check | `shot` could count colours outside the palette in `docs/STYLE.md` to catch palette bloat; not built yet |
+| aseprite-mcp against a real Aseprite, on Windows | Aseprite is paid and not installed here; the handshake, 123 tools and the call reaching the program were checked with a stand-in. Watch for Windows-only issues: it writes its Lua scripts in the system's code page |
+| Keeping aseprite-mcp's pins current | `init` pins a commit and MCP SDK 1.30.0 (`docs/mcp.md`); the weekly canary does not track git pins, so a newer server is picked up by hand |
 | A `bench` sweep helper for particle counts and quality tiers | The skill shows the manual way (`-GameArgs`); a built-in sweep would save runs |
 
 ## To do: saves, localization and input

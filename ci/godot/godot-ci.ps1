@@ -142,6 +142,8 @@ param(
     [string]$Mcp = 'none',
     # init: also register minimal-godot-mcp (GDScript diagnostics and the running game's console).
     [switch]$McpDiagnostics,
+    # init: also register aseprite-mcp (an agent draws pixel art in Aseprite) for this Aseprite: the program or its folder.
+    [string]$McpAseprite,
     # init: also add AGENTS.md, CLAUDE.md, the agent skills and the verifier subagent.
     [switch]$Agents,
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
@@ -537,7 +539,7 @@ switch ($Command) {
     'init' {
         Initialize-Project $info
         if ($Agents -or $Plugin) { Add-AgentFiles $info $PSCommandPath ([bool]$Plugin) }
-        if ($Mcp -ne 'none' -or $McpDiagnostics) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) }
+        if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }

@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `init -McpAseprite <Aseprite.exe or its folder>` registers [aseprite-mcp](https://github.com/diivi/aseprite-mcp) (MIT) in
+  `.mcp.json`, so an agent can draw, animate and export pixel art in Aseprite (batch mode, 123 tools, `view_sprite` to see
+  its work). It runs through `uvx` at a pinned commit with MCP SDK 1.30.0: unpinned, the server did not start (its
+  `mcp[cli]>=1.6.0` resolved to SDK 2.x, which renamed what it imports). `ASEPRITE_PATH` is set from the path given;
+  `aseprite-not-found` when there is no program there. `docs/mcp.md`, `godot-asset-pipeline`.
 - Design and production practice. The GDD template gains audience and expected age rating, a core fantasy, the loop at
   three scales (moment, session, playthrough), the first session step by step (for flows and `playthrough.json`
   milestones), world rules, what failing costs, content counts and length, optional modes, open questions and a change

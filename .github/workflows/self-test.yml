@@ -508,7 +508,7 @@ jobs:
           ./ci/godot/godot-ci.ps1 plan -Do init -Project $dir
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
           if ($d.currentPhase.id -ne 'concept' -or $d.nextActions.Count -lt 1) { throw "unexpected plan output" }
-      - name: MCP config is written, kept on re-run, and merged into an existing file
+      - name: MCP config is written, kept on re-run, and merged into an existing file; -McpAseprite finds Aseprite.exe
         shell: pwsh
         run: |
           $dir = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'mcp-test')
@@ -520,6 +520,14 @@ jobs:
           $servers = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.PSObject.Properties.Name
           if (($servers | Sort-Object) -join ',' -ne 'godot-mcp,minimal-godot-mcp,other') { throw "unexpected servers: $servers" }
           if (-not (Test-Path (Join-Path $dir '.mcp.json.bak'))) { throw 'no backup of the existing .mcp.json' }
+          # -McpAseprite takes Aseprite's folder (a space in its name, as under Program Files) and refuses one without the program.
+          $ase = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'Aseprite Test')
+          New-Item -ItemType File (Join-Path $ase 'Aseprite.exe') | Out-Null
+          pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -McpAseprite $ase -Project $dir
+          $entry = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.aseprite
+          if ($entry.command -ne 'uvx' -or $entry.env.ASEPRITE_PATH -ne (Join-Path $ase 'Aseprite.exe') -or $entry.args -notcontains 'aseprite_mcp') { throw "unexpected aseprite entry: $($entry | ConvertTo-Json -Compress)" }
+          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -McpAseprite (Join-Path $env:RUNNER_TEMP 'no-aseprite') -Project $dir -Json 2>$null | ConvertFrom-Json
+          if ($d.ok -or $d.error.code -ne 'aseprite-not-found') { throw "expected aseprite-not-found, got: $($d.error.code)" }
       - name: Export the Windows build and launch it
         shell: pwsh
         run: ./ci/godot/godot-ci.ps1 export -Project examples/breakout/game -Preset Windows -Run
