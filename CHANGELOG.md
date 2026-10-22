@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Valve, from its own public material (talk slides, the 2012 handbook, the Cabal article, seven games' developer
+  commentary; `docs/valve.md`, 115 quotes checked word for word): Breakout.Core gains `PacingDirector` and `Intensity`
+  (Left 4 Dead's AI Director: build up, sustain the peak 3-5 s, fade, relax 30-45 s; pacing, never difficulty) and
+  `ResponseSystem` (the dialogue rule database of Left 4 Dead 2, Portal 2 and Dota 2: a flat query, most criteria wins,
+  random ties, memory that expires, follow-ups looked up when a line ends, rules that remove themselves). New skill
+  `godot-playtest`; Valve's process in `godot-game-plan`; readability rules in the `STYLE.md` template.
 - Google for Games' open source (Agones, Open Match, Quilkin, Open Saves, clean-chat, the GenAI demos; Apache-2.0;
   `docs/googleforgames.md`), without their Google Cloud setup: `godot-servers` and `godot-llm` skills; Breakout.Core
   gains a server lifecycle with a health watchdog, Agones' HTTP SDK, join tokens for Godot's authentication step, a

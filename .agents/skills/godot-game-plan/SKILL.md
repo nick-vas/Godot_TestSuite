@@ -69,6 +69,14 @@ lists each hacked, stubbed or unstarted system with its cost at full size, and t
 `slice.verdict` that rejects a feature list or a tech demo and takes more slice time while core gameplay is still moving.
 A plan made before these gates existed lacks them (plan.json is the game's after `init`): offer to add them.
 
+Valve restarted Half-Life when it was not fun weeks before its date ("we couldn’t see how a month or two would make any
+significant difference"): a verdict is proceed, pivot or kill, never "extend". It then worked in 15-minute rough slices
+with a playtest each week setting next week's work (`godot-playtest`); designed only around technology that already
+worked, with risky bets first; banned one-off engineering (a feature is done when two scenes use it); froze scenes that
+had passed playtests; and ran an alpha pass over the whole game that added nothing new. Its Cabal put every discipline
+in the design room: with agents, one review pass per discipline over each design, each listing the work it creates
+(`${CLAUDE_PLUGIN_ROOT}/docs/valve.md`).
+
 Derek Lieu, a trailer editor, writes the trailer before the game: if nobody can picture a trailer worth watching, the
 prototype is probably not worth building on (Lucas Pope's test). Hence `prototype.trailer` (automatic: `docs/TRAILER.md`,
 from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/TRAILER.md`): the genre in the first 5 seconds, then the hook, content last;

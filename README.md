@@ -117,6 +117,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-architecture` | structuring a game or system so it stays deterministic and testable |
 | `godot-game-design` | deciding what a game or feature is for, whether it is fun, and what to cut: MDA's kinds of fun, design rules of thumb, gameplay patterns |
 | `godot-math` | vectors, angles, rotations, bounces and oscillation in Godot, and where textbook formulas and the engine disagree |
+| `godot-playtest` | running and reading playtests Valve's way, the fixes for what testers keep doing, and the telemetry that finds it |
 | `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
 | `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
 | `godot-asset-pipeline` | importing textures, pixel art and 3D models, Blender to glTF, LODs, palettes, free libraries and where each asset came from |

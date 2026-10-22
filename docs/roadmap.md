@@ -326,3 +326,22 @@ warning on forks, a pinned actionlint, `doctor`'s repository checks (`Test-RepoH
 - [ ] A short page on self-hosted runners (labels, one workspace per runner, disk clean-up; `~/.godot-ci` persists
       there, so the cache steps are redundant).
 
+
+## To do: from Valve's public material
+
+Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
+`PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
+`godot-playtest` skill, and Valve's process in `godot-game-plan`. Still to do:
+
+- [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
+      scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
+      page is "Under Construction"), *Game Developer* November 2005 ("Scaling the Cabal": the GDC Vault serves a login
+      page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
+- [ ] A dialogue authoring path: a `data.json` table for `ResponseSystem` rows (who, concept, criteria, lines, then,
+      remember), so the `data` runner checks criteria syntax, follow-up targets and missing voice files.
+- [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
+      `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
+- [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
+      from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
+- [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
+      use up every key item, then check progress is still possible), both from the commentaries.

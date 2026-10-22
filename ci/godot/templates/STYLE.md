@@ -31,6 +31,18 @@ descender): 18 px on PC, 26 px on console and TV (XAG 101); a UI scale setting u
 - No text or button overlaps another at any listed resolution, or at 200% UI scale (1.4.4).
 - Clickable controls at least 24 x 24 px at 1080p; the focused control always has a visible outline (2.5.8, 2.4.7).
 
+## Reading the game world
+
+From Team Fortress 2 and Valve's other games (`docs/valve.md`): the player must tell who and what at a glance.
+
+- Read order: side or team by colour, role by silhouette and proportions, the held item by the strongest contrast
+  (TF2 puts it at chest level). Every character and enemy is recognisable as a flat black shape.
+- The world is less saturated than the characters and the things to interact with; shadows go cool rather than black,
+  and edges are picked out with rim light rather than outlines.
+- One look per gameplay property, everywhere: whatever breaks, climbs, burns or opens looks the same in every level.
+- Light leads: the way on and the object that matters are the warmest or brightest spot in the frame.
+- Cosmetics and skins change colour and texture inside the item's shape, never the shape.
+
 ## Motion
 
 - Feedback starts within 100 ms of the action (juice.json checks it).
