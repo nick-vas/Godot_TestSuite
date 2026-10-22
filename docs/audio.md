@@ -20,6 +20,9 @@ None of the web pages states a licence, so they are summarised and linked here, 
 | [IESD Mix Recommendations v03.02](https://www.audiogang.org/wp-content/uploads/2015/04/IESD-Mix-Ref-Levels-v03.02.pdf) (G.A.N.G., 2015) | The same console target from the industry body; a different mobile target |
 | [EBU R128](https://tech.ebu.ch/publications/r128) and ITU-R BS.1770 | What integrated loudness, true peak and loudness range mean, and how they are gated |
 | Joonas Turner's GDC talk on game feel with sound ([gdc/game-feel-with-sound.md](gdc/game-feel-with-sound.md)) | Action sounds: start on the hit, short first, one 5 to 20 ms impact layer, one recording and master chain per family, slight ducking under the player's actions; the source of `audio`'s `onsetMs` warning |
+| [Godot 4.7, "Sync the gameplay with audio and music"](https://docs.godotengine.org/en/4.7/tutorials/audio/sync_with_audio.html) | The song clock: playback position plus time since the last mix minus output latency, discarding readings that go back; the system clock drifts over long songs |
+| [John Johanas, Hi-Fi Rush GDC talk](https://www.youtube.com/watch?v=pG4UxqRMNX0) ([notes](gdc/hi-fi-rush-rhythm-action.md)) | Landing each action's impact on the beat by changing its animation speed; rewarding on-beat play without punishing off-beat play |
+| [Guy Somberg, "Lessons Learned from a Decade of Audio Programming"](https://www.youtube.com/watch?v=Vjm--AqG04Y) (GDC, 2014 inferred; notes in [gdc/decade-of-audio-programming.md](gdc/decade-of-audio-programming.md)) | Max within radius, a voice cap per spot that keeps every direction audible; integer voice handles; 6 dB as half or double |
 | [Xbox Accessibility Guideline 105](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/105) | Separate volume or mute for music, voice, effects, ambience and narration, and a mono option |
 
 ## Middleware ideas in Godot
@@ -50,6 +53,10 @@ Checked against the 4.7.2 source or by running it.
   `RandomVolumeOffsetDb` of 2 means -2 to +2 dB. The default mode, `RandomNoRepeats`, never plays the same entry twice in a row.
 - `MaxPolyphony` defaults to 1. Past it, the oldest voice of that player is stopped with a 64-sample fade. There is no
   global voice limit and no priority system.
+- A position, volume or pitch set on a player just after `play()`, in the same frame, is heard from the first sample: 2D
+  and 3D players start at the next physics tick. On the dummy driver (no sound device), a reused `AudioStreamPlayer2D`
+  can play a short sound with its previous pan and volume; a new player or `play(0.0001)` avoids it. Measurements in
+  [gdc/decade-of-audio-programming.md](gdc/decade-of-audio-programming.md).
 - `AudioStreamInteractive` quantises to `NextBeat` and `NextBar` only when the source clip has a BPM. Ogg Vorbis and MP3
   streams carry `Bpm`, `BeatCount` and `BarBeats`; WAV has none. On a WAV clip the switch is immediate and the fade length is
   read as seconds instead of beats.
