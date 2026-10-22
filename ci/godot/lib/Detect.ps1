@@ -141,9 +141,10 @@ function Get-ProjectInfo {
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
         # A bot run that checks every gameplay event got its feedback in time, when juice.json says what to expect.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'juice.json')) { $selected += 'juice' }
-        # Translation tables are checked for duplicate, untranslated and missing keys.
+        # Translation tables are checked for duplicate, untranslated, missing and too long keys; translation remaps
+        # (localized voice, textures) for missing files and sounds that differ from their source.
         $translations = Get-TranslationSources $projectDir
-        if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0) { $selected += 'l10n' }
+        if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0 -or $projectGodot -match '(?m)^locale/translation_remaps=\{[^}]*"') { $selected += 'l10n' }
         # Data tables are checked against data.json: ids, fields, types, ranges and references.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'data.json')) { $selected += 'data' }
         # Text sizes are measured on small screens (the Steam Deck's 1280x800) when textsize.json asks for it.

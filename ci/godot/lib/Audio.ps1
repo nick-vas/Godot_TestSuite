@@ -83,6 +83,24 @@ function Measure-Loudness([string]$File) {
     }
 }
 
+# Sample rate (Hz), channels, bit depth (0 when the codec has none, as in Ogg Vorbis and MP3) and length (s) of a file's first
+# audio stream, with ffprobe. Returns $null when ffprobe cannot read it.
+function Get-AudioFormat([string]$File) {
+    $output = @(& ffprobe -v error -select_streams a:0 -show_entries 'stream=sample_rate,channels,bits_per_sample,bits_per_raw_sample:format=duration' -of json $File 2>$null)
+    if ($LASTEXITCODE -ne 0) { return $null }
+    $data = ($output -join "`n") | ConvertFrom-Json -AsHashtable
+    $streams = @($data['streams'])
+    if ($streams.Count -eq 0 -or -not $streams[0]) { return $null }
+    $stream = $streams[0]
+    $bits = 0
+    foreach ($name in 'bits_per_sample', 'bits_per_raw_sample') {
+        $value = 0
+        if ($stream.ContainsKey($name) -and [int]::TryParse("$($stream[$name])", [ref]$value) -and $value -gt $bits) { $bits = $value }
+    }
+    $seconds = if ($data['format'] -and $data['format'].ContainsKey('duration')) { ConvertTo-AudioNumber "$($data['format']['duration'])" } else { $null }
+    return [ordered]@{ sampleRate = [int]$stream['sample_rate']; channels = [int]$stream['channels']; bits = $bits; seconds = $seconds }
+}
+
 # When the sound arrives, in ms: the start of the first 10 ms window whose RMS level comes within 10 dB of the file's
 # loudest 10 ms window (ffmpeg's astats, reset every window, on a mono 48 kHz copy). Leading silence and a slow fade-in both
 # delay it; a sound that starts on its hit reads 0. Returns $null for silence or when ffmpeg cannot read the file.

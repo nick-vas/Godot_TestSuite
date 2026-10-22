@@ -54,9 +54,11 @@ jobs:
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
-      - name: The l10n runner fails on duplicate, untranslated and missing keys
+      - name: The l10n runner fails on duplicate, untranslated, missing and too long keys, broken remaps and mismatched voice
         shell: pwsh
-        run: ./tests/Test-Localization.ps1
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
+          ./tests/Test-Localization.ps1
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1

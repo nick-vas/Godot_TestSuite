@@ -91,8 +91,11 @@ The `layout` runner has a passing case per profile that is clean, and one failin
 (`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
 `unsafe-area`, `small-target`), separated by `; `; a case `run` when Godot fails, a scene cannot be loaded, a profile is
 not understood, or nothing was found to check. Its log is `layout.log`.
-The `l10n` runner has three cases, `duplicate keys`, `untranslated` and `missing keys`; a failure's message lists up to
-50 entries, one per line, as `res://file: 'KEY' reason`.
+The `l10n` runner has six cases, `duplicate keys`, `untranslated`, `missing keys`, `too long`, `translation remaps` and
+`localized audio`; a failure's message lists up to 50 entries, one per line: `res://file: 'KEY' reason` for the first four
+(`too long`: `'KEY' de is 14 characters, limit 10 (_max)` or `has 3 lines, limit 2 (_lines)`), `res://target (locale) does
+not exist; ...` for remaps, and `res://target (locale, for res://source): reason; reason` for audio. Without ffmpeg and
+ffprobe, `localized audio` is skipped (`skipped` counts it) and `runnerResults[].warnings` has one with rule `no-ffmpeg`.
 
 `message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
 and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;
