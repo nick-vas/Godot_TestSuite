@@ -2,4 +2,5 @@ Fixture for doctor's asset and pixel-art checks, used by `tests/Test-AssetManife
 the files the manifest describes (empty files: doctor reads only names), plus `.import` files as Godot writes them. It covers
 one file of each licence problem (non-commercial, GPL, an unrecognised licence, an attribution licence, no entry, a manifest
 entry with no source) and, since the project declares pixel art (Nearest filter), a sprite with mipmaps and one with VRAM
-compression.
+compression. Commissioned work: one entry with its paperwork (`art/enemy`), one with no agreement (`art/boss`), one with no
+rights (`art/logo.png`), one licence with no uses (`music/theme.ogg`) and one licence with its uses (`music/menu.ogg`).
