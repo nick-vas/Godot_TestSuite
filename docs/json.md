@@ -215,6 +215,12 @@ window whose RMS level comes within 10 dB of the file's loudest 10 ms window (0 
 silence and a slow fade-in raise it; `null` for silence), also a column of `loudness.csv`. `onsetMaxMs` (20, `-MaxOnsetMs`) is
 the bound for `sfx` and `ui` files: one that starts later adds a warning.
 
+**sfx**: `sfx` with `outputDir`, `peakDb` (the peak every sound was scaled to), `files[]` (`path` of the WAV, `bfxr` (its
+parameters, which bfxr2's editor and library open), `sound` (the preset, or the source file's name with `-Vary`), `seed`,
+`seconds`, `peakDb`), and `assetsEntry` (the `assets.json` entry for the output folder, added to the project's
+`assets.json` when it has one and not already there; `null` when the output is outside the project). An unknown
+`-Sound` is `invalid-arguments`, with the nearest name.
+
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
 `memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
 `fails[]`, `log`), `clientMemoryMb` (`average`), and, with `-JunkPps`, `junk` (`pps`, `packetsSent`: the loopback junk

@@ -20,6 +20,8 @@
     ./ci/godot/godot-ci.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
 .EXAMPLE
     ./ci/godot/godot-ci.ps1 soak -Clients 10 -Seconds 600 -MaxGrowthMbPerHour 50   # a headless server and 10 clients for 10 minutes
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
 #>
 [CmdletBinding()]
 param(
@@ -31,8 +33,9 @@ param(
     # audio: loudness of the sound files and, with -Mix, of the game's recorded mix (needs ffmpeg).
     # soak: one headless server and -Clients headless clients of the game, run together; fails on crashes, errors and leaks.
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
+    # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -93,6 +96,15 @@ param(
     [string[]]$ColorVision,
     # soak: how many headless clients to start next to the one server.
     [int]$Clients = 4,
+    # sfx: which sounds (coin, laser, explosion, powerup, hit, jump, blip; default all), how many of each from consecutive
+    # seeds, and the first seed (a number or text). -Vary <file.bfxr> makes -Count variations of one sound instead,
+    # each parameter moved by up to -Amount of its range. Every sound is scaled to a peak of -PeakDb dBFS.
+    [string[]]$Sound,
+    [int]$Count = 1,
+    [string]$Seed = '1',
+    [string]$Vary,
+    [double]$Amount = 0.05,
+    [double]$PeakDb = -6,
     # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
     [double]$MaxGrowthMbPerHour = 0,
     # soak: flood the server's own port on 127.0.0.1 with this many junk UDP packets a second (loopback only), to measure
@@ -152,7 +164,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -503,6 +515,10 @@ switch ($Command) {
         Invoke-Setup; Invoke-Build
         Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour -JunkPps $JunkPps `
             -StopGraceSeconds $StopGraceSeconds -RequireCleanStop:$RequireCleanStop -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'soak-results' })))
+    }
+    'sfx' {
+        Invoke-Sfx -Info $info -Sound $Sound -Count $Count -Seed $Seed -Vary $Vary -Amount $Amount -PeakDb $PeakDb `
+            -OutputDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { Join-Path $info.ProjectDir 'sounds/sfx' })))
     }
     'credits' {
         Invoke-Setup
