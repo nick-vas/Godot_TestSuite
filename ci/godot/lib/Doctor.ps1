@@ -46,33 +46,6 @@ function Get-GodotProjectSetting([string]$ProjectGodot, [string]$Name) {
     return $line.Success ? $line.Groups['v'].Value.Trim() : $null
 }
 
-# Export platforms as the first word of a .gdextension library key (windows.release.x86_64, macos.debug, ...).
-$script:GdextensionPlatforms = @{ 'Windows Desktop' = 'windows'; 'Linux' = 'linux'; 'Linux/X11' = 'linux'; 'macOS' = 'macos'
-    'Android' = 'android'; 'iOS' = 'ios'; 'Web' = 'web' }
-
-# Libraries a GDExtension names for an exported platform but does not ship: the extension then fails to load in that
-# build only. GodotSteam 4.23.2's .gdextension names macOS files its zip does not contain.
-function Get-GdextensionProblems([string]$ProjectDir, [string[]]$Platforms) {
-    $wanted = @($Platforms | ForEach-Object { $script:GdextensionPlatforms[$_] } | Where-Object { $_ } | Select-Object -Unique)
-    $problems = [System.Collections.Generic.List[string]]::new()
-    $files = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.gdextension' -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '[\\/]\.godot[\\/]' })
-    foreach ($file in $files) {
-        $section = ''
-        foreach ($line in Get-Content -LiteralPath $file.FullName) {
-            if ($line -match '^\s*\[(\w+)\]') { $section = $Matches[1]; continue }
-            if ($section -notin 'libraries', 'dependencies' -or $line -notmatch '^\s*(?<key>[\w.]+)\s*=(?<value>.*)$') { continue }
-            $platform = ($Matches.key -split '\.')[0]
-            if ($platform -notin $wanted) { continue }
-            foreach ($path in [regex]::Matches($Matches.value, '"(res://[^"]+)"') | ForEach-Object { $_.Groups[1].Value }) {
-                $local = Join-Path $ProjectDir ($path -replace '^res://', '')
-                if (-not (Test-Path -LiteralPath $local)) { $problems.Add("$(ConvertTo-ResPath $ProjectDir $file.FullName) [$section] $($Matches.key): $path does not exist") }
-            }
-        }
-    }
-    return , $problems.ToArray()
-}
-
 # Steam bindings in the C# project that cannot work as installed (measured on Godot 4.7.2, October 2026).
 function Get-SteamPackageProblems([string]$Csproj, [string[]]$Platforms) {
     $problems = [System.Collections.Generic.List[object]]::new()
@@ -219,11 +192,11 @@ function Invoke-Doctor($Info) {
         }
     }
 
-    $exportPlatforms = @((Get-ExportPresetDetails $project).Values | ForEach-Object Platform)
-    $extensionProblems = Get-GdextensionProblems $project $exportPlatforms
-    foreach ($problem in $extensionProblems) {
-        Add-Check FAIL "A GDExtension names a library that is missing for an exported platform: $problem" 'Copy that platform''s files from the add-on''s release, or correct the path in the .gdextension'
-    }
+    $presetDetails = @((Get-ExportPresetDetails $project).Values)
+    $exportPlatforms = @($presetDetails | ForEach-Object Platform)
+    # Each GDExtension's library for each preset's builds, as Godot picks it, and add-on mistakes (lib/Addons.ps1).
+    foreach ($problem in @(Get-GdextensionProblems $project $presetDetails $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
+    foreach ($problem in @(Get-AddonProblems $project $projectGodot $presetDetails $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
     $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
     foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 

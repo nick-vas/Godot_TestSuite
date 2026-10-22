@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Add-ons and GDExtensions (`docs/addons.md`, skill `godot-addons`, `ci/godot/lib/Addons.ps1`): the state of 25 popular
+  add-ons on Godot 4.7, cross-checked with garciamarquez.dev's ranking. `doctor`'s GDExtension check now picks each
+  library as Godot does (measured on 4.7.2: every tag of a key must be a feature of the build, the most tags wins), for
+  each preset's release and debug builds and Android ABIs, with paths relative to the `.gdextension` and multi-line
+  `[dependencies]`. Before, it saw only `res://` paths, so the official template's and Debug Draw 3D's libraries were
+  never checked, and a build no key fits (Godot exports it with exit code 0 and no library) passed. New: an editor-only
+  extension exported, `compatibility_minimum` and `_maximum` against the project's Godot, the Godot Jolt extension on
+  4.4+, an add-on autoload the game uses but `project.godot` lacks, test add-ons shipped, and `forced_dd3d` in a preset.
 - The second-pass test features from Croteam's CI talk: a `playthrough` runner (`playthrough.json`: the game's bot plays at
   a fixed 60 fps of game time and must log every milestone in order, the ending last; `smoke` passed a bot stuck in the first
   room), and the plan gate `production.playthrough` is now checked by it (`runner:<name>`, a new gate check). `smoke
