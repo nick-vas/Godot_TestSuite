@@ -41,7 +41,7 @@ param(
     [string]$Solution,
     # e.g. 4.7.2 or 4.8-rc1. Default: from Godot.NET.Sdk in the csproj, else 4.7.2.
     [string]$GodotVersion,
-    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data, textsize (or none to only build). Default: detected.
+    # validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, juice, l10n, data, textsize, layout (or none to only build). Default: detected.
     [string[]]$Runners,
     # Passed to each runner's own filter.
     [string]$Filter,
@@ -53,6 +53,8 @@ param(
     [string[]]$Preset,
     # export: also launch each build this machine can run (e.g. Windows builds on Windows) and fail on errors.
     [switch]$Run,
+    # export -Run of a Web preset: the browsers to open it in (chromium, chrome, msedge, firefox, webkit), through Playwright.
+    [string[]]$Browser = @('chromium'),
     # export: the game's version, e.g. a tag such as v1.2.3-rc.1. Its numbers (1.2.3) become config/version for this export
     # only (the Windows file version, macOS and Android versions); all of it becomes the C# assembly's InformationalVersion.
     [string]$GameVersion,
@@ -132,7 +134,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Credits', 'Store') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -328,6 +330,16 @@ function Invoke-Export {
 function Invoke-ExportPresets {
     $exports = @()
     $details = Get-ExportPresetDetails $info.ProjectDir
+    # Godot imports whatever lands inside the project, and the next export packs it (a web export's icons, a whole
+    # previous build): an output folder inside the project gets a .gdignore first.
+    $outputRoot = [System.IO.Path]::GetFullPath($Output)
+    $relative = [System.IO.Path]::GetRelativePath($info.ProjectDir, $outputRoot)
+    if ($relative -ne '.' -and -not $relative.StartsWith('..') -and -not [System.IO.Path]::IsPathRooted($relative) -and
+        -not (Test-Path -LiteralPath (Join-Path $outputRoot '.gdignore'))) {
+        New-Item -ItemType Directory -Force $outputRoot | Out-Null
+        New-Item -ItemType File -Path (Join-Path $outputRoot '.gdignore') | Out-Null
+        Write-CiLog "Added $(Join-Path $outputRoot '.gdignore'): the output folder is inside the project"
+    }
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
@@ -357,10 +369,40 @@ function Invoke-ExportPresets {
         if (Test-Path -LiteralPath $notices) { Copy-Item -LiteralPath $notices -Destination $dir -Force }
         Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
 
-        $exports += [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        if ($preset.Platform -eq 'Web') {
+            $entry.web = Get-WebBuildSize $dir
+            Write-CiLog "Web build: $($entry.web.rawMb) MB, $($entry.web.gzipMb) MB gzipped"
+        }
+        $exports += $entry
         Set-JsonField exports $exports
-        if ($Run) { Test-ExportedBuild $name $preset.Platform $file }
+        if ($Run -and $preset.Platform -eq 'Web') { Test-WebExport $name $preset $dir }
+        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file }
     }
+}
+
+# Opens a web export in real browsers. Release builds skip script errors silently (a call on null just does nothing),
+# so a debug export of the same preset is what gets played; a threads build is served with the headers it needs.
+function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
+    $debugDir = "$ReleaseDir-debug"
+    New-Item -ItemType Directory -Force $debugDir | Out-Null
+    $log = [System.IO.Path]::GetTempFileName()
+    Start-LogGroup "Export '$Name' (debug, for the browser run)"
+    $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $info.ProjectDir, '--export-debug', $Name, (Join-Path $debugDir (Split-Path $Preset.ExportPath -Leaf))) $log
+    Stop-LogGroup
+    if ($code -ne 0) { Stop-GodotCi "Debug export of '$Name' exited with $code" 'export-failed' }
+    $threads = "$($Preset.Options['variant/thread_support'])" -eq 'true'
+    $runs = Invoke-WebSmoke $debugDir @($Browser | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) $threads (Join-Path $debugDir 'screenshot')
+    $all = @($script:JsonDoc['webRuns'] | Where-Object { $_ }) + @(foreach ($r in $runs) { $r.preset = $Name; $r })
+    Set-JsonField webRuns $all
+    foreach ($r in $runs) {
+        Write-CiLog "$Name in $($r.browser): $(if ($r.ok) { "started in $($r.startMs) ms" } else { 'FAILED' })$(if ($r.renderer) { ", $($r.renderer)" })"
+        foreach ($e in @($r.errors)) { Write-CiLog "  $e" }
+    }
+    $setup = @($runs | Where-Object { "$($_.errors)" -match '\[setup\]' })
+    if ($setup) { Stop-GodotCi "Could not open '$Name' in $(@($setup | ForEach-Object browser) -join ', '): $(@($setup[0].errors) -join '; ')" 'no-browser' }
+    $failed = @($runs | Where-Object { -not $_.ok })
+    if ($failed) { Stop-GodotCi "The web build '$Name' failed in $(@($failed | ForEach-Object browser) -join ', '): $(@($failed[0].errors | Select-Object -First 3) -join '; ')" 'web-run-failed' }
 }
 
 # Launches the exported game headless, as a player would get it, and fails on any engine error. This catches

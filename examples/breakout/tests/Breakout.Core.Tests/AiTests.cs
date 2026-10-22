@@ -131,11 +131,11 @@ public sealed class AiTests
         var actions = Enumerable.Range(0, 6).Select(i => new GoapAction($"step {i}", 1, i == 0 ? State() : State($"done{i - 1}"), State($"done{i}")))
             .Concat(Enumerable.Range(0, 20).Select(i => new GoapAction($"fidget {i}", 0.5f, State(), State($"fidget{i}"))))
             .ToList();
-        var watch = Stopwatch.StartNew();
-        List<GoapAction>? plan = null;
-        for (int run = 0; run < 100; run++) plan = GoapPlanner.Plan(State(), State("done5"), actions);
+        var plan = GoapPlanner.Plan(State(), State("done5"), actions, out int expanded);
+        GoapPlanner.Plan(State(), State("done5"), actions.Take(6).ToList(), out int withoutFidgets);
         Assert.Equal(Enumerable.Range(0, 6).Select(i => $"step {i}"), plan!.Select(a => a.Name));
-        Assert.True(watch.Elapsed.TotalMilliseconds / 100 < 5, $"{watch.Elapsed.TotalMilliseconds / 100:F2} ms per plan");
+        // Twenty actions that never lead to the goal add no work (asserted on states searched, not wall time).
+        Assert.Equal(withoutFidgets, expanded);
     }
 
     [Fact]
@@ -143,14 +143,14 @@ public sealed class AiTests
     {
         Assert.Null(GoapPlanner.Plan(State(), State("enemyDown", "flying"), SoldierActions));
         // Twelve facts, each reachable two ways from things that never hold: 4096 dead ends. The cap stops the search.
+        // Asserted on work done, not wall time, which failed under load.
         var actions = Enumerable.Range(0, 12).SelectMany(i => new[]
         {
             new GoapAction($"a{i}", 1, State($"never_a{i}"), State($"g{i}")),
             new GoapAction($"b{i}", 1, State($"never_b{i}"), State($"g{i}")),
         }).ToList();
-        var watch = Stopwatch.StartNew();
-        Assert.Null(GoapPlanner.Plan(State(), Enumerable.Range(0, 12).ToDictionary(i => $"g{i}", _ => true), actions, maxExpanded: 500));
-        Assert.True(watch.ElapsedMilliseconds < 500, $"{watch.ElapsedMilliseconds} ms");
+        Assert.Null(GoapPlanner.Plan(State(), Enumerable.Range(0, 12).ToDictionary(i => $"g{i}", _ => true), actions, out int expanded, maxExpanded: 500));
+        Assert.InRange(expanded, 1, 500);
     }
 
     // Opening the door uses the key up; the goal wants the door open and a key in hand, so the key comes second.
@@ -164,6 +164,38 @@ public sealed class AiTests
         };
         Assert.Equal(new[] { "open door", "get key" }, GoapPlanner.Plan(State("hasKey"), State("doorOpen", "hasKey"), actions)!.Select(a => a.Name));
         Assert.Equal(new[] { "get key", "open door", "get key" }, GoapPlanner.Plan(State(), State("doorOpen", "hasKey"), actions)!.Select(a => a.Name));
+    }
+
+    // Chris Conway's example (Tomb Raider, "GOAP: Ten Years of AI Programming"): melee costs 1 and ranged 10, and the
+    // walk there costs its distance. 20 m away, melee is 1 + 20 = 21 and ranged, already in range, 10 + 1 = 11.
+    static readonly GoapAction[] AttackActions =
+    {
+        new("melee", 1, State("atTarget"), State("targetDown")),
+        new("ranged", 10, State("inRange", "hasAmmo"), State("targetDown")),
+        new("go to target", 1, State(), State("atTarget")),
+        new("go to range", 1, State(), State("inRange")),
+    };
+
+    static Func<GoapAction, float> CostsAt(float distance, float weaponRange = 25) => a => a.Name switch
+    {
+        "go to target" => distance,
+        "go to range" => MathF.Max(1, distance - weaponRange),
+        _ => a.Cost,
+    };
+
+    [Fact]
+    public void GoapCostsFollowTheSituation()
+    {
+        string[] PlanAt(float distance, params string[] facts) =>
+            GoapPlanner.Plan(State(facts), State("targetDown"), AttackActions, costOf: CostsAt(distance))!.Select(a => a.Name).ToArray();
+
+        Assert.Equal(new[] { "go to target", "melee" }, PlanAt(2, "hasAmmo"));      // 3 against 11
+        Assert.Equal(new[] { "go to range", "ranged" }, PlanAt(20, "hasAmmo"));     // 11 against 21
+        Assert.Equal(new[] { "go to target", "melee" }, PlanAt(20));                // out of ammo: run in, no range rule needed
+
+        // Fixed costs give the same plan at every distance: melee 2 against ranged 11, so the soldier always runs in.
+        Assert.Equal(new[] { "go to target", "melee" }, GoapPlanner.Plan(State("hasAmmo"), State("targetDown"), AttackActions)!.Select(a => a.Name));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GoapPlanner.Plan(State(), State("targetDown"), AttackActions, costOf: _ => -1));
     }
     [Fact]
     public void ArriveStopsOnTheTargetWhereSeekOvershoots()

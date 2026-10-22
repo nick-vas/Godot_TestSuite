@@ -964,6 +964,9 @@ From earlier written coverage ([Gamereactor](https://www.gamereactor.eu/croteam-
 
     Godot: invest early in @tool scripts and editor plugins for the main content type (puzzle or level authoring).
 
+Per-level puzzle rules (one solution sentence, cut the noise, a purpose or cut) from Brett Taylor's LineLight talk, and the
+`levels` table the `data` runner checks them with: [docs/gdc/puzzle-game-magic-secrets.md](gdc/puzzle-game-magic-secrets.md).
+
 ### 5. Witcher 3 / Cyberpunk 2077 quest design (Sasko, GDC 2023), auto-captions
 
 1. **Engagement: make the player want the story by holding back key information.** "by subtraction of key information you can actually make the player really intrigued and really curious about what's going on" ([09:38](https://www.youtube.com/watch?v=nAkH86__g0o&t=578))
