@@ -94,8 +94,8 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
   them as a small table of rules with a test per pair. When players find an exploit, add a rule to the GDD before patching.
 - **Feel is found by playing.** Expose speeds, timings and windows as exported values for the user to tune. Physics serves
   the design: coyote time, snapping and aim assist are deliberate, named rules, and "fixing" them toward realism is a bug.
-- **Be the generous judge.** Forgiving hitboxes and timing windows by default; find what really makes a part hard (often the
-  controls) before lowering difficulty.
+- **Be the generous judge.** Forgiving hitboxes and timing windows by default (Levelhead's numbers and tested code:
+  `godot-input`, Forgiveness); find what really makes a part hard (often the controls) before lowering difficulty.
 - **Readable opponents.** An enemy that always picks the best move is not fun; give it habits and mistakes. Do not add moves
   the AI cannot use and tests cannot cover: cut them.
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
