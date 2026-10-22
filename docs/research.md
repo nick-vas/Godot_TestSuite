@@ -30,6 +30,20 @@ fixed, scored 0.67 with the plugin and 1.00 without, at $0.06 and $0.08. These r
 nothing yet about the kit. Real numbers need a machine where the sandbox can write: the `Evals` workflow (a GitHub runner),
 or WSL2 or Linux as a normal user.
 
+### Running the evals without an API key
+
+`claude plugin eval` uses whatever authentication Claude Code itself uses, and its runs count against that plan's usage
+([plugin evals](https://code.claude.com/docs/en/plugin-evals#requirements)). Three routes, none needing `ANTHROPIC_API_KEY`:
+
+| Route | How | Caveats |
+|---|---|---|
+| A subscription, locally | WSL2 or Linux as a normal user: `claude` and log in once (Pro or Max), unset `ANTHROPIC_API_KEY`, then the command in `.github/workflows/evals.yml` | The docs do not say how the login reaches each run's isolated home; try `--runs 1 --case fix-score-bug` first |
+| A subscription, on GitHub | `claude setup-token` makes a one-year token ([authentication](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token)); store it as the secret `CLAUDE_CODE_OAUTH_TOKEN` and run the `Evals` workflow by hand | The evals page names only API keys and cloud credentials for CI, so this is documented for Claude Code in Actions but not yet confirmed for evals. Subscription use is meant for ordinary individual use ([terms](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use)): occasional manual runs, never a schedule. A present `ANTHROPIC_API_KEY` wins over the token |
+| A local model | Ollama 0.14+ or llama.cpp's `llama-server` speak the Anthropic Messages API ([Ollama](https://docs.ollama.com/api/anthropic-compatibility), [llama.cpp](https://huggingface.co/blog/ggml-org/anthropic-messages-api-in-llamacpp)); `ANTHROPIC_BASE_URL=http://localhost:11434` | Anthropic does not support Claude Code on non-Claude models ([LLM gateway](https://code.claude.com/docs/en/llm-gateway)); eval runs inherit only an allowlist of variables, so the base URL may not reach them (untested); and the scores would measure another model, so they only show the suite works |
+
+There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
+fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
+
 ### Token benchmark
 
 `benchmark/` measures what a session costs per task and way of working ([token-benchmark.md](token-benchmark.md)). The
