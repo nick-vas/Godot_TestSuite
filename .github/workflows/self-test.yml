@@ -395,6 +395,9 @@ jobs:
       - name: shot -ColorVision saves each screen as protanopes, deuteranopes and tritanopes see it
         shell: pwsh
         run: ./tests/Test-ColorVision.ps1
+      - name: The mono option (StereoEnhance on Master) turns each side into (L+R)/2
+        shell: pwsh
+        run: ./tests/Test-MonoAudio.ps1
       - name: validate fails a .tres that keeps a renamed export's old key
         shell: pwsh
         run: ./tests/Test-StaleTres.ps1

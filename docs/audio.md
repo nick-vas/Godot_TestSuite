@@ -131,3 +131,18 @@ The FMOD and Wwise manuals give none of these figures, so the skill offers them 
   file's loudest) is over 20 ms; the number is the kit's choice, and `-MaxOnsetMs` changes it.
 
 The FMOD compressor's own defaults are 2.5:1, 20 ms attack and 200 ms release.
+
+## Mono and voice budgets (measured October 2026)
+
+- **Mono.** Godot has no mono switch, but `AudioEffectStereoEnhance` with `pan_pullout` 0 removes the difference between the
+  channels. `tests/mono-fixture` plays a 440 Hz tone at 0.5 through Master with the effect off and on and reads the output
+  back with an `AudioEffectCapture` (RMS of each channel, on 4.7.2 .NET and standard): a left-only tone goes from 0.353/0
+  to 0.177/0.177, a centred one stays 0.353/0.353, and the same tone in opposite phase goes from 0.353/0.353 to 0/0. So each
+  side is (L+R)/2: a hard-panned sound loses 6 dB per side (3 dB of power), and stereo effects that rely on phase (wide
+  reverbs, some synth pads) thin out or vanish; listen to the mix in mono before release. With `pan_pullout` 0.5 the
+  left-only tone measured 0.263/0.088, a partial narrowing.
+- **Voice budgets.** `VoiceBudget` in Breakout.Core: per category a cap (a new voice steals that category's oldest) and a
+  priority (at the total cap, a new voice steals the oldest voice of the lowest priority below its own; equal or higher
+  priorities are never taken), and protected categories that are never stolen and are refused when full. A 5,000-request
+  storm in its tests never exceeds any cap and never steals dialogue.
+
