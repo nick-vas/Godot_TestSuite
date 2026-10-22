@@ -190,8 +190,6 @@ From the audio pass (`docs/audio.md`):
 | Item | Why it is open |
 |---|---|
 | Learn FMOD's Skill Tree (adaptive music lessons) | Needs a sign-in; the landing page and course list were read |
-| A mono option | Xbox Accessibility Guideline 105 asks for one. Godot has no mono switch, and no bus effect that folds stereo to mono was confirmed |
-| A voice budget helper (categories, priorities, oldest-first stealing across players) | Godot has only per-player `MaxPolyphony`; the skill describes the pattern, but a tested C# helper would make it reusable |
 | `audio -Mix` on Windows | Tested on Linux under Xvfb; Movie Maker should work the same on Windows with a desktop session |
 
 ## To do: art and technical art

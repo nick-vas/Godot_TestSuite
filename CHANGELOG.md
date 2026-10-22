@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
+  makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
+  0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility
+  Guideline 105. Breakout.Core gains `VoiceBudget`: a global voice cap with categories, priorities, oldest-first stealing
+  and protected categories, the part Godot leaves to games.
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the
