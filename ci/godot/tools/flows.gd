@@ -21,6 +21,8 @@ func _initialize() -> void:
 	var user_args := OS.get_cmdline_user_args()
 	if user_args.size() > 0:
 		filter = user_args[0]
+	# The engine sizes the root window during its first frame, which would undo the first flow's start size.
+	await process_frame
 	var files: Array[String] = []
 	_collect("res://", files)
 	files.sort()
