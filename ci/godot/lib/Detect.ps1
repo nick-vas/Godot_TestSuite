@@ -76,7 +76,7 @@ function Get-ExportPresetDetails([string]$ProjectDir) {
     $options = $null
     foreach ($line in Get-Content -LiteralPath $file) {
         if ($line -match '^\[preset\.(\d+)\]$') {
-            $current = [ordered]@{ Name = ''; Platform = ''; ExportPath = ''; Options = @{} }
+            $current = [ordered]@{ Name = ''; Platform = ''; ExportPath = ''; CustomFeatures = ''; ExcludeFilter = ''; Options = @{} }
             $byIndex[$Matches[1]] = $current
             $options = $null
         } elseif ($line -match '^\[preset\.(\d+)\.options\]$') {
@@ -84,11 +84,13 @@ function Get-ExportPresetDetails([string]$ProjectDir) {
             $options = if ($byIndex.ContainsKey($Matches[1])) { $byIndex[$Matches[1]].Options } else { $null }
         } elseif ($line -match '^\[') {
             $current = $null; $options = $null
-        } elseif ($current -and $line -match '^(?<key>name|platform|export_path)="(?<value>.*)"$') {
+        } elseif ($current -and $line -match '^(?<key>name|platform|export_path|custom_features|exclude_filter)="(?<value>.*)"$') {
             switch ($Matches.key) {
                 'name' { $current.Name = $Matches.value; $details[$Matches.value] = $current }
                 'platform' { $current.Platform = $Matches.value }
                 'export_path' { $current.ExportPath = $Matches.value }
+                'custom_features' { $current.CustomFeatures = $Matches.value }
+                'exclude_filter' { $current.ExcludeFilter = $Matches.value }
             }
         } elseif ($null -ne $options -and $line -match '^(?<key>[^=\s]+)=(?<value>.*)$') {
             $options[$Matches.key] = $Matches.value.Trim('"')

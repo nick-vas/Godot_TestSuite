@@ -46,33 +46,6 @@ function Get-GodotProjectSetting([string]$ProjectGodot, [string]$Name) {
     return $line.Success ? $line.Groups['v'].Value.Trim() : $null
 }
 
-# Export platforms as the first word of a .gdextension library key (windows.release.x86_64, macos.debug, ...).
-$script:GdextensionPlatforms = @{ 'Windows Desktop' = 'windows'; 'Linux' = 'linux'; 'Linux/X11' = 'linux'; 'macOS' = 'macos'
-    'Android' = 'android'; 'iOS' = 'ios'; 'Web' = 'web' }
-
-# Libraries a GDExtension names for an exported platform but does not ship: the extension then fails to load in that
-# build only. GodotSteam 4.23.2's .gdextension names macOS files its zip does not contain.
-function Get-GdextensionProblems([string]$ProjectDir, [string[]]$Platforms) {
-    $wanted = @($Platforms | ForEach-Object { $script:GdextensionPlatforms[$_] } | Where-Object { $_ } | Select-Object -Unique)
-    $problems = [System.Collections.Generic.List[string]]::new()
-    $files = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.gdextension' -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '[\\/]\.godot[\\/]' })
-    foreach ($file in $files) {
-        $section = ''
-        foreach ($line in Get-Content -LiteralPath $file.FullName) {
-            if ($line -match '^\s*\[(\w+)\]') { $section = $Matches[1]; continue }
-            if ($section -notin 'libraries', 'dependencies' -or $line -notmatch '^\s*(?<key>[\w.]+)\s*=(?<value>.*)$') { continue }
-            $platform = ($Matches.key -split '\.')[0]
-            if ($platform -notin $wanted) { continue }
-            foreach ($path in [regex]::Matches($Matches.value, '"(res://[^"]+)"') | ForEach-Object { $_.Groups[1].Value }) {
-                $local = Join-Path $ProjectDir ($path -replace '^res://', '')
-                if (-not (Test-Path -LiteralPath $local)) { $problems.Add("$(ConvertTo-ResPath $ProjectDir $file.FullName) [$section] $($Matches.key): $path does not exist") }
-            }
-        }
-    }
-    return , $problems.ToArray()
-}
-
 # Steam bindings in the C# project that cannot work as installed (measured on Godot 4.7.2, October 2026).
 function Get-SteamPackageProblems([string]$Csproj, [string[]]$Platforms) {
     $problems = [System.Collections.Generic.List[object]]::new()
@@ -219,13 +192,16 @@ function Invoke-Doctor($Info) {
         }
     }
 
-    $exportPlatforms = @((Get-ExportPresetDetails $project).Values | ForEach-Object Platform)
-    $extensionProblems = Get-GdextensionProblems $project $exportPlatforms
-    foreach ($problem in $extensionProblems) {
-        Add-Check FAIL "A GDExtension names a library that is missing for an exported platform: $problem" 'Copy that platform''s files from the add-on''s release, or correct the path in the .gdextension'
-    }
+    $presetDetails = @((Get-ExportPresetDetails $project).Values)
+    $exportPlatforms = @($presetDetails | ForEach-Object Platform)
+    # Each GDExtension's library for each preset's builds, as Godot picks it, and add-on mistakes (lib/Addons.ps1).
+    foreach ($problem in @(Get-GdextensionProblems $project $presetDetails $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
+    foreach ($problem in @(Get-AddonProblems $project $projectGodot $presetDetails $Info.GodotVersion)) { Add-Check $problem.Status $problem.Message $problem.Fix }
     $steamProblems = Get-SteamPackageProblems $gameCsproj $exportPlatforms
     foreach ($problem in $steamProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
+    # Steamworks files in steam/ against the code: rich presence tokens, achievement and stat names, app build scripts.
+    $steamworksProblems = Get-SteamworksProblems $project
+    foreach ($problem in $steamworksProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # Store art for Steam, if the project keeps it in store/steam: sizes, formats, screenshots, the short description.
     $storeDir = Join-Path $project 'store'
@@ -244,6 +220,26 @@ function Invoke-Doctor($Info) {
         foreach ($description in @(Get-ChildItem -LiteralPath $steamDir -File -Filter 'short_description*.txt')) {
             $descriptionProblems = Test-SteamShortDescription (Get-Content -LiteralPath $description.FullName -Raw).Trim()
             foreach ($p in $descriptionProblems) { Add-Check WARN "Steam $($description.Name): $p" 'Genre, hook and what the player does, in plain text (godot-store-page)' }
+        }
+        # Trailers: warnings only, Steam re-encodes what it accepts.
+        if (@(Get-TrailerFiles $steamDir).Count -gt 0) {
+            if (-not (Get-Command ffprobe -CommandType Application -ErrorAction SilentlyContinue)) {
+                $how = if ($IsWindows) { 'winget install Gyan.FFmpeg' } elseif ($IsMacOS) { 'brew install ffmpeg' } else { 'sudo apt-get install ffmpeg' }
+                Add-Check WARN 'Steam trailers in store/steam were not checked: ffprobe is not installed' "Install ffmpeg, which brings ffprobe ($how)"
+            } else {
+                $trailerCheck = Test-SteamTrailers $steamDir
+                foreach ($p in $trailerCheck.problems) { Add-Check WARN "Steam trailer: $($p.message)" 'H.264 and AAC, 30 or 60 fps, 44.1 or 48 kHz, up to 1920x1080 (godot-store-page)' }
+                foreach ($t in $trailerCheck.trailers) {
+                    $sound = $t.audioCodec ? "$($t.audioCodec) $($t.sampleRate) Hz" : 'no audio'
+                    Add-Check INFO "Steam trailer $($t.file): $($t.container), $($t.videoCodec) $($t.width)x$($t.height) at $($t.fps) fps, $sound, $($t.seconds) s"
+                }
+            }
+        }
+        $tagsFile = Join-Path $steamDir 'tags.txt'
+        if (Test-Path -LiteralPath $tagsFile) {
+            $tagCheck = Test-SteamTags (Get-Content -LiteralPath $tagsFile -Raw)
+            foreach ($p in $tagCheck.problems) { Add-Check $p.status "Steam tags.txt: $($p.message)" 'One tag per line, 5 to 20, the 5 that describe the game best first (godot-store-page)' }
+            if (-not @($tagCheck.problems | Where-Object { $_.status -eq 'WARN' })) { Add-Check OK "Steam tags.txt: $($tagCheck.tags.Count) tags, the first $(@($tagCheck.tags | Select-Object -First 5) -join ', ')" }
         }
     }
     # Press kit, if the project keeps one in store/press: warnings only, a game can ship without one.
@@ -320,6 +316,9 @@ function Invoke-Doctor($Info) {
             Add-Check WARN "Sentry $($sentry -join '; ')" 'Project Settings > Sentry > Options: auto_init off and SentrySdk.Init after the player agrees; attach_log off; send_default_pii off (godot-telemetry)'
         } else { Add-Check OK 'Sentry: started by the game after consent, no log attached' }
     }
+    # A privacy policy when the game collects player data or goes to a phone store, naming the version the code asks consent for.
+    $privacyProblems = Get-PrivacyProblems $project $projectGodot (Get-ExportPresetDetails $project)
+    foreach ($problem in $privacyProblems) { Add-Check $problem[0] $problem[1] $problem[2] }
 
     # Assets: every image, sound, model, font and shader has a source and a licence in assets.json (godot-asset-pipeline).
     $assets = Get-AssetManifestReport $project
@@ -378,6 +377,9 @@ function Invoke-Doctor($Info) {
     if ($hygiene.wrongCase) {
         Add-Check WARN "res:// paths whose case differs from the file, which load on Windows but not on Linux or in an exported game: $(& $first $hygiene.wrongCase)" 'Write the path exactly as the file is named'
     }
+
+    # The instructions every agent session loads, against the kit's real flags and the project's real files.
+    foreach ($problem in @(Get-InstructionProblems $project)) { Add-Check $problem.Status $problem.Message $problem.Fix }
 
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project

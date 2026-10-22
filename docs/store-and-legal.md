@@ -1,7 +1,8 @@
 # Store pages, ratings, privacy, licences and credits: sources
 
 The research behind the `godot-store-page`, `godot-legal`, `godot-credits` and `godot-release-readiness` skills, the
-`credits` command and `doctor`'s Steam store art check, gathered on 2026-10-21. Pages were fetched as served that day;
+`credits` command, `doctor`'s Steam store art, trailer, tag and privacy checks and `plan`'s release timeline, gathered
+on 2026-10-21. Pages were fetched as served that day;
 store rules change, so check the source before relying on a number. **General information for developers, not legal
 advice.**
 
@@ -43,6 +44,30 @@ sources disagree. Everything else was read in the source named.
 | Tim Rippon-Davies, [Contract Killers: What Developers Should Eliminate From Their Publishing Agreement](https://www.youtube.com/watch?v=yfrwQnqwPps) (GDC, about 2021, not stated; a London lawyer, common-law contracts; notes in [gdc/contract-killers.md](gdc/contract-killers.md)) | `godot-legal` section 6: licence term and what it counts from, auto-renewal, review windows with deemed approval, payment lag, recoup source, third-party marketing costs, first refusal instead of rights, tool carve-outs, cure periods, "time is of the essence", statements and audit. One lawyer's opinion, not rules |
 | GDC talks on store pages, Early Access, names and registration, privacy and loot boxes (Zukowski about 2021 and 2020, Christopher King about 2019, Derek Lieu, Chris Reed about 2016 and 2018, Will Bucher 2019; notes in [gdc/folds-procgen-balance-store.md](gdc/folds-procgen-balance-store.md)) | `godot-store-page` capsule, screenshot, tag, trailer and sale lines; `godot-release-readiness` section 6; `godot-legal`'s name, registration, age gate and paid random items lines; plan gate `concept.name`. One speaker's view each; fees and country rules dated |
 
+## Kit checks
+
+Each uses only the rules above; where the sources give no number, the check reports the value and does not judge it.
+
+- **Release timeline** (`plan` and `status`, from plan.json's optional `release` block; [plan.md](plan.md#release-dates)):
+  warnings when the app fee is paid fewer than 21 days before release, the Coming Soon page is up fewer than 14 days,
+  the store page or build goes to review fewer than 7 business days ahead (or the build before the page), the Next Fest
+  demo misses its 3-week (5 with the press preview) deadline, or Next Fest falls on or after release; a note once the
+  date is locked. Warnings only: a plan is advice.
+- **Trailers** (`doctor`, `store/steam/trailer*` with a video extension, read with `ffprobe`; without it, one warning
+  says they were not checked): warns on video other than H.264, audio other than AAC or at a rate other than 44.1 or
+  48 kHz, a frame rate other than 30 or 60 (29.97 and 59.94 count), and a size over 1920x1080, as `godot-store-page`
+  quotes the trailer page. Container, length and size are reported as INFO: the sources give no container, length or
+  minimum size.
+- **Tags** (`doctor`, `store/steam/tags.txt`, one tag per line): warns on fewer than 5 (before launch), more than 20,
+  a tag listed twice (any case) and a line that looks like several tags (a comma, semicolon, bar or tab); "Indie" in
+  the first five is INFO (Zukowski).
+- **Privacy policy** (`doctor`): the policy is `store/privacy-policy.md` (or `.txt`, `.html`) or `PRIVACY.md` in the
+  project. It warns when the game collects player data with none (Sentry's addon, `[sentry]` settings or `SentrySdk`, the kit's
+  `TelemetryClient`, GameAnalytics or Firebase Analytics in the code, or a `policyVersion` set to a number), when an
+  Android or iOS preset exists with none (both stores require one), and when the code asks consent for a
+  `policyVersion` the policy does not state as "Version N". Warnings, not failures: the policy may be published
+  elsewhere, and whether a game needs one outside the phone stores is a legal question.
+
 ## Tested here
 
 - `Engine.get_license_text()`, `get_copyright_info()` (102 components) and `get_license_info()` (19 licence texts, keyed
@@ -51,8 +76,10 @@ sources disagree. Everything else was read in the source named.
   only what one export compiles in. `ci/godot/tools/notices.gd` dumps it for `credits`.
 - A Godot 4.7.2 C# Linux export (Breakout, 189 files in its data folder) contains no .NET licence or notices file. The
   runtime pack in the NuGet cache has `THIRD-PARTY-NOTICES.TXT`; `credits` appends it for C# games.
-- `doctor`'s store art and press kit checks on generated PNG and JPEG files of right and wrong sizes
-  (`tests/Test-Store.ps1`), and the credits generator on a sample manifest (`tests/Test-Credits.ps1`).
+- `doctor`'s store art and press kit checks on generated PNG and JPEG files of right and wrong sizes, the trailer check
+  on videos ffmpeg makes during the test (H.264 and AAC at 1920x1080 and 30 fps pass; MPEG-4 and MP2 at 2560x1440,
+  25 fps and 22.05 kHz are named on each count), the tag and privacy checks (`tests/Test-Store.ps1`), the release
+  timeline on fixed days (`tests/Test-Plan.ps1`), and the credits generator on a sample manifest (`tests/Test-Credits.ps1`).
 
 ## Mistakes an agent is likely to make
 

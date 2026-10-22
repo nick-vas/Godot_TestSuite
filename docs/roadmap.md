@@ -178,7 +178,7 @@ Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could cl
 | Feature | Why | Smallest change |
 |---|---|---|
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
-| Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
+| Re-run `Evals` after the sandbox fix | Run 4 confirmed the subscription token but scored a sandbox that refused every command (`docs/research.md`) | Run the workflow once with `runs` 1 on `fix-score-bug` and `explain-failure`, check that the bwrap step passes, and record the scores |
 
 ## To do: audio
 
@@ -260,7 +260,7 @@ From this pass (`docs/steam.md`):
 | GodotSteam 4.23.2 on macOS (its `.gdextension` names files the zip lacks) | No macOS; `doctor` reports the missing files |
 | Whether Valve's 9 px means the font size or the letters' height | Valve does not say; `textsize` fails the first and warns on the second |
 | `SteamDeck=1`, `OS.GetDistributionName()` on a Deck, focus events in gamescope, real sleep | No Deck |
-| Rich presence token file and achievement-name lint, build VDF lint | Proposed checks, not built yet |
+| Achievement, stat and rich presence names held in constants (as Breakout's `BreakoutProgress` does) or in code outside the Godot project (`Breakout.Core`) | `doctor`'s Steamworks checks read string literals in the project's own `.cs` and `.gd` files; following constants needs a C# and GDScript parser |
 
 ## To do: store pages, legal basics and credits
 
@@ -270,9 +270,9 @@ From this pass (`docs/store-and-legal.md`):
 |---|---|
 | Steam's short description limit, capsule file formats and size caps; whether a trailer is still required for review; custom EULA setup; whether Steam wants a game privacy policy | Not in Steamworks' public pages; the owner's partner account (no app yet) would show the real forms |
 | IARC's questions | Only inside a store's portal; a `ratings.json` answers file with a plan gate is the planned check once they are seen |
-| A release timeline check in `plan` (fee + 21 days, Coming Soon + 14 days, 7 business days per review, date freeze, Next Fest deadlines) | Needs dates in `plan.json`; a kit feature for a later pass |
-| A privacy check in `doctor` (telemetry or an Android/iOS preset without a policy; `policyVersion` not found in the policy) | A kit feature for a later pass |
-| Trailer and tag checks (`ffprobe` on `store/steam/trailer*`, `tags.txt`) | A kit feature for a later pass |
+| Next Fest registration deadlines in the release timeline (February 2027: register by January 10) | Valve publishes them per edition; the timeline checks only the demo review lead, which the Next Fest page states |
+| Public holidays in the timeline's business days | Valve does not say whose holidays count; the timeline counts Monday to Friday |
+| A trailer's container, length and minimum size | No source the kit read states them; `doctor` reports them as INFO |
 | A flow test that the credits screen is reachable from the main menu | Game-specific; the skill tells games to add one |
 | GodotSteam's licence, the Steamworks SDK redistribution terms, FMOD's credit terms, GOG's asset specs | 403, 404 or JavaScript-only pages from the cloud session, or partner-only |
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
@@ -295,6 +295,17 @@ From this pass (`docs/mobile-web.md`):
 | Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
 | Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |
+
+## To do: add-ons and GDExtensions
+
+| Item | Why | How |
+|---|---|---|
+| An add-on's code without an `assets.json` entry | `credits` writes notices only for what `assets.json` lists, and add-on code ships with the game (`docs/addons.md`) | WARN in `doctor` for `addons/<name>/LICENSE*` with no entry covering `addons/<name>/**`; fill `copyright` from the licence's first `Copyright` line |
+| MPL-2.0 in `credits` | gdext (Rust) is MPL-2.0, which `Credits.ps1` has no rule for | Read the licence's notice rules, add the policy row and the SPDX text |
+| Known-status list for add-ons | godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by name only through their folders, which were not confirmed | Confirm each add-on's folder or `entry_symbol` from its release, then a small JSON refreshed by `Invoke-Canary.ps1` |
+| FMOD's licence and credit terms | fmod.com returns a JavaScript-only page to curl and fails in WebFetch | Owner: paste the terms, or allow the host |
+| Feature flags not measured | macOS with one architecture, and Web with `variant/extensions_support` on, were not exported | Export both with an extension no key fits and read "Possible feature flags" |
+| Dialogue Manager in C# | It sets `[dialogue_manager] runtime/advanced/uses_dotnet` only in the editor when it finds the `.sln`; what fails at run time without it was not checked | Run a C# game that uses it, exported without opening the editor |
 
 ## To do: CI, from GameCI's documentation
 
