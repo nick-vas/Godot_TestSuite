@@ -1,14 +1,19 @@
 # The textsize runner's Godot side: the size of every visible text on each scene, in real pixels on a given window
 # (the Steam Deck's 1280x800 by default), run headless.
 #   godot --headless --path <project> -s textsize.gd -- --scenes=res://a.tscn,res://b.tscn --resolutions=1280x800 [--min=9] [--want=12]
+#     [--subtitle-group=subtitles] [--subtitle-min=28] [--subtitle-want=46]
 # Headless Godot has no window (its size is 0x0), so the stretch scale is computed from the project settings the way
 # Window::_update_viewport_size does, instead of read from the viewport (checked against Godot in all 80 combinations of
 # stretch mode, aspect, scale and window size). Text height is measured from the font's own outlines: "H" (capitals) and
 # "x" at the scaled size, which matched screenshots within 1 px on Godot 4.7.2.
+# Text in the subtitle group (a control in it, or inside a node in it, hidden or not: subtitles are hidden between lines)
+# also has a subtitle size, given at 1080p and scaled with the window's height: under --subtitle-min fails, under
+# --subtitle-want warns.
 # Prints, per resolution:
 #   @@textsize-scale <WxH> <scale>
 #   @@textsize-cutoff <WxH> <base WxH>              (integer scale mode on a window smaller than the base: drawn 1:1, cut off)
 #   @@textsize <WxH>|<scene>|<node>|<font size>|<em px>|<cap px>|<x px>|<FAIL|WARN|ok>
+#   @@textsize-subtitle <WxH>|<scene>|<node>|<font size>|<em px>|<cap px>|<min px>|<want px>|<FAIL|WARN|ok>
 #   @@textsize-error <scene>|<message>
 extends SceneTree
 
@@ -23,12 +28,17 @@ func _initialize() -> void:
 			_opt[arg.get_slice("=", 0).trim_prefix("--")] = arg.substr(arg.find("=") + 1)
 	var min_px := float(_opt.get("min", "9"))
 	var want_px := float(_opt.get("want", "12"))
+	var subtitle_group := StringName(str(_opt.get("subtitle-group", "subtitles")))
+	var subtitle_min := float(_opt.get("subtitle-min", "28"))
+	var subtitle_want := float(_opt.get("subtitle-want", "46"))
 	var scenes := str(_opt.get("scenes", ProjectSettings.get_setting("application/run/main_scene", ""))).split(",", false)
 	var resolutions := str(_opt.get("resolutions", "1280x800")).split(",", false)
 	for res in resolutions:
 		var parts := res.split("x")
 		var window := Vector2(float(parts[0]), float(parts[1]))
 		var s := stretch_scale(window)
+		var sub_min := subtitle_min * window.y / 1080.0   # a share of the screen's height, as at 1080p
+		var sub_want := subtitle_want * window.y / 1080.0
 		print("@@textsize-scale %s %.4f" % [res, s])
 		var base := base_size()
 		if _integer() and (base.x > window.x or base.y > window.y):
@@ -47,7 +57,10 @@ func _initialize() -> void:
 				for child in n.get_children():
 					stack.push_back(child)
 				var c := n as Control
-				if c == null or not c.is_visible_in_tree() or not TEXT_CONTROLS.has(c.get_class()):
+				if c == null or not TEXT_CONTROLS.has(c.get_class()):
+					continue
+				var subtitle := in_group(c, scene, subtitle_group)
+				if not subtitle and not c.is_visible_in_tree():
 					continue
 				var rich := c is RichTextLabel
 				var font_size := c.get_theme_font_size("normal_font_size" if rich else "font_size")
@@ -56,6 +69,11 @@ func _initialize() -> void:
 				var em := font_size * s * node_scale
 				var cap := glyph_height(font, "H", em)
 				var xh := glyph_height(font, "x", em)
+				if subtitle:
+					var sub_verdict := "FAIL" if em < sub_min else ("WARN" if em < sub_want else "ok")
+					print("@@textsize-subtitle %s|%s|%s|%d|%.2f|%.2f|%.2f|%.2f|%s" % [res, path, scene.get_path_to(c), font_size, em, cap, sub_min, sub_want, sub_verdict])
+					if not c.is_visible_in_tree():
+						continue
 				var verdict := "ok"
 				if em < min_px:
 					verdict = "FAIL"   # the font size itself is under the minimum: fails under any reading of the rule
@@ -69,6 +87,18 @@ func _initialize() -> void:
 
 func _integer() -> bool:
 	return str(ProjectSettings.get_setting("display/window/stretch/scale_mode", "fractional")) == "integer"
+
+
+# The control, or one of its parents up to the scene's root, is in the group.
+static func in_group(c: Node, scene: Node, group: StringName) -> bool:
+	var n := c
+	while n != null:
+		if n.is_in_group(group):
+			return true
+		if n == scene:
+			return false
+		n = n.get_parent()
+	return false
 
 
 static func base_size() -> Vector2:

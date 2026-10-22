@@ -1,0 +1,2 @@
+{ "scenes": ["res://ui/menu.tscn", "res://ui/good.tscn"],
+  "profiles": ["phone_portrait", "phone_landscape", "tablet", "ultrawide", "foldable:1812x2176@374:touch:insets=0,96,0,48"] }
