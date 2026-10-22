@@ -1,12 +1,19 @@
-# Publisher contracts: one developer's red flags
+# Publisher contracts: two public sample agreements
 
-Source: Jan Willem Nijman (co-founder of Vlambeer) annotated a draft of Raw Fury's standard publishing agreement,
-"Raw Fury Loves Publishing Your Games" (the file's title, dated 2020-11-09), with 53 comments on 2020-12-22, and shared it so that
-developers could learn from it. One experienced developer's reading of one 2020 draft: his opinions and benchmarks, not
-legal advice, and not a statement about Raw Fury's contracts today. Quotes are his comments, as written. It complements
-the lawyer's view in `godot-legal` section 6 ([gdc/contract-killers.md](gdc/contract-killers.md)).
+Two publishing agreements from 2020 that were shared openly so developers could learn from them, read clause by clause.
+Neither is legal advice, and neither is a statement about either publisher's contracts today. They complement the
+lawyer's view in `godot-legal` section 6 ([gdc/contract-killers.md](gdc/contract-killers.md)).
 
-## How to read the draft
+- **Raw Fury, "Raw Fury Loves Publishing Your Games"** (the file's title, a draft dated 2020-11-09): Jan Willem Nijman
+  (co-founder of Vlambeer) annotated it with 53 comments on 2020-12-22. One experienced developer's reading of one
+  draft: his opinions and benchmarks. Quotes are his comments, as written. Sections below up to
+  [Whitethorn](#whitethorn-games-generic-service-agreement).
+- **Whitethorn Games, "Generic Whitethorn Service Contract"** (a Google Doc shared publicly on 2020-12-22 by Matthew
+  White, Whitethorn's CEO, with blanks for the amounts and the game, and opened to comments). Quotes from the contract
+  are its wording; quotes from the comment thread are his replies, as written. See
+  [its section](#whitethorn-games-generic-service-agreement).
+
+## How to read the draft (Nijman on Raw Fury)
 
 - "note that when reading contracts, you're reading their possibilities." Read each clause as the worst thing the
   publisher could do with it, not what it says it intends.
@@ -18,7 +25,7 @@ the lawyer's view in `godot-legal` section 6 ([gdc/contract-killers.md](gdc/cont
 - Money for services should be "written out and budgeted per item, not as a big opaque pile of money that could go
   anywhere from QA to marketing to porting."
 
-## Red flags
+## Red flags (Nijman on Raw Fury)
 
 | Clause | Why (his comment) | Ask for |
 |---|---|---|
@@ -60,3 +67,53 @@ to the developer, 0.7(R − C). Neither goes below 0.
 
 The first payment comes at 115,000 instead of 100,000, and in this range the developer earns 31% to 39% less (29% less as
 sales grow without limit, the ratio of 0.5 to 0.7).
+
+## Whitethorn Games' generic service agreement
+
+Its model differs from the draft above: the publisher pays for its services and recoups only the development funding,
+then takes a share of **gross** revenue for a fixed term, and the rights stay with the developer throughout.
+
+### What it does that the Raw Fury draft does not
+
+| Clause | Its wording, in short |
+|---|---|
+| Services at the publisher's cost | Project management, porting, QA, marketing, localization, ratings and more "are provided at the Company's expense" and "are not subject to recuperation"; only the development funding is recouped (section 1). In the thread: Whitethorn's own costs "absolutely do not" count towards recoup |
+| No markup | 100% of revenue goes to the publisher until the funding "has been completely recouped", and the funding is "the full sum of recuperation" (section 10) |
+| A fixed income term | Then 10% to 25% (a blank in the template) of gross revenue for 24 months from launch, renewed yearly only by a renewal both sign; without one, "all rights to The Project will return to the Client" (section 10) |
+| Ownership from the start | The game's intellectual property "from inception, is and shall remain the sole property of the Client" (section 18) |
+| Platforms named in the contract | Only launches listed in the addendum are covered; a new platform the publisher serves restarts 24 months for that platform; re-releases and remasters are outside the deal (section 10) |
+| Limits on what the publisher can ask for | Splash screen, credits and branding in trailers each "subject to approval by Client"; at most 200 PC keys and 100 per console without consent (10-b to 10-d) |
+| Dates that are not penalties | The schedule addendum's dates "are not punitive": no legal action for missing them; damages for a missed launch only after gold master and only for the developer's "gross negligence" |
+| Merchandise | The developer's own merchandise is the developer's; merchandise the publisher makes splits net income 50/50, with the developer's approval of product and price (10-f) |
+
+### What to read twice
+
+| Clause | Why | Ask for |
+|---|---|---|
+| A share of **gross**, before the store's cut and taxes (section 10) | 20% of gross is about 29% of net after a 30% store cut. In the thread a commenter worked it through for a $10 sale: Steam about $3, the publisher $2, the developer $5, against $1.40 and $5.60 under 20% of net; the CEO agreed it "does ultimately change how the cash falls" | Compare offers as a share of net; for a gross share, divide by 0.7 (or 1 minus the actual store cut) |
+| Gross includes "the value of platform holder funding agreements in lieu of sales" | A subscription or exclusivity deal is shared like sales | Know it is in; check it matches the services the publisher gives for that platform |
+| Ending the deal costs the developer a pro-rata share of 24 months' revenue share (section 12: those invoices "are understood to be generated at the time of the execution of this agreement") | In the thread, the CEO's example: two months into a twelve-month build at 15%, about 2.5% is owed (he wrote ~2%), so that a developer cannot leave the day before launch | A cap, and no payment when the publisher is in breach (the clause already excludes that) |
+| Exclusivity "for the duration of the same", with an indefinite term (sections 3 and 19) | A commenter read it as blocking another publisher for the next game; the CEO replied it covers only this game and the lawyer would clarify | Write the scope into the clause: this game, these platforms |
+| Soft words: approval "not to be unreasonably withheld" (in six places), "first consideration" to the publisher's contractors | Nijman's point applies here too: what is unreasonable? | A number, a list or a deadline |
+| "Time is of the essence" (section 27), though tied to the cure period | Rippon-Davies: strike it for milestones | Strike it, or keep it limited to the cure period as here |
+| The publisher's liability is excluded outright (23-a), next to mutual disclaimers (23-b) | One-sided, though services cost the developer nothing | Mutual limits |
+| No minimum marketing spend | The CEO: budgets vary too much, and developers rarely know what marketing costs | A marketing plan in writing, if not a sum |
+| A ten-day cure for a material breach (section 5) | A commenter asked for at least a month; the CEO: "Fair." | 30 days |
+
+### What the gross share costs
+
+The same illustrative numbers as above: funding C = 100,000 recouped without markup from net receipts R, then a share
+x of gross G = R / 0.7 (a 30% store cut), so the developer gets (1 − x / 0.7)(R − C). The Raw Fury draft and Nijman's
+benchmark for comparison.
+
+| Net receipts R | x = 10% | x = 20% | x = 25% | Raw Fury draft | Nijman's benchmark |
+|---:|---:|---:|---:|---:|---:|
+| 100,000 | 0 | 0 | 0 | 0 | 0 |
+| 115,000 | 12,857 | 10,714 | 9,643 | 0 | 10,500 |
+| 200,000 | 85,714 | 71,429 | 64,286 | 42,500 | 70,000 |
+| 300,000 | 171,429 | 142,857 | 128,571 | 92,500 | 140,000 |
+| 500,000 | 342,857 | 285,714 | 257,143 | 192,500 | 280,000 |
+
+After recoup the developer keeps 86%, 71% or 64% of net, against 70% in Nijman's benchmark: 20% of gross is about the
+same deal, 25% is worse. The term matters as much as the rate: the share runs 24 months from each launch, then only
+by a renewal both sign; the services the developer does not pay for are not in these numbers.

@@ -153,17 +153,19 @@ publisher: negotiate to a compromise; a publisher that will change nothing is a 
   from delivery, more after each rejection. "45 days from the end of the month" pays revenue from the 1st about 75 days
   later; a statement that must come first can add more.
 - **Back end:** the share counts all money the game earns (exclusivity and subscription deals, in-game purchases, ads,
-  merchandise, film or TV). Deductions are a closed list with evidence; recoupable marketing is third-party costs with
-  invoices; internal costs are queried. Statements monthly or quarterly, by platform and territory; an audit right.
+  merchandise, film or TV); a share of gross is more of net (20% of gross is 29% of net after a 30% store cut).
+  Deductions are a closed list with evidence; recoupable marketing is third-party costs with invoices; internal costs
+  are queried. Statements monthly or quarterly, by platform and territory; an audit right.
 - **Recoup source:** the common model recoups advances and costs from gross receipts, then splits. Recouping only from
   the developer's share is the one to refuse (example below).
 - **Delays and termination:** delays by the publisher, or by third parties it makes you use, extend your dates day for
   day. A missed milestone gets a cure period (look in the termination section). Strike "time is of the essence" for
   milestones: it allows termination for any lateness, cure period or not; if it stays, deliver something on each date.
 
-A developer's red flags, from Jan Willem Nijman's comments on a 2020 publisher draft (his opinions; clause by clause in
-`${CLAUDE_PLUGIN_ROOT}/docs/publisher-contracts.md`). Read each clause as what the publisher could do with it; ask for a
-number, list or date wherever it says "sole discretion", "fair market value" or "not unreasonably withheld".
+A developer's red flags, from Jan Willem Nijman's comments on a 2020 publisher draft (his opinions; with Whitethorn's
+2020 sample agreement, clause by clause in `${CLAUDE_PLUGIN_ROOT}/docs/publisher-contracts.md`). Read each clause as
+what the publisher could do with it; ask for a number, list or date wherever it says "sole discretion", "fair market
+value" or "not unreasonably withheld".
 
 - **Markup and split:** no markup on the advance; a split that depends on the advance (his 2020 benchmark: 70/30 to the
   developer after recoup, for advances up to about $100k); the advance must also cover the months after launch before

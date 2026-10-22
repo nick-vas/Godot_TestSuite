@@ -151,8 +151,10 @@ why:
 |---|---|---|
 | Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`) | Reachable, but the site's own TLS certificate has expired, so it was not read (certificate checks stay on) | Optional: the MDA paper itself was read and `godot-game-design` follows its wording; recheck when the certificate is renewed |
 | Bohemia wiki (`community.bistudio.com`) and forums | Still a Cloudflare challenge (403), also through archive.org and a reader service. Bohemia's own DayZ Central Economy files and Arma Reforger samples on GitHub were read instead (`docs/studio-lessons.md`) | Optional: paste "DayZ:Central Economy Configuration" for the exact restock, counting-flag and respawn-cap rules, which the files only name, and "Arma Reforger:Multiplayer Scripting" for the replication API, which the samples do not use |
-| The rest of *The Untold History of Japanese Game Developers* | Volume 1: read up to the first Hidaka interview, which stops mid-sentence (line 889); lessons 1-39 in `docs/studio-lessons.md`. The owner's Drive holds the same excerpt twice: its Google Doc ends at that sentence, and the text of its 21.8 MB PDF too, which is also over the Drive connector's 10 MB download limit. The Drive's "Volume 2" file is not the book but a spam download page (do not follow its links). Volume 2: unread | The owner can provide any one of: the Volume 1 PDF split into parts under 10 MB (or its pages from about 80 onward), so `pdftotext` can read them; the later chapters pasted (the rest of Hidaka on tools, maps and music, Koshiro, ZUN, and Game Arts); a real copy of Volume 2 |
 | Full Iassenev interview on A-Life (AIGameDev, archived) | web.archive.org rate-limited this server (429) on 2026-10-20, and on 2026-10-21 reset every connection for an hour of retries; archive.org confirms a 2019 snapshot exists | Retry later, or paste it |
+
+Dropped by the owner (2026-10-22): the rest of *The Untold History of Japanese Game Developers*. Lessons 1-39 from the
+part that was read stay in `docs/studio-lessons.md`.
 
 Done in the second pass (2026-10-21): the Talos Principle post-mortem and Sasko's quest design talk, through yt-dlp's
 `android_vr` player client (the web client still asks this server to sign in), plus Croteam's "Taking CI and automated
@@ -378,8 +380,8 @@ categories, business model, alpha and beta exit criteria and the placeholders ta
       save schema version, minimum spec, open technical questions answered by ADRs), kept by `godot-architect`.
 - [ ] Figures the kit could not check, left out until read at the source: which rating bodies charge per region (for
       `godot-legal` section 1), the licence wording of older tabletop SRDs (3.5 under OGL 1.0a), and WIPO publication
-      959 (*Mastering the Game*) as a source for `docs/store-and-legal.md`. Whether the public sample agreements in the
-      owner's files may be cited by name needs the owner's answer.
+      959 (*Mastering the Game*) as a source for `docs/store-and-legal.md`. (The public sample agreements in the owner's
+      files are now cited by name, with the owner's permission: `docs/publisher-contracts.md`.)
 - [ ] Untold lesson 30 (commissioning a composer) belongs in `godot-audio`, and Lars Liden's "Artificial Stupidity"
       (already the idea behind "give it habits and mistakes") should be cited in `godot-game-ai`; both skills are at
       their size limit, so each needs a cut first.
