@@ -155,7 +155,8 @@ stated; 2019 inferred (closed beta, free release "this spring"). https://www.you
 - Taken (`godot-mobile-web` section 2, Orientation): re-layout on size change at any moment, critical buttons where
   landscape thumbs rest with a left-handed mirror (a shield button in mid-screen got players killed), rotation tested
   mid-action, during loading and between press and release, text checked at the smallest aspect ratio per orientation,
-  20 to 60% more UI design time. A flow step for rotation is in `docs/roadmap.md`.
+  20 to 60% more UI design time. The three rotation tests are UI flows (`godot-ui-flows`: `hold`, `resize`, `release`;
+  `tests/flows-fixture`).
 - Not taken: the telemetry ("65% portrait, 45% landscape" in menus cannot both be right; probably 35%).
 
 ## Building a Unified Cross-Project UI Framework

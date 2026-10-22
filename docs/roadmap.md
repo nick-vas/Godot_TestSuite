@@ -294,7 +294,10 @@ From this pass (`docs/mobile-web.md`):
 | Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
 | Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
-| Rotation as a flow: a `resize` step and an action held across steps, so "rotate between press and release" and "rotate during loading" become UI flows (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`) | `flows.gd` cannot change the window size or hold an action over other steps; a kit feature for a later pass |
+| A rotation on a device (Android's configuration change, iOS) against the flow's `resize` | Flows set the root window's size, which headless Godot 4.7.2 handles as an OS resize; no device was available |
+
+Done since: rotation as a flow (Elder Scrolls: Blades, `docs/gdc/folds-accessibility.md`): `resize`, `hold` and
+`release` steps, each flow starting at the project's window size, and `tests/Test-Flows.ps1`.
 
 ## To do: CI, from GameCI's documentation
 
