@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Evals: the cases now run with `TMPDIR` on the runner's temp disk. Under `/tmp`, Claude Code's sandbox refused every
+  write in a run's own folder, so no case could run Godot (run 6); with the change, Godot and GUT run (run 7).
+  `fix-score-bug`'s `used-kit` grader now matches the kit called by a quoted path. `docs/research.md` records runs 6 and 7.
 - Evals: run 5 (after the bwrap fix) found every write in a case refused as `Read-only file system`, the workspace
   included. The setup step's sandbox probe now also needs a writable mount, the run fails when a result mentions a
   read-only file system, and each run's transcript is uploaded with the result (`--keep-temp`). `docs/research.md`

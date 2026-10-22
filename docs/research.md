@@ -77,6 +77,24 @@ The workflow now probes a writable mount over the read-only root before any case
 `Read-only file system`, and uploads every run's transcript (`--keep-temp`, `traces/` in the artifact), so the next
 run shows the failing command. Only `lost-in-level` counts from run 5; `review-publishing-deal` needs 3 runs per arm.
 
+Run 6 (2026-10-22, all four cases, 3 runs per arm, $2.14): the new probe passed (bwrap can write), and the run failed on
+the new check. The transcripts showed why: inside Claude Code's sandbox the run's workspace, home and `TMPDIR`, all
+under `/tmp/claude-eval-*`, refused every write (`touch ./x`: Read-only file system), so Godot could not make its user
+folder and `pwsh` could not start. Two results stand:
+
+| Case | With | Without | What it measured |
+|---|---:|---:|---|
+| review-publishing-deal | 1.00 | 0.78 | All three runs with the plugin flagged the three clauses; run 5's 0.33 was the judge |
+| lost-in-level | 0.33 | 0.00 | The skill fired every time, but two of three answers left out the check: play it again with the minimap and markers off |
+
+`fix-score-bug`'s `used-kit` grader also failed runs that did call the kit: its pattern stopped at the quote in
+`pwsh "<path>/godot-ci.ps1" test -Json -Quiet`. It now allows a quote and space after the path.
+
+Run 7 (2026-10-22, `explain-failure` only, 1 run per arm, $0.16, on the fix branch): with `TMPDIR` set to the runner's
+temp folder the cases' folders are made there, writes work, and both arms imported the project and ran GUT to the real
+failure (expected 25, got 20). Both scored 1.00. The `.bashrc: Permission denied` lines in the transcripts are the
+sandbox hiding the home folder's dotfiles, not an error.
+
 There is no mode without a model: `--ablation none` halves the cost but still calls it. The skill validator and its
 fixtures (`Test-Skills.ps1`, `Test-SkillFixtures.ps1`) are the free checks; they test structure, not effect.
 
