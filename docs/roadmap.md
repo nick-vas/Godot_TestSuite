@@ -212,7 +212,6 @@ From this pass (`docs/saves.md`, `docs/localization.md`, `docs/input.md`):
 | PlayStation and Nintendo save rules (saving indicator, minimum display time) | Under NDA; only Xbox's requirements are public |
 | Real power-loss testing of `SaveStore` | Needs a virtual machine or `dm-log-writes`; the kill test and crash-state tests cover the logic only |
 | Directory sync on macOS after a rename | `O_DIRECTORY` differs there and no primary source gives the best practice |
-| A glyph-coverage check per locale without a display | `shot` checks visible text; checking every translated string against the project font needs a Godot script run per locale |
 | `force_right_to_left_layout_direction` in an exported game | Needs export templates; the source says it works outside editor builds |
 | Controller names per OS, `steam_input_index` on a Steam Deck, SDL3's pad limit on Windows | No controller or Deck was available |
 | Kenney's PlayStation shoulder and right-stick picture names | The pack listing was cut off; `PromptGlyphs` returns text for them |
