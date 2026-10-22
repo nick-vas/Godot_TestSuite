@@ -60,10 +60,31 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
   Font Name.
 - Credits and notices are generated, not typed: `godot-credits`.
 
+**Work made by anyone else, owners included.** From a lawyer's GDC talk (Chris Reed, about 2017): US law, general
+information, not legal advice.
+
+- Whoever makes a work owns its copyright: the artist the art, the sound designer the sound, the programmer the code. The
+  studio owns it only through a written, signed agreement: work for hire for contractors, an invention (IP) assignment for
+  the studio's owners and co-founders. An email, or a handshake, does not transfer copyright.
+- The agreement makes the work a work for hire and, in case a court disagrees, assigns it anyway. A maker's portfolio use
+  is a licence the studio controls: what may be shown, and nothing before launch.
+- Sign before work starts. Fixing it afterwards is possible but depends on a former contributor's goodwill; even an unused
+  first round can come back as a claim that the game is derived from it.
+- The risk is concrete: the speaker had clients whose games were pulled from Steam by a DMCA notice from a former
+  contractor with a bad or missing contract, and others who paid people off.
+- Publishing and development deals make the studio promise the game infringes no one's rights. That promise is only true
+  when every contributor has signed.
+- When the maker keeps ownership and grants a licence instead, the game may use the work only as far as the licence says.
+- In `assets.json` such work is `"source": "commissioned"`, with `agreement` (a reference, never the contract itself),
+  `rights` (`assigned` or `licensed`) and, for a licence, `uses`. `doctor` warns when any is missing.
+- Calling someone an independent contractor in the contract does not make them one for tax: ask an accountant.
+
 ## 5. Before launch
 
 - [ ] IARC done for every IARC store; Steam's Content Survey done; answers match the build
 - [ ] privacy policy published (always, for Android and iOS) and linked from the game and the store
 - [ ] `assets.json` covers every file; `credits` passes
+- [ ] everyone who made something for the game, owners included, signed an assignment or licence; `doctor` warns about no
+  commissioned entry
 - [ ] an end-user licence decided (own or the store's) and a mod/player-content clause if the game has either
 - [ ] refunds understood (Steam: within 14 days and under 2 hours of play)

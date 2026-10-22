@@ -87,6 +87,8 @@ every row without Godot and writes one JUnit case per table:
 - Field rules: `type` (string, int, number, bool), `min`, `max`, `enum`, `pattern`, `ref`, `list` (`;` between values
   in a CSV cell), `optional`; `"extra": "allow"` on a table permits unlisted columns.
 - Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
+- Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
+  for every level.
 
 ## 5. Spreadsheets
 
