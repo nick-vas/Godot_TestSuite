@@ -94,10 +94,12 @@ not ship. Numbers in CSV cells are parsed with the invariant culture. One JUnit 
 ## Placed objects in levels
 
 `ci/godot/templates/placement_check.gd`, copied into a game's tests, checks every node of the groups `ai_point`,
-`interactable` and `zipline` in each level against limits read from gameplay code (`godot-data` section 6).
+`interactable`, `zipline`, `landmark` and `route` in each level against limits read from gameplay code (`godot-data` section 6).
 `tests/Test-Placement.ps1` proves each rule on `tests/placement-fixture`. Navigation answered under `--headless` after 9
 to 11 physics frames for the first level of a GUT run; the checks took about 10 ms per 1,000 nodes. Source and the
-talk's numbers: [Assassin's Creed Origins: world design data](gdc/assassins-creed-origins-world-data.md).
+talk's numbers: [Assassin's Creed Origins: world design data](gdc/assassins-creed-origins-world-data.md). The
+`landmark` and `route` groups check wayfinding (a landmark that moves or is seen from one stretch only, a route with no
+landmark ahead on the way back): [Stop Getting Lost: Make Cognitive Maps](gdc/cognitive-maps.md).
 
 ## Not confirmed
 

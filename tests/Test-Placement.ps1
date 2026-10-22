@@ -3,7 +3,10 @@
 # fixture's level has one ai_point 2 m above the navmesh, one torch 3.5 m above the ground (the player reaches 2.5) and
 # one zip line through a crate; rule_cases/ breaks the other rules once each. Exactly those findings, with their
 # values, must come out; then the level is fixed (two nodes moved, the zip line exempted) and must pass, with the
-# exemption and the change since the last run in the summary. Needs Godot (GODOT_BIN, or the kit installs it).
+# exemption and the change since the last run in the summary. The wayfinding level has a drifting balloon, a tower seen
+# from one stretch of its trail and nothing ahead on the way back; fixed (the balloon is scenery, a canopy over the trail
+# hides the tower for a while, a beacon stands behind the start), each landmark is seen twice and the trail has one in
+# view both ways. Needs Godot (GODOT_BIN, or the kit installs it).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -50,8 +53,47 @@ $expected = @(
     "$cases Near (-10.00, 0.20, 0.00) path_to_link: path to Far stops 12.00 m short (limit 0.50 m)"
     "$cases Torch (12.00, 1.00, 10.00) ground_in_reach: exempt without a reason; placement_skip needs one"
     "$cases Steep (-15.00, 12.00, 15.00) zipline_angle: 38.7 degrees (limit 25.0)"
+    "res://rule_cases/wayfinding.tscn Golem (-5.00, 0.00, 10.00) landmark_still: a CharacterBody3D (limit: stationary)"
 )
-Assert-True (-not $c.Ok -and ($c.Findings -join "`n") -ceq ($expected -join "`n")) "a link to another navmesh island, a steep rope and a reasonless exemption:`n  $($c.Findings -join "`n  ")"
+Assert-True (-not $c.Ok -and ($c.Findings -join "`n") -ceq ($expected -join "`n")) "a link to another navmesh island, a steep rope, a reasonless exemption and a moving landmark:`n  $($c.Findings -join "`n  ")"
+Assert-True ($c.Lines -contains 'wayfinding: res://rule_cases/wayfinding.tscn Slide: a landmark ahead on 100% start to end (one way)') 'a one-way route is not walked back'
+Assert-True ($c.Lines -contains 'exempt: res://rule_cases/wayfinding.tscn Peak landmark_seen: the slide ends the level at the peak') 'a landmark seen once can be exempted with a reason'
+
+$forest = 'res://wayfinding/forest.tscn'
+$w = Invoke-Placement 'test_wayfinding'
+$expected = @(
+    "$forest Tower (0.00, 0.00, -100.00) landmark_seen: seen 1 time(s): Trail start to end at 0-60 m (limit 2)"
+    "$forest Balloon (*, 15.00, -30.00) landmark_still: moved 3.00 m in 30 physics frames (limit 0.01 m)"
+    "$forest Trail (0.00, 0.00, 0.00) landmark_ahead: end to start, a landmark ahead on 0% of 60 m (limit 25%)"
+)
+# The balloon has drifted for as many frames as navigation took to answer, so its x is not fixed.
+$matched = $w.Findings.Count -eq 3 -and $w.Findings[0] -ceq $expected[0] -and $w.Findings[1] -clike $expected[1] -and $w.Findings[2] -ceq $expected[2]
+Assert-True (-not $w.Ok -and $matched) "a tower seen once, a balloon that drifts and a trail with nothing ahead on the way back:`n  $($w.Findings -join "`n  ")"
+Assert-True ($w.Lines -contains "wayfinding: $forest Trail: a landmark ahead on 100% start to end, 0% end to start") 'the trail out sees the tower all the way, the way back sees nothing'
+
+$scene = Join-Path $game 'wayfinding/forest.tscn'
+$text = (Get-Content -LiteralPath $scene -Raw).Replace('[node name="Balloon" type="Node3D" parent="." groups=["landmark"]]', '[node name="Balloon" type="Node3D" parent="."]')
+$text += @'
+
+[node name="Canopy" type="CSGBox3D" parent="."]
+position = Vector3(0, 4.5, -30)
+size = Vector3(10, 3, 10)
+use_collision = true
+
+[node name="Beacon" type="Node3D" parent="." groups=["landmark"]]
+position = Vector3(0, 0, 40)
+
+[node name="Fire" type="Marker3D" parent="Beacon"]
+position = Vector3(0, 30, 0)
+'@
+Set-Content -LiteralPath $scene -Value $text -NoNewline
+$v = Invoke-Placement 'test_wayfinding'
+Assert-True ($v.Ok -and $v.Findings.Count -eq 0) "the fixed forest passes: $($v.Findings -join ' | ')"
+# By hand: from eye height 1.6 m, the ray to the tower's top (30 m up, 100 m on) clears the canopy (3 to 6 m up, 25 to
+# 35 m along the trail) until 11.25 m and again from 31.6 m; the beacon is the same seen from the other end.
+Assert-True ($v.Lines -contains "wayfinding: $forest Tower: seen 2 time(s): Trail start to end at 0-10 m and 32-60 m") "the canopy splits the view of the tower in two: $($v.Lines -match 'Tower:')"
+Assert-True ($v.Lines -contains "wayfinding: $forest Beacon: seen 2 time(s): Trail end to start at 0-10 m and 32-60 m") 'the beacon guides the way back'
+Assert-True ($v.Lines -contains "wayfinding: $forest Trail: a landmark ahead on 68% start to end, 68% end to start") "21 of the 31 points see one each way: $($v.Lines -match 'Trail:')"
 
 # Fixed: the lookout and the torch moved into range, the zip line exempted (its crate breaks).
 $scene = Join-Path $game 'levels/broken.tscn'

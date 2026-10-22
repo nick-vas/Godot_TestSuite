@@ -1,6 +1,6 @@
 ---
 name: godot-audio
-description: Use when a Godot game plays music, sound effects, voices or ambience, when adding volume settings, adaptive music, 3D sound or ducking, or when the game sounds too loud, too quiet, repetitive or muddy.
+description: Use when a Godot game plays music, sound effects, voices or ambience, when adding volume settings, adaptive music, 3D sound, ducking or gameplay that follows the music's beat, or when the game sounds too loud, too quiet, repetitive or muddy.
 ---
 
 # Game audio in Godot 4
@@ -69,7 +69,8 @@ Repetition is what makes game audio sound cheap; unlimited voices are what make 
 
 - One `AudioStreamRandomizer` per repeated sound: at least five footstep samples, `RandomNoRepeats`, a little pitch and
   volume spread. `RandomPitch` is a ratio, not a percentage: 1.05 picks between 1/1.05 and 1.05 (about ±5%), log-uniform.
-  `RandomVolumeOffsetDb = 2` picks between -2 and +2 dB.
+  `RandomVolumeOffsetDb = 2` picks between -2 and +2 dB. About 6 dB halves or doubles the amplitude, so ±2 dB is -21% to
+  +26%; convert with `Mathf.DbToLinear` and `Mathf.LinearToDb`, not by hand.
 
   ```csharp
   var steps = new AudioStreamRandomizer
@@ -84,6 +85,16 @@ Repetition is what makes game audio sound cheap; unlimited voices are what make 
   global voice limit and no priorities: give each category a budget in code (for example, at most six gunshots, oldest
   first; footsteps beyond 20 m not started at all), and let important sounds (voice, UI, the player's own weapon) never be
   stolen.
+- Cap by place as well as by count: per kind, at most two or three voices within a radius of a new one ("max within
+  radius", Guy Somberg's rule on Hellgate: London and BioShock 2; past two sources, people hear "footsteps", not steps).
+  Ten bricks breaking in one corner play two voices, bricks breaking on both sides still sound from both sides, and the
+  mix stays clear. A tested version, with a total and a cooldown per kind:
+  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Audio/VoiceLimiter.cs`. Game code keeps its integer handle,
+  never the pooled player (by then it may be playing another sound), and releases it when the player emits `Finished` or is
+  stopped. A refused sound is dropped: do not ask again every frame.
+- A pooled player may take `GlobalPosition`, `VolumeDb` and `PitchScale` just before or just after `Play()` in the same
+  frame: measured on 4.7.2, the first samples carry the new values either way (2D and 3D players start at the next
+  physics tick). FMOD's "start paused, set, unpause" against a pop is not needed.
 - A cooldown stops identical sounds stacking into one loud, phasing hit (ten pickups in one frame): skip a repeat within
   50 to 100 ms on the same player (FMOD's event cooldown).
 - Do not start a sound nobody can hear: check distance before `Play()`, the way middleware turns far voices virtual.
@@ -169,7 +180,14 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Mix -Seconds 120 -GameAr
 - Web exports play audio as samples by default: bus effects (ducking compressor, low-pass, limiter), reverb and doppler do
   not run there. Set the player's `PlaybackType` to `Stream` where they matter, and listen in a browser.
 
-## 8. Prove it
+## 8. Gameplay on the beat
+
+For rhythm-action (as in Hi-Fi Rush) the player presses whenever they like and the game lands the action on the beat.
+Read [beat.md](beat.md) before writing it. In short: the clock is the song's playback position (`MusicClock`), never
+summed `delta`; set the animation's speed so its impact lands on the beat (`BeatSync.SpeedScale`); reward on-beat play
+with extras and never punish off-beat play. Tested in `Breakout.Core/Audio/BeatSync.cs`.
+
+## 9. Prove it
 
 - [ ] `doctor` lists no missing bus and the `architecture` runner no `audio-on-master` warning
 - [ ] a test sets every bus name the code uses and checks `AudioServer.GetBusIndex(name) >= 0`, and that muting Music
