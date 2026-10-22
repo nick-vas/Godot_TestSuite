@@ -42,6 +42,8 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
   under 13?", and sends younger players to a version that collects nothing; COPPA safe-harbor companies help.
 - The kit's telemetry model (`godot-telemetry`) is built for this: nothing sent before consent, per purpose, no free
   text, export and erase. The policy describes exactly that schema, and its version matches `policyVersion` in the code.
+  Keep it in `store/privacy-policy.md` saying "Version N": `doctor` warns when telemetry or a phone preset has no policy,
+  or the policy is not at the code's version.
   Never copy another game's policy: it describes someone else's practices, so it misleads players (Reed). Link it from the
   main menu or splash screen and from the website's footer.
 - Store forms (Google Play's Data safety, Apple's privacy details) must match the policy, including what third-party SDKs
@@ -165,6 +167,20 @@ compromise, and treat a publisher that will change nothing as a warning sign. A 
 - **Delays and termination:** delays by the publisher, or by third parties it makes you use, extend your dates day for
   day. A missed milestone gets a cure period (look in the termination section). Strike "time is of the essence" for
   milestones: it allows termination for any lateness, cure period or not; if it stays, deliver something on each date.
+
+A developer's red flags, from Jan Willem Nijman's comments on a 2020 publisher draft (his opinions; clause by clause in
+`${CLAUDE_PLUGIN_ROOT}/docs/publisher-contracts.md`). Read each clause as what the publisher could do with it, and ask
+for a number, a list or a date wherever it says "sole discretion", "fair market value" or "not unreasonably withheld".
+
+- **Markup and split:** no markup on the advance; a split that depends on the advance (his 2020 benchmark: 70/30 to the
+  developer after recoup, for advances up to about $100k); the advance must also cover the months after launch before
+  store payments arrive.
+- **One-sided exits:** ending the deal for convenience costs the publisher notice, a payment and the rights, with no
+  claim on the game's later revenue; a breach never hands over the game or demands repayment at once; the rights revert
+  when the publisher stops selling the game.
+- **Hidden costs:** no return reserves from your share; no cut of sequels it does not publish; marketing plan, budget
+  and services in writing, per item; support, bug-fix and travel duties with limits; no ban on criticising it; audit
+  rights over its statements for you, not over your spending for it.
 
 Worked example (illustrative numbers, not the talk's): the publisher's advances and recoupable costs C = 100,000; the
 developer's share s = 50% of receipts R after the store's cut; neither column goes below 0.
