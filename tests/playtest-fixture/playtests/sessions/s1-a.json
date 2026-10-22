@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "session": "s1",
+  "build": "0.3.0-greybox",
+  "consent": { "policy": 1, "diagnostics": "NotAsked", "analytics": "Granted" },
+  "events": [
+    { "event": "level_time", "v": 1, "seq": 1, "t": "2026-10-20T10:01:40.0000000Z", "fields": { "level": "hub", "seconds": 100, "result": "finished" } },
+    { "event": "death", "v": 1, "seq": 2, "t": "2026-10-20T10:00:20.0000000Z", "fields": { "level": "hub", "x": 10, "y": 10, "z": 0, "level_seconds": 20, "checkpoint": 1 } },
+    { "event": "death", "v": 1, "seq": 3, "t": "2026-10-20T10:00:40.0000000Z", "fields": { "level": "hub", "x": 20, "y": 20, "z": 0, "level_seconds": 40, "checkpoint": 1 } },
+    { "event": "level_time", "v": 1, "seq": 5, "t": "2026-10-20T10:03:30.0000000Z", "fields": { "level": "cave", "seconds": 50, "result": "finished" } },
+    { "event": "death", "v": 1, "seq": 6, "t": "2026-10-20T10:02:50.0000000Z", "fields": { "level": "cave", "x": 3, "y": 1, "z": 3, "level_seconds": 10, "checkpoint": 0 } },
+    { "event": "death", "v": 1, "seq": 7, "t": "2026-10-20T10:03:00.0000000Z", "fields": { "level": "cave", "x": 3.5, "y": 0, "z": 2.5, "level_seconds": 20, "checkpoint": 0 } },
+    { "event": "revisit", "v": 1, "seq": 8, "t": "2026-10-20T10:03:10.0000000Z", "fields": { "level": "cave", "x": 11, "y": 0, "z": 7, "level_seconds": 30, "visits": 2 } },
+    { "event": "solved_but_stayed", "v": 1, "seq": 9, "t": "2026-10-20T10:03:20.0000000Z", "fields": { "level": "cave", "x": 15, "y": 0, "z": 1, "level_seconds": 35, "puzzle": 1, "seconds": 45 } }
+  ]
+}

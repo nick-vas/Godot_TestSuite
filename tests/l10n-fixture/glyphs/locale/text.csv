@@ -1,0 +1,4 @@
+keys,en,fr,ja,_notes
+TITLE,Start game,Démarrer la partie,ゲーム開始,"ゲーム is in the kana fallback, 開始 in no font"
+MENU,Menu,Menu,メニュー,"Drawn by the fallback"
+SCORE,"Score: {0}","Score : {0}",スコア {0},"The placeholder is not drawn"
