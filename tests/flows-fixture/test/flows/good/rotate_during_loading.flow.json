@@ -1,0 +1,11 @@
+{
+  "name": "a loading screen that finishes after a rotation lays out for the new orientation",
+  "scene": "res://rotation.tscn",
+  "steps": [
+    { "call": ".", "method": "start_loading", "args": [30] },
+    { "assert": { "node": ".", "prop": "loading", "equals": true } },
+    { "resize": [720, 1280] },
+    { "wait_until": { "node": ".", "prop": "loading", "equals": false }, "timeout": 120 },
+    { "assert": { "node": ".", "prop": "loaded_layout", "equals": "portrait" } }
+  ]
+}

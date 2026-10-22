@@ -37,6 +37,9 @@ Put files anywhere outside `addons/`, named `*.flow.json` (convention: `test/flo
 | `wait: N` | N physics frames |
 | `press: "path"` | emits `pressed` on a `BaseButton` |
 | `action: "name"`, `hold`, `strength` | presses an Input Map action for `hold` frames (default 1), then releases |
+| `hold: "name"`, `strength` | presses an action and keeps it held while later steps run |
+| `release: "name"` | releases an action a `hold` step pressed |
+| `resize: [width, height]` | resizes the window, as a phone rotation or a window drag does |
 | `set: "path"`, `prop`, `value` | sets a property (`prop` may be `a:b` sub-paths) |
 | `call: "path"`, `method`, `args` | calls a method |
 | `assert: {...}` | condition now |
@@ -51,6 +54,29 @@ Condition: `node` (path from the scene root, `.` for the root, or absolute `/roo
 2. Assert on state, not pixels. Headless has no renderer and pixel checks are brittle.
 3. Prefer `wait_until` over a long `wait`: it is faster and does not break when timings change.
 4. Keep each flow to one behaviour. Name the file for it (`pause_menu_resumes.flow.json`).
+
+## Rotation
+
+Elder Scrolls: Blades tested rotation mid-action, during loading and between a press and its release
+(`${CLAUDE_PLUGIN_ROOT}/docs/gdc/folds-accessibility.md`). Each is a flow: `hold` an action, `resize` to the other
+orientation, `release`, and assert the game kept the press and laid itself out again.
+
+```json
+{ "hold": "jump" },
+{ "resize": [720, 1280] },
+{ "assert": { "node": "Hud", "prop": "Layout", "equals": "portrait" } },
+{ "assert": { "node": "Player", "prop": "IsJumping", "equals": true } },
+{ "release": "jump" },
+{ "call": "Loading", "method": "Start" },
+{ "resize": [1280, 720] },
+{ "wait_until": { "node": "Loading", "prop": "visible", "equals": false } },
+{ "assert": { "node": "Menu", "prop": "Layout", "equals": "landscape" } }
+```
+
+`resize` sets the root window's size, the path an OS resize takes: the stretch mode and aspect apply, the viewport's
+`size_changed` fires once and anchored Controls get their new size before the next step. Every flow starts at the
+project's window size (`display/window/size/*`), whatever the flow before it did. A flow that ends with an action still
+held fails: release it, so a missing release in the game cannot hide behind the runner's clean-up.
 
 ## Tutorials and notices
 
@@ -78,11 +104,16 @@ is at most 7; two notices for different regions are both visible a few frames af
 
 `tests-failed` with `runner: flows`; each failure's `name` is the flow file and `message` is `step N (<the step>): <reason>`, for
 example `step 2 (...): Hud.text is 3, expected equals 0`. `file` is the flow. Common reasons: `no node <path>` (typo, or built in
-`_ready` later - add a `wait`), `no input action <name>` (not in the Input Map), `condition not met after N frames`.
+`_ready` later - add a `wait`), `no input action <name>` (not in the Input Map), `condition not met after N frames`,
+`resize needs [width, height] in pixels, whole numbers from 1 to 16384`, `<action> is not held` (a `release` with no
+`hold`), `hold needs an input action name` (`hold: N` alone; frames go on an `action` step), and `the flow ended with
+<action> still held`.
 
 ## Limits
 
 - C# properties are readable (`prop: "Score"`); private ones are not. Expose what a flow needs as a public property or a method to `call`.
 - Keyboard and mouse events are not simulated, only Input Map actions and button presses. Define actions for what you want to drive.
 - Flows run the scene alone, not the whole game from the main menu, unless you pass that scene.
+- Headless, `DisplayServer.WindowGetSize()` stays (0, 0) after a `resize`: read the size from the viewport
+  (`GetViewport().GetVisibleRect()`, `Root.SizeChanged`), which a phone's rotation changes too.
 - Keep `*.flow.json` out of release builds: `doctor` checks the folder is in each export preset's `exclude_filter`.

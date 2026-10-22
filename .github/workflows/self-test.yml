@@ -392,6 +392,9 @@ jobs:
       - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
         shell: pwsh
         run: ./tests/Test-Layout.ps1
+      - name: UI flows rotate the window with an action held, and name every bad resize, hold and release
+        shell: pwsh
+        run: ./tests/Test-Flows.ps1
       - name: soak runs a server and clients, and catches a leak and a crash
         shell: pwsh
         run: ./tests/Test-Soak.ps1

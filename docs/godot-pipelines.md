@@ -33,7 +33,7 @@ WAT (~310 stars) only supports Godot 3.
 | `gdunit4` | never: select it explicitly | `dotnet test` on the Godot project's csproj only | `dotnet test --filter` | ✅ needs `coverlet.collector` |
 | `godottest` | the Godot csproj references `Chickensoft.GoDotTest` | the scene whose script calls `GoTest.RunTests`, else the main scene | suite name | ✅ via coverlet |
 | `gut` | a `.gd` file `extends GutTest` | `.gutconfig.json` if present, else `test_*.gd` in those folders | test name | – |
-| `flows` | a `*.flow.json` file exists | plays each UI flow in the real engine, headless: presses, input actions, waits, asserts on node properties; one case per flow ([format](../.agents/skills/godot-ui-flows/SKILL.md)) | path contains the text | – |
+| `flows` | a `*.flow.json` file exists | plays each UI flow in the real engine, headless: presses, input actions (also held across steps), window resizes, waits, asserts on node properties; one case per flow ([format](../.agents/skills/godot-ui-flows/SKILL.md)) | path contains the text | – |
 | `smoke` | `project.godot` has a main scene | the main scene for N frames | – | – |
 | `validate` | always | loads every script, scene and resource (outside `addons/`) and instantiates each scene; one test case per file | – | – |
 

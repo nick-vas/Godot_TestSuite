@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Rotation as a UI flow, from the roadmap (Elder Scrolls: Blades tested rotating mid-action, during loading and between
+  a press and its release): `flows` gains `resize: [width, height]` (sets the root window's size, which headless Godot
+  4.7.2 handles as an OS resize: the stretch mode and aspect apply, the viewport's `size_changed` fires once and anchored
+  Controls resize; `DisplayServer.window_set_size` does nothing headless), `hold: "action"` (pressed until a later
+  step) and `release: "action"`. A flow that ends with an action still held fails, and an `action` step on a held
+  action is refused. Each flow now starts at the project's window size: headless Godot opened a 64x64 window, so a
+  game with the `expand` aspect saw a square screen, and a resize leaked into the next flow. Bad sizes, an unknown or
+  numeric `hold` and a `release` of an action not held fail with their reason. Self-test: `Test-Flows.ps1`
+  (`tests/flows-fixture`, needs Godot).
 - From the roadmap's art to-do list: `shot` checks every screenshot against the palette table in `docs/STYLE.md`
   (every `#RRGGBB` in its rows). Distances are CIEDE2000 (checked against Sharma, Wu and Dalal's test pairs) with a
   tolerance of 3 (`-PaletteTolerance`; one 8-bit level moves a colour by at most 2.40); anti-aliased edges, filtering

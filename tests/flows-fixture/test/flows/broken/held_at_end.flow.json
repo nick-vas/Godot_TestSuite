@@ -1,0 +1,1 @@
+{ "scene": "res://rotation.tscn", "steps": [ { "hold": "jump" }, { "resize": [720, 1280] } ] }

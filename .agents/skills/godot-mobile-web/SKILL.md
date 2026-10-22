@@ -78,8 +78,8 @@ A full-rect `MarginContainer` sets its four `margin_*` theme constants from `Can
 `screenOrientation=0`). A portrait game must set it, and also its viewport size: Godot does not swap them.
 A game that supports both (sensor) re-lays out on `Root.SizeChanged` at any moment, never only in `_Ready`; in
 landscape both thumbs rest low at the sides, so critical buttons go in reach there, with a left-handed mirror. Test by
-rotating mid-fight, during loading and between a press and its release, and check text at the smallest aspect ratio in
-each orientation (Elder Scrolls: Blades, GDC: dual orientation added 20 to 60% to UI design time; plan it from the start).
+rotating mid-fight, during loading and between a press and its release (a UI flow's `hold`, `resize` and `release`
+steps, `godot-ui-flows`), and check text at the smallest aspect ratio in each orientation (Elder Scrolls: Blades, GDC: dual orientation added 20 to 60% to UI design time; plan it from the start).
 
 ## 3. Touch
 
