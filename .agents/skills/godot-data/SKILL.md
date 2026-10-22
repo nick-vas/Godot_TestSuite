@@ -88,9 +88,11 @@ every row without Godot and writes one JUnit case per table:
 ```
 
 - It catches: duplicate or missing ids, wrong types, values out of range or not in the enum, references to ids that do
-  not exist, unknown columns (typos in a header), and a CSV still imported as a translation.
+  not exist, unknown columns (typos in a header), and a CSV still imported as a translation; a mistyped id, enum value,
+  column or table comes with the near name ("did you mean 'mining'?").
 - Field rules: `type` (string, int, number, bool), `min`, `max`, `enum`, `pattern`, `ref`, `list` (`;` between values
-  in a CSV cell), `optional`; `"extra": "allow"` on a table permits unlisted columns.
+  in a CSV cell), `optional`, `acyclic` (on a `ref` to its own table: prerequisites that loop, as in a tech tree,
+  `godot-algorithms`); `"extra": "allow"` on a table permits unlisted columns.
 - Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.

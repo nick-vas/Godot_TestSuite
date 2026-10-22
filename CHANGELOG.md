@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Algorithms (TheAlgorithms/C-Sharp, GPL-3.0, studied and measured, not copied; its MIT explanations read too;
+  `docs/algorithms.md`): a `godot-algorithms` skill; Breakout.Core gains a Dijkstra map for crowds and fleeing
+  (`DistanceField`), region labelling and union-find (`Regions`, `DisjointSet`) and "did you mean" (`Suggest`). The
+  `data` runner reports loops among prerequisites (`"acyclic": true`) and names the near id, enum value, column or
+  table for a typo; `test -Runners` suggests the runner a mistyped name meant.
 - Fixes found by the first CI runs after the GDC work: `test -Filter` no longer fails when the filter leaves out every
   gdUnit4 test (they were counted as found but not run); a successful command now exits 0 explicitly, instead of
   leaving the exit code of its last `git` call (128 in a repository without commits), which GitHub's PowerShell steps

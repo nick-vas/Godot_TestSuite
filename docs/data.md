@@ -87,7 +87,11 @@ A loader that scans `res://data` with `DirAccess` for `*.tres` works in the edit
 `data.json` in a game names each table's file (JSON or CSV), its id column and its fields; the runner is selected
 whenever the file exists and needs no Godot. Field rules: `type` (string, int, number, bool), `min`, `max`, `enum`,
 `pattern`, `ref` (another table whose ids the value must name), `list` (a JSON array, or `;` between values in a CSV
-cell) and `optional`; columns not listed fail unless the table says `"extra": "allow"`. A JSON table is an array of
+cell), `optional` and `acyclic` (on a `ref` to the field's own table: every loop among the rows is reported as
+`a -> b -> a is a cycle: none of them can come first`, at most five, long ones shortened; prerequisite chains, quest
+order, recipes). A mistyped id, enum value, column or table is reported with the nearest name when one is close (one
+edit up to six letters, two up to nine; a swap of two letters is one edit). Columns not listed fail unless the table
+says `"extra": "allow"`. A JSON table is an array of
 objects or an object keyed by id. A CSV table without `importer="keep"` in its committed `.import` fails, since it would
 not ship. Numbers in CSV cells are parsed with the invariant culture. One JUnit case per table;
 `tests/Test-Data.ps1` checks it against `tests/data-fixture`.

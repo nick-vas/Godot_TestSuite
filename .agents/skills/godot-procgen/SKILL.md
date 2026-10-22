@@ -148,7 +148,7 @@ module per cell, then spawns. The tested version is `${CLAUDE_PLUGIN_ROOT}/examp
 Generate data first (a grid, a graph, a list), with no nodes, in one coordinate convention (Godot's y down; Galak-Z lost
 time flipping between two); build the scene from the data after. Then check the data:
 
-- Hard rules: every room reachable from the start (a flood fill), an exit exists, counts within bounds, the start is safe,
+- Hard rules: every room reachable from the start (a flood fill: `Regions.Label`, `godot-algorithms`), an exit exists, counts within bounds, the start is safe,
   clusters of objects kept apart (XCOM 2 keeps two empty tiles between cover clusters, so movement and the camera stay
   clear at full density).
 - On failure, try the next derived seed (`Seeds.Derive(runSeed, floor, attempt)`), a bounded number of times, and log it:

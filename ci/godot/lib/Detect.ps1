@@ -156,7 +156,10 @@ function Get-ProjectInfo {
     }
     $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize', 'layout'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
-    if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
+    if ($unknown) {
+        $hints = @(foreach ($u in $unknown) { $near = Get-ClosestName $u $valid; if ($near) { "'$u' is probably '$near'" } })
+        Stop-GodotCi "Unknown runner(s) $($unknown -join ', ')$(if ($hints) { " ($($hints -join ', '))" }); use $($valid -join ', ')"
+    }
 
     $name = if ($projectGodot -match '(?m)^config/name="(?<n>[^"]*)"') { $Matches.n } else { Split-Path $projectDir -Leaf }
 
