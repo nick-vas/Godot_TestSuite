@@ -344,13 +344,15 @@ function Invoke-Tests {
     Set-JsonField quarantined @(foreach ($r in $runs) { foreach ($q in $r.Quarantined) {
         [ordered]@{ runner = $r.Runner; name = $q.Name; message = $q.Message; owner = $q.Owner; until = $q.Until; reason = $q.Reason } } })
     Set-JsonField runnerResults @(foreach ($result in $runs) {
-        [ordered]@{ runner = $result.Runner; ok = $result.Ok; total = $result.Total; passed = $result.Passed; failed = $result.Failed
+        $entry = [ordered]@{ runner = $result.Runner; ok = $result.Ok; total = $result.Total; passed = $result.Passed; failed = $result.Failed
             skipped = $result.Skipped; failures = @(foreach ($f in $result.Failures) {
                 [ordered]@{ name = $f.Name; message = $f.Message; file = $f.File; line = $f.Line; details = $f.Details; new = (Get-FailureNewFlag $delta $result.Runner $f.Name) } })
             warnings = @($result.Warnings | Where-Object { $_ } | ForEach-Object { [ordered]@{ rule = $_.rule; file = $_.file; line = $_.line; message = $_.message } })
             attempts = $result.Attempts
             flaky = @(foreach ($f in $result.Flaky) { [ordered]@{ name = $f.Name; message = $f.Message; failedAttempt = $f.FailedAttempt } })
-            quarantined = @(foreach ($q in $result.Quarantined) { [ordered]@{ name = $q.Name; message = $q.Message; owner = $q.Owner; until = $q.Until; reason = $q.Reason } }) } })
+            quarantined = @(foreach ($q in $result.Quarantined) { [ordered]@{ name = $q.Name; message = $q.Message; owner = $q.Owner; until = $q.Until; reason = $q.Reason } }) }
+        if ($result.PSObject.Properties['Glyphs']) { $entry['glyphs'] = $result.Glyphs }
+        $entry })
 
     $failed = @($runs | Where-Object { -not $_.Ok } | ForEach-Object Runner)
     if ($failed.Count -gt 0) { Stop-GodotCi "Failed runners: $($failed -join ', ') (results in $resultsDir)" 'tests-failed' }
