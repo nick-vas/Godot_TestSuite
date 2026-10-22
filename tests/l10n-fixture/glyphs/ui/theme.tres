@@ -1,0 +1,8 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://fonts/latin.tres" id="1"]
+[ext_resource type="FontFile" path="res://fonts/digits.tres" id="2"]
+
+[resource]
+default_font = ExtResource("1")
+ProgressBar/fonts/font = ExtResource("2")

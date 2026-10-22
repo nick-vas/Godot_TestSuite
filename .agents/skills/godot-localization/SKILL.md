@@ -6,8 +6,8 @@ description: Use when a Godot game shows text players read and will ship in more
 # Localization in Godot 4
 
 Every visible string goes through a key, every key has a translation in every shipped language, and the screens still
-fit and draw when the language changes. The kit checks the tables without Godot (the `l10n` runner) and the screens with
-it (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/docs/localization.md`.
+fit and draw when the language changes. The kit checks the tables and their characters against the fonts (the `l10n`
+runner) and the screens (`shot -Locale`/`-Pseudo`). Sources and test results: `${CLAUDE_PLUGIN_ROOT}/docs/localization.md`.
 Choose the languages at `concept.decisions` and keep the `l10n` runner green from the first milestone, not as a late
 port ("At Google, we always try to launch products globally.", Tatsuo Nomura, *Untold History*).
 
@@ -56,7 +56,7 @@ port ("At Google, we always try to launch products globally.", Tatsuo Nomura, *U
 The `l10n` runner (picked automatically when a project has translation CSVs, `.po` files or translation remaps) fails on
 duplicate keys (same key and context twice), untranslated entries (an empty cell, a fuzzy or empty PO entry, fewer plural
 forms than the language needs), keys in `tr`/`Tr`/`TrN`/`atr` calls that no table has, text over its length limit, tables
-that are not UTF-8, and the remaps and voice of section 4:
+that are not UTF-8, characters no font has (`missing glyphs`, section 6), and the remaps and voice of section 4:
 
 ```powershell
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Runners l10n -Json -Quiet
@@ -109,7 +109,8 @@ off. After each picture the visible labels and buttons are checked, and any prob
 | `missing glyphs` | None of the control's fonts has these characters | Add a fallback font (below) |
 
 `missing glyphs` is the check a picture cannot make: the default font has system fallback on, so this machine draws CJK
-and Arabic from its own fonts and a player's may not. Look at the pictures too (`look`).
+and Arabic from its own fonts and a player's may not. Look at the pictures too (`look`). The `l10n` runner's
+`missing glyphs` covers every string, shown or not.
 
 ## 6. Fonts and scripts
 
@@ -118,6 +119,12 @@ and Arabic from its own fonts and a player's may not. Look at the pictures too (
 - Ship the fonts: a project font with `Fallbacks` (Noto Sans CJK, Noto Naskh Arabic; SIL Open Font License) in the theme
   (`gui/theme/custom` or `gui/theme/custom_font`). A `SystemFont` resolves on the player's machine, so it is no
   guarantee. Set `AllowSystemFallback = false` on shipped fonts while testing so this machine looks like a player's.
+- The `l10n` runner's `missing glyphs` case checks every character of every translation (placeholders, BBCode tags and
+  whitespace aside) against the default font (theme `default_font`, else `gui/theme/custom_font`, else Godot's) and
+  every font of a `.tres` theme, with fallbacks: `ja: res://fonts/latin.tres (default font) has no 始 U+59CB, 開 U+958B
+  (in 'TITLE')`. Fix: a fallback font with those characters. Characters only a `SystemFont` could draw are a
+  `system-font` warning. A font that never draws translated text (digits only) goes in `l10n.json`:
+  `{ "glyphIgnoreFonts": ["res://fonts/digits.tres"] }`. Fonts set on one node are left to `shot -Locale`.
 - Thai, CJK, Khmer and other scripts break lines with dictionary data: export with
   `internationalization/locale/include_text_server_data = true` (about 4 MB).
 - Chinese is two locales, translated apart and named by script: `zh_CN` and `zh_TW` (or `zh_Hans`, `zh_Hant`). Godot
@@ -155,7 +162,8 @@ Plural (`TrN`) strings are not pseudolocalized.
 
 ## 10. Prove it
 
-- [ ] the `l10n` runner passes: no duplicate, untranslated, unknown or too long keys
+- [ ] the `l10n` runner passes: no duplicate, untranslated, unknown or too long keys, no missing glyphs, and no
+  `system-font` warning for a shipped language
 - [ ] every text in a fixed box has `_max` (and `_lines`) in its row
 - [ ] every remap target exists, and `localized audio` passed rather than skipped (ffmpeg installed in CI)
 - [ ] `shot -Pseudo` shows every visible string bracketed and none cut off

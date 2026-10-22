@@ -6,8 +6,8 @@ Coast, Episodes One and Two, Portal, Portal 2 and Half-Life: Alyx (fan-wiki tran
 Walker and Chet Faliszek. About 200,000 words. Every quote below was checked word for word against the downloaded text
 (`tests/` has no copy: the sources stay where they are published). "Godot:" says how a solo developer with agents uses it.
 
-The kit's versions: `PacingDirector` and `Intensity` (Left 4 Dead's AI Director) and `ResponseSystem` (Valve's dialogue
-rules) in Breakout.Core with tests; the `godot-playtest` skill; additions to `godot-narrative`, `godot-game-plan`,
+The kit's versions: `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue
+rules), `LookTrigger` (29) and `SoftLockCheck` (30) in Breakout.Core with tests; the `godot-playtest` skill; additions to `godot-narrative`, `godot-game-plan`,
 `godot-progression` and the `STYLE.md` template.
 
 ## Sources
@@ -138,8 +138,14 @@ deck (slides are images). The Portal post-mortem and the TF2 free-to-play deck a
     caught unaware" (Joe Ludwig).
 29. **A look trigger with a timer.** "The combination of a timer and a look trigger is a common trick used in places
     where we'd like the player to see a neat visual moment, but we can't wait forever" (Dan Ginsburg, Alyx).
+    Godot: `LookTrigger` in Breakout.Core ([`Level/LookTrigger.cs`](../examples/breakout/src/Breakout.Core/Level/LookTrigger.cs)).
 30. **Never a soft-lock.** "We set up special triggers to detect and handle these cases, and then added the box delivery
     tubes" (Kerry Davis, Portal); a turret citizen was added "as a failsafe" (Matt Wright, Half-Life 2).
+    Godot: find them before a tester does. `SoftLockCheck` in Breakout.Core
+    ([`Level/SoftLock.cs`](../examples/breakout/src/Breakout.Core/Level/SoftLock.cs)) takes the level as areas, passages,
+    pickups, supplies and items that can be lost, tries every order (the key on the wrong door first, the box lost after
+    the last ammo), and names the shortest path into a state the goal cannot be reached from. A game's test calls
+    `SoftLockCheck.AssertNoSoftLock(level)`; `godot-playtest` section 6 says how.
 31. **Save only when the player is safe.** Some testers died 30 times at a checkpoint; the autosave was changed "to only
     perform the autosave if the player was deemed safe for a reasonable period of time." (Steve Bond, Episode Two)
 32. **Lost players are not having fun.** "After watching numerous playtesters get lost, it became obvious that they were
@@ -200,7 +206,10 @@ never as much as you’d like" (Walker).
     existence are no longer true." In hindsight a response should "remove itself from the database after" playing (Ruskin).
     Godot: `ResponseSystem` in Breakout.Core, with tests built on the talk's own examples. Writers author rows (who,
     concept, criteria such as `health<25;weapon=shotgun`, lines, follow-up); the kit adds `!key` (a fact missing or 0),
-    without which an expiring memory cannot say "not yet".
+    without which an expiring memory cannot say "not yet". Writers keep the rows in a `data.json` table of
+    `"kind": "responses"`, which the `data` runner checks (criteria syntax with the column, follow-ups no rule answers,
+    missing voice files, rules that tie, contradictory criteria, facts nothing writes) and `ResponseTable.Load` turns
+    into rules ([data.md](data.md#dialogue-tables-kind-responses)).
 
 ## 6. Art that reads
 

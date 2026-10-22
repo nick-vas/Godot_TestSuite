@@ -87,7 +87,7 @@ jobs:
       - uses: ./.github/actions/ffmpeg
       - name: The l10n runner fails on duplicate, untranslated, missing and too long keys, broken remaps and mismatched voice
         shell: pwsh
-        run: ./tests/Test-Localization.ps1
+        run: ./tests/Test-Localization.ps1 -NoGodot
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
@@ -273,6 +273,11 @@ jobs:
       - name: test -Retry reports tests that passed on a retry; quarantine.json excuses only its own test, until its date
         shell: pwsh
         run: ./tests/Test-Flaky.ps1
+      # The l10n test makes its localized voice files with ffmpeg; without it the remap checks have nothing to find.
+      - uses: ./.github/actions/ffmpeg
+      - name: The l10n runner fails translations the project's fonts cannot draw, and warns on SystemFont-only text
+        shell: pwsh
+        run: ./tests/Test-Localization.ps1
       - name: Error keys group a run's Godot errors across runs, and status lists the recurring ones
         shell: pwsh
         run: ./tests/Test-ErrorKeys.ps1

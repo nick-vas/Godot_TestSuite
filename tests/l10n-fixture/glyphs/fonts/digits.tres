@@ -1,0 +1,17 @@
+; Digits only, for a progress bar: l10n.json leaves it out of the glyph check.
+[gd_resource type="FontFile" format=3]
+
+[resource]
+fixed_size = 16
+cache/0/16/0/ascent = 12.0
+cache/0/16/0/descent = 4.0
+cache/0/16/0/glyphs/48/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/49/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/50/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/51/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/52/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/53/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/54/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/55/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/56/advance = Vector2(8, 0)
+cache/0/16/0/glyphs/57/advance = Vector2(8, 0)

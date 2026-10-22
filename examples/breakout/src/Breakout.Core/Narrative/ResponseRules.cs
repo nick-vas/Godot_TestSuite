@@ -30,42 +30,142 @@ public readonly record struct Criterion(string Key, double Min, double Max, bool
         facts.TryGetValue(Key, out var value) ? value >= Min && value <= Max : MissingPasses;
 
     /// <summary>
-    /// Parses "key=value", "key&lt;n", "key&lt;=n", "key&gt;n", "key&gt;=n", "key=true" or "!key" (missing or 0). Text
-    /// values become symbols; strict comparisons step to the next representable number.
+    /// Parses one criterion: "key=value", "key&lt;n", "key&lt;=n", "key&gt;n", "key&gt;=n", "key=true" or "!key"
+    /// (missing or 0), in the grammar of <see cref="CriteriaSyntax"/>. Text values become symbols; strict comparisons step
+    /// to the next representable number.
     /// </summary>
     public static Criterion Parse(string text, Symbols symbols)
     {
-        text = text.Trim();
-        if (text.StartsWith('!') && text.Length > 1 && text[1..].All(c => char.IsLetterOrDigit(c) || c is '_' or '.'))
-            return new(text[1..], 0, 0, MissingPasses: true);
-        foreach (var op in new[] { "<=", ">=", "<", ">", "=" })
-        {
-            var at = text.IndexOf(op, StringComparison.Ordinal);
-            if (at <= 0) continue;
-            var key = text[..at].Trim();
-            var raw = text[(at + op.Length)..].Trim();
-            if (op == "=") { var v = Value(raw, symbols); return new(key, v, v); }
-            if (!double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var n))
-                throw new FormatException($"'{text}': {op} needs a number");
-            return op switch
-            {
-                "<" => new(key, double.NegativeInfinity, Math.BitDecrement(n)),
-                "<=" => new(key, double.NegativeInfinity, n),
-                ">" => new(key, Math.BitIncrement(n), double.PositiveInfinity),
-                _ => new(key, n, double.PositiveInfinity),
-            };
-        }
-        throw new FormatException($"'{text}' is not a criterion (key=value, key<n, key<=n, key>n, key>=n, !key)");
+        var parsed = CriteriaSyntax.Parse(text);
+        if (parsed.Count != 1) throw new FormatException($"'{text}' is {parsed.Count} criteria, not one (ParseAll reads a list)");
+        return From(parsed[0], symbols);
     }
 
-    internal static double Value(string raw, Symbols symbols) =>
+    /// <summary>Parses a list of criteria separated by ";" ("health&lt;25;weapon=shotgun"); empty or blank text is none.</summary>
+    public static IReadOnlyList<Criterion> ParseAll(string? text, Symbols symbols) =>
+        text is null ? [] : CriteriaSyntax.Parse(text).Select(c => From(c, symbols)).ToList();
+
+    /// <summary>The interval a written criterion stands for.</summary>
+    public static Criterion From(CriterionText c, Symbols symbols)
+    {
+        if (c.Op == "!") return new(c.Key, 0, 0, MissingPasses: true);
+        var n = c.Number ?? symbols[c.Name!];
+        return c.Op switch
+        {
+            "=" => new(c.Key, n, n),
+            "<" => new(c.Key, double.NegativeInfinity, Math.BitDecrement(n)),
+            "<=" => new(c.Key, double.NegativeInfinity, n),
+            ">" => new(c.Key, Math.BitIncrement(n), double.PositiveInfinity),
+            ">=" => new(c.Key, n, double.PositiveInfinity),
+            _ => throw new FormatException($"unknown operator '{c.Op}'"),
+        };
+    }
+
+    /// <summary>A value as a fact holds it: a number, true (1), false (0) or a name (its symbol).</summary>
+    public static double Value(string raw, Symbols symbols) =>
         raw switch
         {
             "true" => 1,
             "false" => 0,
-            _ when double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var n) => n,
+            _ when CriteriaSyntax.IsNumber(raw) => double.Parse(raw, System.Globalization.CultureInfo.InvariantCulture),
             _ => symbols[raw],
         };
+}
+
+/// <summary>
+/// One criterion as written, before its value becomes a number: the fact, the operator ("=", "&lt;", "&lt;=", "&gt;",
+/// "&gt;=", or "!" for missing or 0) and the value, a number (true is 1, false 0) or a name.
+/// </summary>
+public readonly record struct CriterionText(string Key, string Op, double? Number = null, string? Name = null);
+
+/// <summary>A criteria syntax error: <see cref="Column"/> is 1-based, in UTF-16 characters of the whole text.</summary>
+public sealed class CriteriaSyntaxException(int column, string reason) : FormatException($"column {column}: {reason}")
+{
+    public int Column { get; } = column;
+    public string Reason { get; } = reason;
+}
+
+/// <summary>
+/// The one grammar of criteria, shared with the kit's <c>data</c> runner (<c>Read-ResponseCriteria</c> in
+/// ci/godot/lib/Data.ps1); <c>criteria-examples.json</c> in the tests holds the cases both must agree on, errors included.
+/// <code>
+/// criteria  = blank | criterion { ";" criterion }
+/// criterion = blank ( "!" name | name blank op blank value ) blank
+/// op        = "&lt;=" | "&gt;=" | "&lt;" | "&gt;" | "="
+/// value     = number | "true" | "false" | name       (after &lt;, &lt;=, &gt;, &gt;=: a number only)
+/// number    = [ "-" ] digit { digit } [ "." digit { digit } ]     (ASCII digits, a dot, no exponent)
+/// name      = ( letter | "_" ) { letter | digit | "_" | "." | "-" }
+/// blank     = { " " | "\t" }
+/// </code>
+/// </summary>
+public static class CriteriaSyntax
+{
+    static readonly System.Text.RegularExpressions.Regex Number = new(@"^-?[0-9]+(\.[0-9]+)?\z");
+
+    public static bool IsNumber(string raw) => Number.IsMatch(raw);
+
+    public static bool IsName(string raw) =>
+        raw.Length > 0 && (char.IsLetter(raw[0]) || raw[0] == '_') && raw.All(IsNameChar);
+
+    static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or '.' or '-';
+
+    static bool IsBlank(char c) => c is ' ' or '\t';
+
+    public static IReadOnlyList<CriterionText> Parse(string text)
+    {
+        var list = new List<CriterionText>();
+        if (text.All(IsBlank)) return list;
+        var i = 0;
+        while (true)
+        {
+            list.Add(One(text, ref i));
+            if (i == text.Length) return list;
+            i++;   // past the ';'
+        }
+    }
+
+    static CriterionText One(string t, ref int i)
+    {
+        SkipBlank(t, ref i);
+        if (i == t.Length || t[i] == ';') throw Error(i, "empty criterion");
+        var missing = t[i] == '!';
+        if (missing) i++;
+        if (i == t.Length || !(char.IsLetter(t[i]) || t[i] == '_'))
+            throw Error(i, missing ? "expected a fact name after '!'" : "expected a fact name");
+        var start = i;
+        while (i < t.Length && IsNameChar(t[i])) i++;
+        var key = t[start..i];
+        SkipBlank(t, ref i);
+        if (missing) { AtEnd(t, i); return new(key, "!"); }
+        string op;
+        if (i + 1 < t.Length && t[i] is ('<' or '>') && t[i + 1] == '=') op = t.Substring(i, 2);
+        else if (i < t.Length && t[i] is ('<' or '>' or '=')) op = t[i].ToString();
+        else throw Error(i, $"expected =, <, <=, > or >= after '{key}'");
+        i += op.Length;
+        SkipBlank(t, ref i);
+        start = i;
+        while (i < t.Length && !IsBlank(t[i]) && t[i] != ';') i++;
+        var raw = t[start..i];
+        if (raw.Length == 0) throw Error(start, $"expected a value after '{op}'");
+        CriterionText parsed;
+        if (IsNumber(raw)) parsed = new(key, op, double.Parse(raw, System.Globalization.CultureInfo.InvariantCulture));
+        else if (op != "=") throw Error(start, $"'{op}' needs a number, not '{raw}'");
+        else if (raw is "true" or "false") parsed = new(key, op, raw == "true" ? 1 : 0);
+        else if (IsName(raw)) parsed = new(key, op, Name: raw);
+        else throw Error(start, $"'{raw}' is neither a number nor a name");
+        SkipBlank(t, ref i);
+        AtEnd(t, i);
+        return parsed;
+    }
+
+    static void SkipBlank(string t, ref int i) { while (i < t.Length && IsBlank(t[i])) i++; }
+
+    static void AtEnd(string t, int i)
+    {
+        if (i < t.Length && t[i] != ';') throw Error(i, $"unexpected '{t[i]}'");
+    }
+
+    static CriteriaSyntaxException Error(int index, string reason) => new(index + 1, reason);
 }
 
 /// <summary>A fact a matched rule writes into the speaker's memory (or the world's), optionally for a limited time.</summary>
@@ -85,7 +185,19 @@ public sealed record Rule(string Name, string Concept, string? Who, IReadOnlyLis
     public IReadOnlyList<Remember> Remembers { get; init; } = [];
     public FollowUp? Then { get; init; }
     public bool Once { get; init; }
+
+    /// <summary>The voice file of each line, in the order of <see cref="Lines"/>; null for a line not recorded yet.</summary>
+    public IReadOnlyList<string?> Voices { get; init; } = [];
+
     public int Score => Criteria.Count + 1 + (Who is null ? 0 : 1);
+
+    /// <summary>The voice file recorded for <paramref name="line"/> (a <see cref="Match.Line"/>), or null.</summary>
+    public string? VoiceOf(string line)
+    {
+        for (var i = 0; i < Lines.Count && i < Voices.Count; i++)
+            if (Lines[i] == line) return Voices[i];
+        return null;
+    }
 }
 
 /// <summary>Facts with optional expiry times: a character's memory, or the world's.</summary>
