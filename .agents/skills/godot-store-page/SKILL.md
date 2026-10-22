@@ -1,6 +1,6 @@
 ---
 name: godot-store-page
-description: Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, or the dates between paying for the page and release.
+description: Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, the dates between paying for the page and release, or a press kit and review keys for press and streamers.
 ---
 
 # The store page
@@ -81,3 +81,25 @@ glance. Facts here were read from Steamworks' pages and Chris Zukowski's (howtom
 - **itch.io:** cover image 630x500 recommended (315x250 minimum); 3 to 5 screenshots; label adult content and generative
   AI use. Good for prototypes and jams, rarely for revenue.
 - **Epic:** logo 960x540 PNG; landscape 2560x1440 and portrait 1200x1600 images; uses IARC age ratings (`godot-legal`).
+
+## 6. Press kit and outreach
+
+From a GDC talk on no-budget marketing (about 2024; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/no-budget-diy-marketing.md`). Its
+social-platform advice and wishlist conversion figures are dated and left out: section 4 has current data.
+
+- **Message:** the short description plus a list of bullets of what is unique (mechanics, art style, music and composer,
+  length, modes, player count), reused on the store page, in the press kit and in every email. Shapes that work:
+  `<verb> a <noun> while you <verb>`; `<Name> is a <genre> where you <verb> and <verb>`; a line of story ending in a
+  question to the player. Name the genre rather than lean on "like <other game>".
+- **Press kit in `store/press/`** (`doctor` warns about gaps): `key_art` and `key_art_notitle` (press ask for both),
+  6 to 10 `screenshot*`, and `fact_sheet.txt` or `press_release.txt` with the short description, bullets, platforms,
+  date, trailer and store links and a contact email (a separate press@ address: it becomes public). Publish it on the
+  game's site so nobody who wants to cover the game lacks the material.
+- **Press list:** name, email, handle, outlet or streaming platform, platforms they play on, region (send in their
+  daytime), notes. Only contact details they list publicly; include small streamers and niche sites, not only big
+  outlets.
+- **When to write:** the announcement (trailer, screenshots), the release window, a new demo or a major festival only,
+  then the release date, announced no more than a few months ahead.
+- **Keys:** review keys about a month before release, with an embargo date and time. The launch-day email is short:
+  a subject naming the genre and saying it releases today, the short description, bullets, store, press kit and press
+  release links, a small GIF and a key, so nobody has to ask. Do not give keys to everyone who asks.
