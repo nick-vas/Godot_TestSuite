@@ -41,6 +41,12 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet   # failures 
 | `unsafe-results-dir` | - | pass a dedicated `-Results` folder |
 | `unexpected-error` | `error.message` | usually a bad path or argument |
 
+With `tests-failed`, read `failureDelta.new` first: those failures were not there in the last run with the same
+runners and `-Filter`, so your change (or the test you just wrote) caused them; deal with them before anything else.
+`stillFailing` were failing before (report them, do not hide them), `fixed` is what your change repaired, and each
+`failures[]` item says the same in its `new` field. `comparedWith: null` means no earlier run had that scope, so nothing
+is known to be new: run the full suite once before changing code, and it becomes the baseline for the next full run.
+
 Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSON has the answer.
 
 ## Rules

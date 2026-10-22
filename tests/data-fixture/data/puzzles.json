@@ -1,0 +1,12 @@
+[
+  { "id": "three-flippers", "kind": "puzzle", "purpose": "teach", "mechanics": ["flipper", "moving-street"],
+    "solution": "Set the three flippers so the street joins the path." },
+  { "id": "back-in", "kind": "puzzle", "purpose": "moment", "mechanics": ["cover-up"] },
+  { "id": "open-field", "kind": "puzzle", "purpose": "breather", "mechanics": ["moving-street"], "solution": "" },
+  { "id": "slow-lockstep", "kind": "puzzle", "purpose": "filler", "mechanics": ["lockstep"],
+    "solution": "Follow the slow lockstep to the key." },
+  { "id": "two-switches", "kind": "puzzle", "purpose": "reinforce", "mechanics": ["flipper"],
+    "solution": "Try each switch. Then walk back up to see if the gate opened." },
+  { "id": "timed-gap", "kind": "both", "purpose": "moment", "mechanics": ["lockstep"],
+    "solution": "Slip past the lockstep while it turns." }
+]

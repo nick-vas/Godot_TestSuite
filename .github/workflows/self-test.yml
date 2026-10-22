@@ -48,21 +48,32 @@ jobs:
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
+      - name: Test failures are compared with the last run of the same scope (new, still failing, fixed)
+        shell: pwsh
+        run: ./tests/Test-FailureDelta.ps1
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
-      - name: The l10n runner fails on duplicate, untranslated and missing keys
+      - name: The l10n runner fails on duplicate, untranslated, missing and too long keys, broken remaps and mismatched voice
         shell: pwsh
-        run: ./tests/Test-Localization.ps1
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { sudo apt-get update -q; sudo apt-get install -y -q ffmpeg }
+          ./tests/Test-Localization.ps1
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
+      - name: The plan's vertical-slice gates (tech debt automatic, frame budget manual) and the gates the skill names
+        shell: pwsh
+        run: ./tests/Test-Plan.ps1
       - name: doctor's GDExtension and Steam package checks, and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1
       - name: doctor checks Steam store art sizes, formats, screenshots and the short description
         shell: pwsh
         run: ./tests/Test-Store.ps1
+      - name: doctor checks Web and Android presets and export paths inside the project
+        shell: pwsh
+        run: ./tests/Test-Platforms.ps1
       - name: The token benchmark counts, checks and retries (against a stand-in CLI)
         shell: pwsh
         run: ./tests/Test-TokenBenchmark.ps1
@@ -206,6 +217,9 @@ jobs:
       - name: Shaders quoted in skills compile
         shell: pwsh
         run: ./tests/Test-SkillShaders.ps1
+      - name: The placement checker finds an AI point off the navmesh, a torch out of reach and a blocked zip line
+        shell: pwsh
+        run: ./tests/Test-Placement.ps1
       - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
         shell: pwsh
         run: |
@@ -223,6 +237,8 @@ jobs:
           if ($errBytes -gt 3000) { throw "-Quiet still wrote $errBytes bytes to stderr" }
           $f = $d.runnerResults[0].failures[0]
           if ($d.ok -or $f.file -ne 'test/test_score.gd' -or $f.line -ne 7 -or $f.message -notmatch 'expected to equal \[25\]') { throw "failure detail: $($d | ConvertTo-Json -Depth 6)" }
+          # The first run has nothing to compare with, so no failure claims to be new.
+          if ($null -ne $d.failureDelta.comparedWith -or $null -ne $f.new) { throw "first run's failureDelta: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (-not (Test-Path $d.log) -or (Get-Item $d.log).Length -lt 2000) { throw "the full log should be in $($d.log)" }
           $history = @(Get-Content (Join-Path $game '.godot/godot-ci-history.jsonl') | ConvertFrom-Json)
           if ($history[-1].ok -or $history[-1].code -ne 'tests-failed') { throw "history: $($history | ConvertTo-Json)" }
@@ -234,6 +250,7 @@ jobs:
           (Get-Content $test -Raw).Replace('25)', '20)') | Set-Content $test -NoNewline
           $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$null | ConvertFrom-Json
           if (-not $d.ok) { throw "the fixed test should pass: $($d | ConvertTo-Json -Depth 6)" }
+          if (@($d.failureDelta.fixed | ForEach-Object name) -notcontains $f.name -or @($d.failureDelta.new).Count -ne 0) { throw "the fixed test should be in failureDelta.fixed: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (& $hook 'false') { throw 'the Stop hook should allow stopping after a passing run' }
           # init -Agents copies the verifier with this machine's kit path; init -Plugin enables the plugin instead of copying.
           ./ci/godot/godot-ci.ps1 init -Agents -Project $game | Out-Null
@@ -285,6 +302,9 @@ jobs:
           if ($rows.Count -ne 3) { throw "expected 3 rows in bench.csv, got $($rows.Count)" }
           # The budget check ends with a command that fails on purpose; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
+      - name: bench names the slow place (hotspots by camera position)
+        shell: pwsh
+        run: ./tests/Test-BenchHotspots.ps1
       - name: shot
         shell: pwsh
         run: |
@@ -304,6 +324,9 @@ jobs:
       - name: The textsize runner fails text under 9 px at 1280x800, and integer scaling that cuts off
         shell: pwsh
         run: ./tests/Test-TextSize.ps1
+      - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
+        shell: pwsh
+        run: ./tests/Test-Layout.ps1
       - name: soak runs a server and clients, and catches a leak and a crash
         shell: pwsh
         run: ./tests/Test-Soak.ps1
@@ -324,6 +347,12 @@ jobs:
           if ($by[''] -contains 'cut off:Play') { throw 'English "Hello" fits the button' }
           foreach ($pass in 'fr', 'pseudo') { if ($by[$pass] -notcontains 'cut off:Play') { throw "[$pass] the button text should be cut off, got: $($by[$pass] -join ', ')" } }
           exit 0
+      - name: shot -ColorVision saves each screen as protanopes, deuteranopes and tritanopes see it
+        shell: pwsh
+        run: ./tests/Test-ColorVision.ps1
+      - name: Capture mode hides the HUD, mutes only the music, and freezes the game while the free camera flies
+        shell: pwsh
+        run: ./tests/Test-Capture.ps1
       - name: audio -Mix records the game's mix and judges its loudness
         shell: pwsh
         run: |
@@ -342,6 +371,28 @@ jobs:
           $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r2" 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'tests-failed') { throw "without the flag the smoke run should fail: $($d | ConvertTo-Json -Depth 6)" }
           exit 0   # the last run failed on purpose; see the bench step
+
+  # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Playwright's Chromium and Firefox
+        run: npx --yes playwright@1.56.1 install --with-deps chromium firefox
+      - name: export -Run starts web builds, serves threads builds isolated and catches script errors
+        shell: pwsh
+        run: ./tests/Test-Web.ps1 -Browser chromium,msedge
+      # Headless Firefox on this runner reports WebGL 2 missing; with a window under Xvfb it renders in software.
+      - name: Firefox with a window under Xvfb
+        shell: pwsh
+        env:
+          GODOT_CI_WEB_HEADED: '1'
+          DISPLAY: ':99'
+        run: |
+          sudo apt-get install -y -q xvfb libgl1-mesa-dri > $null
+          Start-Process Xvfb -ArgumentList ':99', '-screen', '0', '1920x1080x24'
+          Start-Sleep -Seconds 2
+          ./tests/Test-Web.ps1 -Browser firefox
 
   # The composite action inside a custom workflow.
   action:
