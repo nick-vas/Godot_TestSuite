@@ -1,5 +1,6 @@
 using Breakout.Controls;
 using Breakout.Core;
+using Breakout.Core.Controls;
 using Breakout.Diagnostics;
 using Godot;
 using System.Collections.Generic;
@@ -31,6 +32,7 @@ public partial class Main : Node2D
     public int Floor => _run.Floor;
     public float PaddleX => _paddleX;
     public InputDevices Devices { get; } = new();
+    public Haptics Haptics { get; } = new();
     public Diagnostics Diagnostics { get; private set; } = null!;
 
     private float PaddleWidth => PaddleBaseWidth + _run.PaddleWidthBonus;
@@ -40,6 +42,7 @@ public partial class Main : Node2D
     {
         InputBindings.Load();
         AddChild(Devices);
+        AddChild(Haptics);
         // Errors are captured for the running game, not for copies of this scene that tests create.
         Diagnostics = new Diagnostics { CaptureEngineErrors = GetTree().CurrentScene == this };
         AddChild(Diagnostics);
@@ -73,6 +76,7 @@ public partial class Main : Node2D
             _bricks.RemoveAt(i);
             _ballDir.Y = -_ballDir.Y;
             _run.BreakBrick(10 * _run.Floor);
+            Haptics.Play(HapticPatterns.BrickHit, Devices.LastJoypad);
             break;
         }
 
@@ -81,12 +85,14 @@ public partial class Main : Node2D
             _run.ClearFloor((Upgrade)(_run.Floor % 4));
             GD.Print($"Floor {_run.Floor} reached, score {_run.Score}");
             OnFloorReached();
+            Haptics.Play(HapticPatterns.FloorCleared, Devices.LastJoypad);
             BuildFloor();
         }
 
         if (_ball.Y > Arena.Y)
         {
             _run.LoseBall();
+            Haptics.Play(HapticPatterns.BallLost, Devices.LastJoypad);
             ResetBall();
         }
 

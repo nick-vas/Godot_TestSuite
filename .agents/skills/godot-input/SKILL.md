@@ -7,7 +7,7 @@ description: Use when a Godot game takes keyboard, mouse or controller input, wh
 
 Gameplay reads actions, never devices; every device works at every moment; the player can rebind everything; prompts
 show the button the player will actually press. The tested implementation is in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/Controls/` (`InputBindings`, `InputDevices`, `PromptGlyphs`) with its
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/Controls/` (`InputBindings`, `InputDevices`, `PromptGlyphs`, `Haptics`, `LinearMenu`) with its
 in-engine tests in `examples/breakout/game/test/gdunit4/ControlsTest.cs`. Sources: `${CLAUDE_PLUGIN_ROOT}/docs/input.md`.
 
 ## 1. Actions
@@ -113,6 +113,20 @@ Mobility settings (Karen Stevens, EA, GDC 2021; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/
 - Vibration off, important only, or all: give each rumble a category and route every call through one helper that
   scales or drops `Input.StartJoyVibration(device, weak, strong, duration)` by the player's level; never the only cue.
 
+Haptics as information (Karen Stevens, GDC 2018; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/aaa-gaming-while-blind.md`). Rumble is
+cheap (no sound to record or load), and blind and deaf players both turn it on:
+
+- One pattern, one meaning, felt the same every time: Madden NFL 18 told a pass (a short rumble), a run (a long one)
+  and a kick (a double one) apart at the snap. Tell patterns apart by pulse count, by motor (UFC: one motor for high
+  strikes, the other for low; Godot's `weak` is the high-frequency right motor, `strong` the left) or by length, at
+  least double; strength can carry distance. `HapticPatterns.Confusable` lists pairs that fail.
+- Settings per player: in local play each pad follows its own player's level and strength. Clamp magnitudes to 0..1:
+  `StartJoyVibration` ignores the whole call otherwise, silently. Phones: `Input.VibrateHandheld(ms, amplitude)`
+  (Android needs the VIBRATE permission).
+- Tested in `examples/breakout/src/Breakout.Core/Controls/Haptics.cs`, played per pulse by
+  `examples/breakout/game/Controls/Haptics.cs`. `Input.GetJoyVibrationStrength(device)` reads back the last request
+  with no pad connected, so tests need no hardware.
+
 ## 8. Forgiveness
 
 Players press late, press early, forget they are holding a button and squeeze the pad in a panic; the rules should
@@ -174,3 +188,5 @@ Tests that run inside Godot (`godot-test-loop`), with input sent through `Input.
 - [ ] stick settings: output never longer than 1, no jump at any deadzone edge, swap and invert as set, saved with the
       bindings (`StickSettingsTests`, `ControlsTest`)
 - [ ] each forgiveness window checked to the tick (its last tick works, the next does not); one press, one jump
+- [ ] no two rumbles confusable; each scaled or dropped by its player's level, on that player's pad (`HapticsTests`,
+      `HapticsTest`)

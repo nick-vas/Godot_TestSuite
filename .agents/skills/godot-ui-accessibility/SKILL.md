@@ -22,7 +22,13 @@ Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. 
   InputMap.ActionAddEvent("ui_cancel", new InputEventJoypadButton { ButtonIndex = JoyButton.B });
   ```
 - When a screen opens, `GrabFocus()` on the likely choice. Focus moves in visual order; set `FocusNeighbor*` where a
-  container guesses wrong. Linear menus loop from last to first; grids do not; offer a setting (XAG 112).
+  container guesses wrong. Grids do not loop. A linear menu loops from last to first only with a cue on the wrap, a
+  sound unlike the step sound and a rumble; without one a player who cannot see never knows they are back at the top,
+  so stop at the ends instead (Godot's own navigation does). Offer the setting (XAG 112). A short click on every focus
+  move lets the steps be counted. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/Controls/LinearMenu.cs`
+  (Karen Stevens, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/aaa-gaming-while-blind.md`).
+- The same items in the same order every time: nothing that appears only sometimes (an ad, a promotion, an event mode)
+  shifts what follows and breaks the count of presses a blind player memorised. An unavailable item stays, disabled.
 - A dialog takes focus on its first control and keeps it inside until closed; every submenu has a constant way back.
 - Every popup and sub-menu closes on `ui_cancel` and gives focus back to the control that opened it.
 - The theme's `focus` stylebox is never empty: at least a 2 px outline at 1080p, 3:1 against the unfocused look.
