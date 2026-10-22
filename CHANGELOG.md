@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- Localization, from the roadmap's to-do list: the `l10n` runner gains a seventh case, `missing glyphs`, a glyph-coverage
+  check per locale without a display. It reads every translated string from the CSV and PO tables (an imported,
+  compressed `.translation` lists no keys, measured), drops placeholders, BBCode tags and invisible characters, and runs
+  `ci/godot/tools/glyphs.gd` in headless Godot to check each character with `Font.has_char` against the default font
+  (the project theme's, `gui/theme/custom_font` or Godot's Open Sans) and every font of a `.tres` theme, fallbacks
+  included. Each finding names the locale, font, characters with code points and up to five keys; characters only a
+  `SystemFont` could draw are a `system-font` warning (they depend on the player's OS), and `l10n.json`'s
+  `glyphIgnoreFonts` leaves out fonts that never draw translated text. `test -Json` adds `glyphs` to the l10n entry of
+  `runnerResults`. Measured on 4.7.2 (`docs/localization.md`): `has_char` walks `FontFile` and `FontVariation`
+  fallbacks but never the system fonts `allow_system_fallback` draws from. Fixture: `tests/l10n-fixture/glyphs`
+  (text-only bitmap fonts, no font file committed); `tests/Test-Localization.ps1` gains `-NoGodot`.
 - Dialogue tables, from the roadmap's Valve list: a `data.json` table of `"kind": "responses"` holds `ResponseSystem`'s
   rules (id, who, concept, criteria, lines with optional voice files, then, remember, once), and the `data` runner fails
   criteria syntax errors with the column, a `then` no rule answers (across all responses tables, with the near name),

@@ -105,14 +105,31 @@ The `layout` runner has a passing case per profile that is clean, and one failin
 in the group `touch_control` under that size on a touch profile, `60 dp (9.5 mm, 158 px), under 75 dp`), separated by `; `;
 a case `run` when Godot fails, a scene cannot be loaded, a profile is not understood, or nothing was found to check. Its
 log is `layout.log`.
-The `l10n` runner has six cases, `duplicate keys`, `untranslated`, `missing keys`, `too long`, `translation remaps` and
-`localized audio`; a failure's message lists up to 50 entries, one per line: `res://file: 'KEY' reason` for the first four
+The `l10n` runner has seven cases, `duplicate keys`, `untranslated`, `missing keys`, `too long`, `translation remaps`,
+`localized audio` and `missing glyphs`; a failure's message lists up to 50 entries, one per line: `res://file: 'KEY' reason` for the first four
 (`too long`: `'KEY' de is 14 characters, limit 10 (_max)` or `has 3 lines, limit 2 (_lines)`), `res://target (locale) does
 not exist; ...` for remaps, and `res://target (locale, for res://source): reason; reason` for audio. Without ffmpeg and
 ffprobe, `localized audio` is skipped (`skipped` counts it) and `runnerResults[].warnings` has one with rule `no-ffmpeg`.
 A table Godot cannot read as UTF-8 (UTF-16, or Big5 and other code pages) is one `untranslated` entry, `res://file is
 UTF-16: ...` or `res://file is not UTF-8 (...)`, and its rows are not checked. A CSV column or `.po` language that is plain
 `zh` is a warning with rule `chinese-without-script` (`file` is the table).
+`missing glyphs` runs `tools/glyphs.gd` in headless Godot (its log is `glyphs.log`): each entry is one locale and font,
+`ja: res://fonts/latin.tres (default font) has no 始 U+59CB, 開 U+958B (in 'TITLE')`, up to 20 characters and 5 keys. The
+fonts are the default one (the project theme's default font, else `gui/theme/custom_font`, else `Godot's default font (Open
+Sans SemiBold)`) and every font of a `.tres` theme (`res://ui/theme.tres Button/font`), each with its fallbacks. Characters
+that only a `SystemFont` in a font's chain could draw are a warning with rule `system-font` (`file` is the font), since they
+depend on the player's OS. Fonts listed in `l10n.json`'s `glyphIgnoreFonts` are not reported. The l10n entry also has
+`glyphs`:
+
+```json
+"glyphs": { "checked": 61,
+  "fonts": [ { "name": "res://fonts/latin.tres", "where": "default font", "ignored": false } ],
+  "missing": [ { "locale": "ja", "font": "res://fonts/latin.tres", "where": "default font", "characters": ["始", "開"],
+                 "codePoints": ["U+59CB", "U+958B"], "keys": ["TITLE"] } ],
+  "systemFont": [] }
+```
+`checked` counts the distinct characters of all translations; a `systemFont` entry is shaped like a `missing` one, plus
+`systemFonts` (the SystemFont's font names).
 
 `message` is the specific reason (a framework's bare "failed" is replaced by the assertion or the script error); `file`
 and `line` come from the stack trace, Godot's backtrace (`res://...:7`, frames in `addons/` skipped) or GUT's `at line 7`;
