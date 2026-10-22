@@ -100,32 +100,12 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
   the AI cannot use and tests cannot cover: cut them.
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
 
-## 6. Puzzles and quests (Croteam, LineLight, CD Projekt Red)
+## 6. Puzzles and quests (Croteam, LineLight, Patrick's Parabox, CD Projekt Red)
 
-Puzzles, as Croteam tuned The Talos Principle's 200 gray rooms:
-
-- Testers rate each puzzle for difficulty and fun and are timed; order levels from that data, and put a less fun
-  teaching puzzle between two favourites.
-- Every mechanic gets one or two simpler puzzles that teach it before any puzzle combines it with others.
-- Never one linear path: hubs with several puzzles open, gates that count solved puzzles, so a stuck player goes elsewhere.
-- Rewards for explorers stay off counters and achievements; only count what takes skill to get.
-- Hints are tuned with stuck players, not by the designer who knows the answer.
-
-Puzzle levels, as Brett Taylor cut and rebuilt LineLight's (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/puzzle-game-magic-secrets.md`):
-
-- **One solution sentence per level.** The best levels turn on a single moment. Write that moment as one sentence ("park
-  the crate on the switch before the bridge drops") and build the simplest level whose solution it is. A level the player
-  chips away at, with no such moment, is the first to cut.
-- **What the sentence does not mention is noise**: it takes up the player's working memory without being part of the
-  puzzle. Cut it, and vet every level at least twice. Add noise back only on purpose, such as a dead end that stops
-  players solving a level by accident without knowing how.
-- **Every level has a purpose or is cut**: it teaches, reinforces a skill, gives a moment the player has not had, or is a
-  breather after hard levels. A run of near-identical layouts on one idea bores players; keep about three.
-- **Action or puzzle, not both** (in single-solution puzzles): on entering, the player knows which skill the level asks
-  for, and action levels are optional. A few timing puzzles make players think every puzzle needs reflexes.
-- **Unambiguous solutions.** "Was that right?", brute-forcing switches and retrying an impossible move are red flags: move
-  elements apart, cut extras, make every jump obviously possible or obviously impossible. Test the controls handicapped
-  (Taylor played with his non-dominant foot), and keep easing a timing players still complain about.
+Read [puzzles.md](puzzles.md) before designing puzzles or quests: how Croteam ordered The Talos Principle from testers'
+difficulty and fun ratings, taught each mechanic alone first and used hubs instead of one path; Patrick's Parabox's five
+ordering moves and narrated playtests; LineLight's one solution sentence per level (anything it does not mention is
+noise, every level has a purpose, action or puzzle but not both); and six questions for every quest (Sasko).
 
 Hold every level to this with a `levels` table for the `data` runner (`godot-data`):
 
@@ -143,16 +123,6 @@ A level fails with no `solution` or an empty one, with a second sentence (`.`, `
 no abbreviations), or with a `purpose` or `kind` not in the list. Run it alone with
 `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`. The `mechanics` column also shows which pairs of mechanics
 no level combines yet.
-
-Quests, from Sasko's ten lessons (The Witcher 3, Cyberpunk 2077). For each quest ask:
-
-1. Which key fact is held back, so the player wants the next scene?
-2. Which emotional beat does it build to, and which earlier scenes set up the people it depends on?
-3. Is anything said twice, or is there busy work a cut would remove?
-4. Is each choice a dilemma, with both sides given equal screen time and writing?
-5. Where does the player see each consequence? One they never notice does not exist for them.
-6. Does each detail mean something to the player? Key facts come when the player is focused, not in a walk-and-talk.
-7. Is it as new as it can be while staying familiar, and are a rule's normal uses taught before a quest breaks it?
 
 ## 7. Levels players find their way in
 

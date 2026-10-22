@@ -250,7 +250,10 @@ From the full list of W3C Recommendations (318 when checked) and the related Not
 Each is small. Item 2 now exists in `doctor`; the others do not yet.
 
 1. **Flash limit** (2.3.1). The `juice` runner already has a timestamp for every `[juice] feedback flash` line: fail any
-   one-second window with more than three.
+   one-second window with more than three. For recorded footage (Movie Maker, a trailer capture), EA's IRIS
+   (github.com/electronicarts/IRIS, BSD 3-Clause, C++ built with CMake and vcpkg, with an example console app) reads a
+   video and writes a per-frame CSV of luminance flashes, red flashes and harmful patterns; recommended by the cognitive
+   accessibility panel at GDC 2024 (`docs/gdc/folds-testing-misc.md`). Not tried here: it needs a native build.
 2. **Gamepad can press and go back** (2.1.1), **screen readers on** (4.1.2). Done: `doctor` warns when `ui_accept` or
    `ui_cancel` has no joypad button in `project.godot`, and when `accessibility/general/accessibility_support` is
    Disabled or the accessibility driver is `dummy`.

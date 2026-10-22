@@ -84,6 +84,10 @@ foreach (var arg in OS.GetCmdlineUserArgs())
   the flag and quit ("compiled without debug"), although `--help` lists it.
 - **Your own channel**: `EngineDebugger.SendMessage("game:state", data)` in the game and an `EditorDebuggerPlugin` in the
   editor carry custom messages between them.
+- **One agent among hundreds** (AI Summit panel "Behavior is Brittle", GDC): a debug key tags the agent under the
+  cursor, and breakpoints and extra logs sit behind `if (DebugTagged)` (`Debugger.Break()` under `#if DEBUG`), so they
+  fire for it alone. Draw a marker over agents a script or cutscene is driving (ArenaNet's green dot): a report of odd
+  behaviour then goes to the script's author or to the AI programmer straight away.
 - **.NET tools** attach to any build, release included: `dotnet-trace`, `dotnet-gcdump` (`godot-performance`).
   `DOTNET_EnableDiagnostics=0` turns that off.
 

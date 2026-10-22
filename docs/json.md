@@ -57,6 +57,7 @@ Branch on `error.code`; `message` can change.
 | `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `no-asset-manifest` | `credits`: the project has no `assets.json` | - |
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
+| `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
 | `failed` | Generic failure without a specific code | `error.message` |
 

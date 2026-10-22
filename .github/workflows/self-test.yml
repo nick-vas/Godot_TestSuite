@@ -58,6 +58,9 @@ jobs:
           $messages = @($d.checks | ForEach-Object message)
           if ($messages -match 'text_to_speech is off' -or -not ($messages -match '^Text-to-speech: started at launch')) { throw "tts on: $($messages -join ' | ')" }
           if ($messages -match '^Screen readers') { throw "screen reader on Auto: $($messages -join ' | ')" }
+      - name: A failed Godot download stops with download-failed
+        shell: pwsh
+        run: ./tests/Test-DownloadFailed.ps1
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1

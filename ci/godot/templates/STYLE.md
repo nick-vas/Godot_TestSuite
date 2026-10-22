@@ -38,6 +38,13 @@ descender): 18 px on PC, 26 px on console and TV (XAG 101); a UI scale setting u
 - Screen shake and flashes can be reduced in the settings; never more than three flashes a second over about 20% of the screen
   (WCAG 2.3.1, XAG 118).
 
+## Sound
+
+- The sound palette's rules and limits, one line each, from what the game wants the player to feel (Hidden Folks uses
+  only mouth sounds; Among the Sleep makes a dragged chair sound huge so the player feels small).
+- Any half second of audio, like any screenshot, is recognisably this game.
+- Loudness targets and checks: `godot-audio`.
+
 ## Choices
 
 Decisions made with /look, newest first, so later critiques respect them:
