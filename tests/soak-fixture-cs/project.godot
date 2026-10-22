@@ -1,0 +1,9 @@
+; A C# server for `soak`'s stop check: it catches SIGTERM and quits with 0 (tests/Test-Soak.ps1).
+config_version=5
+
+[application]
+config/name="SoakCs"
+run/main_scene="res://main.tscn"
+
+[dotnet]
+project/assembly_name="SoakCs"

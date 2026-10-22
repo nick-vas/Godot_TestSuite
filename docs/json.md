@@ -47,6 +47,7 @@ Branch on `error.code`; `message` can change.
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
+| `soak-unclean-stop` | `soak -RequireCleanStop`: the server did not quit with 0 within `-StopGraceSeconds` of SIGTERM | `soak.stop` |
 | `web-run-failed` | `export -Run`: a Web build did not start in a browser, or printed a page error, failed request, console error or Godot `ERROR`/`SCRIPT ERROR` | `webRuns[]` |
 | `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
@@ -223,8 +224,11 @@ parameters, which bfxr2's editor and library open), `sound` (the preset, or the 
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
 `memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
 `fails[]`, `log`), `clientMemoryMb` (`average`), and, with `-JunkPps`, `junk` (`pps`, `packetsSent`: the loopback junk
-flood's requested rate and how many packets it sent). Written to `soak-results/soak.json`. Fails as `soak-failed`
-(a process crashed, never became ready, or printed `[soak] fail`) or `soak-leak`.
+flood's requested rate and how many packets it sent), and `stop`: how the server took SIGTERM at the end, after the
+clients were stopped (`signal`, `graceSeconds`, `exitCode` (143 when the signal killed it: no handler), `seconds` to quit,
+`clean`: quit with 0 within the grace period; `null` on Windows, which has no SIGTERM, and when the server had already
+exited). Written to `soak-results/soak.json`. Fails as `soak-failed` (a process crashed, never became ready, or printed
+`[soak] fail`), `soak-leak`, or, with `-RequireCleanStop`, `soak-unclean-stop`.
 
 **credits**: `credits` with `ok`, `credits` (entries whose licence requires a visible credit), `thanks` (entries credited as a
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`

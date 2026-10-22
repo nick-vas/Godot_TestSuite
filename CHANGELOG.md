@@ -5,6 +5,12 @@
   sounds on day one. bfxr2's Bfxr synth ported to C# (`ci/godot/tools/Sfxr.cs`, Apache-2.0 and MIT) and compiled into
   the session, so it needs no Godot; the same seed gives bfxr2's sound sample for sample. WAVs at `-PeakDb` (-6 dBFS),
   `.bfxr` files bfxr2's editor opens, `-Vary` for variations of one sound, and an `assets.json` entry.
+- Google for Games' open source (Agones, Open Match, Quilkin, Open Saves, clean-chat, the GenAI demos; Apache-2.0;
+  `docs/googleforgames.md`), without their Google Cloud setup: `godot-servers` and `godot-llm` skills; Breakout.Core
+  gains a server lifecycle with a health watchdog, Agones' HTTP SDK, join tokens for Godot's authentication step, a
+  matchmaker, a rate limiter and chat moderation. `soak` stops the server with SIGTERM at the end and reports
+  `soak.stop` (headless Godot dies at once with 143 unless the game handles it; C# can); `-RequireCleanStop` fails
+  `soak-unclean-stop`, and `-StopGraceSeconds` sets the wait.
 - CI, from GameCI's documentation: the action's cache keys name the Godot build (.NET or standard) so a repository with
   both no longer restores the wrong one, the import cache's key covers the source assets (a `.import` file does not
   change when its picture does), and Godot, its templates and the import cache are saved when the tests fail too.
