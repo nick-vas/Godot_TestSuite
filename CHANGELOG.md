@@ -8,6 +8,11 @@
   words), and the developer's share at 10%, 20% and 25% of gross next to the Raw Fury draft and Nijman's benchmark.
   `godot-legal` gains the gross-to-net rule (20% of gross is 29% of net after a 30% store cut). The roadmap drops the
   rest of *The Untold History of Japanese Game Developers*, at the owner's request.
+- `init -McpAseprite <Aseprite.exe or its folder>` registers [aseprite-mcp](https://github.com/diivi/aseprite-mcp) (MIT) in
+  `.mcp.json`, so an agent can draw, animate and export pixel art in Aseprite (batch mode, 123 tools, `view_sprite` to see
+  its work). It runs through `uvx` at a pinned commit with MCP SDK 1.30.0: unpinned, the server did not start (its
+  `mcp[cli]>=1.6.0` resolved to SDK 2.x, which renamed what it imports). `ASEPRITE_PATH` is set from the path given;
+  `aseprite-not-found` when there is no program there. `docs/mcp.md`, `godot-asset-pipeline`.
 - `export` runs an export again, up to twice, when Godot crashed (an exit code of 128 or more, or a negative one on
   Windows): Godot 4.7.2 headless aborted with 134 after finished exports 4 times in 23 runs. The crashed run's file is
   deleted first and the entry gets `retried`; an ordinary failure, a hang and a crash on every run still fail. The import

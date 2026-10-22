@@ -282,11 +282,32 @@ function Add-PluginSettings([string]$Root, [string]$SuiteRoot) {
     Write-InitStep updated ".claude/settings.json: godot-agent-kit plugin from $SuiteRoot (Claude Code asks to install it on the next start)"
 }
 
-# init -Mcp / -McpDiagnostics: registers MCP servers for the project in .mcp.json (adds only; a changed file is backed up).
-# -Mcp godot-mcp is the editor bridge; -McpDiagnostics adds minimal-godot-mcp (GDScript diagnostics and the running game's
-# console, through Godot's own language server and debug adapter, so no addon). The bridge's addon still has to be installed
-# and enabled in the editor, which needs Node and the editor, so those steps are printed and not run.
-function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics) {
+# aseprite-mcp (diivi/aseprite-mcp, MIT) at a reviewed commit. It has no release and no lock uvx reads: unpinned, its
+# "mcp[cli]>=1.6.0" resolved to MCP SDK 2.x, which renamed the FastMCP it imports, and its locked 1.6.0 fails to import with
+# today's pydantic; 1.30.0 starts it with all 123 tools (measured with uvx 0.8 on 2026-10-22).
+$script:AsepriteMcpSource = 'git+https://github.com/diivi/aseprite-mcp@a89b205bed31930ee141edf319e78c71ef16bba6'
+$script:AsepriteMcpSdk = 'mcp[cli]==1.30.0'
+
+# The Aseprite program from a path to it or to its install folder (C:\Program Files\Aseprite, Steam's common\Aseprite,
+# /Applications/Aseprite.app), as a full path; stops with aseprite-not-found when there is none.
+function Resolve-AsepritePath([string]$Path) {
+    $candidates = @($Path)
+    if (Test-Path -LiteralPath $Path -PathType Container) {
+        $candidates = @('Aseprite.exe', 'aseprite', 'Contents/MacOS/aseprite', 'Aseprite.app/Contents/MacOS/aseprite' |
+            ForEach-Object { Join-Path $Path $_ })
+    }
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) { return (Resolve-Path -LiteralPath $candidate).Path }
+    }
+    Stop-GodotCi "No Aseprite program at $Path (give Aseprite.exe, the aseprite binary, or the folder that holds it)" 'aseprite-not-found'
+}
+
+# init -Mcp / -McpDiagnostics / -McpAseprite: registers MCP servers for the project in .mcp.json (adds only; a changed file is
+# backed up). -Mcp godot-mcp is the editor bridge; -McpDiagnostics adds minimal-godot-mcp (GDScript diagnostics and the running
+# game's console, through Godot's own language server and debug adapter, so no addon); -McpAseprite adds aseprite-mcp, which
+# drives Aseprite in batch mode to draw and export pixel art. The bridge's addon still has to be installed and enabled in the
+# editor, which needs Node and the editor, so those steps are printed and not run.
+function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics, [string]$Aseprite) {
     $root = Get-GitRoot $Info.ProjectDir
     $root = $root ? $root : $Info.ProjectDir
     if ($Server -eq 'godot-ai') {
@@ -299,6 +320,13 @@ function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics) {
     }
     if ($Diagnostics) {
         $wanted['minimal-godot-mcp'] = [ordered]@{ command = 'npx'; args = @('-y', '@ryanmazzolini/minimal-godot-mcp') }
+    }
+    if ($Aseprite) {
+        $wanted['aseprite'] = [ordered]@{
+            command = 'uvx'
+            args    = @('--from', $script:AsepriteMcpSource, '--with', $script:AsepriteMcpSdk, 'python', '-m', 'aseprite_mcp')
+            env     = [ordered]@{ ASEPRITE_PATH = (Resolve-AsepritePath $Aseprite) }
+        }
     }
     if ($wanted.Count -eq 0) { return }
 
@@ -322,6 +350,13 @@ function Add-McpConfig($Info, [string]$Server, [bool]$Diagnostics) {
     if ($wanted.Contains('godot-mcp')) {
         Write-Console "           next: npx @satelliteoflove/godot-mcp --install-addon `"$($Info.ProjectDir)`""
         Write-Console '           then enable it: Project > Project Settings > Plugins > Godot MCP, and restart your agent'
+    }
+    if ($wanted.Contains('aseprite')) {
+        Write-Console "           aseprite runs $($wanted['aseprite'].env.ASEPRITE_PATH) in batch mode; restart your agent to load it."
+        if (-not (Get-Command uvx -ErrorAction SilentlyContinue)) {
+            Write-Console '           It needs uv (uvx), which is not on PATH: winget install astral-sh.uv, or https://docs.astral.sh/uv/ (uv fetches Python 3.13 itself).'
+        }
+        Write-Console '           Its run_lua_script tool runs any Lua the agent writes, with your rights: keep the agent asking before it calls it.'
     }
     if ($wanted.Contains('minimal-godot-mcp')) {
         Write-Console '           minimal-godot-mcp needs Node 22+ and the editor open on this project (its language server is on by default).'
