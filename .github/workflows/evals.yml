@@ -34,6 +34,17 @@ jobs:
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run evals' }
           sudo apt-get update -q; sudo apt-get install -y -q bubblewrap socat
+          # Ubuntu 23.10 and later stop unprivileged programs from making user namespaces (AppArmor), so bwrap fails with
+          # "loopback: Failed RTM_NEWADDR: Operation not permitted" and every Bash call in a case fails with it: run 4
+          # scored a sandbox that could not run a command. An AppArmor profile lets bwrap alone make them; the sysctl,
+          # which lifts the restriction for every program, is the fallback on this throwaway runner.
+          function Test-Sandbox { bwrap --ro-bind / / --dev /dev --proc /proc --unshare-net --unshare-user true *> $null; return $LASTEXITCODE -eq 0 }
+          if (-not (Test-Sandbox)) {
+            "abi <abi/4.0>,`ninclude <tunables/global>`nprofile bwrap /usr/bin/bwrap flags=(unconfined) {`n  userns,`n}" | sudo tee /etc/apparmor.d/bwrap | Out-Null
+            sudo apparmor_parser -r /etc/apparmor.d/bwrap
+          }
+          if (-not (Test-Sandbox)) { sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 }
+          if (-not (Test-Sandbox)) { throw 'bwrap cannot make a sandbox on this runner, so every Bash call in the evals would fail' }
           npm install -g @anthropic-ai/claude-code
           sudo mkdir -p $env:GODOT_TOOLS_DIR; sudo chown $env:USER $env:GODOT_TOOLS_DIR
           # Installs Godot and GUT into the example the cases copy, so runs need no download.
@@ -69,6 +80,8 @@ jobs:
           # A low score is a result, not a failure; a run that never got graded (auth, rate limit, crash) is.
           $errors = @(foreach ($case in $result.cases) { foreach ($arm in $case.arms.PSObject.Properties) { foreach ($run in $arm.Value) { if ($run.error) { "$($case.name) ($($arm.Name)): $($run.error)" } } } })
           if ($result.partial -or $errors.Count) { throw "The evals did not finish: $($result.partialReason) $($errors -join '; ')" }
+          # A run whose commands the sandbox refused graded the environment, not the plugin.
+          if ((Get-Content evals/results/result.json -Raw) -match 'bwrap: ') { throw 'A case reports bwrap errors: the sandbox refused its commands, so these scores do not measure the plugin' }
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()

@@ -9,6 +9,14 @@
   never checked, and a build no key fits (Godot exports it with exit code 0 and no library) passed. New: an editor-only
   extension exported, `compatibility_minimum` and `_maximum` against the project's Godot, the Godot Jolt extension on
   4.4+, an add-on autoload the game uses but `project.godot` lacks, test add-ons shipped, and `forced_dd3d` in a preset.
+- `doctor` checks the instructions every agent session loads (IBM's context engineering: stale context poisons every
+  session): `AGENTS.md`, `CLAUDE.md` and their `@` imports. It warns about kit calls with a command or flag the script
+  does not have (read from its own parameters), files and `res://` paths that do not exist, imports that load nothing,
+  and files over 200 lines; lines kept from the kit's template are skipped. `tests/Test-Context.ps1` also holds the
+  template, skills and docs to the real flags. The kit's own `AGENTS.md` named `licences/` without its folder.
+- Evals: bwrap is allowed to make its sandbox on GitHub's Ubuntu 24.04 runners (AppArmor stopped bwrap from making user namespaces, so
+  every command in run 4 failed and its scores measured that); the workflow checks the sandbox before any case and fails
+  when a result reports a bwrap error. Run 4's scores and what they do and do not show are in `docs/research.md`.
 - Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
   an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
   `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the

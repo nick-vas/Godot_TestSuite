@@ -378,6 +378,9 @@ function Invoke-Doctor($Info) {
         Add-Check WARN "res:// paths whose case differs from the file, which load on Windows but not on Linux or in an exported game: $(& $first $hygiene.wrongCase)" 'Write the path exactly as the file is named'
     }
 
+    # The instructions every agent session loads, against the kit's real flags and the project's real files.
+    foreach ($problem in @(Get-InstructionProblems $project)) { Add-Check $problem.Status $problem.Message $problem.Fix }
+
     # Work that lives on one disk is lost with it (Eastshade postmortem); keep the game in git with a remote.
     $gitRoot = Get-GitRoot $project
     $remotes = @(if ($gitRoot) { & git -C $gitRoot remote 2>$null })
