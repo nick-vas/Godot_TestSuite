@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- From the roadmap's art to-do list: `shot` checks every screenshot against the palette table in `docs/STYLE.md`
+  (every `#RRGGBB` in its rows). Distances are CIEDE2000 (checked against Sharma, Wu and Dalal's test pairs) with a
+  tolerance of 3 (`-PaletteTolerance`; one 8-bit level moves a colour by at most 2.40); anti-aliased edges, filtering
+  and translucency pass as blends of two palette colours, in sRGB or linear light; off-palette colours are grouped and
+  only groups over 0.1% of the picture count, so noise does not. Each shot gets `palette` (`offPalettePercent`,
+  `blendPercent`, `scatteredPercent`, the largest off colours with their nearest palette colour, and
+  `<name>.palette.png` with them in magenta); it warns, and `-MaxOffPalettePercent <n>` fails with `shot-off-palette`
+  (`no-palette` when there is nothing to check against). The pixels are read by `ci/godot/tools/Palette.cs`, compiled
+  with `Add-Type` (no Godot, no Python; about 0.3 s a 1080p picture). The style guide template says the table is read.
+  Self-test: `Test-Palette.ps1` (`-NoGodot` for its synthetic part); method and measurements in `docs/art.md`.
 - Playtest telemetry, from the roadmap's Valve list: the events `godot-playtest` names (`stuck`, `revisit`,
   `solved_but_stayed`, `item_found`, `death`, `hint_requested`, `level_time`, each with level, position and level time)
   as a ready schema, `ci/godot/templates/playtest-events.json`, and in Breakout.Core as `PlaytestEvents` for the existing

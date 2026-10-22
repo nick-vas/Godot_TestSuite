@@ -78,6 +78,40 @@ display, because this machine has no Vulkan. The Forward+ and Mobile notes come 
 - **`bench`** now reports GPU time per frame (`gpuMs`), `primitives`, `textureMemoryMB` and `videoMemoryMB`. All four are 0
   under `-Headless`.
 
+## Palette check (`shot`)
+
+`shot` checks every screenshot against the palette table in `docs/STYLE.md` (every `#RRGGBB` in the table rows under
+`## Palette`; several in one cell are a ramp). It reports and warns; `-MaxOffPalettePercent <n>` fails the run
+(`shot-off-palette`) when more than n% of a picture is off the palette, and stops with `no-palette` before Godot starts when
+there is no palette to check against. The pixels are read by `ci/godot/tools/Palette.cs`, compiled into PowerShell with
+`Add-Type` like the `sfx` synth, so it needs no Godot, no display and no Python, and runs the same on Windows.
+
+- **Distance: CIEDE2000** (Sharma, Wu and Dalal, "The CIEDE2000 color-difference formula: implementation notes,
+  supplementary test data, and mathematical observations", 2005), from sRGB through linear light and CIELAB (D65). The
+  self-test checks six of the paper's test pairs to four decimals. A plain RGB distance is useless as a stand-in: around
+  `#00FFFC` a step of 155 sRGB units is one CIEDE2000 unit (measured over a 3-level grid of the whole cube).
+- **Default tolerance 3** (`-PaletteTolerance`, 0.5 to 50). Measured over the same grid, one 8-bit level in each channel
+  (rounding, dithering, an sRGB round trip) moves a colour by up to 2.40 (at `#1B1818`; dark near-greys are the most
+  sensitive), two levels by up to 4.76. CIEDE2000 1 is about one just-noticeable difference, so 3 takes in rounding and
+  dithering everywhere while a colour a viewer would call different is out. Breakout's coral, white, grey and gold come
+  out of Godot exactly.
+- **Blends are not bloat.** A colour within the tolerance of a mix of two palette colours that are both on screen is a
+  blend: anti-aliased edges, filtered sprites, translucent panels. Mixes are tried in sRGB (Godot's 2D blending) and in
+  linear light (3D, MSAA, HDR 2D). On a generated 1920x1080 picture of the template palette with an anti-aliased disc
+  blended each way and thin white strokes, 0.39% of the pixels were blends and none were off; on `textsize-fixture`'s menu
+  (white text and a button on grey, Godot's default theme) every anti-aliased text pixel was a blend.
+- **Clusters, not pixels.** Off-palette colours are grouped, most common first, into clusters of colours within the
+  tolerance of each other. A cluster covering at least 0.1% of the picture (a 45x45 patch at 1080p) counts in
+  `offPalettePercent`; smaller ones are `scatteredPercent` (noise, grain, the corner where three colours meet), listed in
+  `colours[]` with `counted: false` but never failing the run. On generated pictures: a green box over 5% gives 5.00% off
+  and names `#2EC27E`; 0.5% of single pixels in random colours gives 0% off and 0.49% scattered; a vertical gradient over a
+  third of the screen gives 33.33% off in five clusters. Breakout's gold ball (0.037%) is listed but not counted.
+- **Time:** about 0.2 to 0.4 s for a 1920x1080 picture with tens to thousands of colours; 3 s for the worst case, every
+  pixel a different random colour (1.95 million colours), on four cores.
+- **Not handled:** lighting. A lit 3D scene shades every palette colour towards black and white, which is not a blend of
+  two palette colours; check flat-shaded and 2D screens, or raise the tolerance knowingly. A colour that happens to lie on
+  the line between two palette colours (an olive between red and green) passes as a blend; `blendPercent` shows how much.
+
 ## Not verified here
 
 - The Blender export command, because Blender is not installed. It matches the current Python API documentation.

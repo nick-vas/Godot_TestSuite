@@ -11,12 +11,18 @@ function Get-GddPath($Info) {
     return $null
 }
 
-# docs/STYLE.md (templates/STYLE.md) and juice.json: what /look and the juice runner check against.
-function Get-LookSetup($Info) {
+# docs/STYLE.md (templates/STYLE.md) next to the project, or at the repository root unless that root is not a game.
+function Get-StyleGuidePath($Info) {
     $candidates = @((Join-Path $Info.ProjectDir 'docs/STYLE.md'))
     $root = Get-GitRoot $Info.ProjectDir
     if ($root -and -not (Test-Path -LiteralPath (Join-Path $root '.gdignore'))) { $candidates += Join-Path $root 'docs/STYLE.md' }
-    $style = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    foreach ($path in $candidates) { if (Test-Path -LiteralPath $path) { return $path } }
+    return $null
+}
+
+# docs/STYLE.md and juice.json: what /look, shot's palette check and the juice runner check against.
+function Get-LookSetup($Info) {
+    $style = Get-StyleGuidePath $Info
     $resolutions = @()
     if ($style) {
         $line = [regex]::Match((Get-Content -LiteralPath $style -Raw), '(?m)^Resolutions:\s*(?<r>.+)$').Groups['r'].Value
