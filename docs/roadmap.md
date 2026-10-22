@@ -321,7 +321,9 @@ action, `setup` on macOS, optional signing secrets and an `environment` input on
 
 Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
 `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
-`godot-playtest` skill, and Valve's process in `godot-game-plan`. Still to do:
+`godot-playtest` skill, Valve's process in `godot-game-plan`, and playtest telemetry: the skill's events as a ready schema
+(`ci/godot/templates/playtest-events.json`, `PlaytestEvents`), `PlaytestTracker`'s detectors in Breakout.Core, and the
+`playtest` command's per-level medians and PNG heat maps from a folder of sessions ([telemetry.md](telemetry.md)). Still to do:
 
 - [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
       scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
@@ -329,8 +331,11 @@ Valve's talks, handbook, Cabal article and developer commentary were read in Oct
       page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
 - [ ] A dialogue authoring path: a `data.json` table for `ResponseSystem` rows (who, concept, criteria, lines, then,
       remember), so the `data` runner checks criteria syntax, follow-up targets and missing voice files.
-- [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
-      `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
+- [ ] Playtest telemetry in a real game: Breakout has no levels to walk, so nothing raises `PlaytestTracker`'s events
+      yet, and there is no file sink for playtest builds or GDScript tracker. The session that wrote `playtest` could not
+      start PowerShell (its sandbox refused `pwsh`), so `Test-Playtest.ps1`, `Test-LibNames.ps1`, `Test-Skills.ps1`,
+      `Test-DocLinks.ps1` and PSScriptAnalyzer were first run by the self-test, not locally; the PNG code and the C#
+      detectors were run (dotnet, and Godot 4.7.2 reading the maps).
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 - [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or

@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Playtest telemetry, from the roadmap's Valve list: the events `godot-playtest` names (`stuck`, `revisit`,
+  `solved_but_stayed`, `item_found`, `death`, `hint_requested`, `level_time`, each with level, position and level time)
+  as a ready schema, `ci/godot/templates/playtest-events.json`, and in Breakout.Core as `PlaytestEvents` for the existing
+  `TelemetrySchema` (consent, no free text). `PlaytestTracker` raises them from the player's position and the game's
+  progress calls: a stall is no progress and no new ground for 120 s, a revisit is re-entering a cell after 10 s away,
+  solved-but-stayed is still near a solved puzzle 30 s later (`PlaytestTests`, with a fake clock). New command
+  `playtest -Sessions <folder>`: reads the session files playtest builds wrote (`.json`, `.jsonl`; repeated batches
+  counted once, broken files and events that do not fit listed) and writes per-level counts and medians (level time,
+  deaths and stalls per session, items found) and a PNG heat map per level and event type, alone or over a level
+  screenshot that the new `playtest.json` places in the world. The PNGs are drawn by `ci/godot/tools/Heatmap.cs`, compiled
+  with `Add-Type`, so no Godot is needed. New error codes `no-playtest-sessions` and `invalid-playtest-config`;
+  `-HotspotCell` also sets the maps' cell. Self-test: `Test-Playtest.ps1` with `tests/playtest-fixture`.
 - `doctor` checks the instructions every agent session loads (IBM's context engineering: stale context poisons every
   session): `AGENTS.md`, `CLAUDE.md` and their `@` imports. It warns about kit calls with a command or flag the script
   does not have (read from its own parameters), files and `res://` paths that do not exist, imports that load nothing,
