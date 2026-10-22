@@ -218,9 +218,15 @@ function Invoke-Status($Info) {
     if (-not $lastTest) { $warnings.Add('No test run is recorded yet; run test -Json -Quiet') }
 
     # Tests that passed only on a retry (test -Retry), most often first: each may hide a real bug in the test or the game.
-    $flaky = Get-FlakyOffenders @(Read-RunHistory $Info.ProjectDir)
+    $history = @(Read-RunHistory $Info.ProjectDir)
+    $flaky = Get-FlakyOffenders $history
     foreach ($f in $flaky.tests | Where-Object { $_.count -ge 2 }) {
         $warnings.Add("$($f.runner) $($f.name) passed only on a retry in $($f.count) of the last $($flaky.testRuns) test runs ($($flaky.days) days): find the cause (timing, state left by another test, the network)")
+    }
+    # Errors grouped by key across the history: whether the latest failure's error is new or was there before this change.
+    $recurring = @(Get-RecurringErrors $history)
+    foreach ($e in @(Get-OlderErrors $history $recurring) | Select-Object -First 3) {
+        $warnings.Add("The latest $($e.lastSeen.command) run failed with an error first seen $(Format-RunTime $e.firstSeen.time)$(if ($e.firstSeen.commit) { " at commit $($e.firstSeen.commit)" }), in $($e.count) runs since: $($e.key). It predates the current change: check whether it is the cause before changing code for it")
     }
     $quarantine = Read-Quarantine $Info.ProjectDir
     foreach ($problem in $quarantine.Problems) { $warnings.Add("quarantine.json: $problem") }
@@ -240,6 +246,7 @@ function Invoke-Status($Info) {
     Set-JsonField look $look
     Set-JsonField runs $runs
     Set-JsonField flakyTests $flaky
+    Set-JsonField recurringErrors @($recurring | Select-Object -First 10)
     Set-JsonField quarantine @(foreach ($q in $quarantine.Entries) {
         [ordered]@{ runner = $q.Runner; name = $q.Name; owner = $q.Owner; until = $q.Until; reason = $q.Reason; expired = $q.Expired } })
     Set-JsonField git $git
@@ -259,6 +266,9 @@ function Invoke-Status($Info) {
         else { Write-Console "Plan: none ($(Format-KitCommand 'plan -Do init'))" }
         if ($lastTest) { Write-Console "Last test run: $(Format-RunTime $lastTest.time) $(if ($lastTest.ok) { 'passed' } else { "failed ($($lastTest.code))" })" }
         if ($flaky.tests) { Write-Console "Flaky in the last $($flaky.days) days: $(($flaky.tests | Select-Object -First 3 | ForEach-Object { "$($_.name) x$($_.count)" }) -join ', ')" }
+        foreach ($e in $recurring | Where-Object { $_.count -ge 2 } | Select-Object -First 3) {
+            Write-Console "Error seen in $($e.count) runs ($($e.failedRuns) failed) since $(Format-RunTime $e.firstSeen.time): $($e.key)"
+        }
         if ($quarantine.Entries) { Write-Console "Quarantined: $(($quarantine.Entries | ForEach-Object { "$($_.Name) (until $($_.Until)$(if ($_.Expired) { ', ENDED' }))" }) -join ', ')" }
         if ($git) { Write-Console "Git: $($git.commits7Days) commit(s) this week, $($git.uncommitted) uncommitted change(s), last commit $($git.lastCommit)" }
         Write-Console "Look: $(if ($look.styleGuide) { "style guide ($($look.resolutions -join ', '))" } else { 'no style guide (/look writes one)' }); $(if ($look.juiceRules) { "$($look.juiceRules) juice rule(s)" } else { 'no juice.json' })"

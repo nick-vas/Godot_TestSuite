@@ -61,6 +61,23 @@ function Start-RunHistory([string]$Command, [string]$ProjectDir) {
     $script:HistoryProject = $ProjectDir
     $script:HistoryStart = Get-Date
     $script:HistoryTestRun = $null
+    $script:RunErrorKeys.Clear()
+}
+
+# The commit checked out in $Dir (short hash), or $null outside git. Uncommitted changes are not part of it.
+function Get-HeadCommit([string]$Dir) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return $null }
+    $hash = @(& git -C $Dir rev-parse --short HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $hash.Count -eq 0) { return $null }
+    return "$($hash[0])".Trim()
+}
+
+# The run log as it is now, while the run still writes it (shared read, so Windows does not refuse it).
+function Read-RunLogLines {
+    if (-not $script:RunLogPath -or -not (Test-Path -LiteralPath $script:RunLogPath)) { return @() }
+    $stream = [System.IO.FileStream]::new($script:RunLogPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    try { $text = [System.IO.StreamReader]::new($stream).ReadToEnd() } finally { $stream.Dispose() }
+    return @($text -split '\r?\n')
 }
 
 # A test run's part of its history line: the runners that failed, the scope (runners and -Filter) and the failing test
@@ -85,6 +102,14 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
         foreach ($key in $script:HistoryTestRun.Keys) { $entry[$key] = $script:HistoryTestRun[$key] }
     } elseif ($script:JsonDoc.Contains('runnerResults')) {
         $entry['failedRunners'] = @($script:JsonDoc['runnerResults'] | Where-Object { -not $_.ok } | ForEach-Object { $_.runner })
+    }
+    # Where and with what errors: status groups runs by error key (Get-RecurringErrors).
+    try {
+        $entry['commit'] = Get-HeadCommit $script:HistoryProject
+        $entry['errorKeys'] = @(Get-RunErrorKeys @(Read-RunLogLines) @($script:RunErrorKeys))
+    } catch {
+        Write-RunLog "[godot-ci] Could not read the run's error keys: $_"
+        if (-not $entry.Contains('errorKeys')) { $entry['errorKeys'] = @() }
     }
     try {
         New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
@@ -229,17 +254,26 @@ $script:KnownNoise = @(
     '^\s*ERROR: No project icon specified'
 )
 
+$script:GodotErrorPattern = '^\s*(SCRIPT ERROR|SHADER ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
+
+# One regex for the error lines to leave out: the known noise and GODOT_CI_IGNORE_ERRORS. An invalid GODOT_CI_IGNORE_ERRORS
+# stops the run; -Lenient leaves it out instead (for the run history, which must never stop a run).
+function Get-IgnoredErrorsRegex([switch]$Lenient) {
+    $ignore = @($script:KnownNoise)
+    if ($env:GODOT_CI_IGNORE_ERRORS) {
+        $valid = $true
+        try { [void][regex]::new($env:GODOT_CI_IGNORE_ERRORS) } catch { $valid = $false }
+        if ($valid) { $ignore += $env:GODOT_CI_IGNORE_ERRORS }
+        elseif (-not $Lenient) { Stop-GodotCi "GODOT_CI_IGNORE_ERRORS is not a valid regex: $env:GODOT_CI_IGNORE_ERRORS" }
+    }
+    return ($ignore | ForEach-Object { "(?:$_)" }) -join '|'
+}
+
 # Godot often exits 0 after printing errors, so builds, exports and smoke runs also scan the log.
 # Returns the offending lines (empty when clean).
 function Select-GodotErrors([string[]]$Lines) {
-    $pattern = '^\s*(SCRIPT ERROR|SHADER ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
-    $ignore = @($script:KnownNoise)
-    if ($env:GODOT_CI_IGNORE_ERRORS) {
-        try { [void][regex]::new($env:GODOT_CI_IGNORE_ERRORS) }
-        catch { Stop-GodotCi "GODOT_CI_IGNORE_ERRORS is not a valid regex: $env:GODOT_CI_IGNORE_ERRORS" }
-        $ignore += $env:GODOT_CI_IGNORE_ERRORS
-    }
-    $ignoreRegex = ($ignore | ForEach-Object { "(?:$_)" }) -join '|'
+    $pattern = $script:GodotErrorPattern
+    $ignoreRegex = Get-IgnoredErrorsRegex
     $errors = @()
     foreach ($raw in $Lines) {
         $line = $raw -replace "`e\[[0-9;]*m", ''
@@ -254,15 +288,94 @@ function Select-GodotErrors([string[]]$Lines) {
 # Always wrap calls in @(...): an empty result comes back as nothing.
 function Get-GodotLogErrors([string]$LogFile) { return Select-GodotErrors @(Get-Content -LiteralPath $LogFile) }
 
+# Error keys, after Activision's build server for Call of Duty (docs/gdc/call-of-duty-error-keys.md): every failure got a
+# one-sentence summary made from the error lines of its log, and failures were grouped by it, so anyone could see whether
+# an error had happened before, how often, and since when. Here a key is the error line with what changes from run to
+# run taken out: numbers become N (line numbers, sizes, object ids, node names like @Node2D@23), hex addresses X. res://
+# and user:// paths are kept, without their line number, and when the line names no path, the first project frame of the
+# "at:"/backtrace lines under it is added ("... at res://player.gd"), so the same message from two scripts stays apart.
+function Get-ErrorKey([string]$Text, [string]$File) {
+    $text = (($Text -replace "`e\[[0-9;]*m", '') -replace '\s+', ' ').Trim()
+    # Odd items are the paths (the capture group), kept as they are; their ":<line>" starts the item after them.
+    $parts = [regex]::Split($text, '((?:res|user)://[^\s:''"()<>,\[\]]+)')
+    $key = -join @(for ($i = 0; $i -lt $parts.Count; $i++) {
+        if ($i % 2) { $parts[$i]; continue }
+        $part = if ($i -gt 0) { $parts[$i] -replace '^:\d+', '' } else { $parts[$i] }
+        $part -replace '\b0[xX][0-9A-Fa-f]+\b', 'X' -replace '(?<![A-Za-z_\d.])\d+(?:\.\d+)*', 'N'
+    })
+    if ($File -and $key -notmatch '(res|user)://') { $key = "$key at $File" }
+    if ($key.Length -gt 240) { $key = $key.Substring(0, 240) }
+    return $key
+}
+
+# The Godot error lines of a log (Select-GodotErrors' lines, known noise left out without a word), each with Text (the line,
+# trimmed), File and Line (the res:// location on the line, or else the first one in the indented "at:"/backtrace lines
+# under it, frames in addons/ only when there is no other), Key (Get-ErrorKey) and Index (its line number in $Lines, from 0).
+function Get-GodotErrorDetails([string[]]$Lines, [switch]$Lenient) {
+    $ignoreRegex = Get-IgnoredErrorsRegex -Lenient:$Lenient
+    $location = '(?<file>res://[^\s:()''"]+):(?<line>\d+)'
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        # A cheap test first: a log can run to many thousands of lines, and few are errors.
+        if ($Lines[$i] -cnotmatch 'ERROR|xception|Failed to load') { continue }
+        $line = $Lines[$i] -replace "`e\[[0-9;]*m", ''
+        if ($line -notmatch $script:GodotErrorPattern -or $line -match $ignoreRegex) { continue }
+        $at = [regex]::Match($line, $location)
+        if (-not $at.Success) {
+            $frames = @(for ($j = $i + 1; $j -lt [math]::Min($Lines.Count, $i + 8); $j++) {
+                $next = $Lines[$j] -replace "`e\[[0-9;]*m", ''
+                if ($next -notmatch '^\s' -or $next -match $script:GodotErrorPattern) { break }
+                foreach ($m in [regex]::Matches($next, $location)) { $m }
+            })
+            $own = @($frames | Where-Object { $_.Groups['file'].Value -notlike 'res://addons/*' })
+            $at = if ($own) { $own[0] } elseif ($frames) { $frames[0] } else { $at }
+        }
+        $file = $at.Success ? $at.Groups['file'].Value : $null
+        [pscustomobject]@{ Text = $line.Trim(); File = $file; Line = $at.Success ? [int]$at.Groups['line'].Value : $null; Key = (Get-ErrorKey $line $file); Index = $i }
+    }
+}
+
+# The distinct error keys of a run's log, in the order they first appear, at most $Cap: Godot's error lines, a Godot crash
+# ("Program crashed with signal 11", the signal kept) and a program the kit stopped for running too long. $Extra (keys
+# already made, such as soak's) come first. A key without a location is dropped when the same error also appears with
+# one (the kit prints an error line again, without the backtrace under it, when it fails a run).
+function Get-RunErrorKeys([string[]]$Lines, [string[]]$Extra = @(), [int]$Cap = 20) {
+    $keys = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($key in $Extra | Where-Object { $_ }) { if ($seen.Add($key)) { $keys.Add($key) } }
+    $details = @{}
+    foreach ($d in Get-GodotErrorDetails $Lines -Lenient) { $details[$d.Index] = $d }
+    $located = [System.Collections.Generic.HashSet[string]]::new([string[]]@($details.Values | Where-Object File | ForEach-Object { Get-ErrorKey $_.Text '' }), [StringComparer]::Ordinal)
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if (-not $details.ContainsKey($i) -and $Lines[$i] -cnotmatch 'crashed|still running') { continue }
+        $line = $Lines[$i] -replace "`e\[[0-9;]*m", ''
+        $key = $null
+        if ($details.ContainsKey($i)) {
+            if ($details[$i].File -or -not $located.Contains($details[$i].Key)) { $key = $details[$i].Key }
+        } elseif ($line -match 'Program crashed with signal (?<s>\d+)') {
+            $key = "Program crashed with signal $($Matches.s)"
+        } elseif ($line -match '^\[godot-ci\] (?<p>.+) was still running after \d+ s and was stopped') {
+            $key = "$(Split-Path -Leaf $Matches.p) was still running at the time limit and was stopped"
+        }
+        if ($key -and $seen.Add($key)) { $keys.Add($key) }
+    }
+    return @($keys | Select-Object -First $Cap)
+}
+
+# engineErrors[] in the JSON (message, file, line, key; the first 30) from Get-GodotErrorDetails. The keys also go to the
+# run's history line, for errors read from logs the run log does not hold (soak's processes).
+$script:RunErrorKeys = [System.Collections.Generic.List[string]]::new()
+function Set-EngineErrors([object[]]$Details) {
+    foreach ($d in $Details) { $script:RunErrorKeys.Add($d.Key) }
+    Set-JsonField engineErrors @($Details | Select-Object -First 30 | ForEach-Object { [ordered]@{ message = $_.Text; file = $_.File; line = $_.Line; key = $_.Key } })
+}
+
 # -Expected: error lines that are known to be harmless in this run (compared after trimming).
 function Assert-GodotLogClean([string]$LogFile, [string]$What, [string[]]$Expected = @()) {
     $errors = @(Get-GodotLogErrors $LogFile | Where-Object { $_.Trim() -notin $Expected })
     if ($errors.Count -gt 0) {
         Write-Console '[godot-ci] Godot reported errors:' -ForegroundColor Red
         $errors | Select-Object -First 30 | ForEach-Object { Write-Console "  $_" }
-        Set-JsonField engineErrors @($errors | Select-Object -First 30 | ForEach-Object {
-            $at = [regex]::Match($_, '(?<file>res://[^\s:()]+):(?<line>\d+)')
-            [ordered]@{ message = $_.Trim(); file = $at.Success ? $at.Groups['file'].Value : $null; line = $at.Success ? [int]$at.Groups['line'].Value : $null } })
+        Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $LogFile) | Where-Object { $_.Text -notin $Expected })
         Stop-GodotCi "$What produced errors (set GODOT_CI_IGNORE_ERRORS to ignore a known message)" 'engine-errors'
     }
 }
