@@ -330,10 +330,6 @@ in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `doc
       page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
 - [ ] Dialogue tables in more than one language: per-locale lines (and voice files) in a responses table, checked for
       lines missing in a locale. The `data` runner has no locales today, so lines are translated as keys.
-- [ ] Run the PowerShell side of the dialogue tables: the session that wrote them could not start PowerShell (its
-      sandbox refused it), so `tests/Test-Data.ps1` (the fixture's findings and the criteria grammar against C#'s 37
-      cases), `Test-LibNames.ps1`, `Test-Skills.ps1`, `Test-DocLinks.ps1` and `test -Project examples/breakout/game` were
-      not run there; the C# side (`dotnet test`) was.
 - [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
       `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
