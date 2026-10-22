@@ -13,8 +13,11 @@ pwsh benchmark/Invoke-TokenBenchmark.ps1 -TaskId COMP-PS-001 -Repeat 1 -Model ha
 pwsh benchmark/Invoke-TokenBenchmark.ps1 -SaveResponses                       # the whole spec: 96 sessions by default
 ```
 
-Or the **Token benchmark** workflow (Actions, run manually; needs the `ANTHROPIC_API_KEY` secret), which puts
-`summary.md` in the run's summary and the whole folder in an artifact.
+Or the **Token benchmark** workflow (Actions, run manually), which puts `summary.md` in the run's summary and the whole
+folder in an artifact. It authenticates with a Claude subscription, not an API key: the `CLAUDE_CODE_OAUTH_TOKEN` secret
+from `claude setup-token`, shared with the Evals workflow. Runs then count against the plan's usage rather than a bill,
+so keep them small (`tasks` one id, `repeat` 1); the cost columns are Claude Code's own figure, not a charge. Locally,
+a logged-in `claude` works the same way, with no key set.
 
 Each run writes `benchmark/results/<UTC time>/`: `results.csv` and `results.json` (one row per task, profile and
 repetition), `summary.json` and `summary.md` (per profile and per task), and with `-SaveResponses` every answer and the
