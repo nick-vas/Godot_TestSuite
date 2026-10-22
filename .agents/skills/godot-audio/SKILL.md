@@ -1,6 +1,6 @@
 ---
 name: godot-audio
-description: Use when a Godot game plays music, sound effects, voices or ambience, when adding volume settings, adaptive music, 3D sound or ducking, or when the game sounds too loud, too quiet, repetitive or muddy.
+description: Use when a Godot game plays music, sound effects, voices or ambience, when adding volume settings, adaptive music, 3D sound, ducking or gameplay that follows the music's beat, or when the game sounds too loud, too quiet, repetitive or muddy.
 ---
 
 # Game audio in Godot 4
@@ -180,7 +180,14 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Mix -Seconds 120 -GameAr
 - Web exports play audio as samples by default: bus effects (ducking compressor, low-pass, limiter), reverb and doppler do
   not run there. Set the player's `PlaybackType` to `Stream` where they matter, and listen in a browser.
 
-## 8. Prove it
+## 8. Gameplay on the beat
+
+For rhythm-action (as in Hi-Fi Rush) the player presses whenever they like and the game lands the action on the beat.
+Read [beat.md](beat.md) before writing it. In short: the clock is the song's playback position (`MusicClock`), never
+summed `delta`; set the animation's speed so its impact lands on the beat (`BeatSync.SpeedScale`); reward on-beat play
+with extras and never punish off-beat play. Tested in `Breakout.Core/Audio/BeatSync.cs`.
+
+## 9. Prove it
 
 - [ ] `doctor` lists no missing bus and the `architecture` runner no `audio-on-master` warning
 - [ ] a test sets every bus name the code uses and checks `AudioServer.GetBusIndex(name) >= 0`, and that muting Music
