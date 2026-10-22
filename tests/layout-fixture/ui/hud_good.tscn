@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(250, 250)
+
+[sub_resource type="Gradient" id="2"]
+
+[sub_resource type="GradientTexture2D" id="3"]
+gradient = SubResource("2")
+width = 256
+height = 256
+
+[sub_resource type="GradientTexture2D" id="4"]
+gradient = SubResource("2")
+width = 250
+height = 250
+
+[node name="Hud" type="CanvasLayer"]
+
+[node name="Jump" type="TouchScreenButton" parent="."]
+position = Vector2(100, 350)
+texture_normal = SubResource("4")
+shape = SubResource("1")
+action = "ui_accept"
+
+[node name="Pause" type="TouchScreenButton" parent="."]
+position = Vector2(560, 200)
+texture_normal = SubResource("3")
+action = "ui_cancel"
+visibility_mode = 1
+
+[node name="Stick" type="Control" parent="." groups=["touch_control"]]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 900.0
+offset_top = 350.0
+offset_right = 1150.0
+offset_bottom = 600.0

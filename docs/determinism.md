@@ -19,9 +19,11 @@ by the vendor or author, and **unconfirmed** means not verified.
 | Jolt, [Architecture: Deterministic Simulation](https://raw.githubusercontent.com/jrouwe/JoltPhysics/master/Docs/Architecture.md) | The conditions, and `CROSS_PLATFORM_DETERMINISTIC` |
 | [Godot: using Jolt Physics](https://docs.godotengine.org/en/latest/tutorials/physics/using_jolt_physics.html); Godot 4.7 `modules/jolt_physics/SCsub`, `platform/*/detect.py` | Jolt is the default for new projects; built without the cross-platform option; C++ built with `-ffp-contract=off` or `/fp:strict` |
 | GGPO [Developer Guide](https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md) | SyncTest |
+| Jonathan Blow, [The Implementation of Rewind in Braid](https://www.youtube.com/watch?v=8dinUbg2h70) (GDC; [notes](gdc/rewind-in-braid.md)) | Record full state every frame; keyframes diffed against a default entity, frames against their keyframe; chunked forgetting: `Determinism/Rewind.cs` |
 | Factorio [FFF #55](https://factorio.com/blog/post/fff-55), [FFF #47](https://factorio.com/blog/post/fff-47), [forum](https://forums.factorio.com/viewtopic.php?p=380267) | A checksum every tick; diff the first diverging tick; `sin` differs between Windows and Linux |
 | Bettner and Terrano, [1500 Archers on a 28.8](https://www.gamedeveloper.com/programming/1500-archers-on-a-28-8-network-programming-in-age-of-empires-and-beyond) (GDC 2001) | Out-of-sync errors were the hardest problem in lockstep |
 | [Backdash](https://github.com/Delta3-Studio/BackdashGodotSample) (MIT), [godot-rapier-physics](https://github.com/appsinacup/godot-rapier-physics) | A GGPO-style C# library with a SyncTest session; a physics add-on with an optional cross-platform build |
+| "Automated Testing and Instant Replays in Retro City Rampage" (GDC, about 2015; [notes](gdc/retro-city-rampage-replays.md)) | Always-on input recording dumped on exit or assert, skip to the bug's frame, per-button run-length streams under zlib (1 to 8 KB), one-byte checksums, separate random streams, no engine callbacks in gameplay, a header version that switches old behaviour on: `Determinism/InputLog.cs` |
 
 ## .NET floating point (tested)
 
@@ -105,6 +107,15 @@ transforms; 300 `RigidBody2D` for 2D.
   are diffed, usually "just a value of one variable".
 - Backdash has `SyncTestSession` (read in the DLL); its 0.8.0 preview targets net10.0 only, 0.3.x targeted net8.0.
 
+## Engine completion signals (tested)
+
+A probe scene on Godot 4.7.2 standard, headless, started a one-second silent `AudioStreamWAV`, a one-second
+`AnimationPlayer` animation, a one-second `Tween` and a one-second `SceneTreeTimer`, and logged the physics tick of each
+signal, 20 runs per mode. Real time: `finished` on ticks 56 to 62, `animation_finished` on 60 or 61, the tween and the
+timer always on 60. With `--fixed-fps 60`: the sound had not finished after 200,000 ticks (audio follows the wall clock:
+after 100,000 ticks, 0.47 s after the engine started, 0.28 s of the sound had played), the animation always 61, tween and timer
+60. Hence the skill's rule: gameplay counts its own ticks.
+
 ## Breakout's toolkit
 
 `examples/breakout/src/Breakout.Core/Determinism/Replay.cs` turns the above into code: `IDeterministic` (`Save`, `Load`,
@@ -113,7 +124,8 @@ differs), `SyncTest` (every tick, re-run the last `depth` ticks and compare; dep
 and `DeterministicRandom` (xorshift64*, its whole state one `ulong`). `DeterminismTests.cs` runs a ball in 1/1000 px
 integer units for 3600 ticks: the replay matches all 61 checkpoints, an input changed at tick 137 is found at tick 180,
 SyncTest catches a shared `System.Random` kept outside the state, `TheRandomSequenceIsFixedForever` pins the generator's
-first values, and `TheChecksumIgnoresTheProcess` checks FNV-1a against its published vector for "a".
+first values, and `TheChecksumIgnoresTheProcess` checks FNV-1a against its published vector for "a". `InputLog.cs` stores a session's input
+for playback (numbers in [gdc/retro-city-rampage-replays.md](gdc/retro-city-rampage-replays.md)).
 
 ## Not confirmed
 

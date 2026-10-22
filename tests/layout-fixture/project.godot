@@ -1,5 +1,7 @@
 ; A menu designed at 1280x720 (ui/menu.tscn: a top bar in the notch, 32 px buttons, unsafe on phones) and the same
-; menu fixed (ui/good.tscn: inside the safe area, touch-sized buttons). tests/Test-Layout.ps1 runs the layout runner on it.
+; menu fixed (ui/good.tscn: inside the safe area, touch-sized buttons), and a game HUD of TouchScreenButtons and a stick in
+; the group touch_control, too small for thumbs (ui/hud.tscn) and resized (ui/hud_good.tscn). tests/Test-Layout.ps1 runs
+; the layout runner on it.
 config_version=5
 
 [application]

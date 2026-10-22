@@ -1,8 +1,10 @@
-# Lays out each scene at several screen profiles (phones, a tablet, an ultrawide monitor) and reports Controls that are
-# off screen, inside a profile's unsafe area (a notch, the status bar, the home indicator), or too small to touch or click.
-# Layout needs no rendering, so this runs headless.
+# Lays out each scene at several screen profiles (phones, a tablet, an ultrawide monitor) and reports Controls and
+# TouchScreenButtons that are off screen, inside a profile's unsafe area (a notch, the status bar, the home indicator), or
+# too small to touch or click. With --min-control-dp above 0 it also reports, on touch profiles, on-screen game controls
+# under that size (small-control): every TouchScreenButton and every Control in the group "touch_control", the controls
+# a player presses without looking at them. Layout needs no rendering, so this runs headless.
 #   godot --headless --path <project> -s layout.gd -- --scenes=res://ui/menu.tscn "--profiles=phone_portrait;tablet"
-#         --min-dp=48 --min-css=24 --checks=off-screen,unsafe-area,small-target
+#         --min-dp=48 --min-css=24 --min-control-dp=75 --checks=off-screen,unsafe-area,small-target,small-control
 # Profiles are separated by ";". A profile is a built-in name or name:WIDTHxHEIGHT@DPI[:touch][:insets=LEFT,TOP,RIGHT,BOTTOM].
 # If the game has a SafeArea autoload with set_insets(left, top, right, bottom) (SetInsets in C#), the profile's insets are
 # passed to it first, so the game's own safe-area handling is what gets measured (a fake notch).
@@ -35,7 +37,10 @@ func _run() -> void:
 	var names := str(_opt.get("profiles", "phone_portrait;phone_landscape;tablet;ultrawide")).split(";", false)
 	var min_dp := float(_opt.get("min-dp", "48"))      # Android: 48 dp. Apple: 44 pt, about the same physical size.
 	var min_css := float(_opt.get("min-css", "24"))    # WCAG 2.2 SC 2.5.8 (AA): 24 CSS px for pointer targets.
-	var checks := str(_opt.get("checks", "off-screen,unsafe-area,small-target")).split(",", false)
+	# Thumb controls used without looking: working ones in a GDC talk on touch controls were 75 points, about 75 dp
+	# (docs/gdc/controls-you-can-feel.md). 0 turns the check off.
+	var min_control_dp := float(_opt.get("min-control-dp", "0"))
+	var checks := str(_opt.get("checks", "off-screen,unsafe-area,small-target,small-control")).split(",", false)
 	var safe_area := root.get_node_or_null("SafeArea")
 	var setter := ""
 	if safe_area != null:
@@ -61,7 +66,7 @@ func _run() -> void:
 			# Containers sort on the next frame; two frames let nested containers settle.
 			await process_frame
 			await process_frame
-			checked += _check(p, scene_path, scene, safe_win, min_dp, min_css, checks)
+			checked += _check(p, scene_path, scene, safe_win, min_dp, min_css, min_control_dp, checks)
 			scene.queue_free()
 			await process_frame
 		if setter != "":
@@ -94,7 +99,8 @@ func _profile(text: String) -> Dictionary:
 	return out
 
 
-func _check(p: Dictionary, scene_path: String, scene: Node, safe_win: Rect2, min_dp: float, min_css: float, checks: PackedStringArray) -> int:
+func _check(p: Dictionary, scene_path: String, scene: Node, safe_win: Rect2, min_dp: float, min_css: float,
+		min_control_dp: float, checks: PackedStringArray) -> int:
 	var win := Rect2(Vector2.ZERO, Vector2(p.size))
 	var to_window := root.get_final_transform()   # canvas (stretched) coordinates -> window pixels
 	var checked := 0
@@ -103,18 +109,34 @@ func _check(p: Dictionary, scene_path: String, scene: Node, safe_win: Rect2, min
 		var n: Node = stack.pop_back()
 		for child in n.get_children():
 			stack.push_back(child)
-		var c := n as Control
-		if c == null or not c.is_visible_in_tree() or c.size.x <= 0 or c.size.y <= 0:
-			continue
-		var interactive := _is_interactive(c)
-		var has_text := (c is Label or c is RichTextLabel) and str(c.get("text")).strip_edges() != ""
-		if not interactive and not has_text:
-			continue
+		var rect := Rect2()
+		var interactive := true
+		# A control the player presses without looking (a TouchScreenButton, or a Control in the group "touch_control"):
+		# on touch profiles it is also judged against min-control-dp.
+		var thumb := true
+		var b := n as TouchScreenButton
+		if b != null:
+			# A Node2D, not a Control. Touch-only buttons are neither drawn nor pressed without a touchscreen.
+			if not b.is_visible_in_tree() or (not p.touch and b.visibility_mode == TouchScreenButton.VISIBILITY_TOUCHSCREEN_ONLY):
+				continue
+			var area := _touch_area(b)
+			if not area.has_area():
+				continue
+			rect = to_window * (b.get_global_transform_with_canvas() * area)
+		else:
+			var c := n as Control
+			if c == null or not c.is_visible_in_tree() or c.size.x <= 0 or c.size.y <= 0:
+				continue
+			thumb = c.is_in_group("touch_control")
+			interactive = thumb or _is_interactive(c)
+			var has_text := (c is Label or c is RichTextLabel) and str(c.get("text")).strip_edges() != ""
+			if not interactive and not has_text:
+				continue
+			rect = to_window * (c.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, c.size))
 		checked += 1
-		var rect: Rect2 = to_window * (c.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, c.size))
-		var where := str(scene.get_path_to(c))
+		var where := str(scene.get_path_to(n))
 		# Content inside a ScrollContainer is meant to leave the screen.
-		var scrolled := _inside_scroll(c)
+		var scrolled := _inside_scroll(n)
 		if not scrolled and not win.encloses(rect.grow(-0.5)):
 			if checks.has("off-screen"):
 				_report(p.name, scene_path, where, "off-screen", "%s is outside the %dx%d window" % [_r(rect), p.size.x, p.size.y])
@@ -131,7 +153,25 @@ func _check(p: Dictionary, scene_path: String, scene: Node, safe_win: Rect2, min
 				var css: float = short_side * 96.0 / float(p.dpi)
 				if css < min_css:
 					_report(p.name, scene_path, where, "small-target", "%.0f CSS px (%.0f px), under %.0f" % [css, short_side, min_css])
+		if thumb and p.touch and min_control_dp > 0.0 and checks.has("small-control"):
+			var side := minf(rect.size.x, rect.size.y)
+			var control_dp: float = side * 160.0 / float(p.dpi)
+			if control_dp < min_control_dp:
+				_report(p.name, scene_path, where, "small-control", "%.0f dp (%.1f mm, %.0f px), under %.0f dp" % [control_dp, side / p.dpi * 25.4, side, min_control_dp])
 	return checked
+
+
+# The part of a TouchScreenButton that takes touches, in its own coordinates. As Godot 4.7 hit-tests it: the shape, moved
+# to the texture's centre when shape_centered is on and there is a texture (else left around the origin); without a
+# shape, the texture's rectangle; with neither, nothing.
+func _touch_area(b: TouchScreenButton) -> Rect2:
+	var texture_size := b.texture_normal.get_size() if b.texture_normal != null else Vector2.ZERO
+	if b.shape != null:
+		var area := b.shape.get_rect()
+		if b.shape_centered:
+			area.position += texture_size * 0.5
+		return area
+	return Rect2(Vector2.ZERO, texture_size)
 
 
 func _is_interactive(c: Control) -> bool:
@@ -141,8 +181,8 @@ func _is_interactive(c: Control) -> bool:
 		or c is TabBar or c is Tree
 
 
-func _inside_scroll(c: Control) -> bool:
-	var a := c.get_parent()
+func _inside_scroll(n: Node) -> bool:
+	var a := n.get_parent()
 	while a != null:
 		if a is ScrollContainer:
 			return true
