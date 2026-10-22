@@ -12,6 +12,8 @@
 #   l10n       translation tables: duplicate, untranslated, missing and too long keys; translation remaps and localized
 #              sounds against their source, with ffmpeg (lib/Localization.ps1); no Godot needed
 #   data       data tables against data.json: ids, fields, types, ranges, references (lib/Data.ps1); no Godot needed
+#   textsize   text sizes in real pixels on a small screen such as the Steam Deck's (lib/TextSize.ps1, textsize.json)
+#   layout     screens on phones, a tablet and an ultrawide: off screen, notch, touch target size (lib/Layout.ps1, layout.json)
 #
 # -Filter means: dotnet/gdunit4 `dotnet test --filter`; godottest suite name; gut test name.
 
@@ -171,6 +173,9 @@ function Invoke-TestRunner {
         }
         'data' {
             $code = Invoke-DataRunner $project $ResultsDir
+        }
+        'layout' {
+            $code = Invoke-LayoutRunner $Info $ResultsDir
         }
         'textsize' {
             $code = Invoke-TextSizeRunner $Info $ResultsDir

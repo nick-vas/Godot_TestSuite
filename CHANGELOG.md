@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Phones, tablets and browsers:
+  - `layout` runner (`layout.json`): each screen laid out, headless, on a portrait and a landscape phone, a tablet, an
+    ultrawide and custom profiles; controls off screen, under the notch or system bars, or under 48 dp (touch) or 24 CSS
+    px (mouse) fail. A game's `SafeArea` autoload gets each profile's notch, so its own safe-area code is what is tested.
+  - `export -Run` for Web presets: a debug export opened in real browsers (`-Browser chromium,firefox,webkit,chrome,msedge`)
+    through Playwright, served with cross-origin isolation headers only for threads builds; fails on an engine that does
+    not start, page errors, failed requests and script errors, which release builds hide (`web-run-failed`,
+    `no-browser`). Web exports report their size raw and gzipped. An output folder inside the project gets a `.gdignore`.
+  - `doctor`: a C# game with a Web preset, threads builds (no headers on itch.io or GitHub Pages), Android without
+    ETC2/ASTC or an icon, C# Android without Gradle on net8.0, presets exporting into the project. 4.7.2's Android "No
+    project icon specified" log line no longer fails an export.
+  - Skill `godot-mobile-web`; `godot-input` and `godot-ui-layout` point to it. Measurements and sources:
+    `docs/mobile-web.md`.
 - Store pages, legal basics, credits and release readiness:
   - `credits` command: `CREDITS.md`, `credits.json` (sections with translation-key headings, for a credits screen) and
     `THIRD-PARTY-NOTICES.txt` from `assets.json`, with Godot's MIT text and its third-party components read from the

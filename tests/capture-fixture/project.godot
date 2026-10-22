@@ -1,0 +1,39 @@
+; tests/Test-Capture.ps1 takes screenshots of this with and without --capture (see the godot-debug-tools skill).
+config_version=5
+
+[application]
+
+config/name="Capture fixture"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+
+[autoload]
+
+CaptureMode="*res://CaptureMode.cs"
+
+[display]
+
+window/size/viewport_width=640
+window/size/viewport_height=360
+
+[dotnet]
+
+project/assembly_name="CaptureFixture"
+
+[input]
+
+cam_left={"deadzone": 0.2, "events": []}
+cam_right={"deadzone": 0.2, "events": []}
+cam_forward={"deadzone": 0.2, "events": []}
+cam_back={"deadzone": 0.2, "events": []}
+cam_up={"deadzone": 0.2, "events": []}
+cam_down={"deadzone": 0.2, "events": []}
+cam_look_left={"deadzone": 0.2, "events": []}
+cam_look_right={"deadzone": 0.2, "events": []}
+cam_look_up={"deadzone": 0.2, "events": []}
+cam_look_down={"deadzone": 0.2, "events": []}
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
