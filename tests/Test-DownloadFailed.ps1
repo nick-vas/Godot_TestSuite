@@ -34,3 +34,4 @@ if ($failures) {
     exit 1
 }
 Write-Host "A Godot download that fails stops setup with download-failed: $($doc.error.message)"
+exit 0

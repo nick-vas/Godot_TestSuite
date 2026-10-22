@@ -41,6 +41,13 @@ try {
     $t = Read-One (New-Trx 'healthy.trx' @('Passed', 'Passed', 'Failed') $found)
     if ($t.Total -ne 3 -or $t.Failed -ne 1) { $failures += "healthy run: expected 3 results and only the real failure, got $($t.Total) and $($t.Failed)" }
 
+    # With -Filter, tests the filter left out are found but never run (a Windows CI run with FullyQualifiedName~RunState
+    # matched no gdUnit4 test): not a failure, unless the rebuild names its failure.
+    $totals = New-TestTotals; Read-Trx (New-Trx 'filtered.trx' @() "$found`nCompleted tests for assembly: x/Breakout.dll") $totals $true
+    if ($totals.Failed -ne 0) { $failures += "a filter that matches no gdUnit4 test is not a failure, got $($totals.Failed)" }
+    $totals = New-TestTotals; Read-Trx (New-Trx 'filtered-broken.trx' @() "$found`nCleaning up runner file at x/GdUnit4TestRunnerScene.cs due to compilation failure") $totals $true
+    if ($totals.Failed -ne 1) { $failures += "a filtered run whose rebuild failed still fails, got $($totals.Failed)" }
+
     # Other frameworks' TRX (xUnit, no discovery line) are read as before.
     $t = Read-One (New-Trx 'xunit.trx' @('Passed', 'Passed') 'xUnit.net VSTest Adapter v2.8.2')
     if ($t.Total -ne 2 -or $t.Failed -ne 0) { $failures += "xUnit run: expected 2 passed, got $($t.Total) total, $($t.Failed) failed" }
@@ -60,4 +67,4 @@ if ($failures.Count -gt 0) {
     foreach ($failure in $failures) { Write-Host "FAIL: $failure" }
     exit 1
 }
-Write-Host 'found-but-not-run gdUnit4 tests fail the dotnet runner; healthy, partial and xUnit runs read as before'
+Write-Host 'found-but-not-run gdUnit4 tests fail the dotnet runner, a filter that skips them does not; healthy, partial and xUnit runs read as before'
