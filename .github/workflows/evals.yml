@@ -1,6 +1,8 @@
 # Runs the kit's Claude Code plugin evals (evals/): every case with the plugin and without it, so a change to a skill,
-# the verifier or the Stop hook shows whether it helps and what it costs. Manual only: each run calls the model and costs
-# money. Needs the repository secret ANTHROPIC_API_KEY.
+# the verifier or the Stop hook shows whether it helps and what it costs. Manual only: each run calls the model.
+# Authenticates with a Claude subscription, not an API key: run `claude setup-token` (Pro, Max, Team or Enterprise) and
+# store the token as the repository secret CLAUDE_CODE_OAUTH_TOKEN. Runs count against that plan's usage, which is meant
+# for ordinary individual use: start it by hand, never on a schedule. docs/research.md has the local and other routes.
 name: Evals
 
 on:
@@ -21,7 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       # The eval sandbox cannot read the home directory, so Godot is installed outside it.
       GODOT_TOOLS_DIR: /opt/godot-ci
     steps:
@@ -29,7 +32,7 @@ jobs:
       - name: Eval sandbox, Claude Code and Godot
         shell: pwsh
         run: |
-          if (-not $env:ANTHROPIC_API_KEY) { throw 'Add the ANTHROPIC_API_KEY repository secret to run evals' }
+          if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run evals' }
           sudo apt-get update -q; sudo apt-get install -y -q bubblewrap socat
           npm install -g @anthropic-ai/claude-code
           sudo mkdir -p $env:GODOT_TOOLS_DIR; sudo chown $env:USER $env:GODOT_TOOLS_DIR

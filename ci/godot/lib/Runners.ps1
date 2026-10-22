@@ -207,7 +207,7 @@ function Invoke-TestRunner {
             ForEach-Object { Move-Item -LiteralPath $_.FullName (Join-Path $coverageDir "$Runner-$($_.Directory.Name).cobertura.xml") }
     }
 
-    $summary = Write-TestSummary $Runner $ResultsDir $code
+    $summary = Write-TestSummary $Runner $ResultsDir $code ([bool]$Filter)
     $findings = Join-Path $ResultsDir 'findings.json'
     $warnings = @(if (Test-Path -LiteralPath $findings) {
         Get-Content -LiteralPath $findings -Raw | ConvertFrom-Json | Where-Object { $_ -and $_.severity -eq 'warning' }

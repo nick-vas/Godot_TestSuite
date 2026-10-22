@@ -23,7 +23,7 @@ function Read-JUnit([string]$Path, $Totals) {
     }
 }
 
-function Read-Trx([string]$Path, $Totals) {
+function Read-Trx([string]$Path, $Totals, [bool]$Filtered = $false) {
     [xml]$doc = Get-Content -LiteralPath $Path -Raw
     $ns = [System.Xml.XmlNamespaceManager]::new($doc.NameTable)
     $ns.AddNamespace('t', 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010')
@@ -45,14 +45,15 @@ function Read-Trx([string]$Path, $Totals) {
         }
     }
     # gdUnit4Net rebuilds the project inside Godot before running; when that rebuild fails or times out it runs nothing
-    # and still exits 0. Its log says how many tests it discovered: count the ones that never ran as one failure.
+    # and still exits 0. Its log says how many tests it discovered: count the ones that never ran as one failure. With a
+    # -Filter, tests it found but the filter left out never run either, so only a rebuild that names its failure counts.
     $out = $doc.SelectSingleNode('/t:TestRun/t:ResultSummary/t:Output/t:StdOut', $ns)
     if ($out -and $out.InnerText -match 'Discover tests done, \d+ TestSuites and total (\d+) Tests found') {
         $found = [int]$Matches[1]
         $ran = $doc.SelectNodes('/t:TestRun/t:Results/t:UnitTestResult', $ns).Count
-        if ($ran -lt $found) {
-            $reason = @($out.InnerText -split '\r?\n' | Where-Object { $_ -match 'compilation (TIMEOUT|failure)|did not complete within|fails with' } |
-                ForEach-Object { $_.Trim(' ', [char]0x2551, [char]0x2554, [char]0x2557, [char]0x2550) } | Select-Object -First 2) -join ' '
+        $reason = @($out.InnerText -split '\r?\n' | Where-Object { $_ -match 'compilation (TIMEOUT|failure)|did not complete within|fails with' } |
+            ForEach-Object { $_.Trim(' ', [char]0x2551, [char]0x2554, [char]0x2557, [char]0x2550) } | Select-Object -First 2) -join ' '
+        if ($ran -lt $found -and (-not $Filtered -or $reason)) {
             Add-Failure $Totals 'gdUnit4 (tests not run)' "gdUnit4 found $found tests but ran $ran$(if ($reason) { ": $reason" })" $out.InnerText
         }
     }
@@ -73,14 +74,14 @@ function Write-Annotation([string]$Runner, $Failure) {
 
 # Summarises one runner's results and returns them; .Ok is true when tests ran and none failed. A run
 # that reports no tests at all fails, so a misconfigured runner can't pass silently.
-function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode) {
+function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode, [bool]$Filtered = $false) {
     $totals = New-TestTotals
     $files = Get-ChildItem -LiteralPath $ResultsDir -Recurse -File |
         Where-Object { $_.FullName -notmatch '[\\/]coverage[\\/]' }
     foreach ($file in $files) {
         try {
             if ($file.Name.EndsWith('.junit.xml')) { Read-JUnit $file.FullName $totals }
-            elseif ($file.Extension -eq '.trx') { Read-Trx $file.FullName $totals }
+            elseif ($file.Extension -eq '.trx') { Read-Trx $file.FullName $totals $Filtered }
         } catch {
             Write-CiLog "Could not parse $($file.FullName): $_"
         }

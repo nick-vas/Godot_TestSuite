@@ -513,3 +513,5 @@ switch ($Command) {
 }
 Add-RunHistory $true ''
 Write-JsonResult
+# Succeeded: say so, rather than leave the exit code of the last program the run called (git, dotnet) to the caller.
+exit 0

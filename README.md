@@ -201,7 +201,7 @@ What has been run, and what has not.
 | Not run | The editor MCP servers themselves (they need the editor); `export` for non-Windows presets; `bench` and `shot` on a real GPU and on Windows (their numbers here come from software rendering) |
 | Known | Godot 4.7.2 occasionally aborts during import on some machines. The kit retries the import up to twice and reports `importRetried`; the cause is not found, and it has not shown up in CI |
 | Not evidenced | That the skills change agent behaviour. A first pressure test found no difference because the model already behaved well; [docs/skills-quality.md](docs/skills-quality.md) says what a harder test needs |
-| Evals | `claude plugin eval` runs the suite, but where the harness runs as root its sandbox is read-only, so in the first runs neither arm could run Godot ([docs/research.md](docs/research.md)). Real numbers need the `Evals` workflow or a Linux/WSL2 machine |
+| Evals | `claude plugin eval` runs the suite, but where the harness runs as root its sandbox is read-only, so in the first runs neither arm could run Godot ([docs/research.md](docs/research.md)). Real numbers need the `Evals` workflow (a Claude subscription token, no API key) or a Linux/WSL2 machine logged in to Claude Code |
 
 ## FAQ
 
