@@ -1,0 +1,7 @@
+[
+  { "id": "q1", "zone": "jade", "xp": 600, "gold": 50 },
+  { "id": "q2", "zone": "jade", "xp": 500, "gold": 60 },
+  { "id": "q3", "zone": "steppes", "xp": 400, "gold": 20 },
+  { "id": "q4", "zone": "steppes", "xp": 500, "gold": 0 },
+  { "id": "q5", "zone": "peak", "xp": 50, "gold": 100 }
+]

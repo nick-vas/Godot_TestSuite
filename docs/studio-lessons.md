@@ -1050,3 +1050,117 @@ The captions hear "bot" as "boat", "board" and "bodkin", and Ladavac's name as "
     Godot: one small test scene per mechanic, driven by `flows`, covers the first part. `shot -Baseline` gives `changedPercent` and a diff image, but only reports: it never fails a run, and it needs a display.
 15. **What "looks wrong" is decided by people, and decided through testing.** "this tree is floating in the air this is something everyone's gonna say okay this is this is wrong" ([29:55](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1795))
     Godot: the `look` skill critiques `shot` screenshots against `docs/STYLE.md` and asks you to choose. Write each accepted cheat ("no shadows on pickups") into the style guide, so the agent stops flagging it.
+
+## Blizzard and its neighbours (Blizzplanet's interviews, 2002 to 2014)
+
+Read on 2026-10-22: all 69 posts in Blizzplanet's two interview categories, fetched through the site's WordPress API.
+Most are about Blizzard's tie-in novels, comics and tabletop books, and add nothing on making games beyond the lore
+lessons below. The rest are with Blizzard developers (Mists of Pandaria's developer chat, Tom Chilton, Cory Stockton,
+Chris Metzen), Flagship Studios (Hellgate: London, founded by former Blizzard North staff), the World of Warcraft trading
+card game's lead, PopCap's Bejeweled add-on team, voice actors, mod teams and a former Blizzard North employee. Every quote
+was checked word for word against the downloaded text; the sites' curly apostrophes and the Hellgate page's `?` in place of
+apostrophes are kept. Thirteen posts are under 160 words (video embeds, announcements); three are empty, among them the
+interview with Robert Clotworthy, the voice of Jim Raynor. Page 2 of Mike Huang's interview (his work as a producer at Blizzard
+North) could not be read: both of the site's page-2 addresses return page 1.
+
+The kit's own versions: the `data` runner's `totals` (lesson 4) and `names` (lesson 21) rules, the `godot-progression`
+skill (lessons 1 to 15) and the `godot-narrative` skill (lessons 16 to 27).
+
+### Rewards and progression
+
+1. **Optional activities that give power become chores.** Ion Hazzikostas: "We understand that for many players anything that gives even an incremental power gain is seen as mandatory." Tom Chilton on patch 5.2: "a slight change to how our reward structure in the end game worked as it relates to how mandatory daily quests felt"
+   URLs: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript, https://www.blizzplanet.com/blog/comments/interview-with-wow-game-director-tom-chilton-mists-of-pandaria-patch-5-2
+   Apply: mark each side activity's rewards as power or cosmetic in the GDD; a power reward needs a written reason, and a daily activity never gives power the player cannot get another way.
+2. **Let players progress through the activity they like.** Cory Stockton: "The idea is to let players make progress doing whatever kind of activity they like best."
+   URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+   Apply: quests, side modes and exploration pay into one progression currency; telemetry records which source each gain came from.
+3. **Nothing permanently missable.** Dave Kosak: "Is there a way to build that progression into the game such that players who come in a couple months later don’t miss out on all the fun?"
+   URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+   Apply: a time-limited event comes back or has another route to its rewards; a late or returning player can still get everything.
+4. **The rewards on the path must add up to the next step.** A player in the chat: "At the moment you can NOT hit Level 89 if you start with Level 88 and 0% experience in Townlong Steppes (~10% experience missing)"
+   URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+   Apply: the `data` runner's `totals` rule: `{ "sum": "xp", "by": "zone", "atLeast": "zones.xpToNext" }` fails the zone that falls short, with the percentage.
+5. **A bad roll still pays.** Chilton: "So even if you get the booby prize that that still feels pretty cool."
+   URL: https://www.blizzplanet.com/blog/comments/interview-with-wow-game-director-tom-chilton-mists-of-pandaria-patch-5-2
+   Apply: every loot table has a consolation entry; a required `list` field in `data.json` already fails when a table's drop list is empty.
+6. **A rare reward starts as a lottery and gets easier.** Chilton: "It’s certainly a lottery type of thing at first or something you can potentially buy from someone else. Then as time goes on we will increase the availability."
+   URL: https://www.blizzplanet.com/blog/comments/interview-with-wow-game-director-tom-chilton-mists-of-pandaria-patch-5-2
+   Apply: a drop chance with a pity counter or a time ramp, both in data; log attempts until success.
+7. **Hard optional modes are niche on purpose.** Chilton on Challenge Modes: "We don’t really expect it’s something most players will do so we’re not expecting to see the huge volumes of players doing them just because of the tuning involved and how soft the rewards are". Dave Kosak: "With Challenge Modes, we now have tech to scale your item level, so that we can guarantee the right level of difficulty."
+   URLs: the Chilton interview and the developer chat above.
+   Apply: a challenge mode clamps the player to fixed stats, gives cosmetic rewards with medal times, and is judged by the spread of medals among those who try it, not by how many try.
+8. **Leave things to find.** Stockton on the Timeless Isle: "we very intentionally did not direct players to these things by daily quests and stuff like that, because we wanted to really explore the option of doing things that are much more exploration for the players."
+   URL: https://www.blizzplanet.com/blog/comments/blizzplanet-interview-cory-stockton-discusses-patch-5-4-siege-of-orgrimmar
+   Apply: each area has secrets with no marker; the playtest asks "what did you find that nobody told you about?"
+9. **Keep a casual side system casual.** Stockton: "We did not make any realm first achievements for pet battles. Our intention for the feature is that its more of a casual activity and a realm first just did not feel like a good fit."
+   URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+   Apply: the GDD names each side system's mood; no leaderboards, timers or races on the casual ones.
+
+### Difficulty and balance
+
+10. **Tune the enemies, not the player.** Hazzikostas on Icecrown Citadel's raid-wide buff: "one of the awkward things about the Icecrown Citadel buff was that, over time, it caused players to feel weaker when they were doing anything other than raiding Icecrown."
+    URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+    Apply: difficulty lives in the enemy table (health and damage multipliers); never a global buff to the player.
+11. **Test with the strongest character, not only the intended one.** Zarhym on the Theramore scenario: "But players at level 85 were steamrolling through it in Dragon Soul gear" and "We pushed a hotfix recently that increased the HP of all enemies in Theramore’s Fall."
+    URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+    Apply: a headless balance test runs each encounter with the expected and the best possible stats, and fails when the best clears it below a floor time.
+12. **Keep the power band flat; no god cards.** Cory Jones on the trading card game: "we are going to balance items to remain in the same semi-flat tier that all good card games strive for." And on its testers: "You have the world’s roughest play testers here, they break as many systems as they create."
+    URL: https://www.blizzplanet.com/blog/comments/cory_jones___wow_tcg_qa
+    Apply: a power score per card or item (cost against effect) with a `data` range; a "break it" pass each milestone with a written list of exploits.
+13. **Avoid must-have picks.** Greg Street ("Ghostcrawler"): "If healer niches are too well-defined, then you are encouraged to stack Resto druids for one fight and then Holy paladins for the next fight. We’d rather see a diversity of healers."
+    URL: https://www.blizzplanet.com/blog/comments/best-buy-developers-chat-on-mists-of-pandaria-transcript
+    Apply: record which build or character won each encounter; flag an encounter where one option wins far more than its share.
+14. **Let stats decide a hybrid, not aim.** Bill Roper on Hellgate: London: "we have gone to great lengths to remove the necessity for players to have pixel-perfect aiming skills or hyper-accurate reflexes to succeed in the game." And at shows: "FPS players went straight into the demon slaying, and at first didn?t seem to really notice all the loot dropping around them."
+    URL: https://www.blizzplanet.com/blog/comments/hellgate_london_exclusive_interview
+    Apply: in a genre hybrid, test with a bot that aims badly, and make the other genre's systems (loot, levels) impossible to miss.
+15. **Make random items from slots with their own pools.** Roper: "Not every weapon (as an example) can use every type of Mod, and each base type has a maximum number of potential slots for Mods."
+    URL: https://www.blizzplanet.com/blog/comments/hellgate_london_exclusive_interview
+    Apply: `base_items` (slots, allowed mod types) and `mods` (type, rarity weight, ranges) tables; a seeded test generates thousands and checks the rarity spread (`godot-procgen`).
+
+### Scope, content and the interface
+
+- **Cap the ideas.** Roper: "I think our biggest challenge is in realistically limiting ourselves. We have so many fantastic ideas for the game that if we tried to cram them all in, we?d probably never ship!" Optional modes earn their place by being played: "these modes will evolve and the ones that we can?t stop playing will be the ones that get in." `godot-game-plan`'s parked ideas.
+- **Complexity is a feature's cost.** Stockton: "Our biggest issue with new features is adding more complexity to the game." Street: "I’d hate to add back plans with no real game purpose just for sake of completeness." Chilton on class quests: "There’s definitely a cost also with anytime a designer is spending time creating a quest for one particular class specifically that’s 10 other classes that aren’t getting content from that person."
+- **Settle a content type's template first.** Street: "The biggest challenge for us was just figuring out what scenarios should be. How long should they last? Should they be hard? How much variability should they have from run to run?" A one-page spec per content type before its production.
+- **Switch a system off where it interacts badly.** Kosak: "What was easiest — for us AND for our users — was to remove mail entirely until you choose a faction."
+- **Show a meter only when it matters.** Roper: "we only show the Vengeance meter (how certain Templar skills are powered) when the character has a skill active that requires it." Cooldowns used one ring, "making them universal for skills, spells, or weapons".
+- **A game inside a game gives way to its host.** PopCap on Bejeweled in World of Warcraft: "you can scale down the window pretty small and tuck it into the corner so its easier to play while still keeping an eye on the bobber." And: "we’ve also added in quieter versions of the sounds that you can switch to in the options so that you won’t miss the bobber sounds"
+- **Cut an announced feature that clutters.** Metzen on StarCraft II's in-mission encyclopedia: "Most of that was a design decision, a UI decision, [where] we wanted the interface to be as clean as possible." And: "It just didn’t take the shape that we were anticipating."
+- **Big and small updates on two tracks.** Chilton: "separate part of the team into it’s own group that works on the odd numbered patches like the 5.1 and the 5.3." Stockton: "We’ve got stuff for our raiding more hardcore of players, and then we’ve got stuff for solo players as well."
+- **Cinematics in stages.** The Wrath of the Lich King cinematic team: "The idea then moves to storyboarding and 2D concepting. Once that’s done, we start pre-visualizing the sequence." Stylised characters are keyframed: "Keyframed animation allows us to move our characters in a stylized way that fits the overall look." (`TRAILER.md`: previs as a grey-box scene before final art.)
+
+URLs, in order: Hellgate (above), the developer chat, the Chilton interview, the developer chat, the developer chat, Hellgate, https://www.blizzplanet.com/blog/comments/blizzplanet_interview_pop_cap_bejeweled_wow_addon, https://www.blizzplanet.com/blog/comments/starcraft_ii_single_player_hands_on_chris_metzen_interview, the Chilton and Stockton interviews, https://www.blizzplanet.com/blog/comments/cgi_interview_the_making_of_wrath_of_the_lich_king_cinematic_trailer.
+
+### Lore and story (the tie-in writers)
+
+16. **A bible before content, kept current.** Richard A. Knaak: "They send what is called a ‘bible’ a deep telling" of the world's history and characters, and "Changes are made to the game during writing" and folded in.
+    URL: https://www.blizzplanet.com/blog/comments/richard_a_knaak_fan_chat
+17. **One timeline, watched.** Micky Neilson on Blizzard's historians: "historians really kinda keeping an eagle-eye on everything and making sure that all the dates line up the way they are supposed to and nothing overlaps that isn’t supposed to"
+    URL: https://www.blizzplanet.com/blog/comments/blizzplanet-interview-micky-neilson-matt-burns-discuss-diablo-iii-book-of-tyrael
+18. **The game changes, so re-check who knew what.** Nate Kenyon: "It was mainly about timelines, who knew what at a certain time, that sort of thing." Luke Johnson: "Thanks to the fluid nature of video game development, that means that what we wrote down as accurate 8 months ago may no longer be appropriate." A Blizzard approval note he quotes: "tauren don’t know about the Green Dream; can you remove this paragraph?"
+    URLs: https://www.blizzplanet.com/blog/comments/blizzplanet-interview-diablo-iii-the-order-nate-kenyon, https://www.blizzplanet.com/blog/comments/world_of_warcraft_rpg_dark_factions___luke_johnson_qa, https://www.blizzplanet.com/blog/comments/luke_johnson_qa___world_of_warcraft_rpg_books
+19. **Review new lore against two things only.** Kenyon: "the only time they tend to say no is when the idea just doesn’t fit with something they want to do down the road, or really doesn’t work with existing lore."
+20. **When sources contradict, choose on purpose.** Neilson on picking one of two earlier accounts: "the purpose of that was to set up that character more because he’s a main character in the next game."
+    URL: https://www.blizzplanet.com/blog/comments/blizzplanet-interview-blizzards-micky-neilson-talks-diablo-iii-book-of-cain
+21. **One spelling per name.** Neilson: "There will be inconsistencies and people will respond to that, and readers will lose trust in the product." The comic and the game spelled one character Belrysa and Belysra.
+    URL: https://www.blizzplanet.com/blog/comments/blizzplanet-interview-world-of-warcraft-curse-of-the-worgen
+    Apply: the `data` runner's `names` rule finds words one or two letters from a canonical name in dialogue and translation files.
+22. **Answer origin questions before the content that needs them.** Neilson: "Where the worgen came from and how they came about were big questions that the designers needed to have answered so they could move forward"
+23. **Mark how canonical each source is.** Chris Metzen: "Enslavers has always been kind of quasi-canonical."
+    URL: https://www.blizzplanet.com/blog/comments/chris_metzen_micky_neilson_pocket_star_books_lore_qa_video_interview
+24. **Hold back reveals deliberately.** Johnson: "Blizzard controls how new information about the Warcraft universe is released, and they didn’t want us to include much Old God stuff in the book."
+25. **In-world authors may be wrong.** Neilson on Leah's notes in the Book of Tyrael: "So a lot of that is her perspective in the way she sees things, which would not quite necessarily be the reality." Matt Burns on recapping the game through a character: "it kinda gave us a little opportunity to remind readers of these events without it being kind of a dry and straightforward retelling of every single Act."
+26. **Voice comes last; give actors the history and the other half of the scene.** Glynnis Talken: "The voice is often one of the last things done on the game." And: "Even though it hasn’t been revealed, I’m sure the creators of the characters formulated a history for them already." On StarCraft II: "It was great to be in an ensemble cast, playing off the other voice actors." The update to that interview: "Blizzard decided to take a new voice direction."
+    URLs: https://www.blizzplanet.com/blog/comments/glynnys_talken_alias_kerrigan_voice_actress_interview, https://www.blizzplanet.com/blog/comments/starcraft_ii_glynnis_talken_interview_sarah_mckerrigan
+27. **One owner for all the words.** The Dawn of Chaos mod's writer: "The story, as well as the dialogue in all the cinematics, and the tooltips, and in-game text, and much of the unit soundset dialogue is written by me." Julian Kwasneski on StarCraft: Ghost's voices: "I have different processes for each group of characters…the Marines sound one way, radio briefings sound another and Nova has a sound all her own."
+    URLs: https://www.blizzplanet.com/blog/comments/warcraft_iii_dawn_of_chaos_mod___realm_designs_qa, https://www.blizzplanet.com/blog/comments/starcraft-ghost-interview-julian-kwasneski
+
+### Small teams and mods
+
+- **Decide multiplayer at the start.** Mike Huang, a former Blizzard North employee, on a Tetris clone his high-school studio built: "multiplayer code is something that absolutely has to / be planned from the get go. Adding it on afterwards / created a myriad of bugs, and we ended up rewriting" the game from scratch. (The page wraps its lines; `/` marks the breaks.) The kit's gate `concept.decisions` already asks for it.
+- **Every card a new rule makes the AI unaffordable.** Huang on a card game he tried to build: each card was "essentially a / new rule, and so that writing an AI that could be / challenging was beyond my means". Effects composed from a few data-driven parts keep the AI and the tests per part, not per card.
+- **Original names and art, or the owner may say no.** A Battlefield 1942 mod team: "Sorry to say it, but Blizzard said NO! The Space Combat mod is now of original design." (`godot-legal`.)
+- **Promise a demo, not a date.** The same team: "Previous projections were hasty and unplanned", and "Currently, more planning is getting done than work." Dawn of Chaos: "I wouldn’t dare speculate on a release date except to say that a comprehensive demo isn’t far in the future."
+- **Friends level at different speeds.** Jeff Grubb on playing World of Warcraft with friends who "would then either outlevel me or quit to get their lives back, either option leaving my character an orphan." A co-op game decides how mismatched progress plays together.
+
+URLs: https://www.blizzplanet.com/blog/comments/mike_huang, https://www.blizzplanet.com/blog/comments/bf1942_battlefield_mod, https://www.blizzplanet.com/blog/comments/warcraft_iii_dawn_of_chaos_mod___realm_designs_qa, https://www.blizzplanet.com/blog/comments/jeff_grubb_comments_on_warcraft_the_last_guardian_audiobook

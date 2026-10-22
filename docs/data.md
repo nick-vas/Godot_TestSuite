@@ -89,7 +89,13 @@ whenever the file exists and needs no Godot. Field rules: `type` (string, int, n
 `pattern`, `ref` (another table whose ids the value must name), `list` (a JSON array, or `;` between values in a CSV
 cell), `optional` and `acyclic` (on a `ref` to the field's own table: every loop among the rows is reported as
 `a -> b -> a is a cycle: none of them can come first`, at most five, long ones shortened; prerequisite chains, quest
-order, recipes). A mistyped id, enum value, column or table is reported with the nearest name when one is close (one
+order, recipes). Two more checks look across rows. `"totals"` on a table adds a field up per group and fails a group
+short of a number or of another table's field: `{ "sum": "xp", "by": "zone", "atLeast": "zones.xpToNext" }` reports
+`zone 'steppes': xp adds up to 900, short of xpToNext 1000 (90%)` (Mists of Pandaria shipped zones about 10% short of the
+next level); a target row without the field needs nothing. `"names"` at the top level (`table`, `field`, `files` as globs
+where `**/` may match no folder, `allow`) fails on capitalised words of four letters or more one or two letters from a
+canonical name, with the file and line (a comic and the game spelled one character Belrysa and Belysra;
+`godot-narrative`). A required `list` field fails when it is empty, so a loot table cannot lose its last drop. A mistyped id, enum value, column or table is reported with the nearest name when one is close (one
 edit up to six letters, two up to nine; a swap of two letters is one edit). Columns not listed fail unless the table
 says `"extra": "allow"`. A JSON table is an array of
 objects or an object keyed by id. A CSV table without `importer="keep"` in its committed `.import` fails, since it would
