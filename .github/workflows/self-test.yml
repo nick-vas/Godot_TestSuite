@@ -242,6 +242,9 @@ jobs:
       - name: test -Retry reports tests that passed on a retry; quarantine.json excuses only its own test, until its date
         shell: pwsh
         run: ./tests/Test-Flaky.ps1
+      - name: Error keys group a run's Godot errors across runs, and status lists the recurring ones
+        shell: pwsh
+        run: ./tests/Test-ErrorKeys.ps1
       - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
         shell: pwsh
         run: |
