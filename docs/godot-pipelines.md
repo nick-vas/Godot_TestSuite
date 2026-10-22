@@ -50,6 +50,10 @@ their own.
 `[RequireGodotRuntime]`. The suite writes the `.runsettings` (`GODOT_BIN`, `--headless`, a 3-minute limit on the adapter's in-Godot rebuild
 instead of its 20 s default) for you. If that rebuild fails, the adapter runs none of its tests and still exits 0; the
 `dotnet` runner fails instead and names the cause (`gdUnit4 (tests not run)`).
+The adapter's first run also installs a runner scene and builds the project with `dotnet build`, under a fixed 30 s
+limit that no setting changes (`gdUnit4.api` 5.0.0). On a machine busy with other builds that limit can pass too: the
+same failure appears with "due to compilation failure" as its cause, and a second run, with the build already done,
+usually passes. On CI runners it has not happened.
 ```xml
 <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
 <PackageReference Include="gdUnit4.api" Version="5.0.0" />

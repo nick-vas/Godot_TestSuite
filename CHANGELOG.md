@@ -1,6 +1,31 @@
 # Changelog
 
 ## Unreleased
+- GDC talks: 45 talks turned into a pull request each and 76 folded in as a line or two, each read in full from its
+  transcript; the index, with what the kit took from each, is `docs/gdc/README.md`.
+  - `test`: `failureDelta` names failures that are new, still failing or fixed since the last run of the same scope;
+    `-Retry <n>` reruns a failed runner and lists what passed only on a retry in `flaky[]`; `quarantine.json` (owner,
+    end date) keeps a known-flaky test from failing the run without hiding it (`invalid-quarantine`); `status` reports
+    repeat offenders and quarantines. Godot error lines become error keys (numbers and line numbers taken out) recorded
+    with the commit in the run history, `engineErrors[]` items get a `key` and their file, and `status` lists
+    `recurringErrors[]` with when and at which commit each was first and last seen.
+  - `setup`: a failed Godot or template download stops with `download-failed`.
+  - Runners and commands: `bench` hotspots (where a level is slow), `soak -JunkPps` (when an ENet server falls over),
+    `shot -ColorVision`, a subtitle size check in `textsize`, `audio`'s `onsetMs` for late action sounds, `layout`
+    measures TouchScreenButtons and an opt-in `small-control` minimum (`minControlDp`), and `l10n` checks length
+    limits, translation remaps, localized voice, tables Godot cannot read as UTF-8 and Chinese locales without a script.
+  - `doctor`: commissioned assets without their agreement, text-to-speech off when the game speaks, screen readers
+    disabled, an incomplete press kit in `store/press/`, expired or long quarantines.
+  - Plan gates: `slice.debt`, `slice.budget`, `prototype.trailer` (with a `TRAILER.md` template) and `concept.name`.
+    The placement checker checks placed objects against the game's limits and landmarks and routes for wayfinding;
+    the `data` runner holds puzzle levels to one solution sentence and a purpose.
+  - Tested code in Breakout.Core a game can copy: statistics for comparing versions, Eldritch-style mazes, GOAP costs,
+    perception, aim and projectiles, squad decisions, a FrameBudget scheduler, forgiveness timings, stick settings,
+    dead reckoning, a rollback session, Overwatch-style input handling, a rewind log, an input log for replays, a voice
+    limiter, a beat clock, an assist narrator, a balance report from run data, an expressive-range map, shuffle bags
+    and pity timers, an orbit camera, jump arcs, haptic patterns and menu wraps, touch pads.
+  - Skills: a new `godot-camera`; most others gained sections, and the largest moved detail into reference files
+    beside `SKILL.md` to stay under 16 KB.
 - `test`: the `dotnet` runner no longer passes when gdUnit4Net found tests but ran none. When its in-Godot rebuild
   failed or timed out (20 s by default, easily reached on a busy machine), the adapter exited 0 with no results, so a
   green run hid a skipped engine suite. Found-but-not-run tests are now one failure, `gdUnit4 (tests not run)`, with the
