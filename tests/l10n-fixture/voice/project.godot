@@ -1,0 +1,17 @@
+; Localized voice through translation remaps. tests/Test-Localization.ps1 copies this folder and makes the sounds with
+; ffmpeg (none are committed): greet.ogg is 48 kHz mono at -20 LUFS; fr is 30% longer and passes, de is 22.05 kHz, es is
+; 6 LU quieter and it is never made. warn.wav is 16-bit mono; fr is 24-bit stereo, de a fifth of the length, es an Ogg
+; that matches. ui/fr/logo.png is never made, and one entry has no locale after the path.
+config_version=5
+
+[application]
+
+config/name="L10n voice"
+
+[internationalization]
+
+locale/translation_remaps={
+"res://voice/en/greet.ogg": PackedStringArray("res://voice/fr/greet.ogg:fr", "res://voice/de/greet.ogg:de", "res://voice/es/greet.ogg:es", "res://voice/it/greet.ogg:it"),
+"res://voice/en/warn.wav": PackedStringArray("res://voice/fr/warn.wav:fr", "res://voice/de/warn.wav:de", "res://voice/es/warn.ogg:es", "res://voice/fr/warn.wav"),
+"res://ui/en/logo.png": PackedStringArray("res://ui/fr/logo.png:fr")
+}

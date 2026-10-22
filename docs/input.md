@@ -15,6 +15,8 @@ class reference and source, Valve's Steam Input documentation and the accessibil
 | [GodotSteam input](https://godotsteam.com/classes/input/), [Steamworks.NET](https://github.com/rlabrecque/Steamworks.NET) (MIT) | Steam Input from Godot, in GDScript or C# |
 | [Kenney Input Prompts 1.5](https://kenney.nl/assets/input-prompts) (CC0) | Folder and file names of the prompt pictures |
 | [Xbox Accessibility Guideline 107](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/107), [Game Accessibility Guidelines](https://gameaccessibilityguidelines.com/allow-controls-to-be-remapped-reconfigured/) | Remap everything, labels follow remaps, hold-or-toggle, no simultaneous presses, one input method for menus and play |
+| [Forgiveness Mechanics](gdc/forgiveness-mechanics.md) (Seth Coster, GDC talk on Levelhead) | Coyote time, the jump buffer, hold-to-confirm restart and fall-through resets with their windows; `Breakout.Core/Platformer/Forgiveness.cs` |
+| [Accessibility Best Practices: Mobility Considerations](gdc/accessibility-mobility.md) (Karen Stevens, GDC 2021), Godot 4.7.2 `core/input/input.cpp` | Adjustable and axial deadzones, sensitivity both ways per axis, stick swap, fewer buttons, vibration levels; how `GetAxis` and `GetVector` apply per-action deadzones (`StickSettings`) |
 
 ## Measurements
 

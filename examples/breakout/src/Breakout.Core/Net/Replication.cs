@@ -85,10 +85,11 @@ public sealed record GhostPacket(int Sequence, IReadOnlyList<GhostUpdate> Update
 /// <summary>
 /// The server's view of one client (TRIBES' ghost manager). Each object has up to 32 state groups (position, health,
 /// animation...), one bit each. The game marks groups dirty when they change; <see cref="Write"/> fills a packet up to a
-/// byte budget, creations and deletions first, then objects by priority (raised each time an object waits, so a
-/// low-priority object is delayed, never starved; the paper ranks by priority alone). A lost packet re-marks only the
-/// groups no later packet carried: an older value of something already resent is never sent again. Creations and
-/// deletions are resent until they arrive; an object's updates wait while its creation is in flight.
+/// byte budget, up to <see cref="MaxOverridesPerPacket"/> creations and deletions first, then everything else by priority
+/// (raised each time an object waits, so a low-priority object is delayed, never starved; the paper ranks by priority
+/// alone). A lost packet re-marks only the groups no later packet carried: an older value of something already resent is
+/// never sent again. Creations and deletions are resent until they arrive; an object's updates wait while its creation is
+/// in flight.
 /// </summary>
 public sealed class GhostReplicator
 {
@@ -117,6 +118,19 @@ public sealed class GhostReplicator
     }
 
     public int Groups { get; }
+
+    /// <summary>
+    /// How many creations and deletions a packet carries ahead of priority order; the rest wait their turn by priority
+    /// like any update. Uncapped, 200 objects entering scope at once took every byte of 10 packets in a row and the
+    /// player being fought got no update meanwhile (Halo: Reach's fix for the same burst: a fixed number per packet).
+    /// </summary>
+    public int MaxOverridesPerPacket
+    {
+        get => _maxOverrides;
+        init => _maxOverrides = value >= 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "0 or more");
+    }
+    int _maxOverrides = 4;
+
     /// <summary>Lost group values not resent because a later packet already carried a newer value.</summary>
     public int StaleResendsAvoided { get; private set; }
     /// <summary>Lost group values marked to be sent again.</summary>
@@ -165,12 +179,16 @@ public sealed class GhostReplicator
     /// <summary>Fills one packet with at most <paramref name="budgetBytes"/>; <paramref name="read"/> gives a group's current value.</summary>
     public GhostPacket Write(int sequence, int budgetBytes, Func<int, int, int> read)
     {
-        var candidates = _ghosts
+        var byPriority = _ghosts
             .Where(kv => kv.Value.Phase is Phase.NeedCreate or Phase.NeedDelete || (kv.Value.Phase == Phase.Live && kv.Value.Pending != 0))
-            .OrderByDescending(kv => kv.Value.Phase is Phase.NeedCreate or Phase.NeedDelete)
-            .ThenByDescending(kv => kv.Value.Priority * (1 + kv.Value.Waited))
+            .OrderByDescending(kv => kv.Value.Priority * (1 + kv.Value.Waited))
             .ThenBy(kv => kv.Key)
             .ToList();
+        // A few creations and deletions jump the queue; the others keep their place in it, so a burst of new objects
+        // cannot take the whole packet from the objects already in play.
+        var first = byPriority.Where(kv => kv.Value.Phase is Phase.NeedCreate or Phase.NeedDelete).Take(_maxOverrides).ToList();
+        var jumped = first.Select(kv => kv.Key).ToHashSet();
+        var candidates = first.Concat(byPriority.Where(kv => !jumped.Contains(kv.Key))).ToList();
         var updates = new List<GhostUpdate>();
         var entries = new List<(int, GhostStatus, uint)>();
         int bytes = PacketHeaderBytes;

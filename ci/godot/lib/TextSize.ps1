@@ -5,11 +5,17 @@
 # size under the minimum fails, and capitals under it (or a font size under the recommendation) are warnings.
 # textsize.json in the project (optional; the main scene at 1280x800 otherwise):
 #   { "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "resolutions": ["1280x800", "1280x720"], "minPx": 9, "wantPx": 12 }
+# Subtitles (text in the "subtitleGroup" node group, or inside a node in it) also have a size given at 1080p and scaled with
+# the window's height: a font size under "subtitleMinPx" (28, Karen Stevens' absolute minimum in "I Can't Hear You")
+# fails, under "subtitleWantPx" (46, Ian Hamilton's figure in "Subtitles Are Changing") warns. Neither talk says whether
+# its number is the font size or the letters' height, so the font size is checked, the lenient reading. 46 is a warning
+# because Hamilton accepts smaller subtitles by default when a size option lets players raise them (docs/gdc).
 # One JUnit case per resolution; warnings go to findings.json. Integer scale mode with a base bigger than the window fails:
 # the canvas is drawn 1:1 and cut off.
 
 function Get-TextSizeConfig([string]$ProjectDir) {
-    $config = [ordered]@{ scenes = @(); resolutions = @('1280x800'); minPx = 9.0; wantPx = 12.0 }
+    $config = [ordered]@{ scenes = @(); resolutions = @('1280x800'); minPx = 9.0; wantPx = 12.0
+        subtitleGroup = 'subtitles'; subtitleMinPx = 28.0; subtitleWantPx = 46.0 }
     $file = Join-Path $ProjectDir 'textsize.json'
     if (Test-Path -LiteralPath $file) {
         try { $custom = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable }
@@ -19,6 +25,7 @@ function Get-TextSizeConfig([string]$ProjectDir) {
             $config[$key] = $custom[$key]
         }
     }
+    if ("$($config.subtitleGroup)" -notmatch '^[^\s,]+$') { Stop-GodotCi "textsize.json: subtitleGroup '$($config.subtitleGroup)' is not a node group name" 'invalid-arguments' }
     foreach ($res in @($config.resolutions)) {
         if ("$res" -notmatch '^\d+x\d+$') { Stop-GodotCi "textsize.json: resolution '$res' is not WIDTHxHEIGHT" 'invalid-arguments' }
     }
@@ -47,6 +54,17 @@ function ConvertFrom-TextSizeLog([string[]]$Lines, $Config) {
                 $warnings.Add([ordered]@{ rule = 'text-below-recommended'; severity = 'warning'; file = $scene; line = $null
                     message = "$text (Valve: at least $($Config.minPx) px, $($Config.wantPx) recommended)" })
             }
+        } elseif ($line -match '^@@textsize-subtitle ([^|]+)\|([^|]+)\|([^|]+)\|(\d+)\|([\d.]+)\|([\d.]+)\|([\d.]+)\|([\d.]+)\|(\w+)$') {
+            $measured++
+            $res, $scene, $node, $size, $em, $cap, $min, $want, $verdict = $Matches[1], $Matches[2], $Matches[3], $Matches[4],
+                [double]$Matches[5], [double]$Matches[6], [double]$Matches[7], [double]$Matches[8], $Matches[9]
+            $text = "subtitle $node font size $size is $('{0:N2}' -f $em) px at $res, capitals $('{0:N2}' -f $cap) px"
+            if ($verdict -eq 'FAIL' -and $failures.Contains($res)) {
+                $failures[$res].Add("${scene}: $text (subtitle minimum $($Config.subtitleMinPx) px at 1080p, $('{0:N2}' -f $min) px here)")
+            } elseif ($verdict -eq 'WARN') {
+                $warnings.Add([ordered]@{ rule = 'subtitle-below-recommended'; severity = 'warning'; file = $scene; line = $null
+                    message = "$text (subtitles: at least $($Config.subtitleWantPx) px at 1080p, $('{0:N2}' -f $want) px here, or a size option)" })
+            }
         }
     }
     $cases = @(foreach ($res in $failures.Keys) { @{ Name = $res; Failure = ($failures[$res] -join "`n") } })
@@ -66,7 +84,8 @@ function Invoke-TextSizeRunner($Info, [string]$ResultsDir) {
     $log = Join-Path $ResultsDir 'textsize.log'
     Start-LogGroup "Text size at $(@($config.resolutions) -join ', ')"
     $code = Invoke-Logged $env:GODOT_BIN @('--headless', '--path', $Info.ProjectDir, '-s', $tool, '--',
-        "--scenes=$($scenes -join ',')", "--resolutions=$(@($config.resolutions) -join ',')", "--min=$($config.minPx)", "--want=$($config.wantPx)") $log
+        "--scenes=$($scenes -join ',')", "--resolutions=$(@($config.resolutions) -join ',')", "--min=$($config.minPx)", "--want=$($config.wantPx)",
+        "--subtitle-group=$($config.subtitleGroup)", "--subtitle-min=$($config.subtitleMinPx)", "--subtitle-want=$($config.subtitleWantPx)") $log
     Stop-LogGroup
     $result = ConvertFrom-TextSizeLog @(Get-Content -LiteralPath $log) $config
     $cases = @($result.Cases)

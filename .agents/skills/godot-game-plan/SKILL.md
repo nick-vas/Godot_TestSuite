@@ -18,7 +18,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 plan -Do done -Id concept.scope
 |---|---|---|
 | Concept | 2 | Pitch, pillars, scope ladder, kill criteria written |
 | Prototype | 4 | A stranger played 15 min unprompted; verdict PROCEED/PIVOT/KILL |
-| Vertical slice | 8 | Menu -> level -> save -> quit, tests in CI, `export -Run` passes |
+| Vertical slice | 8 | Menu -> level -> save -> quit, tests in CI, `export -Run` passes, tech debt listed, frame budget met at full density |
 | Production | 24 | Playable milestones every 2-6 weeks; feature freeze |
 | Alpha and beta | 8 | Feature-complete, playtested by strangers, perf and accessibility checked |
 | Release candidate and launch | 4 | Store page, demo, CI-built gold master, release |
@@ -59,6 +59,15 @@ team, closed-beta and public-demo playtests. Its biggest failure was a localisat
 (redesign what playtesters struggled with, then play it again) and `beta.localization` (a native speaker who has not played
 finishes each language). In a story game, production's draft stage ends when every quest is playable start to end with
 placeholder dialogue (CD Projekt Red); any later stage may send a quest back.
+
+Volition (Saints Row, Red Faction) learned that a slice must measure, not only impress. Saints Row's slice streamed two
+city chunks and never tried the places where three met; with its tech debt never counted, the game ran at 10 to 15 fps three
+weeks before launch. Saints Row: The Third's art slice polished single assets instead of a full scene, so performance was
+fixed in production. Hence `slice.debt` (automatic: `docs/TECH-DEBT.md`, from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/TECH-DEBT.md`,
+lists each hacked, stubbed or unstarted system with its cost at full size, and the total the user accepts), `slice.budget`
+(manual: `godot-ci.ps1 bench -Scene <busiest scene> -BudgetMs <n>` passes with that scene filled as the finished game will be), and a
+`slice.verdict` that rejects a feature list or a tech demo and takes more slice time while core gameplay is still moving.
+A plan made before these gates existed lacks them (plan.json is the game's after `init`): offer to add them.
 
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every

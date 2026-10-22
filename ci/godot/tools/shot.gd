@@ -6,11 +6,39 @@
 # changed and saves <name>.compare.png, before | after | changes in red, for a person or an agent to look at.
 # With --shot-locales=fr,ar,pseudo, every scene is taken again in each locale (<name>.<locale>.png), and after each picture
 # the visible labels and buttons are checked for text that is cut off, off screen, or missing glyphs.
+# With --shot-colorvision=protan,deutan,tritan, every picture is also saved as a protanope, deuteranope or tritanope would see
+# it (<name>.<kind>.png), for a person or an agent to check that nothing is told apart by colour alone.
 extends SceneTree
 
 # A pixel counts as changed when a colour channel moves by more than this (0..1); small enough for a recoloured label,
 # large enough to ignore compression and dithering noise.
 const CHANGE_THRESHOLD := 0.1
+
+# Machado, Oliveira and Fernandes (2009), "A Physiologically-based Model for Simulation of Color Vision Deficiency", the
+# severity 1.0 (dichromat) matrices from the authors' published table, as colorspacious, colour-science and DaltonLens give
+# them. Rows: simulated linear R, G, B from linear R, G, B.
+const COLOR_VISION := {
+	"protan": [Vector3(0.152286, 1.052583, -0.204868), Vector3(0.114503, 0.786281, 0.099216), Vector3(-0.003882, -0.048116, 1.051998)],
+	"deutan": [Vector3(0.367322, 0.860646, -0.227968), Vector3(0.280085, 0.672501, 0.047413), Vector3(-0.011820, 0.042940, 0.968881)],
+	"tritan": [Vector3(1.255528, -0.076749, -0.178779), Vector3(-0.078411, 0.930809, 0.147602), Vector3(0.004733, 0.691367, 0.303900)],
+}
+
+# The matrices apply to linear light, so each pixel is decoded from sRGB, multiplied, clamped and encoded again. On the GPU:
+# a 1080p picture takes milliseconds here and seconds as a GDScript loop over its pixels.
+const COLOR_VISION_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform vec3 row_r;
+uniform vec3 row_g;
+uniform vec3 row_b;
+vec3 to_linear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c)); }
+vec3 to_srgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c)); }
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	vec3 l = to_linear(c.rgb);
+	COLOR = vec4(to_srgb(clamp(vec3(dot(row_r, l), dot(row_g, l), dot(row_b, l)), 0.0, 1.0)), c.a);
+}
+"""
 
 var _options := {}
 
@@ -31,6 +59,12 @@ func _initialize() -> void:
 	var frames := maxi(int(_options.get("frames", "60")), 1)
 	var dir := str(_options.get("dir", "user://screenshots"))
 	DirAccess.make_dir_recursive_absolute(dir)
+	var kinds := PackedStringArray()
+	for kind in str(_options.get("colorvision", "")).split(",", false):
+		if not COLOR_VISION.has(kind.strip_edges()):
+			print("@@shot error colour vision %s: not one of %s" % [kind, ", ".join(COLOR_VISION.keys())])
+		elif not kinds.has(kind.strip_edges()):
+			kinds.append(kind.strip_edges())
 
 	# The project's own locale first, then each --shot-locales entry ("pseudo" is pseudolocalization).
 	var passes := PackedStringArray([""])
@@ -61,6 +95,8 @@ func _initialize() -> void:
 					if baseline_dir != "":
 						_compare(scene_path, image, baseline_dir.path_join(file.get_file()), file.get_basename() + ".compare.png")
 					_check_text(scene)
+					if not kinds.is_empty():
+						await _save_color_vision(scene_path, image, file, kinds)
 				else:
 					print("@@shot error %s: save_png failed (%s)" % [scene_path, error_string(err)])
 			scene.queue_free()
@@ -106,6 +142,46 @@ func _compare(scene_path: String, after: Image, baseline_file: String, compare_f
 	sheet.blit_rect(diff, Rect2i(0, 0, w, h), Vector2i(w * 2 + 8, 0))
 	sheet.save_png(compare_file)
 	print("@@shot compare %s|%s|%.2f|%d" % [scene_path, compare_file, 100.0 * changed / (w * h), 1 if size_changed else 0])
+
+
+# Saves <name>.<kind>.png for each kind, all drawn in one frame: one SubViewport per kind shows the screenshot through the
+# shader above, pixel for pixel. Prints "@@shot vision <scene>|<png>|<kind>".
+func _save_color_vision(scene_path: String, image: Image, file: String, kinds: PackedStringArray) -> void:
+	var shader := Shader.new()
+	shader.code = COLOR_VISION_SHADER
+	var texture := ImageTexture.create_from_image(image)
+	var views: Array[SubViewport] = []
+	for kind in kinds:
+		var view := SubViewport.new()
+		view.size = image.get_size()
+		view.disable_3d = true
+		view.transparent_bg = false
+		view.render_target_update_mode = SubViewport.UPDATE_ONCE
+		var sprite := Sprite2D.new()
+		sprite.centered = false
+		sprite.texture = texture
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var material := ShaderMaterial.new()
+		material.shader = shader
+		var rows: Array = COLOR_VISION[kind]
+		material.set_shader_parameter("row_r", rows[0])
+		material.set_shader_parameter("row_g", rows[1])
+		material.set_shader_parameter("row_b", rows[2])
+		sprite.material = material
+		view.add_child(sprite)
+		root.add_child(view)
+		views.append(view)
+	await RenderingServer.frame_post_draw
+	for i in kinds.size():
+		var simulated := views[i].get_texture().get_image()
+		var out := file.get_basename() + "." + kinds[i] + ".png"
+		if simulated == null or simulated.is_empty():
+			print("@@shot error %s: the %s picture came back empty" % [scene_path, kinds[i]])
+		elif simulated.save_png(out) != OK:
+			print("@@shot error %s: save_png failed for %s" % [scene_path, out])
+		else:
+			print("@@shot vision %s|%s|%s" % [scene_path, out, kinds[i]])
+		views[i].queue_free()
 
 
 # A locale ("fr", "ar_EG") or "pseudo": the project's text accented, 40% longer (German and Finnish run about 30% longer than
