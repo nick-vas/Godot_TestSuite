@@ -126,7 +126,7 @@ try {
 
     # A shallow clone stops with shallow-checkout; a folder outside git with invalid-arguments.
     $shallow = Join-Path $temp 'shallow'
-    $null = Invoke-TestGit $temp @('clone', '-q', '--depth', '1', ([Uri]$repo).AbsoluteUri, $shallow)
+    $null = Invoke-TestGit $temp @('clone', '-q', '--depth', '1', [Uri]::new($repo).AbsoluteUri, $shallow)
     $code = Get-StopCode { Get-GitGameVersion $shallow }
     if ($code -ne 'shallow-checkout') { $failures += "a shallow clone: $code, expected shallow-checkout" }
     $plain = New-Item -ItemType Directory (Join-Path $temp 'plain')
