@@ -97,7 +97,9 @@ What developers repeat across Nintendo's, Japanese, Eastern European and indie a
 - **Be the generous judge.** Forgiving hitboxes and timing windows by default (Levelhead's numbers and tested code:
   `godot-input`, Forgiveness); find what really makes a part hard (often the controls) before lowering difficulty.
 - **Readable opponents.** An enemy that always picks the best move is not fun; give it habits and mistakes. Do not add moves
-  the AI cannot use and tests cannot cover: cut them.
+  the AI cannot use and tests cannot cover: cut them. Escalate a fight each phase (new attacks, faster reactions), not
+  only by removing weak points (Jan Muller, Insomniac, GDC).
+- **One role per companion**: teacher, VIP or soldier, never a VIP who fights ([pacing.md](pacing.md)).
 - **A feature that only changes the visuals is not gameplay yet.** Dying Light's night took a dozen prototypes to matter.
 
 ## 6. Puzzles and quests (Croteam, LineLight, Patrick's Parabox, CD Projekt Red)
@@ -106,6 +108,11 @@ Read [puzzles.md](puzzles.md) before designing puzzles or quests: how Croteam or
 difficulty and fun ratings, taught each mechanic alone first and used hubs instead of one path; Patrick's Parabox's five
 ordering moves and narrated playtests; LineLight's one solution sentence per level (anything it does not mention is
 noise, every level has a purpose, action or puzzle but not both); and six questions for every quest (Sasko).
+
+Zachtronics' measure (Zach Barth): **bounce**, the share of players who open a puzzle and never solve it, logged per
+puzzle (`godot-telemetry`); a spike against its neighbours marks a puzzle to replace. The first puzzles work for nearly
+everyone, the last is not the hardest; teach with a working solution beside an empty one; cut limits that were never
+meant as difficulty. Details: [pacing.md](pacing.md).
 
 Hold every level to this with a `levels` table for the `data` runner (`godot-data`):
 
@@ -146,6 +153,10 @@ it is not one yet, so make it clearer.
   `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
+Pacing (Dan Taylor, "Ten Principles for Good Level Design"): each level introduces, showcases or subverts a mechanic;
+the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first; the
+way back plays differently. Details: [pacing.md](pacing.md).
+
 ## 8. Tutorials (Nicolae Berbece, GDC 2016)
 
 - Teach gradually through play: each mechanic first met where it is safe to watch it work (Half-Life 2 shows a barnacle
@@ -168,7 +179,11 @@ it is not one yet, so make it clearer.
    clear text, recolouring, a second channel), not an assist. Then: quick-time events and mashing can be skipped, the
    skipped part still shown (Spider-Man plays the ideal run); a practice space to try remapped controls; skip offers
    worded without mockery (Chris Power and Mark Barlet, GDC).
-5. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
+5. A problem every fix brings back: name the player promises it touches. If tuning or content could remove it, it is
+   only hard. If none could, two promises conflict (a "cursed problem", Alex Jaffe, GDC): weaken one with a barrier
+   (remove the move), a gate (make it costly), a carrot (reward something else) or a s'more (make it the fun), and
+   write in the ADR which promise gives way and what is lost.
+6. Evidence beats opinion: a bot run (`godot-automation-hooks`), the juice check, playtest notes. Fun itself is judged by
    people; ask the user to play, and record what they said in the GDD.
 
 Write conclusions into `docs/GDD.md` (with the user's confirmation, as `/game` does), never only into the conversation.

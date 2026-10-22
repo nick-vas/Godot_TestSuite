@@ -46,6 +46,14 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
   gave identical results in separate runs of Godot 4.7.2.
 - Strings (a level name) become seed parts through a stable hash: `(long)GD.Hash("crypt")`, not `"crypt".GetHashCode()`.
 - Generation never reads the clock, the frame count, physics results or `Dictionary` order of things added in varying order.
+  Nor do rolls players can time: Urban Dead seeded each attack with the current second, and a player found that
+  attacking every eight seconds always hit ("Dark Secrets of the RNG", GDC).
+- Derive a child's seed from its index path (`Seeds.Derive(runSeed, galaxy, system, planet)`), never from the seed its
+  parent rolled: then two parents that happen to share a seed copy their whole subtree, the "deep echo" of that talk.
+- Work spread over `WorkerThreadPool` or `Parallel.For` takes each item's randomness from its own derived seed
+  (`Seeds.Rng(runSeed, chunkX, chunkY)`), never one shared generator, so the output is the same on any core count
+  (Manny Ko, Activision, "Parallel Random Number Generation", GDC). In a .NET run of 1,000 chunks, one shared
+  generator, even behind a lock, gave a different fingerprint on every parallel run; derived seeds gave the serial one.
 
 ## Pick the technique
 
@@ -61,19 +69,9 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
 | Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (Apache 2.0) grammars, expanded by the seeded expander below |
 | Loot, encounters, upgrades | weighted tables | below |
 
-**Tracery.** Write grammars in Tracery's JSON format (`{"origin": ["#name# the #title#"], "name": [...]}`) and try them
-with the minified build its author recommends, `js/tracery.min.js` from the repository (Apache 2.0; it bundles the almond
-loader, MIT or new BSD, whose header must stay). That build picks with `Math.random` and cannot be seeded, so in the game
-read the same JSON with the seeded expander below (plain `#symbol#` references; Tracery's modifiers such as `.capitalize`
-and its `[actions]` need code of their own). In a web export only, where reproducing a run does not matter, the minified file
-can run in the page: add `<script src="tracery.min.js"></script>` to the preset's `html/head_include`, ship the file next to
-the exported page, and call it with `JavaScriptBridge.Eval("tracery.createGrammar(...).flatten('#origin#')")`.
-
-**WFC for maps** (Brian Bucklew, Caves of Qud): small samples (8x8 to 16x16, N = 3; bigger ones mostly repeat and cost
-memory and time); symmetry 1 when up matters, 8 for top-down buildings. A third "interior" colour beside wall and floor gives
-closed rooms and tells later passes what is inside. Large outputs look the same everywhere: split the map into regions first
-and fill each from its own sample. Keep doors and props out of the sample (each extra colour cuts the overlaps, and the output
-repeats): generate walls, then join separate regions with A\* and put a door where a path crosses a wall.
+Notes on four of these in [techniques.md](techniques.md): running Tracery grammars (its minified build cannot be
+seeded, so the game reads the same JSON with the expander below), WFC for maps (Caves of Qud: small samples, walls only,
+then doors), tables of tables (population tables as data, looked up from specific to general) and generated histories.
 
 Both of Gumin's projects are C#, so their source can sit in a C# Godot project; keep their MIT licence text with it. Hand-made
 pieces arranged by a generator (rooms, chunks, set pieces) usually play better than everything generated: the generator
@@ -107,16 +105,16 @@ public static string Expand(RandomNumberGenerator rng, Dictionary<string, string
 }
 ```
 
-**Tables of tables** (Caves of Qud's population tables, kept as data): an entry is an item or another table; a table picks
-one entry by weight or takes each entry; each entry has a count (`1-2`) and a chance (`50%`), so one roll gives a boar or a
-whole goatfolk camp. Placement hints on an entry (`outside the door, radius 2`) are read by spatial callers and ignored by
-others. Look tables up from specific to general (this faction's, this region's, the default) and specialise only the ones
-that matter.
+**Streaks and droughts** ("Dark Secrets of the RNG"), tested in
+`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Procgen/Draws.cs` with `DrawsTests`. Whatever a die can roll,
+some player eventually gets: a die over seven pieces gave six in a row within 100,000 draws.
 
-**Histories** (Caves of Qud's sultans): an entity is a bag of properties (name, birthplace, one domain such as ice) and
-events change them. Pick events at random and write the cause afterwards from the state (`the persecution of #ally#` when
-it has an ally); an event with no state to use sets some (treated with cats: cats are now friendly) for later events. Start
-with little state: one recurring domain threads a life together, and players infer the causes.
+- Where streaks hurt (the next piece, the next card), draw from a `ShuffleBag`: each item once per bag, then refill and
+  reshuffle. With k copies per bag, the end of one bag and the start of the next still give 2k in a row;
+  `noRepeatAcrossRefill: true` caps it at k.
+- A rare drop gets a pity timer (`PityRoll`): the chance rises with each miss, resets on a hit, and the roll after N
+  misses always hits. Raising its weight alone never guarantees a drop while other weights stay in the table. The
+  guarantee raises the average: 1% capped at 99 misses dropped 1.58% of the time, plus 0.1% a miss 3.15%.
 
 ## Mazes of hand-made rooms
 
