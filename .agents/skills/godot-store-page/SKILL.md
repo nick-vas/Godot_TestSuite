@@ -1,6 +1,6 @@
 ---
 name: godot-store-page
-description: Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, the dates between paying for the page and release, or a press kit and review keys for press and streamers.
+description: Use when preparing a Steam, itch.io or Epic store page for a Godot game: capsule art, screenshots, a trailer, the short description, tags, wishlists, Steam Next Fest, the dates between paying for the page and release, a press kit and review keys for press and streamers, or a marketing schedule and early releases before launch.
 ---
 
 # The store page
@@ -127,3 +127,18 @@ social-platform advice and wishlist conversion figures are dated and left out: s
 - **Keys:** review keys about a month before release, with an embargo date and time. The launch-day email is short:
   a subject naming the genre and saying it releases today, the short description, bullets, store, press kit and press
   release links, a small GIF and a key, so nobody has to ask. Do not give keys to everyone who asks.
+
+## 7. Before and around the page
+
+- **Announce what is playable.** Open the page and talk features only once the vertical slice works, and never promise
+  sales figures or features that are not built: fans were still asking for a promised RPG years later (*Untold
+  History*, `${CLAUDE_PLUGIN_ROOT}/docs/studio-lessons.md`).
+- **A fixed cadence**, each post judged by wishlists per day in the change diary: a screenshot or GIF on the same day
+  every week, a devlog every two weeks, a playtest or feedback build each month (`godot-playtest`), and an email list
+  from the first build.
+- **A release ladder:** early builds on a free portal (itch.io or Game Jolt) where a bug costs nothing; then a beta
+  announced on the genre's forums and communities; then Steam and the other stores.
+- **Sales:** plan around Steam's seasonal sales and themed fests from its own calendar
+  ([Upcoming Steam Events](https://partner.steamgames.com/doc/marketing/upcoming_events)); never hard-code their dates.
+- **Ask for reviews yourself**, politely, in the credits or the end screen and in posts: nobody else will. Keep the
+  press list (section 6) and the people who helped (playtesters, other developers) in the repository.

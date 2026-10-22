@@ -22,6 +22,10 @@ mono; sources: `${CLAUDE_PLUGIN_ROOT}/docs/data.md`.
 Either way: every definition has a stable string `Id` (not a file name, not an index); references name ids; one loader,
 used by the game, tests and CI, reports every problem at once instead of stopping at the first.
 
+Content edited often (maps, waves, dialogue) deserves its own editor, a `@tool` script or a small plugin, so people
+other than the programmer can make it: Toru Hidaka's graphics, map and sound utilities let others make games at Enix
+(*Untold History*).
+
 ## 2. The traps of custom Resources
 
 - **A loaded Resource is one shared object.** Two enemies with `[Export] Weapon` set to `axe.tres` hold the same

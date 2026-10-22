@@ -150,7 +150,7 @@ why:
 |---|---|---|
 | Marc LeBlanc's eight kinds of fun (`www.8kindsoffun.com`) | Reachable, but the site's own TLS certificate has expired, so it was not read (certificate checks stay on) | Optional: the MDA paper itself was read and `godot-game-design` follows its wording; recheck when the certificate is renewed |
 | Bohemia wiki (`community.bistudio.com`) and forums | Still a Cloudflare challenge (403), also through archive.org and a reader service. Bohemia's own DayZ Central Economy files and Arma Reforger samples on GitHub were read instead (`docs/studio-lessons.md`) | Optional: paste "DayZ:Central Economy Configuration" for the exact restock, counting-flag and respawn-cap rules, which the files only name, and "Arma Reforger:Multiplayer Scripting" for the replication API, which the samples do not use |
-| The rest of *The Untold History of Japanese Game Developers* | Only the first four chapters were in the file, the fourth cut off mid-sentence | The full text, for the Hidaka (tools, maps, music), Game Arts, Koshiro and ZUN chapters |
+| The rest of *The Untold History of Japanese Game Developers* | Volume 1: read up to the first Hidaka interview, which stops mid-sentence (line 889); lessons 1-39 in `docs/studio-lessons.md`. The owner's Drive holds the same excerpt twice: its Google Doc ends at that sentence, and the text of its 21.8 MB PDF too, which is also over the Drive connector's 10 MB download limit. The Drive's "Volume 2" file is not the book but a spam download page (do not follow its links). Volume 2: unread | The owner can provide any one of: the Volume 1 PDF split into parts under 10 MB (or its pages from about 80 onward), so `pdftotext` can read them; the later chapters pasted (the rest of Hidaka on tools, maps and music, Koshiro, ZUN, and Game Arts); a real copy of Volume 2 |
 | Full Iassenev interview on A-Life (AIGameDev, archived) | web.archive.org rate-limited this server (429) on 2026-10-20, and on 2026-10-21 reset every connection for an hour of retries; archive.org confirms a 2019 snapshot exists | Retry later, or paste it |
 
 Done in the second pass (2026-10-21): the Talos Principle post-mortem and Sasko's quest design talk, through yt-dlp's
@@ -347,6 +347,40 @@ in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `doc
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 - [ ] A look trigger node (view angle plus line of sight plus a fallback timer) and a soft-lock test helper (destroy or
       use up every key item, then check progress is still possible), both from the commentaries.
+
+## To do: design and production practice (October 2026)
+
+The owner's design and production documents were read for generic practice only (nothing from them that names a
+project, a person or a figure is in the repository), and *Untold History* was read a second time. Done: the GDD template's
+new sections (audience and expected rating, loops at three scales, the first session step by step, world rules, what
+failing costs, modes, length, open questions, changes), `templates/GDD-jam.md` and jam mode, the risk log, budget
+categories, business model, alpha and beta exit criteria and the placeholders table in `godot-game-plan` and
+`templates/TECH-DEBT.md`, the marketing cadence and release ladder in `godot-store-page`, other agreements in
+`godot-legal`, the design prompts in `godot-game-design` and `godot-narrative`, and lessons 16-39 in
+`docs/studio-lessons.md`. Still to do:
+
+- [ ] Gates for what is now prose: `concept.risks` (`docs/RISKS.md`), an optional `concept.budget`, and
+      `beta.placeholders`. Each needs `plan.json`, `tests/Test-Plan.ps1` and `docs/json.md` if the output changes;
+      left out to keep this change to documents and templates.
+- [ ] `plan -Do init -Profile jam`: a plan sized in days with the jam gates (`Plan.ps1`, `Test-Plan.ps1`).
+- [ ] Placeholders in `assets.json` (`"placeholder": true`, `"due"`, and `"status": "needed"` for assets not made
+      yet), counted by `doctor` and `status`, so the TECH-DEBT table becomes checkable.
+- [ ] `status` reads only the GDD's pitch and features; the first-session steps could become flow and
+      `playthrough.json` stubs that `/game` writes.
+- [ ] A `templates/ARCHITECTURE.md` overview (autoloads, scene tree, signal catalogue, authored versus runtime data,
+      save schema version, minimum spec, open technical questions answered by ADRs), kept by `godot-architect`.
+- [ ] Figures the kit could not check, left out until read at the source: which rating bodies charge per region (for
+      `godot-legal` section 1), the licence wording of older tabletop SRDs (3.5 under OGL 1.0a), and WIPO publication
+      959 (*Mastering the Game*) as a source for `docs/store-and-legal.md`. Whether the public sample agreements in the
+      owner's files may be cited by name needs the owner's answer.
+- [ ] Untold lesson 30 (commissioning a composer) belongs in `godot-audio`, and Lars Liden's "Artificial Stupidity"
+      (already the idea behind "give it habits and mistakes") should be cited in `godot-game-ai`; both skills are at
+      their size limit, so each needs a cut first.
+- [ ] Smaller design prompts not yet placed: saving as a difficulty lever, pressure against stalling, sinks players
+      want, fixed costs that go stale as wealth grows (peg them to a share), hidden charges on limited-use items
+      (`godot-progression`); a camera cost checklist (`concept.decisions`); a five-Ws premise and the player's verbs in
+      bold in the story summary; a turn written as named phases with a test per transition; a team-shape note and the
+      retro question "what recurring job has no owner?".
 
 ## To do: from the technical sources (TRIBES, the maths book, a Unity checklist, a GPU debugging talk)
 

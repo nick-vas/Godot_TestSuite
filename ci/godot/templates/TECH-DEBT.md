@@ -19,6 +19,15 @@ State is one of: **hacked** (works in the slice, will not survive production), *
 Estimate the work at the size of the finished game, not the size of the slice: fixing a system in one small area does
 not tell you what it costs everywhere.
 
+## Placeholders
+
+Every stand-in asset or text, labelled as one in the game. Production keeps this list; at beta only a small part of the
+content may still be here.
+
+| Placeholder (file or content) | What replaces it | Who makes it | Due (milestone) |
+|---|---|---|---|
+| | | | |
+
 ## Total and threshold
 
 Total: 0 hours, about 0 weeks at the weekly hours above.

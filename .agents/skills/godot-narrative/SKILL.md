@@ -1,6 +1,6 @@
 ---
 name: godot-narrative
-description: Use when a Godot game has a story, lore, named characters, a codex or journal, dialogue or barks, voice acting, or text that several agents or writers add to over time, or when names, dates or facts in the game start to contradict each other.
+description: Use when a Godot game has a story, lore, named characters, quests or random events, a codex or journal, dialogue or barks, voice acting, or text that several agents or writers add to over time, or when names, dates or facts in the game start to contradict each other.
 ---
 
 # Story, lore and voice
@@ -104,13 +104,37 @@ of four letters or more are checked; the same word in capitals is fine.
   content locks: use placeholder or synthetic voice until then, and book actors only when line ids are stable. Make
   "voice script frozen" a plan task after content lock.
 - **A session pack per character**: a page of history even if players never see it (the actor asked for it), what the
-  character wants, how they relate to the others, and a reference voice.
+  character wants, how they relate to the others, and a reference voice. Whoever runs the session gets the synopsis
+  and where each line falls: takes are recorded out of order, and without the story they make no sense.
+- **Acting, not reading.** Give each line the scene's action and let actors move while they record. For his audio-only
+  game, Kenji Eno went into the booth to have the cast act out their lines: "They’re not acting and I want them to
+  act." (*Untold History*).
 - **The other half of the scene.** Actors record alone; the script gives the line before each line (text or temp
   audio), and the director reads the other parts. Talken valued "playing off the other voice actors".
 - **One processing chain per group** ("the Marines sound one way, radio briefings sound another", Julian Kwasneski):
   one audio bus per voice group with fixed effects, so a radio voice is a radio voice everywhere.
 - **Casting record.** Per character: actor, contact, terms for pick-ups and sequels, reference takes. Blizzard recast
   Kerrigan for StarCraft II ("a new voice direction"); a recast is a recorded decision, not an accident.
+
+## 6. Characters, events and quests as data (from tabletop game masters)
+
+- **A sheet per character**, so agent-written characters differ by fields, not adjectives: one want, one secret, one
+  liability, one mannerism, and how they relate to the player. Each secret also goes in `lore/reserved.md`.
+- **Random events reuse what the player already has**: draw first from the player's own history (someone they angered
+  or helped, a faction they joined) before a generic outcome, and leave a hook that lasts (a grudge, a scar, a debt)
+  for a later event to use.
+- **Side quests from templates** (fetch, escort, clear, investigate, deliver, steal, protect, sabotage), kept apart
+  from the critical story quests; every critical quest is a milestone in `playthrough.json`
+  (`production.playthrough`).
+
+```json
+"characters": { "file": "data/characters.json", "id": "id",
+                "fields": { "name": { "type": "string" }, "want": { "type": "string" }, "secret": { "type": "string" },
+                            "liability": { "type": "string" }, "mannerism": { "type": "string" } } },
+"quests":     { "file": "data/quests.json", "id": "id",
+                "fields": { "template": { "enum": ["fetch", "escort", "clear", "investigate", "deliver", "steal", "protect", "sabotage", "story"] },
+                            "giver": { "ref": "characters" }, "critical": { "type": "bool" } } }
+```
 
 ## In a review
 

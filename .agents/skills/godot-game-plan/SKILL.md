@@ -1,6 +1,6 @@
 ---
 name: godot-game-plan
-description: Use when starting a Godot game, choosing what to work on next, or asked about scope, milestones, roadmap or release readiness.
+description: Use when starting a Godot game or a game jam entry, choosing what to work on next, or asked about scope, milestones, risks, budget, business model, roadmap or release readiness.
 ---
 
 # A-to-Z game plan (solo developer)
@@ -89,6 +89,50 @@ out of the milestone or goes to the GDD's "Out of scope" section, parked; an opt
 and stays only if it keeps being played. A mod team called its own slipped dates "hasty and unplanned": promise a playable demo,
 not a date, until the slice gate passes. Story, lore and voice planning (voice recorded after content lock) are
 `godot-narrative`; rewards and update cadence are `godot-progression`.
+
+Grow the commitment in steps, each earned by reactions to the last: Google's 8-bit Maps went from a demo made in hours to
+a fifth of its maker's time, then full time. A decision made in a call or a chat exists for agents only once it is in
+`docs/decisions/` or plan.json, and a dropped idea is parked in the GDD's "Out of scope", not on one person's machine:
+ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studio-lessons.md`).
+
+## Concept: risks, money and the business model
+
+- **Risk log** (`docs/RISKS.md`, at `concept.scope`): the top five risks, each with likelihood, impact, how it is retired
+  and by when. Every system the developer has never built counts as one; the riskiest is prototyped first.
+- **Comparable games** (`concept.market`): a teardown of each of the three, as in `godot-game-design` section 4.
+- **Business model:** name it (premium, demo plus full game, free with ads, free to play) and what is sold. Never sell
+  an advantage over another player, or a shortcut past what a learning game teaches; no energy timers or roulettes.
+  Paid random items, timed offers and daily rewards raise the age rating (`godot-legal` section 1).
+- **Budget and runway** (optional for a hobby game): the categories, filled in by the user, never guessed. Costs:
+  people, outsourcing (art, music, trailer), workspace (rent, power, internet, insurance), monthly software and
+  services, per-project licences, events (date, cost, go or no-go), marketing (one-off and monthly), age ratings per
+  region, taxes. Income: cash on hand, store payouts and when they arrive, funding (savings, a publisher, platform funds,
+  public cultural grants, crowdfunding), tax credits. Runway is cash divided by monthly cost; it should cover the plan's
+  remaining weeks. Net per sale: price, less the average discount, sales tax or VAT, the store's fee, a publisher's share
+  and refunds, each taken from the current terms. A grant application can reuse the GDD, plan.json and this budget.
+
+## Alpha and beta: exit criteria
+
+- **Placeholders are listed** in `docs/TECH-DEBT.md` (its Placeholders table): every stand-in asset or text, labelled
+  in the game, with what replaces it and by which milestone.
+- **Bug classes:** A blocks finishing the game, crashes or loses data; B is major and seen by most players. Alpha and
+  beta both play to the end with no undeclared A or B bug (`godot-playtest` triage uses the same classes).
+- **`beta.alpha`** comes with a statement of completion in `docs/MILESTONES.md`: each missing feature and the build it
+  lands in. A long list means it is not alpha yet.
+- **Beta:** placeholders are a small part of the content (one studio template allows at most a fifth); any analytics
+  tested end to end (`godot-telemetry`); a release plan with dates for builds, marketing beats, store review and the
+  first patches. The marketing cadence and the release ladder (a free portal, a soft launch, then the main store) are
+  in `godot-store-page`.
+
+## Jam mode (2 to 9 days)
+
+Use `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` as `docs/GDD.md`; its day table replaces the seven phases.
+Ask "browser build?" before anything else: Godot 4.7 stops a C# Web export ("Exporting to Web is currently not supported
+in Godot 4 when using C#/.NET", `godot-mobile-web`), so a browser jam is made in GDScript. Day 1 proves the riskiest feel
+with plain shapes; day 2 has the loop with win and lose; the day before the end exports to the jam's platform and
+launches it (`export -Preset Web -Run` for the browser); the last day is fixes only, and the game goes in with an hour or
+more to spare. A feature you are unsure of is cut. Small finished games (jams, contests) before the big one build the
+network the big one needs: Enix found Yuji Horii through its game contests.
 
 Rules of thumb that drive the gates: scope is cut, never quality or the date; a prototype that nobody asks to replay is
 killed or pivoted, not polished; the store page goes up months before launch because wishlists compound; every

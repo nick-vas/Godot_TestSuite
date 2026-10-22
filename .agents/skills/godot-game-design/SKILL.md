@@ -35,6 +35,9 @@ Every GDD feature names the kinds it serves on a `Fun:` line; `status` warns whe
 A feature that serves none of the game's main kinds is the first candidate to cut. A feature can serve none and still be
 needed (menus, saving): leave it at `could` without a `Fun:` line.
 
+Bartle's player types (achievers, explorers, socialisers, killers) are a different model, of why people play shared
+online worlds (Richard Bartle, 1996), not MDA; the `Fun:` line uses the eight kinds above.
+
 ## 2. Rules of thumb: the 400 Project
 
 Hal Barwood and Noah Falstein collected practical design rules, around 110 of them, each with an imperative statement, where
@@ -78,6 +81,9 @@ Two vocabularies ship with the kit, in `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates
 
 Describe a game with at most three gameplay and three narrative or setting terms, most specific first, in the GDD pitch. For
 a store page, Steam asks for at least five tags and shows the first 20; the first five should paint a clear picture.
+
+Teardown of each comparable game (`concept.market`): genre terms, platforms, price, length, what to copy, what to
+avoid, what you would change, and your own screenshots as evidence.
 
 ## 5. How studios find the fun
 
@@ -156,6 +162,9 @@ it is not one yet, so make it clearer.
 Pacing (Dan Taylor, "Ten Principles for Good Level Design"): each level introduces, showcases or subverts a mechanic;
 the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first; the
 way back plays differently. Details: [pacing.md](pacing.md).
+
+Size an open world by the minutes it takes to cross, on foot and by vehicle, measured in two comparable games, and time
+a bot crossing yours (`godot-automation-hooks`).
 
 ## 8. Tutorials (Nicolae Berbece, GDC 2016)
 
