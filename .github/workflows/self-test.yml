@@ -345,6 +345,9 @@ jobs:
       - name: shot -ColorVision saves each screen as protanopes, deuteranopes and tritanopes see it
         shell: pwsh
         run: ./tests/Test-ColorVision.ps1
+      - name: Capture mode hides the HUD, mutes only the music, and freezes the game while the free camera flies
+        shell: pwsh
+        run: ./tests/Test-Capture.ps1
       - name: audio -Mix records the game's mix and judges its loudness
         shell: pwsh
         run: |
