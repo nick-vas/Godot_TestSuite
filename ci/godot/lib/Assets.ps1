@@ -4,7 +4,17 @@
 #   { "assets": [
 #       { "path": "art/kenney_ui/**", "source": "https://kenney.nl/assets/ui-pack", "author": "Kenney", "licence": "CC0-1.0" },
 #       { "path": "shaders/dissolve.gdshader", "source": "https://godotshaders.com/shader/...", "author": "...", "licence": "MIT" },
-#       { "path": "art/player/**", "source": "own", "licence": "proprietary" } ] }
+#       { "path": "art/player/**", "source": "own", "licence": "proprietary" },
+#       { "path": "art/boss/**", "source": "commissioned", "author": "Jane Doe", "licence": "proprietary",
+#         "agreement": "contracts/2026-03-jane-doe-art.pdf", "rights": "assigned" },
+#       { "path": "music/**", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music",
+#         "agreement": "MM-2026-01", "rights": "licensed", "uses": ["game", "trailer", "store"] } ] }
+#
+# Commissioned work (made for the game by a contractor, a freelancer or a co-founder) belongs to whoever made it unless a
+# signed agreement assigns or licenses it to the studio (US copyright default; Chris Reed, GDC contract law 201). So such
+# an entry names the agreement (a document id or a path kept outside the shipped game), what it gave (assigned or
+# licensed) and, for a licence, the uses it covers.
+$script:CommissionedRights = @('assigned', 'licensed')
 
 $script:AssetPatterns = @('*.png', '*.jpg', '*.jpeg', '*.webp', '*.svg', '*.tga', '*.bmp', '*.exr', '*.hdr', '*.ktx', '*.ktx2',
     '*.wav', '*.ogg', '*.mp3', '*.glb', '*.gltf', '*.blend', '*.fbx', '*.obj', '*.dae', '*.ttf', '*.otf', '*.woff', '*.woff2',
@@ -46,10 +56,24 @@ function Get-AssetFiles([string]$ProjectDir) {
     return @($files | Sort-Object -Unique)
 }
 
-# What doctor reports: files with no entry, and entries whose licence limits or obliges the game.
+# A commissioned entry's missing paperwork, by entry path: no agreement, rights neither assigned nor licensed, a licence
+# with no uses. Licensed entries are listed with their uses, since anything outside them needs a new agreement.
+function Add-CommissionedProblems([System.Collections.Specialized.OrderedDictionary]$Report, [hashtable]$Entry) {
+    $path = "$($Entry['path'])"
+    if (-not "$($Entry['agreement'])".Trim()) { $Report.noAgreement += $path }
+    $rights = "$($Entry['rights'])".Trim()
+    if ($rights -notin $script:CommissionedRights) { $Report.noRights += $path; return }
+    if ($rights -ne 'licensed') { return }
+    $uses = @($Entry['uses'] | Where-Object { "$_".Trim() })
+    if ($uses.Count -eq 0) { $Report.noUses += $path } else { $Report.licensed += "$path ($($uses -join ', '))" }
+}
+
+# What doctor reports: files with no entry, entries whose licence limits or obliges the game, and commissioned work without
+# its agreement.
 function Get-AssetManifestReport([string]$ProjectDir) {
     $files = @(Get-AssetFiles $ProjectDir)
-    $report = [ordered]@{ files = $files.Count; manifest = $false; uncovered = @(); byKind = [ordered]@{}; invalid = @() }
+    $report = [ordered]@{ files = $files.Count; manifest = $false; uncovered = @(); byKind = [ordered]@{}; invalid = @()
+        commissioned = [ordered]@{ noAgreement = @(); noRights = @(); noUses = @(); licensed = @() } }
     if ($files.Count -eq 0) { return $report }
     $path = Join-Path $ProjectDir 'assets.json'
     if (-not (Test-Path -LiteralPath $path)) { $report.uncovered = $files; return $report }
@@ -61,6 +85,7 @@ function Get-AssetManifestReport([string]$ProjectDir) {
             $report.invalid += "an entry needs path, source and licence: $($entry | ConvertTo-Json -Compress)"
             continue
         }
+        if ($entry['source'] -eq 'commissioned') { Add-CommissionedProblems $report.commissioned $entry }
         [pscustomobject]@{ Regex = ConvertTo-AssetPathRegex $entry['path']; Entry = $entry; Kind = Get-LicenceKind $entry['licence'] }
     })
     foreach ($file in $files) {

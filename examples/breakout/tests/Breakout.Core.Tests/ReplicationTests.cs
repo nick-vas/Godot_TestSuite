@@ -194,6 +194,74 @@ public sealed class ReplicationTests
         Assert.True(sends[40] > 10 * sends[1] && sends[20] > 5 * sends[1]);
     }
 
+    // Halo: Reach (Aldridge, Bungie): a pile of far-away objects all claiming "send me first" on the same frame took whole
+    // packets, and the player you were fighting got no updates meanwhile. Here 200 crates enter scope at once in an
+    // 8-player fight; each creation carries every group, so the uncapped replicator sends 20 creations a packet and nothing
+    // else for 10 packets. Capped, a few creations still go first in each packet; the rest compete by priority.
+    [Fact]
+    public void ABurstOfNewObjectsDoesNotSilenceTheOpponent()
+    {
+        var uncapped = RunBurst(new GhostReplicator(BurstGroups) { MaxOverridesPerPacket = int.MaxValue });
+        var capped = RunBurst(new GhostReplicator(BurstGroups));
+        foreach (var (name, r) in new[] { ("uncapped", uncapped), ($"capped at {new GhostReplicator(1).MaxOverridesPerPacket}", capped) })
+            _output.WriteLine($"{name}: longest run of packets without an update: the opponent {r.Opponent}, the other players {r.Others}; " +
+                $"all 200 objects created within {r.AllCreated} packets");
+
+        Assert.True(uncapped.Opponent >= 5);                                 // the failure: creations take every byte
+        Assert.True(capped.Opponent <= 1, $"the opponent went {capped.Opponent} packets in a row without an update");
+        Assert.True(capped.Others <= 3, $"a player went {capped.Others} packets in a row without an update");
+        Assert.InRange(capped.AllCreated, 1, 20);                            // creations are not starved either
+    }
+
+    const int BurstGroups = 4;
+
+    /// <summary>Longest runs of packets without an update (the opponent; the other players), and packets until every crate exists on the client.</summary>
+    (int Opponent, int Others, int AllCreated) RunBurst(GhostReplicator replicator)
+    {
+        const int Groups = BurstGroups, Budget = 400, Opponent = 1, Players = 8, FirstCrate = 101, Crates = 200, Burst = 10, Ticks = 70;
+        const uint All = (1u << Groups) - 1;
+        var client = new GhostReceiver(Groups);
+        var world = new Dictionary<int, int[]>();
+        int version = 0;
+        var scope = new Dictionary<int, float> { [Opponent] = 1f };            // the player you are fighting
+        for (int id = 2; id <= Players; id++) scope[id] = 0.5f;                // everyone else in the fight
+        foreach (int id in scope.Keys) world[id] = new int[Groups];
+        var missed = scope.Keys.ToDictionary(id => id, _ => 0);
+        var longest = scope.Keys.ToDictionary(id => id, _ => 0);
+        int allCreated = -1;
+
+        for (int tick = 0; tick < Ticks; tick++)
+        {
+            if (tick == Burst)
+                for (int id = FirstCrate; id < FirstCrate + Crates; id++)
+                {
+                    scope[id] = 0.1f;                                          // far away, all alike
+                    world[id] = new[] { ++version, ++version, ++version, ++version };
+                }
+            replicator.SetScope(scope);
+            for (int g = 0; g < Groups; g++) world[Opponent][g] = ++version;    // moves, aims, animates, takes damage
+            replicator.MarkDirty(Opponent, All);
+            for (int id = 2; id <= Players; id++) { world[id][Position] = ++version; replicator.MarkDirty(id, 1u << Position); }
+
+            var packet = replicator.Write(tick, Budget, (id, g) => world[id][g]);
+            Assert.True(packet.Bytes <= Budget);
+            client.Receive(packet);
+            replicator.OnNotify(tick, Delivery.Delivered);
+
+            if (tick < Burst) continue;
+            foreach (int id in missed.Keys)
+            {
+                missed[id] = packet.Updates.Any(u => u.Id == id) ? 0 : missed[id] + 1;
+                longest[id] = Math.Max(longest[id], missed[id]);
+            }
+            if (allCreated < 0 && Enumerable.Range(FirstCrate, Crates).All(client.Ghosts.ContainsKey)) allCreated = tick - Burst + 1;
+        }
+
+        Assert.Equal(scope.Keys.Order(), client.Ghosts.Keys.Order());       // the client ends with the exact state
+        foreach (var (id, state) in world) Assert.Equal(state, client.Ghosts[id]);
+        return (longest[Opponent], longest.Where(kv => kv.Key != Opponent).Max(kv => kv.Value), allCreated);
+    }
+
     [Fact]
     public void UnderLossTheClientConvergesAndNeverAppliesOldState()
     {

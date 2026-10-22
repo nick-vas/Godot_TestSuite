@@ -35,7 +35,7 @@ Three inputs, cross-referenced:
 |---|---|---|---|---|
 | 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists |
 | 2 | Prototype | 4 | Is the core loop fun? | CI workflow wired; `docs/DECISIONS.md` has the verdict |
-| 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; an export preset exists |
+| 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; an export preset exists; `docs/TECH-DEBT.md` exists |
 | 4 | Production | 24 | Can I build the rest as playable milestones? | `docs/MILESTONES.md` exists |
 | 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | tests green |
 | 6 | Release candidate and launch | 4 | Does a clean export run, and can players find it? | export preset |
@@ -52,6 +52,11 @@ remove gates freely: `plan.json` is yours after `init`.
 - **Quality is automated where it can be**: tests, `validate`, `smoke` and `export -Run` are the gates agents can verify themselves;
   playtests and verdicts are manual gates that need a human.
 - **Marketing starts in the vertical slice**, not after the beta.
+- **A slice measures, not only impresses.** It lists its tech debt (`slice.debt`: every hacked, stubbed or unstarted system
+  and what it costs at the size of the whole game, template `ci/godot/templates/TECH-DEBT.md`) and meets a frame budget on its
+  busiest scene filled as the finished game will be (`slice.budget`, manual, with `bench -Scene ... -BudgetMs ...`). The verdict
+  says PROCEED only for the intended experience, not a feature list or a tech demo. Volition's record across five games:
+  [docs/gdc/vertical-slice-challenge.md](gdc/vertical-slice-challenge.md).
 
 ## Tasks and Trello
 
