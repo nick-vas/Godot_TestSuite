@@ -102,6 +102,11 @@ param(
     [switch]$Pseudo,
     # shot: also save each picture as people with colour blindness see it: protan, deutan, tritan (scene.<kind>.png).
     [string[]]$ColorVision,
+    # shot: every picture is checked against the palette table in docs/STYLE.md when there is one (a warning only); fail
+    # (shot-off-palette) when more than this share of a picture is in colours off the palette. -PaletteTolerance: how far
+    # (CIEDE2000) a colour may be from a palette colour, or from a blend of two, and still count as on it.
+    [double]$MaxOffPalettePercent = -1,
+    [double]$PaletteTolerance = 3,
     # soak: how many headless clients to start next to the one server.
     [int]$Clients = 4,
     # sfx: which sounds (coin, laser, explosion, powerup, hit, jump, blip; default all), how many of each from consecutive
@@ -172,7 +177,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Palette') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -555,7 +560,7 @@ switch ($Command) {
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
     }
     'soak' {
         Invoke-Setup; Invoke-Build

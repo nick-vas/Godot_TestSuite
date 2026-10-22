@@ -92,9 +92,16 @@ function Add-BenchCsvRow([string]$Path, $Result) {
 
 function Invoke-Shot {
     param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo,
-        [string[]]$ColorVision, [double]$MaxChangedPercent = -1)
+        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3)
     if ($MaxChangedPercent -ge 0 -and -not $Baseline) { Stop-GodotCi '-MaxChangedPercent compares with -Baseline: give the folder of the earlier screenshots' 'invalid-arguments' }
     if ($MaxChangedPercent -gt 100) { Stop-GodotCi "-MaxChangedPercent is a percentage of pixels (0 to 100), not $MaxChangedPercent" 'invalid-arguments' }
+    if ($MaxOffPalettePercent -gt 100) { Stop-GodotCi "-MaxOffPalettePercent is a percentage of pixels (0 to 100), not $MaxOffPalettePercent" 'invalid-arguments' }
+    if ($PaletteTolerance -lt 0.5 -or $PaletteTolerance -gt 50) { Stop-GodotCi "-PaletteTolerance is a CIEDE2000 distance from 0.5 to 50, not $PaletteTolerance" 'invalid-arguments' }
+    # The palette is read before Godot starts, so a gate without a palette stops at once.
+    $style = Read-StylePalette (Get-StyleGuidePath $Info)
+    if ($MaxOffPalettePercent -ge 0 -and $style.problem) {
+        Stop-GodotCi "-MaxOffPalettePercent checks the screenshots against the palette in docs/STYLE.md, but $($style.problem)" 'no-palette'
+    }
     $kinds = @($ColorVision | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ } | Select-Object -Unique)
     foreach ($kind in $kinds) {
         if ($kind -notin 'protan', 'deutan', 'tritan') { Stop-GodotCi "-ColorVision takes protan, deutan and tritan, not '$kind'" 'invalid-arguments' }
@@ -149,6 +156,18 @@ function Invoke-Shot {
             $problems += $Matches.msg
         }
     }
+    # Every picture against the palette in docs/STYLE.md, when it has one.
+    Set-JsonField palette ([ordered]@{
+        source = $style.source; colours = $style.colours; toleranceDeltaE = $PaletteTolerance; minColourPercent = $script:PaletteMinColourPercent
+        maxOffPalettePercent = $(if ($MaxOffPalettePercent -ge 0) { $MaxOffPalettePercent } else { $null }); problem = $style.problem
+    })
+    if ($style.problem) { Write-CiLog "No palette check: $($style.problem)" }
+    else {
+        foreach ($shot in $shots) {
+            try { $shot['palette'] = Measure-ShotPalette $shot.file $style.colours $PaletteTolerance ([System.IO.Path]::ChangeExtension($shot.file, '.palette.png')) }
+            catch { $problems += "palette check of $($shot.file): $($_.Exception.GetBaseException().Message)" }
+        }
+    }
     Set-JsonField shots $shots
     foreach ($shot in $shots) {
         Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))$(if ($shot.locale) { " in $($shot.locale)" })"
@@ -157,6 +176,15 @@ function Invoke-Shot {
         if ($shot.Contains('compare')) {
             if ($shot.compare.image) { Write-CiLog "  $($shot.compare.changedPercent)% changed$(if ($shot.compare.sizeChanged) { ', size changed' }) -> $($shot.compare.image)" }
             else { Write-CiLog '  no baseline picture to compare with' }
+        }
+        if ($shot.Contains('palette')) {
+            $p = $shot.palette
+            Write-CiLog "  palette: $($p.onPalettePercent)% on it, $($p.blendPercent)% blends of two of its colours, $($p.offPalettePercent)% off it ($($p.offPaletteColours) colour(s)), $($p.scatteredPercent)% scattered"
+            foreach ($colour in $p.colours) {
+                Write-CiLog "    $(if ($colour.counted) { 'off palette' } else { 'small' }): $($colour.hex) $($colour.percent)% (nearest $($colour.nearest), dE00 $($colour.deltaE))"
+            }
+            # Without -MaxOffPalettePercent this is a warning only.
+            if ($p.offPalettePercent -gt 0 -and $MaxOffPalettePercent -lt 0) { Write-CiLog "  WARN: $($p.offPalettePercent)% of the picture is off the palette in docs/STYLE.md -> $($p.image)" }
         }
     }
     $missing = @(foreach ($shot in $shots) { foreach ($kind in $kinds) { if (-not $shot.Contains('colorVision') -or -not $shot.colorVision.Contains($kind)) { "$($shot.file) has no $kind picture" } } })
@@ -177,6 +205,17 @@ function Invoke-Shot {
             elseif ($shot.compare.changedPercent -gt $MaxChangedPercent) { "$(Split-Path $shot.file -Leaf) $($shot.compare.changedPercent)% changed" }
         })
         if ($changed) { Stop-GodotCi "$($changed -join '; ') (allowed: $MaxChangedPercent%); see each shots[].compare.image, and update -Baseline if the change is wanted" 'shot-changed' }
+    }
+    # Palette bloat: more of a picture in colours outside docs/STYLE.md's palette than allowed.
+    if ($MaxOffPalettePercent -ge 0) {
+        $over = @(foreach ($shot in $shots) {
+            if (-not $shot.Contains('palette') -or $shot.palette.offPalettePercent -le $MaxOffPalettePercent) { continue }
+            $hexes = @(foreach ($colour in $shot.palette.colours) { if ($colour.counted) { $colour.hex } })
+            "$(Split-Path $shot.file -Leaf) $($shot.palette.offPalettePercent)% off palette ($($hexes -join ', '))"
+        })
+        if ($over) {
+            Stop-GodotCi "$($over -join '; ') (allowed: $MaxOffPalettePercent%); see each shots[].palette.image, and add a colour to the palette in docs/STYLE.md only when it is wanted" 'shot-off-palette'
+        }
     }
     # After reporting the pictures: a scene that printed errors while it ran still fails the run.
     Assert-GodotLogClean $log 'The screenshot run'
