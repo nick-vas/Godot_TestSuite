@@ -45,6 +45,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://
 | `--no-save` | test runs never touch the player's save |
 | `--act=N`, `--start-floor=N`, `--level=X` | jump straight to the content under test |
 | `--stress` | the worst case for `bench` (`godot-performance`) |
+| `--no-hud` | hides the HUD, minimap and waypoint markers: navigation playtests run with it (`godot-game-design` section 7) |
 | `--shot=path --shot-at=seconds` | the game saves its own screenshot (inside a real run, with game state); `shot` covers single scenes |
 
 ## Deterministic randomness
