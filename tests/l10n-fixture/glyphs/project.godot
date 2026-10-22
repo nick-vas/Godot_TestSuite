@@ -1,0 +1,12 @@
+; The glyph check (tests/Test-Localization.ps1): the project theme's default font has Latin letters and a katakana
+; fallback, so en, fr and de are covered and Japanese lacks only 開 and 始. ui/dialog.tres draws labels with a
+; SystemFont (a warning: it depends on the player's OS); l10n.json leaves out the digits-only progress bar font.
+config_version=5
+
+[application]
+
+config/name="L10n glyphs"
+
+[gui]
+
+theme/custom="res://ui/theme.tres"

@@ -12,7 +12,8 @@
 #   playthrough  the game's bot plays to the ending; fails unless every milestone line is logged, in order
 #              (lib/Playthrough.ps1, playthrough.json)
 #   l10n       translation tables: duplicate, untranslated, missing and too long keys; translation remaps and localized
-#              sounds against their source, with ffmpeg (lib/Localization.ps1); no Godot needed
+#              sounds against their source, with ffmpeg (lib/Localization.ps1); every character of every translation
+#              against the project's fonts, in headless Godot (tools/glyphs.gd)
 #   data       data tables against data.json: ids, fields, types, ranges, references (lib/Data.ps1); no Godot needed
 #   textsize   text sizes in real pixels on a small screen such as the Steam Deck's (lib/TextSize.ps1, textsize.json)
 #   layout     screens on phones, a tablet and an ultrawide: off screen, notch, touch target size (lib/Layout.ps1, layout.json)
@@ -218,6 +219,11 @@ function Invoke-TestRunner {
         Get-Content -LiteralPath $findings -Raw | ConvertFrom-Json | Where-Object { $_ -and $_.severity -eq 'warning' }
     })
     $summary | Add-Member -NotePropertyName Warnings -NotePropertyValue $warnings
+    # The l10n runner's glyph check, per locale and font, for -Json (runnerResults[].glyphs).
+    $glyphs = Join-Path $ResultsDir 'glyphs.json'
+    if ($Runner -eq 'l10n' -and (Test-Path -LiteralPath $glyphs)) {
+        $summary | Add-Member -NotePropertyName Glyphs -NotePropertyValue (Get-Content -LiteralPath $glyphs -Raw | ConvertFrom-Json)
+    }
     return $summary
 }
 

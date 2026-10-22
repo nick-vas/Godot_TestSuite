@@ -1,0 +1,17 @@
+[
+  { "id": "coach_hurt", "who": "coach", "concept": "Idle", "criteria": "health<lots", "lines": ["I need a medkit."] },
+  { "id": "nick_plan", "who": "nick", "concept": "Idle", "criteria": "danger=false", "lines": ["Anyone got a plan?"],
+    "then": { "who": "ellis", "concept": "AnswerPlna" } },
+  { "id": "ellis_answer", "who": "ellis", "concept": "AnswerPlan", "criteria": "danger=false", "lines": ["My buddy Keith had a plan once."] },
+  { "id": "nick_ask_rochelle", "who": "nick", "concept": "Idle", "criteria": "danger=false;lights=off", "lines": ["Rochelle?"],
+    "then": { "who": "rochelle", "concept": "AnswerPlan" } },
+  { "id": "coach_witch", "who": "coach", "concept": "SeeWitch", "criteria": "lights=off",
+    "lines": [{ "text": "Lights off.", "voice": "res://voice/coach_witch_1.ogg" }, { "text": "Don't startle her.", "voice": "voice/coach_witch_2.ogg" }],
+    "remember": [{ "fact": "seen_witch", "world": true }] },
+  { "id": "zombie_a", "concept": "SeeZombie", "criteria": "near=ride;beside=icecream", "lines": ["Zombie on the ride!"] },
+  { "id": "zombie_b", "concept": "SeeZombie", "criteria": "beside=icecream; near=ride", "lines": ["Zombie by the ice cream!"] },
+  { "id": "hurt_and_fine", "concept": "Idle", "criteria": "health<10;health>20", "lines": ["Never said."] },
+  { "id": "gag", "who": "nick", "concept": "Idle", "criteria": "!gag_cooldow", "lines": ["Not this again."],
+    "remember": [{ "fact": "gag_cooldown", "for": 30 }] },
+  { "id": "bad_columns", "concept": "Idle", "lines": [], "then": { "who": "nick" }, "remember": [{ "fact": "mood", "value": "very grumpy" }] }
+]

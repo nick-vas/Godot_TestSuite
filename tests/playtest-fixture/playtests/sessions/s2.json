@@ -1,0 +1,28 @@
+[
+  {
+    "schema": 1,
+    "session": "s2",
+    "build": "0.3.0-greybox",
+    "consent": { "policy": 1, "diagnostics": "Granted", "analytics": "Granted" },
+    "events": [
+      { "event": "level_time", "v": 1, "seq": 1, "t": "2026-10-20T11:03:20.0000000Z", "fields": { "level": "hub", "seconds": 200, "result": "finished" } },
+      { "event": "death", "v": 1, "seq": 2, "t": "2026-10-20T11:00:30.0000000Z", "fields": { "level": "hub", "x": 30, "y": 30, "z": 0, "level_seconds": 30, "checkpoint": 1 } },
+      { "event": "death", "v": 1, "seq": 3, "t": "2026-10-20T11:00:31.0000000Z", "fields": { "level": "hub", "x": 30, "y": 30, "z": 0, "level_seconds": 31 } },
+      { "event": "stuck", "v": 1, "seq": 4, "t": "2026-10-20T11:01:00.0000000Z", "fields": { "level": "hub", "x": 100, "y": 10, "z": 0, "level_seconds": 60, "seconds": 150 } },
+      { "event": "stuck", "v": 1, "seq": 5, "t": "2026-10-20T11:02:00.0000000Z", "fields": { "level": "hub", "x": 130, "y": 70, "z": 0, "level_seconds": 120, "seconds": 300 } },
+      { "event": "item_found", "v": 1, "seq": 6, "t": "2026-10-20T11:00:05.0000000Z", "fields": { "level": "hub", "x": 5, "y": 5, "z": 0, "level_seconds": 5, "item": 1 } },
+      { "event": "run_end", "v": 1, "seq": 7, "t": "2026-10-20T11:03:20.0000000Z", "fields": { "floor": 2, "result": "won", "difficulty": 0 } }
+    ]
+  },
+  {
+    "schema": 1,
+    "session": "s2",
+    "build": "0.3.0-greybox",
+    "consent": { "policy": 1, "diagnostics": "Granted", "analytics": "Granted" },
+    "events": [
+      { "event": "level_time", "v": 1, "seq": 8, "t": "2026-10-20T11:04:30.0000000Z", "fields": { "level": "cave", "seconds": 70, "result": "failed" } },
+      { "event": "death", "v": 1, "seq": 9, "t": "2026-10-20T11:04:00.0000000Z", "fields": { "level": "cave", "x": 19, "y": 0, "z": 9, "level_seconds": 40, "checkpoint": 0 } },
+      { "event": "death", "v": 1, "seq": 10, "t": "2026-10-20T11:04:20.0000000Z", "fields": { "level": "cave", "x": 25, "y": 0, "z": 5, "level_seconds": 60, "checkpoint": 0 } }
+    ]
+  }
+]
