@@ -19,6 +19,7 @@ None of the web pages states a licence, so they are summarised and linked here, 
 | [Sony ASWG-R001 v1.10](https://gameaudiopodcast.com/ASWG-R001.pdf) (2013) | Loudness targets and how to measure them |
 | [IESD Mix Recommendations v03.02](https://www.audiogang.org/wp-content/uploads/2015/04/IESD-Mix-Ref-Levels-v03.02.pdf) (G.A.N.G., 2015) | The same console target from the industry body; a different mobile target |
 | [EBU R128](https://tech.ebu.ch/publications/r128) and ITU-R BS.1770 | What integrated loudness, true peak and loudness range mean, and how they are gated |
+| Joonas Turner's GDC talk on game feel with sound ([gdc/game-feel-with-sound.md](gdc/game-feel-with-sound.md)) | Action sounds: start on the hit, short first, one 5 to 20 ms impact layer, one recording and master chain per family, slight ducking under the player's actions; the source of `audio`'s `onsetMs` warning |
 | [Guy Somberg, "Lessons Learned from a Decade of Audio Programming"](https://www.youtube.com/watch?v=Vjm--AqG04Y) (GDC, 2014 inferred; notes in [gdc/decade-of-audio-programming.md](gdc/decade-of-audio-programming.md)) | Max within radius, a voice cap per spot that keeps every direction audible; integer voice handles; 6 dB as half or double |
 | [Xbox Accessibility Guideline 105](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/105) | Separate volume or mute for music, voice, effects, ambience and narration, and a mono option |
 
@@ -98,5 +99,8 @@ The FMOD and Wwise manuals give none of these figures, so the skill offers them 
 - Attack and release times for ducking. Blogs say 10 to 80 ms and 250 to 700 ms.
 - How many takes a footstep needs. Blogs say 3 to 8; the kit asks for at least five.
 - How much to vary pitch. Blogs say a few percent to 10%.
+- How late an action sound may start. Turner's talk gives 5 to 20 ms as the length of the impact at the start of a sound,
+  not as a delay limit. `audio` warns when an `sfx` or `ui` file's `onsetMs` (the first 10 ms window within 10 dB of the
+  file's loudest) is over 20 ms; the number is the kit's choice, and `-MaxOnsetMs` changes it.
 
 The FMOD compressor's own defaults are 2.5:1, 20 ms attack and 200 ms release.

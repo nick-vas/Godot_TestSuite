@@ -4,9 +4,15 @@
 # after "--" stay visible to the game (OS.get_cmdline_user_args()), so a "--stress" or "--autoplay" flag still works.
 # Custom monitors the game registers (Performance.add_custom_monitor), for example C# GC collection counts, are reported as
 # start, end and delta, which is how a C# game shows "zero GC in the frame loop".
+# Each frame time is paired with where the camera was, so slow frames get a place as well as a time: "hotspots" are the
+# grid cells of camera positions with the worst 99th-percentile frame time (--bench-cell sets the cell size).
 extends SceneTree
 
 const MAX_HITCHES := 50
+const MAX_HOTSPOTS := 10
+# Default hotspot cell: 10 m in 3D (a room, a stretch of road), 512 px in 2D (about a quarter of a 1080p screen's width).
+const CELL_3D := 10.0
+const CELL_2D := 512.0
 
 var _options := {}
 
@@ -49,6 +55,9 @@ func _initialize() -> void:
 	var draw_calls := PackedFloat64Array()
 	var primitives := PackedFloat64Array()
 	var gpu_ms := PackedFloat64Array()
+	# Where each frame was seen from, and by which kind of camera (3, 2, or 0 for none).
+	var places := PackedVector3Array()
+	var kinds := PackedByteArray()
 	# GPU time per frame: what shaders, particles and post-processing cost (0 when nothing is drawn).
 	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 	var start := Time.get_ticks_usec()
@@ -61,6 +70,7 @@ func _initialize() -> void:
 		draw_calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
 		primitives.append(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 		gpu_ms.append(RenderingServer.viewport_get_measured_render_time_gpu(root.get_viewport_rid()))
+		_sample_camera(places, kinds)
 		last = now
 
 	for monitor_name in monitors:
@@ -79,7 +89,13 @@ func _initialize() -> void:
 	var hitches := []
 	for i in times.size():
 		if times[i] > hitch_ms and hitches.size() < MAX_HITCHES:
-			hitches.append({"t": snappedf(stamps[i], 0.001), "ms": snappedf(times[i], 0.01)})
+			hitches.append({"t": snappedf(stamps[i], 0.001), "ms": snappedf(times[i], 0.01), "pos": _place(places[i], kinds[i])})
+	var kind := _main_kind(kinds)
+	var cell := float(_options.get("cell", "0"))
+	if cell <= 0.0:
+		cell = CELL_3D if kind == 3 else CELL_2D
+	if kind == 0:
+		cell = 0.0
 	var draw_total := 0.0
 	var draw_max := 0.0
 	for d in draw_calls:
@@ -107,6 +123,9 @@ func _initialize() -> void:
 		"over33ms": _count_over(sorted, 33.0),
 		"hitchThresholdMs": snappedf(hitch_ms, 0.01),
 		"hitches": hitches,
+		"camera": {3: "3d", 2: "2d"}.get(kind, "none"),
+		"hotspotCell": cell,
+		"hotspots": _hotspots(times, places, kinds, kind, cell),
 		"drawCalls": {"avg": snappedf(draw_total / maxi(count, 1), 0.1), "max": draw_max},
 		"primitives": _avg_max(primitives, 1.0),
 		"gpuMs": _avg_max(gpu_ms, 0.001),
@@ -125,6 +144,70 @@ func _initialize() -> void:
 		"maxFps": Engine.max_fps,
 		"resolution": "%dx%d" % [root.size.x, root.size.y],
 	})
+
+
+# The camera the player sees through: the root viewport's Camera3D, else its Camera2D. A 2D camera's place is the centre of
+# the screen, which is not its own position while it is smoothed or held at a limit. Cameras inside a SubViewport are not seen.
+func _sample_camera(places: PackedVector3Array, kinds: PackedByteArray) -> void:
+	var camera_3d := root.get_camera_3d()
+	if camera_3d != null:
+		places.append(camera_3d.global_position)
+		kinds.append(3)
+		return
+	var camera_2d := root.get_camera_2d()
+	if camera_2d != null:
+		var centre := camera_2d.get_screen_center_position()
+		places.append(Vector3(centre.x, centre.y, 0.0))
+		kinds.append(2)
+		return
+	places.append(Vector3.ZERO)
+	kinds.append(0)
+
+
+# The kind of camera most frames had (3, 2, or 0 when no frame had one). Only frames seen by that kind are placed in cells.
+func _main_kind(kinds: PackedByteArray) -> int:
+	var counts := {0: 0, 2: 0, 3: 0}
+	for k in kinds:
+		counts[k] += 1
+	if counts[3] == 0 and counts[2] == 0:
+		return 0
+	return 3 if counts[3] >= counts[2] else 2
+
+
+func _place(where: Vector3, kind: int) -> Variant:
+	if kind == 3:
+		return [snappedf(where.x, 0.01), snappedf(where.y, 0.01), snappedf(where.z, 0.01)]
+	if kind == 2:
+		return [snappedf(where.x, 0.01), snappedf(where.y, 0.01)]
+	return null
+
+
+# Buckets frame times into a grid of cells (cell units wide, aligned to 0) by camera position, and returns the cells with
+# the worst 99th-percentile frame time first: where to look first, the way a heat map of frame rate over a level is read.
+func _hotspots(times: PackedFloat64Array, places: PackedVector3Array, kinds: PackedByteArray, kind: int, cell: float) -> Array:
+	if kind == 0:
+		return []
+	var cells := {}
+	for i in times.size():
+		if kinds[i] != kind:
+			continue
+		var key := (places[i] / cell).floor()
+		if not cells.has(key):
+			cells[key] = []
+		cells[key].append(times[i])
+	var spots := []
+	for key: Vector3 in cells:
+		var sorted := PackedFloat64Array(cells[key])
+		sorted.sort()
+		spots.append({
+			"centre": _place((key + Vector3(0.5, 0.5, 0.5)) * cell, kind),
+			"frames": sorted.size(),
+			"p99Ms": snappedf(_percentile(sorted, 0.99), 0.01),
+			"maxMs": snappedf(sorted[sorted.size() - 1], 0.01),
+		})
+	spots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a.p99Ms > b.p99Ms or (a.p99Ms == b.p99Ms and a.frames > b.frames))
+	return spots.slice(0, MAX_HOTSPOTS)
 
 
 # Average and maximum of a per-frame series, rounded to step.

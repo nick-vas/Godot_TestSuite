@@ -29,6 +29,16 @@ if ($crash.ok -or $crash.error.code -ne 'soak-failed' -or $crash.error.message -
     $failures += "a server that quits should fail as soak-failed: $($crash.error.code) $($crash.error.message)"
 }
 
+# -JunkPps floods the server's own port on 127.0.0.1. 100k packets a second crowd legitimate input out of the ENet
+# socket buffer: the server loses a large share of its input or drops clients outright (the soak run then fails).
+$flood = Invoke-Soak @('-Clients', '2', '-JunkPps', '100000')
+if ($flood.soak.junk.pps -ne 100000) { $failures += "a junk flood should record its rate: $($flood.soak.junk | ConvertTo-Json -Compress)" }
+if ($flood.soak.junk.packetsSent -le 0) { $failures += "a junk flood should send packets to the server: $($flood.soak.junk.packetsSent)" }
+$degraded = (-not $flood.ok -and $flood.error.code -eq 'soak-failed') -or ($flood.soak.server.metrics.input_loss_pct -gt 5)
+if (-not $degraded) {
+    $failures += "a 100k-pps flood should degrade the server: input loss $($flood.soak.server.metrics.input_loss_pct)%, code $($flood.error.code)"
+}
+
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'soak passes a healthy server and clients, and catches a leak and a crash'
+Write-Host 'soak passes a healthy server and clients, catches a leak and a crash, and a junk flood degrades the server'
 exit 0

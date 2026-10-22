@@ -65,21 +65,33 @@ function Get-ExportPresets([string]$ProjectDir) {
     return @(Get-Content -LiteralPath $file | Where-Object { $_ -match '^name="(.*)"$' } | ForEach-Object { $Matches[1] })
 }
 
-# Platform and export_path of each preset, keyed by preset name.
+# Platform, export_path and the options ([preset.N.options]: variant/thread_support, gradle_build/use_gradle_build, ...)
+# of each preset, keyed by preset name. Option values are the raw text after "=", quotes removed.
 function Get-ExportPresetDetails([string]$ProjectDir) {
     $file = Join-Path $ProjectDir 'export_presets.cfg'
     $details = [ordered]@{}
     if (-not (Test-Path -LiteralPath $file)) { return $details }
+    $byIndex = @{}
     $current = $null
+    $options = $null
     foreach ($line in Get-Content -LiteralPath $file) {
-        if ($line -match '^\[preset\.\d+\]$') { $current = [ordered]@{ Name = ''; Platform = ''; ExportPath = '' } }
-        elseif ($line -match '^\[') { $current = $null }
-        elseif ($current -and $line -match '^(?<key>name|platform|export_path)="(?<value>.*)"$') {
+        if ($line -match '^\[preset\.(\d+)\]$') {
+            $current = [ordered]@{ Name = ''; Platform = ''; ExportPath = ''; Options = @{} }
+            $byIndex[$Matches[1]] = $current
+            $options = $null
+        } elseif ($line -match '^\[preset\.(\d+)\.options\]$') {
+            $current = $null
+            $options = if ($byIndex.ContainsKey($Matches[1])) { $byIndex[$Matches[1]].Options } else { $null }
+        } elseif ($line -match '^\[') {
+            $current = $null; $options = $null
+        } elseif ($current -and $line -match '^(?<key>name|platform|export_path)="(?<value>.*)"$') {
             switch ($Matches.key) {
                 'name' { $current.Name = $Matches.value; $details[$Matches.value] = $current }
                 'platform' { $current.Platform = $Matches.value }
                 'export_path' { $current.ExportPath = $Matches.value }
             }
+        } elseif ($null -ne $options -and $line -match '^(?<key>[^=\s]+)=(?<value>.*)$') {
+            $options[$Matches.key] = $Matches.value.Trim('"')
         }
     }
     return $details
@@ -129,17 +141,20 @@ function Get-ProjectInfo {
         if ($projectGodot -match '(?m)^run/main_scene=') { $selected += 'smoke' }
         # A bot run that checks every gameplay event got its feedback in time, when juice.json says what to expect.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'juice.json')) { $selected += 'juice' }
-        # Translation tables are checked for duplicate, untranslated and missing keys.
+        # Translation tables are checked for duplicate, untranslated, missing and too long keys; translation remaps
+        # (localized voice, textures) for missing files and sounds that differ from their source.
         $translations = Get-TranslationSources $projectDir
-        if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0) { $selected += 'l10n' }
+        if ($translations.Csv.Count -gt 0 -or $translations.Po.Count -gt 0 -or $projectGodot -match '(?m)^locale/translation_remaps=\{[^}]*"') { $selected += 'l10n' }
         # Data tables are checked against data.json: ids, fields, types, ranges and references.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'data.json')) { $selected += 'data' }
         # Text sizes are measured on small screens (the Steam Deck's 1280x800) when textsize.json asks for it.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'textsize.json')) { $selected += 'textsize' }
+        # Screens are laid out on phones, a tablet and an ultrawide monitor when layout.json asks for it.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'layout.json')) { $selected += 'layout' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'l10n', 'data', 'textsize', 'layout'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) { Stop-GodotCi "Unknown runner(s) $($unknown -join ', '); use $($valid -join ', ')" }
 
