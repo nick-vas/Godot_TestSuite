@@ -208,7 +208,9 @@ $script:KnownNoise = @(
     '^\s*ERROR: Parameter "singleton" is null\.$',
     # 4.7.2, with a window and the Dummy audio driver (bench, shot) or Movie Maker (audio -Mix): quitting while a sound
     # plays leaves its stream (an AudioStreamWAV) referenced at shutdown. Any game with music hits it; headless runs do not.
-    '^\s*ERROR: \d+ resources? still in use at exit'
+    '^\s*ERROR: \d+ resources? still in use at exit',
+    # 4.7.2 Android exports of a project without application/config/icon: the build uses Godot's icon. doctor warns.
+    '^\s*ERROR: No project icon specified'
 )
 
 # Godot often exits 0 after printing errors, so builds, exports and smoke runs also scan the log.
