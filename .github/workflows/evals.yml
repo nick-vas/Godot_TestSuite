@@ -72,6 +72,10 @@ jobs:
         env:
           RUNS: ${{ inputs.runs }}
           CASE: ${{ inputs.case }}
+          # Run 6's transcripts: inside Claude Code's sandbox every run's workspace, home and TMPDIR under /tmp were
+          # read-only (touch ./x failed), so Godot could not make its user folder and pwsh could not start. The runs'
+          # folders go on the runner's own temp disk instead.
+          TMPDIR: ${{ runner.temp }}
         run: |
           $caseArgs = if ($env:CASE) { @('--case', $env:CASE) } else { @() }
           New-Item -ItemType Directory -Force evals/results | Out-Null
