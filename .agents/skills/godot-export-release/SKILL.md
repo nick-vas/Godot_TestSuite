@@ -63,13 +63,18 @@ jobs:
     with: { exports: Windows, run-exports: true, release: true }
 ```
 Tests run first; each preset is exported, launched on a runner of its own OS, zipped as
-`<game>-<tag>-<preset>.zip`, and published as a GitHub Release. A non-tag run with `release: true` is a dry run.
-The action caches Godot, export templates, NuGet packages and Godot's import cache.
+`<game>-<tag>-<preset>.zip`, and published as a GitHub Release. A non-tag run with `release: true` is a dry run. A tag
+with a hyphen (`v1.2.0-rc.1`) is published as a pre-release, so it is not shown as the latest. Each job stops after
+`timeout-minutes` (60). The action caches Godot, export templates, NuGet packages and Godot's import cache, and keeps
+them when the tests fail.
 
 ## Signing
 
 Secrets go in Actions secrets of a protected environment, never in the repository, never on a command line that is
 logged; write certificate and keystore files from base64 secrets to a temporary file and delete it in an `always()` step.
+Make the secret with `base64 -w0 release.keystore` (Linux), `base64 -i release.keystore` (macOS) or
+`[Convert]::ToBase64String([IO.File]::ReadAllBytes('release.keystore'))` (PowerShell); decode it once on your own machine
+and compare checksums before trusting it. `doctor` fails when a keystore, certificate or `config.vdf` is committed.
 Godot signs during export when these are set:
 
 | Platform | Godot's environment variables | Notes |
@@ -85,8 +90,17 @@ Upload only the CI build that `export -Run` launched, from a tag or a manual run
 
 - **Steam**: `steamcmd +login <build account> +run_app_build app_build.vdf +quit` (or `game-ci/steam-deploy@v3`). The
   VDF names `AppID`, `ContentRoot`, depots with `FileMapping`; `Preview "1"` is a dry run; `SetLive` takes a beta branch
-  only (Steam never sets the default branch live automatically). Use a build-only account and a saved `config.vdf`
-  instead of a password; errors are in `BuildOutput/*.log`.
+  only (Steam never sets the default branch live automatically). Errors are in `BuildOutput/*.log`.
+  Log in with a separate build account limited to "Edit App Metadata" and "Publish App Changes To Steam". Run
+  `steamcmd +login <account>` once by hand, enter the Steam Guard code, and store the resulting
+  `config/config.vdf` as a base64 secret (GameCI's `steam-deploy` takes it that way). Do it again when Steam emails a
+  new code or a build fails with `License expired`; a TOTP secret instead avoids the repeats. Exclude `*.pdb` and
+  `*.log` from depots. Depot ids follow the app id (app 1000, depots 1001, 1002...).
+- **Google Play**: the first upload of an app is by hand in Play Console, and it must leave "Draft" before an API upload
+  works. Then `fastlane supply --aab game.aab --track internal` with a service account's JSON key as a secret. Raise
+  `version/code` for every upload (Play refuses a code it has seen).
+- **App Store / TestFlight**: an App Store Connect API key (`.p8`, key id, issuer id) avoids two-factor prompts;
+  `fastlane pilot upload`. Apple limits uploads per day, so run it from a manual trigger rather than on every tag.
 - **itch.io**: `butler push build/Windows user/game:windows --userversion 1.2.3 --ignore '*.pdb'` with `BUTLER_API_KEY`;
   `butler push-preview` first shows what would change.
 - **Epic**: `BuildPatchTool -mode=UploadBinary ... -ClientSecretEnvVar=<VAR>` (keeps the secret off the command line),

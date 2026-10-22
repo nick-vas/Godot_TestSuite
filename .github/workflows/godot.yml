@@ -73,6 +73,10 @@ on:
         description: Days to keep test results and exports
         type: number
         default: 14
+      timeout-minutes:
+        description: Longest each job may run before it is cancelled (GitHub's own limit is 6 hours)
+        type: number
+        default: 60
     outputs:
       presets:
         description: JSON array of the presets that were exported
@@ -141,11 +145,16 @@ on:
         description: Days to keep test results and exports
         type: number
         default: 14
+      timeout-minutes:
+        description: Longest each job may run before it is cancelled (GitHub's own limit is 6 hours)
+        type: number
+        default: 60
 
 jobs:
   test:
     name: Test
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
     outputs:
       name: ${{ steps.godot.outputs.name }}
       presets: ${{ steps.exports.outputs.presets }}
@@ -230,6 +239,7 @@ jobs:
     needs: test
     if: needs.test.outputs.targets != '[]'
     runs-on: ${{ matrix.target.os }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
     strategy:
       fail-fast: false
       matrix:
@@ -265,6 +275,7 @@ jobs:
     needs: [test, export]
     if: inputs.release
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
       - uses: actions/checkout@v7
         with:

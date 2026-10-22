@@ -14,6 +14,7 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - name: PSScriptAnalyzer
@@ -29,6 +30,12 @@ jobs:
         run: |
           ./ci/godot/tools/Test-Skills.ps1
           ./tests/Test-SkillFixtures.ps1
+      - name: Every link and quoted path in the docs and skills leads somewhere
+        shell: pwsh
+        run: ./tests/Test-DocLinks.ps1
+      - name: doctor reports LFS pointers, committed keys, Windows-reserved names, case twins and res:// paths in the wrong case
+        shell: pwsh
+        run: ./tests/Test-RepoHygiene.ps1
       - name: Architecture rules catch their fixtures and stay quiet on clean code
         shell: pwsh
         run: ./tests/Test-ArchitectureFixtures.ps1
@@ -159,7 +166,8 @@ jobs:
           done
       - name: actionlint
         run: |
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          # Pinned: an unpinned linter can turn a green branch red overnight.
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
 
   # No inputs at all: detects the shallowest project (examples/gdscript), installs GUT, runs validate,
@@ -195,6 +203,7 @@ jobs:
   # init on a bare game (no tests, no CI), then doctor and a full test run of what it generated.
   init:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - shell: pwsh
@@ -305,6 +314,7 @@ jobs:
   # prove the commands work, not how fast anything is.
   measure:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - name: Virtual display
@@ -400,6 +410,7 @@ jobs:
   # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - name: Playwright's Chromium and Firefox
@@ -422,6 +433,7 @@ jobs:
   # The composite action inside a custom workflow.
   action:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/godot
@@ -432,6 +444,7 @@ jobs:
   # The script on Windows, as on a developer machine: no workflow, no action.
   local-windows:
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - name: GDScript example
