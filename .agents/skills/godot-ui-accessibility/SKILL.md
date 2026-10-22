@@ -22,7 +22,13 @@ Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. 
   InputMap.ActionAddEvent("ui_cancel", new InputEventJoypadButton { ButtonIndex = JoyButton.B });
   ```
 - When a screen opens, `GrabFocus()` on the likely choice. Focus moves in visual order; set `FocusNeighbor*` where a
-  container guesses wrong. Linear menus loop from last to first; grids do not; offer a setting (XAG 112).
+  container guesses wrong. Grids do not loop. A linear menu loops from last to first only with a cue on the wrap, a
+  sound unlike the step sound and a rumble; without one a player who cannot see never knows they are back at the top,
+  so stop at the ends instead (Godot's own navigation does). Offer the setting (XAG 112). A short click on every focus
+  move lets the steps be counted. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/Controls/LinearMenu.cs`
+  (Karen Stevens, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/aaa-gaming-while-blind.md`).
+- The same items in the same order every time: nothing that appears only sometimes (an ad, a promotion, an event mode)
+  shifts what follows and breaks the count of presses a blind player memorised. An unavailable item stays, disabled.
 - A dialog takes focus on its first control and keeps it inside until closed; every submenu has a constant way back.
 - Every popup and sub-menu closes on `ui_cancel` and gives focus back to the control that opened it.
 - The theme's `focus` stylebox is never empty: at least a 2 px outline at 1080p, 3:1 against the unfocused look.
@@ -126,6 +132,55 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   Design at the default size, then check the largest for clipping and scrolling (`godot-ui-layout`).
 - A tested model (defaults, presets, `IsChanged`, reset; it saves only changed values, so a default improved in a patch
   reaches players who never touched it): `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Settings/GameSettings.cs`.
+
+## Narrating the world (blind and low-vision players)
+
+Screen readers read controls, not the world. To describe objects, places and tutorials, speak through `DisplayServer`.
+Tested core: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Access/Narration.cs`; the research:
+`${CLAUDE_PLUGIN_ROOT}/docs/gdc/loud-and-clear-low-vision.md`.
+
+- Turn on Project Settings > Audio > General > Text To Speech (`audio/general/text_to_speech`, off by default). Off,
+  speech starts on the first call, and that line is late or lost (Android waits up to 1 s; Linux can drop it). `doctor`
+  warns about this.
+- On demand only. One assist action speaks what is focused (hovered, aimed at, held) and the same action stops it. Never
+  speak on hover, grab or focus by itself, because it drowns out the game. Use a tap, not a toggle: players forget a
+  toggle is on. Tutorial prompts are the exception and speak when they appear.
+- Focus moving to something else stops a description (`DisplayServer.TtsStop()`) and does not start another.
+- Order: state, name, short description ("hovering, star shades, sunglasses with star-shaped lenses"). The short,
+  always-present parts come first, so players can stop early. Leave out lore and jokes, as web alt text does: players
+  take them for clues, and shorter lines are spoken sooner.
+- Duck music and effects from the tap until the line ends or is cancelled. The dip shows the tap was heard, even while
+  the engine is still generating speech, and the return shows the line is over. Duck other audio; never pause or delay it.
+
+  ```csharp
+  long _line;   // the utterance in progress
+  int _music;
+
+  public override void _Ready()
+  {
+      _music = AudioServer.GetBusIndex("Music");
+      DisplayServer.TtsSetUtteranceCallback(DisplayServer.TtsUtteranceEvent.Ended, Callable.From<long>(Done));
+      DisplayServer.TtsSetUtteranceCallback(DisplayServer.TtsUtteranceEvent.Canceled, Callable.From<long>(Done));
+  }
+
+  void Say(string text)
+  {
+      string[] voices = DisplayServer.TtsGetVoicesForLanguage(TranslationServer.GetLocale().Split('_')[0]);
+      if (voices.Length == 0) return;   // no speech engine: show the text instead
+      _line++;
+      AudioServer.SetBusVolumeDb(_music, -12);   // from the tap, not the first word
+      DisplayServer.TtsSpeak(text, voices[0], utteranceId: _line, interrupt: true);
+  }
+
+  void Done(long id) { if (id == _line) AudioServer.SetBusVolumeDb(_music, 0); }   // a replaced line reports too
+  ```
+- OS speech is not positional, so also play a short cue from an `AudioStreamPlayer3D` (or `2D`) at the object. Its
+  direction and loudness say where the object is.
+- More channels: a short vibration (`Input.StartJoyVibration`) when the cursor enters a new area or the hand reaches
+  something usable; an outline on interactable and important static objects in a colour that contrasts with the scene
+  (the contrast matters more than the hue); named areas placed by hand, announced while aiming and again on arrival.
+- The mode can be turned on without sight, by a gesture or button press that needs no menu, and the game says how at
+  first start.
 
 ## Prove it
 

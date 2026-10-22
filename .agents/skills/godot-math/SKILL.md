@@ -1,6 +1,6 @@
 ---
 name: godot-math
-description: Use when game code works with positions, directions, angles, distances, rotations, bounces, oscillation or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
+description: Use when game code works with positions, directions, angles, distances, rotations, bounces, jump height and gravity, oscillation or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
 ---
 
 # Game math in Godot 4
@@ -85,6 +85,49 @@ at rate 5. `weight = Rate * delta` is only a linear approximation (99.58 at 30 f
 `Rate * delta` exceeds 1; Godot 4.7.2's `Camera2D` position smoothing computes `PositionSmoothingSpeed * delta` that way.
 Each axis or direction may use its own rate: follow vertically only once `IsOnFloor()`, or catch up faster when falling.
 The `architecture` runner warns about a fixed weight in `_Process` (`frame-dependent-lerp`).
+
+## Jumps designed by height and distance
+
+Never pick gravity first and tune a jump speed against it: retuning "floaty" then breaks every gap measured in the levels.
+Design the arc and derive both (Kyle Pittman, "Building a Better Jump", `${CLAUDE_PLUGIN_ROOT}/docs/gdc/building-a-better-jump.md`).
+Tested in `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Platformer/JumpArc.cs`:
+
+| Design (export these) | Launch speed v0 | Gravity g |
+|---|---|---|
+| height h, time to apex t_h | 2h / t_h | 2h / t_h² |
+| height h, distance to apex x_h at foot speed v_x (the fastest in the air) | 2h v_x / x_h | 2h v_x² / x_h² |
+
+256 px in 0.4 s (or 256 px ahead at 640 px/s) is v0 = 1280 px/s, g = 3200 px/s². Of t_h, x_h and v_x pick two.
+- The jump sets only `Velocity.Y` (to -v0: y is down); never reset `Velocity.X`, running speed carries into the air.
+- Pieces, each its own parabola: a heavier fall after the apex (same h, shorter landing distance: `FallGravity`);
+  a variable height launches for the highest jump and, once the button is let go while rising, switches to
+  `ReleaseGravity(minHeight)` = v0² / 2h_min until the apex; a double jump is a new arc with its own v0 and g.
+- `velocity += GetGravity() * delta` before `MoveAndSlide()` is Euler: the apex misses by v0·dt/2 (21.3 px at 30 Hz,
+  10.7 at 60, 4.4 at 144 for the jump above), so the jump changes with the physics rate: low with gravity on the take-off
+  tick, high without (the usual `if (!IsOnFloor())`: 266.7 px in Godot 4.7.2). Move by the tick's average velocity;
+  `JumpGravity.Advance` also splits the tick that passes the apex, so a heavier fall starts exactly there (switching on
+  the next tick put a fourfold fall 16.6 px off). The wiring, input aside, is tested in
+  `examples/breakout/game/test/gdunit4/JumpArcWiringTest.cs`:
+
+```csharp
+public override void _PhysicsProcess(double delta)
+{
+    float dt = (float)delta;
+    bool onFloor = IsOnFloor();
+    bool jumped = _jump.Tick(onFloor, Input.IsActionJustPressed(Jump));   // godot-input's forgiveness
+    var v = Velocity;
+    v.X = Input.GetAxis(Left, Right) * FootSpeed;
+    if (jumped) { v.Y = -(float)_arc.LaunchSpeed; _released = false; }
+    if (v.Y < 0 && !Input.IsActionPressed(Jump)) _released = true;
+    if (onFloor && !jumped) { Velocity = v; MoveAndSlide(); return; }
+    float vy = v.Y;
+    var through = new Vector2(v.X, _gravity.Advance(ref vy, _released, dt) / dt);   // average velocity this tick
+    v.Y = vy;
+    Velocity = through;
+    MoveAndSlide();
+    Velocity = v + (Velocity - through);                  // end velocity, less what a collision took
+}
+```
 
 ## Test it
 

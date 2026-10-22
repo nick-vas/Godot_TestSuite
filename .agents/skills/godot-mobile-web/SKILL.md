@@ -22,10 +22,12 @@ measurements: `${CLAUDE_PLUGIN_ROOT}/docs/mobile-web.md`.
 (1080x2400), a landscape phone, a tablet and a 3440x1440 ultrawide, and fails on controls that are:
 - **off-screen**;
 - **unsafe-area**: under the notch, the status bar or the home indicator;
-- **small-target**: under 48 dp on touch (Android 48 dp, Apple 44 pt), under 24 CSS px with a mouse (WCAG 2.2).
+- **small-target**: under 48 dp on touch (Android 48 dp, Apple 44 pt), under 24 CSS px with a mouse (WCAG 2.2);
+- **small-control**, with `"minControlDp": 75`: on touch profiles, a game control under 75 dp. Game controls are every
+  `TouchScreenButton` (measured from its shape, or its texture) and every Control in the group `touch_control`.
 
 ```json
-{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"],
+{ "scenes": ["res://ui/menu.tscn", "res://ui/hud.tscn"], "minControlDp": 75,
   "profiles": ["phone_portrait", "phone_landscape", "tablet", "ultrawide", "foldable:1812x2176@374:touch:insets=0,96,0,48"] }
 ```
 
@@ -84,8 +86,9 @@ A full-rect `MarginContainer` sets its four `margin_*` theme constants from `Can
   (changelog GH-110893; not tried on a device).
 - `TouchScreenButton` (a Node2D with an `Action`, `PassbyPress`, and shown on touchscreens only) still suits on-screen
   game controls.
-- Virtual stick: write a Control that takes one touch index inside its rectangle and maps the offset to
-  `Input.ActionPress(action, strength)`. Or use MarcoFazioRandom's MIT "Virtual Joystick" add-on (record it in `assets.json`).
+- Virtual stick, if the game needs one: write a Control (in the group `touch_control`) that takes one touch index inside its
+  rectangle and maps the offset to `Input.ActionPress(action, strength)`. Or use MarcoFazioRandom's MIT "Virtual Joystick"
+  add-on (record it in `assets.json`).
 - Android gestures (`InputEventMagnifyGesture`, `InputEventPanGesture`) need `enable_pan_and_scale_gestures`. Turn on
   `emulate_touch_from_mouse` to try touch code with a mouse.
 - Test touch like any input (`godot-input`): `Input.ParseInputEvent(new InputEventScreenTouch { Index = 1, Position = p,
@@ -103,6 +106,18 @@ A full-rect `MarginContainer` sets its four `margin_*` theme constants from `Can
   (`DeadSpots` lists where a thumb's reach finds no pad) and Breakout's `Controls/TouchControls.cs`.
 - Touch targets: 48 dp minimum (above). Xbox's accessibility guidelines ask for 15 mm on phones (`godot-ui-accessibility`).
   `ScreenGetDpi()` on Android is a bucket (160, 240, 320, 480...), so dp is exact and millimetres are approximate.
+
+**Controls the thumb finds without looking** (a GDC talk, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/controls-you-can-feel.md`):
+- A practised player knows what a press did before the screen shows it. Glass gives no such feel, so a control that is
+  only nearly certain fails; on-screen feedback cannot make up for it. A click sound on each press helps.
+- 48 dp is for buttons the player looks at. Buttons pressed blind (move, jump, fire): about 75 dp each, few of them,
+  each on or off. Set `minControlDp` to 75. In-game things the player taps: never under about 40 dp (the runner cannot
+  measure moving objects; test them in a flow).
+- A thumb lands within about 44 points, so a virtual stick, fixed or floating, gives many possible directions: the weak
+  option. Prefer two or three big buttons, a tap on one of a few large choices, or gestures that hint rather than steer.
+- Let the controls change the design: EA's Tetris replaced dragging with a tap on one of four drop spots, and made the
+  thinking happen under time pressure while the input did not.
+- Swipe up, not down (swiping down is uncomfortable); avoid moves of a few points (10-point Tetris columns).
 
 ## 4. Battery, heat and the app lifecycle
 
@@ -171,7 +186,8 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
 ## 8. Done means
 
 - [ ] `layout` passes on every profile the game ships for, with the real notch insets
-- [ ] two-finger input tested (`ParseInputEvent` with two indices); every on-screen control is at least 48 dp
+- [ ] two-finger input tested (`ParseInputEvent` with two indices); every on-screen control is at least 48 dp, and
+  game controls pressed without looking at least 75 dp (`minControlDp`)
 - [ ] on-screen game controls: no dead spot under a thumb, sliding between pads, everything released on pause
 - [ ] the game saves on pause and resumes cleanly; the frame rate is capped where it can be
 - [ ] Android: `doctor` clean; an AAB signed; target API 36

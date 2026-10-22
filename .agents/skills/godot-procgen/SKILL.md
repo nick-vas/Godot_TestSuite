@@ -147,6 +147,13 @@ Generate data first (a grid, a graph, a list), with no nodes; build the scene fr
 - **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within
   `Stats.BinomialTolerance(p, rolls, groups: n)` (Breakout's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
   30% chance, failing a correct generator once in 1,000; more rolls to catch smaller errors (four times the rolls, half the tolerance).
+- **Map the expressive range**: pressing generate a few times shows a few levels (in Breakout's test, the kinds ten seeds
+  showed held 45% of 2,000 levels). Pick two soft goals from the GDD (leniency, linearity, path length, enemy density), give
+  each a fixed range, and map 1,000+ seeds with `ExpressiveRange.Map` (Breakout's `Procgen/ExpressiveRange.cs`): a 2D
+  histogram. Write `ToCsv()` next to the test results for a heat map, log `Summary()`, and assert the occupied share and
+  fullest-bin share as a baseline. When parameters change, compare maps (`Overlap`, `Unreached`), not means: the same chances
+  on every segment put 31% of levels in one bin with the means almost unchanged; rolling each level's own danger and
+  roughness first spread them over 36% of the bins.
 - **One vocabulary**: placement labels (usage, tier, category) are declared once; a test loads every item and place
   (`DirAccess.GetFilesAt`, `ResourceLoader.Load<T>`) and fails on a label that is not declared.
 - **A pinned seed**: one seed's fingerprint is written into a test, so an unintended change to the generator shows up. When the

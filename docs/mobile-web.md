@@ -18,6 +18,7 @@ and inspected here; nothing ran on a phone (no device, and no KVM for an emulato
 | [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) (MIT) | The other way to get cross-origin isolation on hosts without headers |
 | [Virtual Joystick for Godot 4](https://github.com/MarcoFazioRandom/Virtual-Joystick-Godot) (MIT) | An on-screen stick add-on |
 | "Controlling Carnage: Effective Side-Scroller Controls on Mobile" (Roadhouse Interactive, GDC; [notes](gdc/controlling-carnage.md)) | Hit pads larger than the drawn buttons, no dead spot under a thumb, sliding between pads, the largest pad for jump, fading art, a tighter layout under 7 inches; Breakout's `Controls/TouchPads.cs` and `TouchControls.cs` |
+| Zach Gage, "Controls You Can Feel" (GDC talk on touch controls; [notes](gdc/controls-you-can-feel.md)) | 75 x 75 pt for buttons pressed without looking (Super Crate Box), 44 pt for buttons looked at, nothing under 40 pt; sticks as the weak option; swipe up, not down. The `small-control` check (`minControlDp`) and the skill's thumb-control rules |
 
 ## Measured here
 
@@ -43,6 +44,7 @@ and inspected here; nothing ran on a phone (no device, and no KVM for an emulato
 | C# Android, Gradle AAB, net8.0 | 39 MB, no `.a` files, signed; 34 s with a warm Gradle cache (the first Gradle build hit HTTP 429 from Maven Central once) |
 | Godot headless | exit 134 (abort) after finished exports or imports, 4 times in 23 runs: `Parameter "singleton" is null` at shutdown |
 | `layout` runner, headless and with a display | identical output; 0.4 s for a menu |
+| `TouchScreenButton` in 4.7.2 | a `Node2D` (`ClassDB.get_parent_class`), so the runner measures it apart from Controls. Touches hit its shape, centred on the texture when `shape_centered` is on and there is a texture, around the node's origin when there is none; without a shape, the texture's rectangle (checked with `InputEventScreenTouch` at points inside and outside) |
 
 ## C# safe area
 

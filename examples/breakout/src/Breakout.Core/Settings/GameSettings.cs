@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Breakout.Core.Controls;
 
 namespace Breakout.Core.Settings;
 
@@ -173,6 +174,9 @@ public static class BreakoutSettings
         new("monoAudio", false, new[] { Audio }),
         new("soundCaptions", false, new[] { Audio }),
         new("screenShake", 1.0, new[] { Gameplay }),
+        // Read through HapticSettings.From: off, important only or all, and a strength from 0 to 1 (XAG 110).
+        new(HapticSettings.LevelKey, "all", new[] { Gameplay, Accessibility }, HapticSettings.Levels),
+        new(HapticSettings.StrengthKey, 1.0, new[] { Gameplay, Accessibility }),
         // Listed on both pages, like Ragnarok's auto pickup: players look for it in either.
         new("gameSpeed", 1.0, new[] { Gameplay, Accessibility }),
         new("paddleAssist", false, new[] { Gameplay, Accessibility }),
