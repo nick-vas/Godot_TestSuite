@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Google for Games' open source (Agones, Open Match, Quilkin, Open Saves, clean-chat, the GenAI demos; Apache-2.0;
+  `docs/googleforgames.md`), without their Google Cloud setup: `godot-servers` and `godot-llm` skills; Breakout.Core
+  gains a server lifecycle with a health watchdog, Agones' HTTP SDK, join tokens for Godot's authentication step, a
+  matchmaker, a rate limiter and chat moderation. `soak` stops the server with SIGTERM at the end and reports
+  `soak.stop` (headless Godot dies at once with 143 unless the game handles it; C# can); `-RequireCleanStop` fails
+  `soak-unclean-stop`, and `-StopGraceSeconds` sets the wait.
 - CI, from GameCI's documentation: the action's cache keys name the Godot build (.NET or standard) so a repository with
   both no longer restores the wrong one, the import cache's key covers the source assets (a `.import` file does not
   change when its picture does), and Godot, its templates and the import cache are saved when the tests fail too.

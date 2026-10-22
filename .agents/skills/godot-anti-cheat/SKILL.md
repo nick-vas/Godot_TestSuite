@@ -86,6 +86,7 @@ leaks they stay vulnerable (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/denial-of-service-mi
 - Measured here: flooding a Godot 4.7.2 ENet server's port on loopback with junk UDP (`soak -JunkPps`) has no effect up
   to ~10,000 packets a second, then collapses by ~50,000 (input loss ~38-57%, round trips into the seconds, dropped
   clients). Well-written transports cope to ~250,000; Godot's single-threaded ENet poll sits well below that.
+  Nothing in Godot runs before ENet: filtering, join tokens and per-address limits are in `godot-servers`.
 
 ## 7. Evidence and bans
 

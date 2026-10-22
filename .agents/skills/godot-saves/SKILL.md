@@ -98,6 +98,10 @@ Decide in the game, the way git fast-forwards:
 - A conflict shows both sides with what players recognise: device, play time, progress (chapter, level, %), save time,
   and a thumbnail if cheap. Buttons "Keep this device" and "Keep cloud", focus on neither, and the loser copied to a
   spare slot, never discarded.
+- A save service of your own (Open Saves' lessons): reject a write whose token from the last read no longer matches,
+  instead of letting the later write win; raise a best score with compare-and-swap-greater on the server, never
+  read-change-write from two devices; keep a few small queryable fields (slot name, level, play time) apart from the
+  save itself, so a slot list loads without the saves.
 - Steam Auto-Cloud: match only the save files (`*.json`, not `*.tmp`, `*.corrupt-*`), with root "All OSes". On Steam
   Deck, Dynamic Cloud Sync uploads at suspend: wrap a multi-file save in `BeginFileWriteBatch`/`EndFileWriteBatch` and
   handle `RemoteStorageLocalFileChange_t` (via GodotSteam or Steamworks.NET).

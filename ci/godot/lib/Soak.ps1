@@ -76,7 +76,8 @@ function Get-GrowthMbPerHour($Samples) {
 }
 
 function Invoke-Soak {
-    param($Info, [int]$Clients, [double]$Seconds, [double]$Warmup, [string]$ResultsDir, [string[]]$GameArgs, [double]$MaxGrowthMbPerHour, [int]$JunkPps)
+    param($Info, [int]$Clients, [double]$Seconds, [double]$Warmup, [string]$ResultsDir, [string[]]$GameArgs, [double]$MaxGrowthMbPerHour, [int]$JunkPps,
+        [double]$StopGraceSeconds = 30, [switch]$RequireCleanStop)
     if ($Clients -lt 1) { Stop-GodotCi '-Clients must be 1 or more' 'invalid-arguments' }
     if ($JunkPps -lt 0) { Stop-GodotCi '-JunkPps must be 0 or more' 'invalid-arguments' }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
@@ -84,6 +85,7 @@ function Invoke-Soak {
     $extra = @(Split-GameArgs $GameArgs)
     $procs = [System.Collections.Generic.List[object]]::new()
     $flood = $null
+    $stop = $null
     $sampleEvery = [Math]::Max(1.0, [Math]::Min(30.0, $Seconds / 20))
 
     Start-LogGroup "Soak: 1 server and $Clients client(s) for $Seconds s (port $port)$(if ($JunkPps) { ", junk flood $JunkPps pps" })"
@@ -124,10 +126,28 @@ function Invoke-Soak {
         }
         $exited = @{}
         foreach ($p in $procs) { if ($p.Process.HasExited) { $exited[$p.Name] = $p.Process.ExitCode } }
-        # Clients first, so the server does not report them as lost; then the server.
-        foreach ($p in @($procs | Select-Object -Skip 1) + @($procs | Select-Object -First 1)) {
+        # Clients first, so the server does not report them as lost.
+        foreach ($p in @($procs | Select-Object -Skip 1)) {
             if (-not $p.Process.HasExited) { try { $p.Process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'already gone' } }
             $p.Process.WaitForExit(5000) | Out-Null
+        }
+        # Then the server, the way a host stops it: SIGTERM, and a grace period before the kill. Godot has no handler of
+        # its own, so without one in the game (C#'s PosixSignalRegistration) it dies at once, mid-match, with 143.
+        $server = $procs[0].Process
+        if (-not $server.HasExited -and -not $IsWindows) {
+            $clock = [System.Diagnostics.Stopwatch]::StartNew()
+            & kill -s TERM $server.Id 2>$null
+            $quit = $server.WaitForExit([int]($StopGraceSeconds * 1000))
+            if (-not $quit) { try { $server.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'already gone' }; $server.WaitForExit(5000) | Out-Null }
+            $stop = [ordered]@{
+                signal = 'SIGTERM'; graceSeconds = $StopGraceSeconds
+                exitCode = $quit ? $server.ExitCode : $null
+                seconds = $quit ? [Math]::Round($clock.Elapsed.TotalSeconds, 2) : $null
+                clean = $quit -and $server.ExitCode -eq 0
+            }
+        } elseif (-not $server.HasExited) {
+            try { $server.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'already gone' }   # Windows: no SIGTERM to send
+            $server.WaitForExit(5000) | Out-Null
         }
         Stop-LogGroup
     }
@@ -172,6 +192,11 @@ function Invoke-Soak {
         }
         processes = $report
     }
+    $summary['stop'] = $stop
+    if ($stop -and -not $stop.clean) {
+        $how = if ($null -eq $stop.exitCode) { "it was still running after $StopGraceSeconds s and was killed" } elseif ($stop.exitCode -eq 143) { 'it died at once with 143, so the game has no handler' } else { "it exited with $($stop.exitCode)" }
+        Write-CiLog "The server did not stop cleanly on SIGTERM: $how. A deploy or scale-down would end its matches mid-play and lose what was not saved; godot-servers shows the handler."
+    }
     if ($JunkPps -gt 0) {
         $sent = if ($flood -and (Test-Path -LiteralPath $flood.CountFile)) { [long](Get-Content -LiteralPath $flood.CountFile -Raw).Trim() } else { 0 }
         $summary['junk'] = [ordered]@{ pps = $JunkPps; packetsSent = $sent }
@@ -187,6 +212,9 @@ function Invoke-Soak {
     # engineErrors[] (and the error keys in the history line) when a process crashed as much as when it only logged errors.
     if ($errorDetails) { Set-EngineErrors $errorDetails }
     if ($problems) { Stop-GodotCi "Soak failed: $(($problems | Select-Object -First 10) -join '; ')" 'soak-failed' }
+    if ($RequireCleanStop -and $stop -and -not $stop.clean) {
+        Stop-GodotCi "The server did not quit with 0 within $StopGraceSeconds s of SIGTERM (exit code $($stop.exitCode))" 'soak-unclean-stop'
+    }
     if ($errors) {
         Stop-GodotCi "Soak: $($errors.Count) engine error(s), first: $($errors[0])" 'engine-errors'
     }
