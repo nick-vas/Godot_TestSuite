@@ -16,7 +16,8 @@
 | `-Preset` | every preset | `export`: which presets |
 | `-Run` | off | `export`: launch builds this machine can run; Web builds open in a browser (a debug export of the preset, served on 127.0.0.1, with cross-origin isolation headers only for a threads build) |
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `GODOT_CI_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `GODOT_CI_WEB_HEADED=1` opens a browser window instead of running headless |
-| `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
+| `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
+| `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
@@ -67,9 +68,40 @@
 | `exports` | none | `all`, or a comma list of preset names |
 | `run-exports` | `false` | Launch each export on a runner of its own OS |
 | `release` | `false` | Publish exports as a GitHub Release on tags (needs `contents: write`); exports of a tag carry its version (`-GameVersion`) |
-| `runs-on` | `ubuntu-latest` | `windows-latest` also works |
-| `lfs`, `submodules`, `retention-days` | | Checkout options and artifact retention |
+| `runs-on` | `ubuntu-latest` | `windows-latest` also works. iOS presets always export on `macos-latest` |
+| `lfs` | `false` | Pull Git LFS files; the action keeps `.git/lfs` in the Actions cache (keyed on `git lfs ls-files -l`), so only new objects are downloaded |
+| `submodules`, `retention-days` | | Checkout option and artifact retention |
 | `timeout-minutes` | `60` | Longest each job may run before GitHub cancels it (its own limit is 6 hours) |
+| `game-version` | | Exports' version on runs that are not for a tag (tag runs use the tag): `1.2.3`, or `auto` (`-GameVersion auto`; the export jobs then fetch the whole history) |
+| `environment` | none | GitHub environment of the export jobs: its protection rules apply (required reviewers, tags only), and its secrets of the names below are used |
+
+**Workflow secrets** (`godot.yml`), all optional, for signing during the export. Pass them by name or with
+`secrets: inherit`, or keep them in the `environment`. Files are base64 (`base64 -w0 release.keystore`): the workflow
+decodes them into the runner's temporary folder, puts the path in Godot's variable, and deletes them at the end of the job;
+no secret is printed.
+
+| Secret | Godot's variable |
+|---|---|
+| `GODOT_ANDROID_KEYSTORE_RELEASE_BASE64` | `GODOT_ANDROID_KEYSTORE_RELEASE_PATH` (the file) |
+| `GODOT_ANDROID_KEYSTORE_RELEASE_USER`, `GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD` | The same names (keystore and key password must be the same) |
+| `GODOT_WINDOWS_CODESIGN_CERTIFICATE_BASE64` | `GODOT_WINDOWS_CODESIGN_IDENTITY` (the `.pfx` file), with `GODOT_WINDOWS_CODESIGN_IDENTITY_TYPE=1` |
+| `GODOT_WINDOWS_CODESIGN_PASSWORD` | The same name |
+| `GODOT_MACOS_CODESIGN_CERTIFICATE_BASE64` | `GODOT_MACOS_CODESIGN_CERTIFICATE_FILE` (the `.p12` file) |
+| `GODOT_MACOS_CODESIGN_CERTIFICATE_PASSWORD` | The same name |
+| `GODOT_MACOS_NOTARIZATION_API_KEY_BASE64` | `GODOT_MACOS_NOTARIZATION_API_KEY` (the `.p8` file) |
+| `GODOT_MACOS_NOTARIZATION_API_KEY_ID`, `GODOT_MACOS_NOTARIZATION_API_UUID` | The same names |
+
+The preset still decides whether to sign (`codesign/enable` and the like); a variable that is set takes the place of the
+preset's value, so the credentials stay out of `export_credentials.cfg`.
+
+```yaml
+jobs:
+  godot:
+    permissions: { contents: write }
+    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
+    with: { exports: all, release: true, environment: release }
+    secrets: inherit
+```
 
 **Your own workflow:** the composite action runs one command with setup and caching, then uploads the
 results or the build.
@@ -80,6 +112,16 @@ results or the build.
           preset: Windows
       - run: echo "upload the Windows build to itch.io, Steam, ..."
 ```
+Its inputs are the workflow's (`command`, `preset`, `run-exports`, `game-version`, `lfs`, ...). Besides `presets`,
+`preset-platforms`, `name`, `results` and `results-artifact`, an `export` sets the outputs `build-path` (the folder with
+one subfolder per preset) and, with `game-version`, `version` (`1.2.3-rc.1`, `1.2.3+4.gabc1234`) and
+`android-version-code`. For `game-version: auto`, check out with `fetch-depth: 0`; for `lfs: true`, with `lfs: false`
+(the action pulls, from its cache first). Android exports keep `~/.gradle/caches` and `~/.gradle/wrapper` in the cache
+when Godot's Gradle build used them.
+
+**Runners:** GitHub's Linux, Windows and macOS runners; `setup` downloads the macOS build of Godot (universal, `Godot.app`
+or `Godot_mono.app`) on macOS, so macOS and iOS presets can export there. Your own machines:
+[self-hosted-runners.md](self-hosted-runners.md).
 
 **Cost:** jobs run in the repository that calls the workflow. They're free on public repositories; on private
 ones they use your Actions minutes, and Linux runners are the cheapest (Windows minutes count about 2×).
