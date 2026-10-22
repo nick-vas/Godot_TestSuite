@@ -38,7 +38,7 @@ Master  <- a hard limiter, the last thing before the speakers
 - Shared effects are return buses: one `Reverb` bus that the world's sounds send to, not a reverb on every player.
 - A "snapshot" (a whole mix state: paused, cinematic, underwater) is a set of bus volumes and enabled effects, applied
   together and faded with a `Tween`. Keep them in one place, so states never fight over a bus.
-- A bus name that does not exist falls back to Master at run time, silently: test the names (section 7).
+- A bus name that does not exist falls back to Master at run time, silently: test the names (section 8).
 
 ## 2. Adaptive music
 
@@ -117,7 +117,32 @@ The most important sound must always be heard: dialogue over music, UI over ambi
 - Cinematic: lower Ambience and SFX together as one snapshot.
 - Master ends with an `AudioEffectHardLimiter` (`CeilingDb = -1`): it catches stacked peaks, it does not fix a loud mix.
 
-## 6. Loudness: the numbers
+## 6. Sounds for the player's own actions
+
+A sound designer's rules from a GDC talk on game feel (Joonas Turner; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/game-feel-with-sound.md`).
+They are his practice, not a standard: if a longer or slower sound feels better in play, keep it.
+
+- **Start on the hit.** A build-up before the hit makes a press feel like it moved a character; an instant start makes it
+  feel like the player did it. A slow start is a tool for weight (an over-encumbered jump), not a default. Trim leading
+  silence and fades from the file, and play it on the frame of the input (`godot-juice`).
+- **Short first.** A long jump or door sound tires the player within a few repeats. Start short; keep a longer take only
+  when it plays better.
+- **One impact layer per game.** A tiny transient (he uses 5 to 20 ms) at the very start of every action sound. Its level
+  sets each sound's punch, and it can carry the low end, so the body stays lean and twenty shotguns at once stay tight
+  instead of muddy. Enemies may get a different one.
+- **Layers that belong together.** Record each family (actions, voices, enemies) with one fixed microphone and preamp,
+  and run every finished sound through one master chain (the same limiter and saturation). Godot imports files with no
+  DAW master bus in between: put that chain on every export.
+- **Duck under the player's actions, slightly.** Not only under dialogue: dip the other buses a little when the player
+  fires, jumps or presses UI, more for a rocket launcher than a pistol, optionally with a filter, through the snapshot
+  code in section 5. Try this before changing the mix balance.
+- **Cut what costs feel.** Any ducking, reverb or occlusion system that adds input lag, or stops feeling good, goes.
+- **Cues instead of HUD reads** in action: a shout or a metal clank when the ammo runs out.
+- The `audio` command reports each file's `onsetMs` (when it comes within 10 dB of its loudest 10 ms) and warns when a
+  `sfx` or `ui` file takes more than 20 ms. The 20 ms is the kit's choice, not the talk's; `-MaxOnsetMs` changes it for a
+  game that wants slower attacks. The `juice` runner's `withinMs` ends at `Play()`: the onset comes on top.
+
+## 7. Loudness: the numbers
 
 Sony's ASWG-R001 (also the industry's IESD guidance for consoles), measured as the whole game's mix, not per asset:
 
@@ -132,20 +157,24 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Mix -Seconds 120 -GameAr
 ```
 
 - `audio` measures each file (category from its folder: `music/`, `voice/`, `ambience/`, `ui/`, else effects) and warns
-  about files that peak over -1 dBTP or voice and music files more than 3 LU from the others. It needs ffmpeg.
+  about files that peak over -1 dBTP, voice and music files more than 3 LU from the others, and action sounds that start
+  late (section 6). It needs ffmpeg.
 - `audio -Mix` records what the game sends to the speakers with Movie Maker (a display is needed; `--fixed-fps 60`) and fails
   with `audio-off-target`, `audio-clipping` or `audio-silent`. `-TargetLufs -18` for handhelds. ASWG asks for at least 30
   minutes of representative play; a two-minute bot run is a check, not a certificate.
+- Listen at a very low volume too: what still sticks out is too loud, what disappears is too quiet (a tip from the
+  "How to Make Things Pop" GDC talk, in the same doc). It is a check by ear, not a substitute for the meter.
 - Fix a loud or quiet mix with bus volumes, not by re-exporting files. A mono file played centred measures about 3 LU
   louder in the stereo mix than on its own.
 - Web exports play audio as samples by default: bus effects (ducking compressor, low-pass, limiter), reverb and doppler do
   not run there. Set the player's `PlaybackType` to `Stream` where they matter, and listen in a browser.
 
-## 7. Prove it
+## 8. Prove it
 
 - [ ] `doctor` lists no missing bus and the `architecture` runner no `audio-on-master` warning
 - [ ] a test sets every bus name the code uses and checks `AudioServer.GetBusIndex(name) >= 0`, and that muting Music
       leaves Voice unmuted (`godot-test-loop`, in a test that runs inside Godot)
 - [ ] the ducking and snapshot code is plain C# that returns target volumes per bus, unit-tested without the engine
 - [ ] `audio -Json` has no warnings you have not decided to keep, and `audio -Mix` passes on a bot run (`godot-automation-hooks`)
+- [ ] every `sfx` and `ui` file's `onsetMs` is within `onsetMaxMs`, or the slow start is a decision written in the GDD
 - [ ] the `juice` runner pairs each hit, pickup and death with its sound (`godot-juice`)

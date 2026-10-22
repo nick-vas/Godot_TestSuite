@@ -54,6 +54,7 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
 | Terrain, caves, height, biome blends | noise | Godot's `FastNoiseLite` (`Seed`, `Frequency`, `GetNoise2D`) |
 | Cave systems | cellular automata: random fill, then a few smoothing passes | a dozen lines; no library |
 | Rooms and corridors | binary space partition, or place rooms and join them with a spanning tree | a few dozen lines |
+| Levels assembled from hand-made rooms | a grid maze grown room by room, each cell filled by a module | below (Eldritch) |
 | Tile maps that follow adjacency rules learned from a sample | Wave Function Collapse | Maxim Gumin's [WaveFunctionCollapse](https://github.com/mxgmn/WaveFunctionCollapse) (C#, MIT); the [Fast WFC](https://godotengine.org/asset-library/asset/4149) add-on (MIT, built for Godot 4.4) wraps a C++ port |
 | Dungeons, mazes, towns from rewrite rules | MarkovJunior | Maxim Gumin's [MarkovJunior](https://github.com/mxgmn/MarkovJunior) (C#, MIT) |
 | Names, item descriptions, barks, quest blurbs | text grammars | Kate Compton's [Tracery](https://github.com/galaxykate/tracery) (Apache 2.0) grammars, expanded by the seeded expander below |
@@ -94,6 +95,33 @@ public static string Expand(RandomNumberGenerator rng, Dictionary<string, string
 }
 ```
 
+## Mazes of hand-made rooms
+
+Eldritch's recipe (one developer, about two weeks of tech and two of building levels): an abstract 3D maze, one hand-built
+module per cell, then spawns. The tested version is `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Procgen/`
+(`Maze.cs`, `ModuleKit.cs`, `Placement.cs`, plain .NET) with `examples/breakout/tests/Breakout.Core.Tests/ProcgenMazeTests.cs`.
+
+- **Grow, then tune with three knobs.** Prim's algorithm: every room closed; open one; repeatedly pick an open room and
+  open a wall into a closed neighbour. Growing from the newest room (`NewestPercent`) gives long twisty corridors, from any
+  open room many junctions (6x6x3 mazes: corridor runs of 4.3 rooms against 1.8, 16 dead ends against 34). Ground first
+  (`GroundFirst`): climbing rooms play worst, so a level fills before the maze goes up or down. Knocking out random walls
+  afterwards (`KnockOutPercent`) adds loops, sight lines and courtyards, and changes a level more than the other two.
+- **Prescribe set pieces; never search for a spot.** A shop needs a dead end, and with every wall knocked out no maze had
+  one. Open the set piece and the neighbours its exits lead to before growth, lock its walls, and grow from them (all
+  clusters must join one maze: growing from several roots at once leaves disconnected parts).
+- **One module per rotation class.** Six exits make 64 shapes; turning about the vertical axis leaves 24 (6 side patterns
+  times 4 up/down). Mirroring adds variety players notice but no fewer classes, and mirrored text reads backwards. Each
+  module keeps the same safe region open on every face it connects through, so any two modules join.
+- **Size the kit with a census.** Generate 10,000 mazes and count each class per maze (`Census`); author variants in
+  proportion (31 L rooms per maze: about 31 L variants; 3 crosses: 3). `Missing` lists classes no module fits; `Unused` lists
+  modules that can never be placed (with ground-first, a bare shaft with no side exits never occurs).
+- **Themes without a kit each.** Tag every module with a theme; each level elects one, uses its modules where it has one for
+  the room and any theme elsewhere.
+- **Place by topology.** Loot only in dead ends, which are never on the way anywhere, so a detour always pays; traps in
+  two-exit rooms (nothing to choose there) and in dead ends to guard the loot; enemies at junctions, where they can be
+  avoided. Then cap each group (a dozen enemies early, two dozen late) and drop spawners within a few rooms of the start
+  (`ResolveGroup`).
+
 ## Valid, then fun
 
 Generate data first (a grid, a graph, a list), with no nodes; build the scene from the data after. Then check the data:
@@ -114,7 +142,11 @@ Generate data first (a grid, a graph, a list), with no nodes; build the scene fr
 - **Same seed, same output**: generate twice and compare a fingerprint of the data (e.g. `GD.Hash` of the tile array).
 - **Every seed valid**: a test runs the generator for seeds 1 to 1000 (it is pure data, so this takes moments) and asserts the
   hard rules for each, naming the first failing seed.
-- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within a tolerance.
+- **Every piece can appear**: furnish a seed sweep and count each hand-made module or chunk; one placed 0 times is
+  over-constrained by its rules or cannot occur, and is work no player sees (XCOM 2). The census flags it before it is built.
+- **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within
+  `Stats.BinomialTolerance(p, rolls, groups: n)` (Breakout's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
+  30% chance, failing a correct generator once in 1,000; more rolls to catch smaller errors (four times the rolls, half the tolerance).
 - **One vocabulary**: placement labels (usage, tier, category) are declared once; a test loads every item and place
   (`DirAccess.GetFilesAt`, `ResourceLoader.Load<T>`) and fails on a label that is not declared.
 - **A pinned seed**: one seed's fingerprint is written into a test, so an unintended change to the generator shows up. When the
