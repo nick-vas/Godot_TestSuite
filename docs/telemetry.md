@@ -41,3 +41,4 @@ engineering research, not legal advice.
 ## Comparing versions
 
 - Which test to run on these events, and why: [Three Statistical Tests Every Game Developer Should Know](gdc/three-statistical-tests.md).
+- Which runs to compare an upgrade's win rate with, and why per-run averages mislead: [Slay the Spire: Metrics Driven Design and Balance](gdc/slay-the-spire-metrics-driven-balance.md).

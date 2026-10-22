@@ -29,6 +29,15 @@ claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and lo
 - **Server queue.** The server applies each client's inputs one per tick, in order, waits a few ticks for a missing
   one, and works a backlog down two a tick. Applying them as they arrive loses inputs to reordering and moves other
   players unevenly (both happened in Breakout's tests before the queue).
+- **Or never wait (Overwatch: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/overwatch-gameplay-architecture-netcode.md`).** Fixed
+  16 ms command frames (7 ms in tournament play), the client half a round trip plus one frame ahead. A starved server
+  applies the last input again (`Server.RepeatWhenStarved`) and the client corrects a wrong guess; told the server ran
+  dry, the client steps a few percent faster until inputs wait there, then slower (time dilation,
+  `Client.MaxDilation`; the talk gives no figure, 2 to 5% measured best). Each packet carries every unacknowledged
+  input, capped (`Client.MaxWindow`). At 250 ms through bursts of loss: 211 repeated inputs instead of 3,441 at a fixed
+  rate, and no player frozen where the waiting server froze them 930 times. Above about 220 ms, stop predicting hit
+  effects and cap the rewind (`Server.MaxRewindMs`); favour the shooter unless the victim's defence started first on
+  the server; quantise positions (Overwatch: 1/1024 m), since most hit mispredictions were position mismatches.
 - **Prediction and reconciliation.** The client applies its input at once; a snapshot says the last input the server
   applied; the client takes the server's state, drops confirmed inputs and replays the rest. With the same code on
   both sides, the correction is exactly 0.

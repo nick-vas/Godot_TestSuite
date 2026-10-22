@@ -2,7 +2,9 @@
 # Self-test of the layout runner on tests/layout-fixture: a menu designed at 1280x720 with its top bar in the notch,
 # 32 px buttons and a label placed off screen fails on phones and the tablet; the same menu inside the game's SafeArea
 # with touch-sized buttons passes everywhere (the runner hands the profile's insets to the SafeArea autoload). A mouse
-# profile (ultrawide) judges targets in CSS pixels, not dp. Needs Godot (GODOT_BIN, or the kit installs it).
+# profile (ultrawide) judges targets in CSS pixels, not dp. A game HUD of TouchScreenButtons (Node2D, not Control) and a
+# stick Control in the group "touch_control" is measured too: at 40 and 60 dp it fails minControlDp 75 on a portrait
+# phone, resized past 80 dp it passes. Needs Godot (GODOT_BIN, or the kit installs it).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -32,7 +34,7 @@ function Get-Messages($Result, [string]$ProfileName) {
 $fixture = Join-Path $PSScriptRoot 'layout-fixture'
 $r = Invoke-Layout $fixture
 Assert-True (-not $r.Ok) 'a menu that does not fit a phone fails the run'
-Assert-True ($r.Reported.Count -gt 0 -and $r.Reported[0].message -match '^(off-screen|unsafe-area|small-target): ') 'the JSON names each problem in its message'
+Assert-True ($r.Reported.Count -gt 0 -and $r.Reported[0].message -match '^(off-screen|unsafe-area|small-target|small-control): ') 'the JSON names each problem in its message'
 $portrait = Get-Messages $r 'phone_portrait'
 Assert-True ($portrait -match 'menu\.tscn TopBar/Pause: unsafe-area') "a top bar under the notch is reported: $portrait"
 Assert-True ($portrait -match 'menu\.tscn Safe/Bottom/Play: small-target: 21 dp') 'a 64 px button of a landscape design is 21 dp on a portrait phone'
@@ -41,7 +43,16 @@ Assert-True ((Get-Messages $r 'tablet') -match 'TopBar/Pause: .*small-target: 31
 Assert-True (@($r.Failures | Where-Object { $_.name -like 'layout.foldable *' }).Count -gt 0) 'a custom profile with its own insets is laid out'
 $ultrawide = Get-Messages $r 'ultrawide'
 Assert-True ($ultrawide -notmatch 'small-target' -and $ultrawide -match 'Hint: off-screen') 'on a mouse profile 32 px buttons are big enough; off-screen still counts'
-Assert-True (@($r.Failures | Where-Object { $_.message -match 'good\.tscn' }).Count -eq 0) 'the menu inside the SafeArea with touch-sized buttons passes on every profile (scrolled content is not off screen)'
+Assert-True (@($r.Failures | Where-Object { $_.name -match ' res://ui/good\.tscn ' }).Count -eq 0) 'the menu inside the SafeArea with touch-sized buttons passes on every profile (scrolled content is not off screen)'
+
+# On-screen game controls: TouchScreenButton is a Node2D, measured from its shape or texture through its transform.
+Assert-True ($portrait -match 'hud\.tscn Jump: small-target: 40 dp .*; small-control: 40 dp .*under 75 dp') "a 40 dp TouchScreenButton is under both minimums"
+Assert-True ($portrait -match 'hud\.tscn Stick: small-control: 60 dp') 'a 60 dp Control in the group touch_control is under minControlDp'
+Assert-True ($portrait -match 'hud\.tscn Pause: unsafe-area: \(\d+,84 ') 'a TouchScreenButton in the notch is placed through its transform (y 100 in a 1280x720 design is 84 px)'
+$landscape = Get-Messages $r 'phone_landscape'
+Assert-True ($landscape -match 'hud\.tscn Jump: small-control: 71 dp' -and $landscape -notmatch 'hud\.tscn Jump: small-target') "the same button is 71 dp on a landscape phone: big enough to look at, too small for a thumb"
+Assert-True ($ultrawide -notmatch 'hud\.tscn') 'with a mouse: no small-control, and a touch-only TouchScreenButton is not shown'
+Assert-True (@($r.Failures | Where-Object { $_.name -match 'hud_good\.tscn' }).Count -eq 0) 'the HUD with 80 dp thumb controls passes on every profile'
 Assert-True (@($r.Failures | Where-Object name -eq 'layout.run').Count -eq 0 -and @($r.Failures | Where-Object name -eq 'layout.ultrawide').Count -eq 0) 'the run itself is clean'
 
 # Only the checks a project asks for.
@@ -51,6 +62,10 @@ Set-Content -LiteralPath (Join-Path $copy 'layout.json') -Value '{ "scenes": ["r
 $offOnly = Invoke-Layout $copy
 $messages = Get-Messages $offOnly 'phone_portrait'
 Assert-True ($messages -match 'Hint: off-screen' -and $messages -notmatch 'unsafe-area|small-target') "checks limits what is reported: $messages"
+
+Set-Content -LiteralPath (Join-Path $copy 'layout.json') -Value '{ "scenes": ["res://ui/hud.tscn"], "profiles": ["phone_portrait"] }'
+$messages = Get-Messages (Invoke-Layout $copy) 'phone_portrait'
+Assert-True ($messages -match 'Jump: small-target' -and $messages -notmatch 'small-control') "small-control is off without minControlDp: $messages"
 
 Set-Content -LiteralPath (Join-Path $copy 'layout.json') -Value '{ "profile": ["phone_portrait"] }'
 $bad = Invoke-Layout $copy

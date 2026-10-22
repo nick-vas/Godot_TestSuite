@@ -44,6 +44,18 @@ function Read-Trx([string]$Path, $Totals) {
             }
         }
     }
+    # gdUnit4Net rebuilds the project inside Godot before running; when that rebuild fails or times out it runs nothing
+    # and still exits 0. Its log says how many tests it discovered: count the ones that never ran as one failure.
+    $out = $doc.SelectSingleNode('/t:TestRun/t:ResultSummary/t:Output/t:StdOut', $ns)
+    if ($out -and $out.InnerText -match 'Discover tests done, \d+ TestSuites and total (\d+) Tests found') {
+        $found = [int]$Matches[1]
+        $ran = $doc.SelectNodes('/t:TestRun/t:Results/t:UnitTestResult', $ns).Count
+        if ($ran -lt $found) {
+            $reason = @($out.InnerText -split '\r?\n' | Where-Object { $_ -match 'compilation (TIMEOUT|failure)|did not complete within|fails with' } |
+                ForEach-Object { $_.Trim(' ', [char]0x2551, [char]0x2554, [char]0x2557, [char]0x2550) } | Select-Object -First 2) -join ' '
+            Add-Failure $Totals 'gdUnit4 (tests not run)' "gdUnit4 found $found tests but ran $ran$(if ($reason) { ": $reason" })" $out.InnerText
+        }
+    }
 }
 
 function Write-Annotation([string]$Runner, $Failure) {
