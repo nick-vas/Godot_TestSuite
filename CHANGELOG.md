@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- From the roadmap's Valve list ("never a soft-lock", `docs/valve.md` lesson 30): Breakout.Core gains `SoftLockCheck`.
+  A level is written down as areas, passages (one-way, needing an item held, or using items up once: a key, three
+  rounds for a cracked wall), one-time pickups, supplies that top an item back up (Portal's box delivery tubes), items
+  that can be lost at any moment, and goals. A breadth-first search over area, items held, pickups taken and ways opened
+  (packed into 128 bits, capped by `maxStates` with a clear error) and a backward search from the goal find every
+  reachable state the goal cannot be reached from, and return the shortest counterexample ("pick up key in Hall; use
+  key on closet door, go Hall -> Closet. Stuck in Closet, holding nothing"). `everyItemCanBeLost` is the stress test.
+  A game's test calls `SoftLockCheck.AssertNoSoftLock(level)`; `godot-playtest` gains a section on it. With
+  `LookTrigger`, the roadmap item is done.
 - Localization, from the roadmap's to-do list: the `l10n` runner gains a seventh case, `missing glyphs`, a glyph-coverage
   check per locale without a display. It reads every translated string from the CSV and PO tables (an imported,
   compressed `.translation` lists no keys, measured), drops placeholders, BBCode tags and invisible characters, and runs
