@@ -17,6 +17,7 @@ and inspected here; nothing ran on a phone (no device, and no KVM for an emulato
 | [CrazyGames technical requirements](https://docs.crazygames.com/requirements/technical/) | 50 MB initial download, 20 MB for the mobile homepage |
 | [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) (MIT) | The other way to get cross-origin isolation on hosts without headers |
 | [Virtual Joystick for Godot 4](https://github.com/MarcoFazioRandom/Virtual-Joystick-Godot) (MIT) | An on-screen stick add-on |
+| "Controlling Carnage: Effective Side-Scroller Controls on Mobile" (Roadhouse Interactive, GDC; [notes](gdc/controlling-carnage.md)) | Hit pads larger than the drawn buttons, no dead spot under a thumb, sliding between pads, the largest pad for jump, fading art, a tighter layout under 7 inches; Breakout's `Controls/TouchPads.cs` and `TouchControls.cs` |
 
 ## Measured here
 

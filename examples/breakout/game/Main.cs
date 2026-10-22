@@ -7,7 +7,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Minimal self-playing breakout. The paddle tracks the ball so a headless smoke run
 /// exercises collisions, scoring and floor progression without input; move_left and
-/// move_right (keyboard and controller at once, rebindable) take over while held.
+/// move_right (keyboard and controller at once, rebindable; touch pads on touchscreens) take over while held.
 /// </summary>
 public partial class Main : Node2D
 {
@@ -40,6 +40,7 @@ public partial class Main : Node2D
     {
         InputBindings.Load();
         AddChild(Devices);
+        if (DisplayServer.IsTouchscreenAvailable()) AddChild(new TouchControls { Layout = TouchControls.ForThisScreen(Arena) });
         // Errors are captured for the running game, not for copies of this scene that tests create.
         Diagnostics = new Diagnostics { CaptureEngineErrors = GetTree().CurrentScene == this };
         AddChild(Diagnostics);

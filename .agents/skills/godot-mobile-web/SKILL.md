@@ -89,7 +89,18 @@ A full-rect `MarginContainer` sets its four `margin_*` theme constants from `Can
 - Android gestures (`InputEventMagnifyGesture`, `InputEventPanGesture`) need `enable_pan_and_scale_gestures`. Turn on
   `emulate_touch_from_mouse` to try touch code with a mouse.
 - Test touch like any input (`godot-input`): `Input.ParseInputEvent(new InputEventScreenTouch { Index = 1, Position = p,
-  Pressed = true })`, then wait a frame. Use two indices for two fingers.
+  Pressed = true })`, then wait a frame. Use two indices for two fingers. `p` is in **window** pixels, and a headless
+  window is 64x64: with a stretch mode, (100, 420) reached `_Input` as (1000, 4120). Send
+  `GetTree().Root.GetFinalTransform() * viewportPoint`.
+- **Game controls as hit pads** (a GDC talk on Warhammer 40,000: Carnage): a line splits the screen, controls below and
+  the game above. Draw small buttons, but give each a much larger invisible pad that reaches past where the largest thumb
+  lands, so a thumb below the line never lands on nothing. In an overlap the touch goes to the pad it is nearest relative
+  to the pad's size; the action that hurts most to miss (jump) gets the largest pad.
+- A finger that slides into another pad switches to it without lifting; one that drifts off every pad keeps its pad. An
+  action stays held while any finger is on its pad. Release all on `NotificationApplicationPaused` and focus loss.
+- Fade the drawn buttons after a few seconds of play (never to zero); offer a pad-size setting; give screens under
+  7 inches (where the thumbs meet) a tighter layout. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Controls/TouchPads.cs`
+  (`DeadSpots` lists where a thumb's reach finds no pad) and Breakout's `Controls/TouchControls.cs`.
 - Touch targets: 48 dp minimum (above). Xbox's accessibility guidelines ask for 15 mm on phones (`godot-ui-accessibility`).
   `ScreenGetDpi()` on Android is a bucket (160, 240, 320, 480...), so dp is exact and millimetres are approximate.
 
@@ -161,6 +172,7 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
 
 - [ ] `layout` passes on every profile the game ships for, with the real notch insets
 - [ ] two-finger input tested (`ParseInputEvent` with two indices); every on-screen control is at least 48 dp
+- [ ] on-screen game controls: no dead spot under a thumb, sliding between pads, everything released on pause
 - [ ] the game saves on pause and resumes cleanly; the frame rate is capped where it can be
 - [ ] Android: `doctor` clean; an AAB signed; target API 36
 - [ ] Web: `export -Run -Browser chromium,firefox,msedge` passes; the gzipped size fits the portal; a single-threaded build for itch.io

@@ -298,5 +298,5 @@ From this pass (`docs/mobile-web.md`):
 | Audio unlock, Safari and WebKit | Automated Chromium did not block audio; WebKit was not installed (Playwright can install it) |
 | itch.io's SharedArrayBuffer checkbox | Only secondary sources; the headers it sends were not confirmed |
 | Retrying Godot's exit 134 after a finished export | Seen 4 times in 23 headless runs; the export fails today. A retry, as the import already has, would need care not to hide real crashes |
-| Touch test helpers in the examples (two fingers on two buttons) | Neither example has touch controls; a fixture would show 4.7's multitouch buttons |
+| Two fingers on two `Button`s (4.7's multitouch buttons) in a fixture, and touch on a device | Breakout's hit pads are tested with two fingers in headless Godot (`TouchControlsTest`); `Button` multitouch, misclick rates and phone sizes need a device |
 | Desktop `export -Run` playing release builds, which may hide script errors as the web release build does | Not tested on desktop |
