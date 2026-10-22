@@ -225,6 +225,7 @@ are not, and the kit adds them:
 | [Highlight important words](https://gameaccessibilityguidelines.com/highlight-important-words/) (intermediate) | Key terms in tutorials and prompts in bold, not by colour alone | `RichTextLabel` BBCode |
 | [Interactive things look interactive](https://gameaccessibilityguidelines.com/give-a-clear-indication-that-interactive-elements-are-interactive/) (intermediate) | Objects in the world the player can use are highlighted or prompted, like focused controls | |
 | [Distinct sounds](https://gameaccessibilityguidelines.com/ensure-sound-music-choices-for-each-key-objects-events-are-distinct-from-each-other/) (intermediate) | Each key event has its own sound | |
+| Presets and changed settings (a GDC talk, not a guideline: [God of War Ragnarok's UI](gdc/building-the-ui-for-a-aaa-single-player-game.md)) | Presets by need (vision, hearing, motion, motor) set several options at once; every setting that differs from its default is marked with colour and a symbol; a setting players miss is listed in both categories; text size on the first-launch screen | a plain C# model: `examples/breakout/src/Breakout.Core/Settings/GameSettings.cs` |
 
 ## Other W3C documents worth knowing
 
