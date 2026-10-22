@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- The second-pass test features from Croteam's CI talk: a `playthrough` runner (`playthrough.json`: the game's bot plays at
+  a fixed 60 fps of game time and must log every milestone in order, the ending last; `smoke` passed a bot stuck in the first
+  room), and the plan gate `production.playthrough` is now checked by it (`runner:<name>`, a new gate check). `smoke
+  -FixedFps` runs smoke at fixed game time. `shot -Baseline -MaxChangedPercent` fails a changed screen with the new code
+  `shot-changed`. `status` reports `testDuration` (the median of recent passing full test runs against the ten before) and
+  warns over `testBudgetSeconds` in `plan.json` (900 in new plans) or when runs grow by half. `Test-LibNames.ps1` fails when
+  two lib files define the same function (status had called `Audio.ps1`'s `Get-Median` instead of its own).
 - Blizzplanet's interviews (69 posts, 2002 to 2014: Mists of Pandaria's developers, Hellgate: London, the World of
   Warcraft card game, PopCap, voice actors, tie-in writers, mod teams; `docs/studio-lessons.md`): `godot-progression`
   (rewards that become chores, nothing missable, pity and consolation, difficulty tuned on enemies and tested with the

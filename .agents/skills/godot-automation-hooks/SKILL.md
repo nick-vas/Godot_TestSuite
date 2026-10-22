@@ -66,7 +66,11 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
 - A perfect bot is useless for balance. Add human-like error: a reaction delay (0.2-0.45 s) and a misjudged landing, both scaled
   by `--bot-skill`. Around 0.5, it should lose the way a decent player does.
 - Log **game time**, not wall-clock, and run many seeds in parallel faster than real time:
-  `godot --headless --path . --fixed-fps 60 -- --autoplay --seed=N` (an engine flag, so it goes before `--`).
+  `godot --headless --path . --fixed-fps 60 -- --autoplay --seed=N` (an engine flag, so it goes before `--`); the kit's
+  `smoke -FixedFps 60` does the same.
+- **Prove the bot finishes.** The bot prints a line per milestone (`[Run] act 1 done`, `[Run] ending reached`) and
+  `playthrough.json` lists them; the `playthrough` runner fails when one is missing, which `smoke` does not notice. It also
+  meets the plan gate `production.playthrough`.
 - Deterministic bots loop: a "safe" fallback move repeated forever. When the goal is out of reach, pick a *random* safe move.
 - Bots press the player's inputs (the same actions or input frames), never set state: they can do nothing a player
   cannot, and what they find is a player's bug. For Honor's bots used the player's input pipeline for this reason.

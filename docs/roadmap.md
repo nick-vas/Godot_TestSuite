@@ -171,15 +171,12 @@ Kenney, OpenGameArt, Fast WFC add-on, WaveFunctionCollapse and MarkovJunior lice
 
 ## To do: kit features from the second pass
 
-Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. The hang time limit was done in that
-pass (`GODOT_CI_TIMEOUT`); these were not, because each changes the output contract or needs its own fixture and review:
+Croteam's CI talk (`docs/studio-lessons.md`, talk 7) shows gaps the kit could close. Done: the hang time limit
+(`GODOT_CI_TIMEOUT`), the `playthrough` runner and its `runner:playthrough` gate, `smoke -FixedFps`, `shot -MaxChangedPercent`
+(`shot-changed`) and test duration in `status` (`testDuration`, `testBudgetSeconds`). Still open:
 
 | Feature | Why | Smallest change |
 |---|---|---|
-| A `playthrough` runner | `production.playthrough` is a manual gate, and `smoke` passes on a bot stuck in the first room | Built from the `juice` runner: run the main scene with `--headless --fixed-fps 60` and the game's flags, fail unless every expected log line (`[Run] ending reached`) appears; a `runner:playthrough` gate check; a fixture whose bot never finishes |
-| `--fixed-fps` for `smoke` | `-Frames` counts frames, not game time, so a long bot run is neither fast-forwarded nor reproducible | Opt-in switch, so existing smoke runs keep their meaning |
-| `shot -MaxChangedPercent` | `shot -Baseline` reports `changedPercent` but never fails | A threshold and a new stable code (`shot-changed`) in `docs/json.md` |
-| Test duration in `status` | Croteam steered by submit-to-verdict time; Rare sped up Sea of Thieves' commit stage, stopped watching, and was back where it started within months (`docs/gdc/folds-testing-misc.md`); the history already records `seconds` | The median of recent passing `test` runs, with a warning over a budget set in `plan.json` |
 | Bug-report pins in the editor | `godot-automation-hooks` now asks reports to save scene, position and view; nothing shows them | A small C# `[Tool]` node that draws each report for the open scene |
 | Confirm `claude plugin eval` with `CLAUDE_CODE_OAUTH_TOKEN` in the `Evals` workflow | The owner uses a Claude subscription, not an API key; the eval docs name only API keys for CI | Add the secret (`claude setup-token`), run the workflow once with `runs` 1, and record the result in `docs/research.md` |
 

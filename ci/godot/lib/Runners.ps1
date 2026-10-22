@@ -9,6 +9,8 @@
 #   validate   loads every script, scene and resource and instantiates every scene (tools/validate.gd)
 #   architecture  a static scan of the scripts for structural problems (lib/Architecture.ps1); warnings unless configured
 #   juice      a bot run that checks each gameplay event got its feedback in time (lib/Juice.ps1, juice.json)
+#   playthrough  the game's bot plays to the ending; fails unless every milestone line is logged, in order
+#              (lib/Playthrough.ps1, playthrough.json)
 #   l10n       translation tables: duplicate, untranslated, missing and too long keys; translation remaps and localized
 #              sounds against their source, with ffmpeg (lib/Localization.ps1); no Godot needed
 #   data       data tables against data.json: ids, fields, types, ranges, references (lib/Data.ps1); no Godot needed
@@ -85,7 +87,7 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
 }
 
 function Invoke-TestRunner {
-    param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs)
+    param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs, [int]$FixedFps = 0)
 
     if (Test-Path -LiteralPath $ResultsDir) { Remove-Item -Recurse -Force $ResultsDir }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
@@ -168,6 +170,9 @@ function Invoke-TestRunner {
         'juice' {
             $code = Invoke-JuiceRunner $Info $ResultsDir $GameArgs
         }
+        'playthrough' {
+            $code = Invoke-PlaythroughRunner $Info $ResultsDir $GameArgs
+        }
         'architecture' {
             $code = Invoke-ArchitectureRunner $project $ResultsDir
         }
@@ -185,8 +190,8 @@ function Invoke-TestRunner {
         }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'
-            Start-LogGroup "Smoke run ($Frames frames)"
-            $smokeArgs = @('--headless', '--path', $project, '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })
+            Start-LogGroup "Smoke run ($Frames frames$(if ($FixedFps -gt 0) { " at a fixed $FixedFps fps" }))"
+            $smokeArgs = @('--headless', '--path', $project, '--quit-after', "$Frames") + $(if ($FixedFps -gt 0) { @('--fixed-fps', "$FixedFps") }) + $(if ($GameArgs) { @('--') + $GameArgs })
             $code = Invoke-Logged $godot $smokeArgs $log
             Stop-LogGroup
             $errors = @(Get-GodotLogErrors $log)
@@ -224,11 +229,11 @@ function Invoke-TestRunner {
 # tests, and the run's own -Filter must still apply.
 function Invoke-TestRunnerWithRetry {
     param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs,
-        [int]$Retry = 0, [object[]]$Quarantine = @())
+        [int]$Retry = 0, [object[]]$Quarantine = @(), [int]$FixedFps = 0)
 
     $attempts = [System.Collections.Generic.List[object]]::new()
     while ($true) {
-        $result = Invoke-TestRunner -Runner $Runner -Info $Info -ResultsDir $ResultsDir -Filter $Filter -Coverage $Coverage -Frames $Frames -GameArgs $GameArgs
+        $result = Invoke-TestRunner -Runner $Runner -Info $Info -ResultsDir $ResultsDir -Filter $Filter -Coverage $Coverage -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
         $result = Set-RunQuarantine $result $Quarantine
         $attempts.Add($result)
         if ($result.Ok -or $attempts.Count -gt $Retry) { break }

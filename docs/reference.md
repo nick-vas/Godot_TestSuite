@@ -8,7 +8,7 @@
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
 | `-Coverage` | off | One merged coverage report |
@@ -19,6 +19,7 @@
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion |
 | `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
+| `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
 | `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
@@ -27,6 +28,7 @@
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow) |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
+| `-MaxChangedPercent` | | `shot -Baseline`: fail with `shot-changed` when a picture differs by more than this percentage of pixels, or changed size; without it `-Baseline` only reports |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |
 | `-ColorVision` | | `shot`: also save each picture as people with colour blindness see it, `protan,deutan,tritan` (`<name>.<kind>.png`, `shots[].colorVision`) |
 | `-Uncapped`, `-MaxFps` | off, `0` | `bench`: V-Sync off; or a frame-rate cap |
@@ -195,6 +197,18 @@ by each `feedback` within `withinMs` (default 100) of game time:
 The game prints `[juice] event <name> <ms>` and `[juice] feedback <name> <ms>`, with `<ms>` its game time in milliseconds. A
 rule fails when an event went unanswered, or never happened (the bot did not reach it). Events too close to the end of the run
 to be answered are ignored. `tests/juice-fixture` is a minimal example (`-GameArgs --late` makes it fail).
+
+**`playthrough.json`** (optional, in the Godot project folder) turns on the `playthrough` runner: Godot plays the game headless
+at a fixed 60 fps for at most `frames` frames (default 36000, ten minutes of game time) with `args` (plus `-GameArgs`), and
+every text in `expect` must appear in a log line, in that order, the ending last:
+
+```json
+{ "frames": 36000, "args": ["--autoplay", "--seed=1", "--no-save"], "expect": ["[Run] act 1 done", "[Run] ending reached"] }
+```
+
+`smoke` passes a bot that is stuck in the first room; this fails it and names the last milestone it reached. The game may
+quit by itself after the ending. The plan gate `production.playthrough` is checked as `runner:playthrough`: met once the
+runner is set up, so every CI run enforces it. `tests/playthrough-fixture` is a minimal example (`-GameArgs --stuck` fails).
 
 **The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
 `keys` or `key`), `.po` files or translation remaps. It runs without Godot and has six cases: `duplicate keys` (the same key
