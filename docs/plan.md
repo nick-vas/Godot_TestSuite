@@ -83,6 +83,27 @@ Set `TRELLO_KEY` and `TRELLO_TOKEN` (from https://trello.com/app-key) in the env
 and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json.
 The API call paths were exercised against a local mock of the Trello API, not against a live board.
 
+## Release dates
+
+Steam's dates depend on each other, and a missed one moves the release. `plan.json` has an optional `release` block
+(dates as `yyyy-MM-dd`, `null` until known), and `plan` and `status` warn when a rule from
+[store-and-legal.md](store-and-legal.md) cannot be kept; they never fail:
+
+| Field | Meaning | Warns when |
+|---|---|---|
+| `date` | The planned release day; nothing is checked without it | - |
+| `steamFeePaid` | When the Steam Direct fee was paid | fewer than 21 days before `date`, or unset with fewer than 21 days left |
+| `comingSoon` | When the Coming Soon page went (or goes) live | fewer than 14 days before `date`, or unset with fewer than 14 days left |
+| `storePageSubmitted` | When the store page went to review | fewer than 7 business days before `comingSoon`, or unset with fewer left |
+| `buildSubmitted` | When the build went to review | fewer than 7 business days before `date`, or unset with fewer left; before `storePageSubmitted` (the page is reviewed first) |
+| `nextFest` | The first day of the Steam Next Fest the game takes part in | on or after `date` (do the last Next Fest before launch) |
+| `demoSubmitted` | When the Next Fest demo went to review | after 3 weeks before `nextFest` (5 with `pressPreview`), or unset once that day has passed |
+| `pressPreview` | `true` when the demo is in the press preview | - |
+
+Reviews take 3 to 5 business days, so the kit asks for 7; business days are Monday to Friday (public holidays are not
+known to it). From two weeks before `date` the release date is locked on Steam, which `plan` notes. `plan -Json` returns
+the timeline as `release` ([json.md](json.md)): days and business days left and each deadline.
+
 ## The GDD, `status` and `/game`
 
 `docs/GDD.md` (template: `ci/godot/templates/GDD.md`) is the game's scope. Features are headings of the form

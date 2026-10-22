@@ -40,7 +40,128 @@ function Test-PlanGate($Gate, $Info) {
     }
 }
 
-function Get-PlanState($Plan, $Info) {
+# Weekdays from $From (counted) up to $To (not counted); public holidays are not known, so they count as business days.
+function Get-BusinessDayCount([datetime]$From, [datetime]$To) {
+    $count = 0
+    for ($day = $From.Date; $day -lt $To.Date; $day = $day.AddDays(1)) {
+        if ($day.DayOfWeek -notin [DayOfWeek]::Saturday, [DayOfWeek]::Sunday) { $count++ }
+    }
+    return $count
+}
+
+# The latest day from which $Count business days remain before $Date.
+function Get-BusinessDayBefore([datetime]$Date, [int]$Count) {
+    $day = $Date.Date
+    $found = 0
+    while ($found -lt $Count) {
+        $day = $day.AddDays(-1)
+        if ($day.DayOfWeek -notin [DayOfWeek]::Saturday, [DayOfWeek]::Sunday) { $found++ }
+    }
+    return $day
+}
+
+# Steam's release timeline from plan.json's optional "release" block, against the rules docs/store-and-legal.md and
+# godot-store-page quote (Steamworks pages read 2026-10-21): at least 21 days between paying the app fee and releasing,
+# a Coming Soon page live at least 2 weeks before release, 3 to 5 business days per review so submit 7 business days
+# ahead (the store page before the build), the release date locked 2 weeks before it, and a Next Fest demo submitted for
+# review 3 weeks before the festival (5 for the press preview). Dates are yyyy-MM-dd. Only warnings: plans are advice.
+$script:ReleaseDateFields = 'date', 'steamFeePaid', 'comingSoon', 'storePageSubmitted', 'buildSubmitted', 'nextFest', 'demoSubmitted'
+function Get-ReleaseTimeline($Release, [datetime]$Today) {
+    $warnings = [System.Collections.Generic.List[string]]::new()
+    $notes = [System.Collections.Generic.List[string]]::new()
+    $dates = @{}
+    foreach ($name in $script:ReleaseDateFields) {
+        $property = $Release.PSObject.Properties[$name]
+        if (-not $property -or $null -eq $property.Value -or "$($property.Value)" -eq '') { continue }
+        if ($property.Value -is [datetime]) { $dates[$name] = $property.Value.Date; continue }
+        $parsed = [datetime]::MinValue
+        if ([datetime]::TryParseExact("$($property.Value)", 'yyyy-MM-dd', [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+            $dates[$name] = $parsed.Date
+        } else {
+            $warnings.Add("release.$name '$($property.Value)' is not a date (yyyy-MM-dd); it was ignored.")
+        }
+    }
+    if (-not $dates.ContainsKey('date')) {
+        return [ordered]@{ timeline = $null; warnings = @($warnings); notes = @($notes) }
+    }
+    $format = { param([datetime]$Day) $Day.ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture) }
+    $today = $Today.Date
+    $releaseDay = $dates['date']
+    $daysLeft = [int]($releaseDay - $today).TotalDays
+    $upcoming = $daysLeft -gt 0
+    $source = '(Steamworks, docs/store-and-legal.md)'
+    $deadlines = [ordered]@{
+        steamFee = & $format $releaseDay.AddDays(-21)
+        comingSoon = & $format $releaseDay.AddDays(-14)
+        buildReview = & $format (Get-BusinessDayBefore $releaseDay 7)
+        dateLock = & $format $releaseDay.AddDays(-14)
+    }
+
+    # The app fee: 21 days between paying and releasing.
+    if ($dates.ContainsKey('steamFeePaid')) {
+        $gap = [int]($releaseDay - $dates['steamFeePaid']).TotalDays
+        if ($gap -lt 21) { $warnings.Add("Steam's app fee was paid on $(& $format $dates['steamFeePaid']), $gap days before release on $(& $format $releaseDay); Steam needs at least 21 days between paying and releasing $source.") }
+    } elseif ($upcoming -and $daysLeft -lt 21) {
+        $warnings.Add("Release is $daysLeft days away and release.steamFeePaid is not set; Steam needs at least 21 days between paying the app fee and releasing $source.")
+    }
+
+    # The Coming Soon page: live at least 2 weeks before release.
+    if ($dates.ContainsKey('comingSoon')) {
+        $gap = [int]($releaseDay - $dates['comingSoon']).TotalDays
+        if ($gap -lt 14) { $warnings.Add("The Coming Soon page goes live on $(& $format $dates['comingSoon']), $gap days before release; Steam wants it live at least 2 weeks before $source.") }
+    } elseif ($upcoming -and $daysLeft -lt 14) {
+        $warnings.Add("Release is $daysLeft days away and release.comingSoon is not set; Steam wants the Coming Soon page live at least 2 weeks before release $source.")
+    }
+
+    # Reviews: 3 to 5 business days each, so submit 7 business days ahead; the store page before the build.
+    if ($dates.ContainsKey('comingSoon')) {
+        $comingSoon = $dates['comingSoon']
+        $deadlines['storePageReview'] = & $format (Get-BusinessDayBefore $comingSoon 7)
+        if ($dates.ContainsKey('storePageSubmitted')) {
+            $lead = Get-BusinessDayCount $dates['storePageSubmitted'] $comingSoon
+            if ($lead -lt 7) { $warnings.Add("The store page was submitted for review $lead business day(s) before its Coming Soon date ($(& $format $comingSoon)); a review takes 3 to 5 business days, so submit 7 ahead $source.") }
+        } elseif ($comingSoon -gt $today) {
+            $lead = Get-BusinessDayCount $today $comingSoon
+            if ($lead -lt 7) { $warnings.Add("$lead business day(s) left before the Coming Soon date ($(& $format $comingSoon)) and release.storePageSubmitted is not set; a review takes 3 to 5 business days, so submit 7 ahead $source.") }
+        }
+    }
+    if ($dates.ContainsKey('buildSubmitted')) {
+        $lead = Get-BusinessDayCount $dates['buildSubmitted'] $releaseDay
+        if ($lead -lt 7) { $warnings.Add("The build was submitted for review $lead business day(s) before release; a review takes 3 to 5 business days, so submit 7 ahead $source.") }
+        if ($dates.ContainsKey('storePageSubmitted') -and $dates['buildSubmitted'] -lt $dates['storePageSubmitted']) {
+            $warnings.Add("The build was submitted for review before the store page; Steam reviews the store page first $source.")
+        }
+    } elseif ($upcoming) {
+        $lead = Get-BusinessDayCount $today $releaseDay
+        if ($lead -lt 7) { $warnings.Add("$lead business day(s) left before release and release.buildSubmitted is not set; a review takes 3 to 5 business days, so submit 7 ahead $source.") }
+    }
+
+    # The release date is locked 2 weeks before it.
+    $locked = $upcoming -and $daysLeft -le 14
+    if ($locked) { $notes.Add("The release date ($(& $format $releaseDay)) is locked: Steam freezes it 2 weeks before release, and an approved game still goes out with the Release App button.") }
+
+    # Steam Next Fest: the demo is submitted for review 3 weeks before the festival, 5 for the press preview.
+    if ($dates.ContainsKey('nextFest')) {
+        $fest = $dates['nextFest']
+        $press = $Release.PSObject.Properties['pressPreview'] -and $Release.pressPreview -eq $true
+        $weeks = $press ? 5 : 3
+        $demoDeadline = $fest.AddDays(-7 * $weeks)
+        $deadlines['demoReview'] = & $format $demoDeadline
+        $which = $press ? ' with the press preview' : ''
+        if ($dates.ContainsKey('demoSubmitted')) {
+            if ($dates['demoSubmitted'] -gt $demoDeadline) { $warnings.Add("The Next Fest demo was submitted on $(& $format $dates['demoSubmitted']), after the $(& $format $demoDeadline) deadline ($weeks weeks before the festival$which) $source.") }
+        } elseif ($today -gt $demoDeadline -and $today -lt $fest) {
+            $warnings.Add("The Next Fest demo had to be submitted for review by $(& $format $demoDeadline) ($weeks weeks before the festival$which) and release.demoSubmitted is not set $source.")
+        }
+        if ($fest -ge $releaseDay) { $warnings.Add("Next Fest ($(& $format $fest)) is on or after release ($(& $format $releaseDay)); do the last Next Fest before launch (godot-store-page).") }
+    }
+
+    $timeline = [ordered]@{ date = & $format $releaseDay; daysLeft = $daysLeft
+        businessDaysLeft = ($upcoming ? (Get-BusinessDayCount $today $releaseDay) : 0); dateLocked = $locked; deadlines = $deadlines }
+    return [ordered]@{ timeline = $timeline; warnings = @($warnings); notes = @($notes) }
+}
+
+function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date) {
     $now = [datetime]::UtcNow
     $phases = @(foreach ($phase in $Plan.phases) {
         $gates = @(foreach ($gate in $phase.gates) {
@@ -71,7 +192,11 @@ function Get-PlanState($Plan, $Info) {
     foreach ($column in 'backlog', 'design', 'todo', 'doing', 'verify', 'done') {
         $board[$column] = @($tasks | Where-Object { $_.column -eq $column }).Count
     }
-    return [ordered]@{ phases = $phases; current = $current; warnings = @($warnings); board = $board; wipLimit = $Plan.wipLimit }
+    $release = [ordered]@{ timeline = $null; warnings = @(); notes = @() }
+    if ($Plan.PSObject.Properties['release'] -and $null -ne $Plan.release) { $release = Get-ReleaseTimeline $Plan.release $Today }
+    foreach ($warning in $release.warnings) { $warnings.Add($warning) }
+    return [ordered]@{ phases = $phases; current = $current; warnings = @($warnings); board = $board; wipLimit = $Plan.wipLimit
+        release = $release.timeline; releaseNotes = $release.notes }
 }
 
 # plan/PLAN.md: the human-readable view, regenerated from plan.json (never edit it by hand).
@@ -292,6 +417,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
             boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
     Set-JsonField trelloBoard ($plan.PSObject.Properties['trello'] ? $plan.trello.board : $null)
+    Set-JsonField release $state.release
     Set-JsonField warnings $state.warnings
 
     if ($Action -in 'add', 'move', 'sync', 'link') { return }
@@ -306,6 +432,13 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             Write-Console "  [ ] $($gate.id): $($gate.text)$($gate.auto ? '  (auto)' : '')"
         }
     } else { Write-Console 'Every phase is complete.' }
+    if ($state.release) {
+        $r = $state.release
+        $when = $r.daysLeft -gt 0 ? "$($r.daysLeft) days ($($r.businessDaysLeft) business days) away" : 'released or due today'
+        Write-Console ''; Write-Console "Release $($r.date): $when"
+        Write-Console ('  deadlines: ' + (($r.deadlines.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ' | '))
+        foreach ($note in $state.releaseNotes) { Write-Console "  $note" }
+    }
     foreach ($warning in $state.warnings) { Write-Console "WARNING: $warning" -ForegroundColor Yellow }
     Write-Console ("Board: " + (($state.board.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ' | '))
 }

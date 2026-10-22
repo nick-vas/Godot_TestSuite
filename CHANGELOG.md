@@ -5,6 +5,26 @@
   (`docs/publisher-contracts.md`, clause by clause with what to ask for; `godot-legal` section 6): markups and fixed
   splits, recoup before any revenue, one-sided termination and breach clauses, unpublishing, reserves, sequel fees, and
   a worked example of what a 15% markup and a 50/50 split cost against his 70/30 benchmark.
+- Release checks from the store, legal and Steam research (`docs/store-and-legal.md`, `docs/steam.md`): plan.json gains
+  an optional `release` block (`date`, `steamFeePaid`, `comingSoon`, `storePageSubmitted`, `buildSubmitted`, `nextFest`,
+  `demoSubmitted`, `pressPreview`), and `plan` and `status` warn when Steam's dates cannot be kept (21 days after the
+  fee, 2 weeks of Coming Soon, 7 business days per review with the page first, the Next Fest demo 3 or 5 weeks ahead);
+  `plan -Json` returns the timeline as `release`. `doctor` reads `store/steam/trailer*` with ffprobe (H.264, AAC, 30 or
+  60 fps, 44.1 or 48 kHz, up to 1920x1080) and `store/steam/tags.txt` (5 to 20, one per line, no duplicates); warns when
+  telemetry, a `policyVersion` or an Android or iOS preset has no privacy policy (`store/privacy-policy.md` or
+  `PRIVACY.md`; Breakout now has one, written from what its telemetry records), or the policy does not say the version the code asks consent for; and checks the Steamworks files a
+  game keeps in `steam/` against its code with a new VDF reader (`ci/godot/lib/Steam.ps1`): rich presence tokens set as
+  `steam_display`, achievement and stat names against `steam/achievements.json`, and steamcmd app build scripts (a
+  numeric `AppID`, a `FileMapping` per depot, no secrets, no `SetLive "default"`, no `steam_appid.txt` uploaded).
+- CI, more from GameCI's documentation: `export -GameVersion auto` reads the version from git (the nearest `v*` tag and
+  the commits since: `1.2.3.4`, `1.2.3+4.gabc1234`; `0.0.0.<commits>` without a tag) and stops with `shallow-checkout`
+  in a shallow clone, before Godot is set up. Any `-GameVersion` also sets Android presets' `version/code` for the export
+  only (major\*1,000,000 + minor\*1,000 + patch, `gameVersion.androidVersionCode`). The action outputs `version`,
+  `android-version-code` and `build-path`, keeps Git LFS objects (`lfs` input) and Android's Gradle caches in the Actions
+  cache, and finds export templates on macOS; `setup` downloads the macOS build of Godot instead of stopping. `godot.yml`
+  takes optional signing secrets (Android keystore, Windows certificate, macOS certificate and notarization key) and an
+  `environment` for its export jobs, a `game-version` for runs that are not for a tag, and sends iOS presets to
+  `macos-latest`. New page: `docs/self-hosted-runners.md`. Self-test: `Test-GameVersion.ps1`.
 - Audio, from the roadmap's to-do list: a mono option after all. `AudioEffectStereoEnhance` with `pan_pullout` 0 on Master
   makes each side (L+R)/2, measured in the engine by `tests/Test-MonoAudio.ps1` (left-only tone 0.353/0 becomes
   0.177/0.177, centred unchanged, opposite phase cancels), so `godot-audio` now gives the recipe for Xbox Accessibility

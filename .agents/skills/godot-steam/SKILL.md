@@ -56,6 +56,10 @@ public override void _Process(double delta) { if (Ready) SteamAPI.RunCallbacks()
 - Rich presence: at most 20 keys, keys up to 64 characters, values up to 256. `steam_display` names a token from the
   localization file uploaded to Steamworks (`#Status_Floor` = `"Floor %floor%"`); a missing token or unset `%key%` shows
   nothing, with no error. Test on `steamcommunity.com/dev/testrichpresence`.
+- Keep copies of what you upload in `steam/` (with a `.gdignore`): the rich presence `.vdf`, `achievements.json`
+  (`{ "achievements": [...], "stats": [...] }`) and steamcmd's `app_build_*.vdf`. `doctor` fails on a token, achievement
+  or stat name the code uses that they lack, and on a build script with no numeric `AppID`, a depot with no `FileMapping`
+  or a secret in it.
 
 ## 4. Test without Steam
 

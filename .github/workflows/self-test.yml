@@ -88,13 +88,13 @@ jobs:
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
-      - name: The plan's vertical-slice gates (tech debt automatic, frame budget manual) and the gates the skill names
+      - name: The plan's vertical-slice gates (tech debt automatic, frame budget manual), the gates the skill names, and the release timeline
         shell: pwsh
         run: ./tests/Test-Plan.ps1
-      - name: doctor's GDExtension and Steam package checks, and Steam detection
+      - name: doctor's GDExtension, Steam package and Steamworks file checks (rich presence, achievements, build scripts), and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1
-      - name: doctor checks Steam store art sizes, formats, screenshots and the short description
+      - name: doctor checks Steam store art, the short description, trailers (with the ffprobe installed above), tags and the privacy policy
         shell: pwsh
         run: ./tests/Test-Store.ps1
       - name: doctor checks Web and Android presets and export paths inside the project
@@ -109,6 +109,9 @@ jobs:
       - name: sfx makes bfxr's sounds from a seed, as WAV and .bfxr
         shell: pwsh
         run: ./tests/Test-Sfx.ps1
+      - name: export -GameVersion auto reads git's tags, refuses shallow clones, and setup names the macOS build
+        shell: pwsh
+        run: ./tests/Test-GameVersion.ps1
       - name: The juice check matches events with their feedback
         shell: pwsh
         run: ./tests/Test-JuiceLog.ps1

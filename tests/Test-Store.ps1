@@ -3,7 +3,10 @@
 # reads. A correct set passes; old sizes, a JPEG hero, a logo without alpha, too few screenshots and a bad short description
 # are each named; doctor reports them for a project with a store/steam folder. The press kit in store/press: a complete one
 # passes; missing key art without the title, a screenshot count outside 6 to 10 and a fact sheet with no contact address
-# are each named, and doctor warns about them.
+# are each named, and doctor warns about them. Trailers made with ffmpeg at run time (skipped without it): H.264 and AAC
+# pass, an MPEG-4 trailer at 25 fps and 22.05 kHz is named on each count. tags.txt: duplicates, several tags on a line and
+# more than 20 are named. Privacy: telemetry, a policyVersion or an Android preset without a policy warns, and so does a
+# policy that does not say the version the code asks consent for.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -91,11 +94,73 @@ try {
     Remove-Item (Join-Path $thin 'press_release.txt')
     $codes = @((Test-PressKit $thin).problems | ForEach-Object { "$($_.code) $($_.asset)" })
     Assert-True ($codes -contains 'press-missing fact_sheet') 'a press kit with no fact sheet or press release is named'
+    # Trailers, made with ffmpeg here rather than committed: H.264 and AAC at 1920x1080 and 30 fps pass; MPEG-4 and MP2
+    # at 2560x1440, 25 fps and 22.05 kHz are named on each count; a file ffprobe cannot read is named.
+    $haveFfmpeg = [bool](Get-Command ffmpeg -CommandType Application -ErrorAction SilentlyContinue) -and [bool](Get-Command ffprobe -CommandType Application -ErrorAction SilentlyContinue)
+    if ($haveFfmpeg) {
+        $clips = Join-Path $work 'clips'
+        New-Item -ItemType Directory -Force $clips | Out-Null
+        & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=black:s=1920x1080:r=30:d=1' -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=1' `
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -shortest (Join-Path $clips 'trailer.mp4') 2>&1 | Out-Null
+        & ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'color=c=black:s=2560x1440:r=25:d=1' -f lavfi -i 'sine=frequency=440:sample_rate=22050:duration=1' `
+            -c:v mpeg4 -c:a mp2 -shortest (Join-Path $clips 'trailer_old.avi') 2>&1 | Out-Null
+        $r = Test-SteamTrailers $clips
+        $goodClip = @($r.trailers | Where-Object { $_.file -eq 'trailer.mp4' })
+        Assert-True ($goodClip.Count -eq 1 -and $goodClip[0].videoCodec -eq 'h264' -and $goodClip[0].width -eq 1920 -and $goodClip[0].fps -eq 30 -and $goodClip[0].audioCodec -eq 'aac' -and $goodClip[0].sampleRate -eq 48000) "the H.264 trailer is read: $($goodClip | ConvertTo-Json -Compress)"
+        $codes = @($r.problems | ForEach-Object { "$($_.code) $($_.asset)" })
+        foreach ($expected in 'trailer-codec trailer_old.avi', 'trailer-fps trailer_old.avi', 'trailer-size trailer_old.avi') {
+            Assert-True ($codes -contains $expected) "trailer check names $expected"
+        }
+        Assert-True (@($codes | Where-Object { $_ -eq 'trailer-audio trailer_old.avi' }).Count -eq 2) 'MP2 audio and 22.05 kHz are both named'
+        Assert-True ($codes.Count -eq 5) "nothing about the good trailer: $($codes -join ' | ')"
+        Set-Content (Join-Path $clips 'trailer_broken.mp4') 'not a video'
+        $codes = @((Test-SteamTrailers $clips).problems | ForEach-Object { "$($_.code) $($_.asset)" })
+        Assert-True ($codes -contains 'trailer-unreadable trailer_broken.mp4') 'a file ffprobe cannot read is named'
+        Remove-Item (Join-Path $clips 'trailer_broken.mp4')
+    } else {
+        Write-Host 'skip   trailer checks: ffmpeg and ffprobe are not installed'
+    }
+
+    # tags.txt: 5 to 20, one per line, no duplicates; "Indie" in the first five is only a note.
+    $r = Test-SteamTags "Roguelike`nBreakout`nAction`nArcade`nPixel Graphics`nSingleplayer`n"
+    Assert-True ($r.tags.Count -eq 6 -and $r.problems.Count -eq 0) "six distinct tags pass: $(@($r.problems | ForEach-Object message) -join ' | ')"
+    $many = @('Indie', 'Roguelike', 'Action, Arcade') + @(1..18 | ForEach-Object { "Tag $_" }) + @('roguelike')
+    $r = Test-SteamTags ($many -join "`r`n")
+    $codes = @($r.problems | ForEach-Object { "$($_.status) $($_.code)" })
+    foreach ($expected in 'WARN tags-format', 'WARN tags-duplicate', 'WARN tags-count', 'INFO tags-top') { Assert-True ($codes -contains $expected) "tags name $expected" }
+    Assert-True ($codes.Count -eq 4) "nothing else about the tags: $(@($r.problems | ForEach-Object message) -join ' | ')"
+    Assert-True (@((Test-SteamTags "Roguelike`nAction").problems | Where-Object { $_.code -eq 'tags-count' }).Count -eq 1) 'two tags are too few before launch'
+
+    # Privacy: a game that collects player data or goes to a phone store needs a policy, which says the version the code asks for.
+    $privacyDir = Join-Path $work 'privacy'
+    New-Item -ItemType Directory -Force (Join-Path $privacyDir 'store') | Out-Null
+    $android = [ordered]@{ Phone = [ordered]@{ Name = 'Phone'; Platform = 'Android'; ExportPath = ''; Options = @{} } }
+    Assert-True ((Get-PrivacyProblems $privacyDir '' ([ordered]@{})).Count -eq 0) 'a game that collects nothing and has no phone preset needs no check'
+    $p = Get-PrivacyProblems $privacyDir '' $android
+    Assert-True ($p.Count -eq 1 -and $p[0][0] -eq 'WARN' -and $p[0][1] -match "^Export preset 'Phone' \(Android\) goes to a phone store") "an Android preset without a policy warns: $($p | ForEach-Object { $_[1] })"
+    Set-Content (Join-Path $privacyDir 'consent.gd') "extends Node`nconst POLICY_VERSION := 2`n"
+    $p = Get-PrivacyProblems $privacyDir '' ([ordered]@{})
+    Assert-True ($p.Count -eq 1 -and $p[0][1] -match '^The game collects player data \(a policyVersion in res://consent\.gd\) but has no privacy policy') "a policyVersion alone asks for a policy: $($p | ForEach-Object { $_[1] })"
+    Set-Content (Join-Path $privacyDir 'telemetry.cs') "class T { TelemetryClient Client = new TelemetryClient(schema, `"1.0`", policyVersion: 2); }"
+    $p = Get-PrivacyProblems $privacyDir '' $android
+    Assert-True ($p.Count -eq 2 -and $p[0][1] -match '^The game collects player data \(TelemetryClient in res://telemetry\.cs\)') "TelemetryClient is a sign the game collects player data: $($p | ForEach-Object { $_[1] })"
+    Set-Content (Join-Path $privacyDir 'store/privacy-policy.md') "# Privacy policy`n`nVersion 1, 2026-10-01. We collect crash reports with your consent."
+    $p = Get-PrivacyProblems $privacyDir '' $android
+    Assert-True ($p.Count -eq 1 -and $p[0][0] -eq 'WARN' -and $p[0][1] -match "^The code asks consent for privacy policy version 2 \(res://telemetry\.cs\), but store/privacy-policy\.md does not say 'Version 2'") "a policy at another version warns: $($p | ForEach-Object { $_[1] })"
+    Set-Content (Join-Path $privacyDir 'store/privacy-policy.md') "# Privacy policy`n`nVersion: 2 (2026-10-22). We collect crash reports with your consent."
+    $p = Get-PrivacyProblems $privacyDir '' $android
+    Assert-True ($p.Count -eq 1 -and $p[0][0] -eq 'OK' -and $p[0][1] -match 'version 2, as in the code') "the policy at the code's version passes: $($p | ForEach-Object { $_[1] })"
+    Set-Content (Join-Path $privacyDir 'store/privacy-policy.md') "# Privacy policy`n`nVersion 2.1. We collect crash reports with your consent."
+    Assert-True ((Get-PrivacyProblems $privacyDir '' $android)[0][0] -eq 'WARN') 'version 2.1 is not version 2'
+
     # doctor, on a project keeping its store art in store/steam without a .gdignore
     $project = Join-Path $work 'game'
     New-Item -ItemType Directory -Force $project | Out-Null
     Set-Content (Join-Path $project 'project.godot') "config_version=5`n[application]`nconfig/name=`"Store`""
     Copy-Item -Recurse $bad (Join-Path $project 'store/steam')
+    if ($haveFfmpeg) { Copy-Item (Join-Path $clips 'trailer*') (Join-Path $project 'store/steam') }
+    Set-Content (Join-Path $project 'store/steam/tags.txt') ($many -join "`n")
+    Set-Content (Join-Path $project 'telemetry.cs') "class T { TelemetryClient Client; }"
     Copy-Item -Recurse $thin (Join-Path $project 'store/press')
     Set-Content (Join-Path $project 'store/press/fact_sheet.txt') 'Brickfall, a roguelike breakout. Out on Steam.'
     $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') doctor -Json -Project $project 2>$null | ConvertFrom-Json
@@ -107,6 +172,14 @@ try {
     Assert-True (@($messages | Where-Object { $_ -match '^WARN Press kit: 6 to 10 screenshots, found 4' }).Count -eq 1) 'doctor warns about the press screenshot count'
     Assert-True (@($messages | Where-Object { $_ -match '^WARN Press kit: no contact email address in fact_sheet\.txt' }).Count -eq 1) 'doctor warns about a fact sheet with no contact address'
     Assert-True (@($messages | Where-Object { $_ -match '^FAIL Press kit' }).Count -eq 0) 'press kit problems never fail doctor'
+    if ($haveFfmpeg) {
+        Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam trailer: trailer_old\.avi is mpeg4 video' }).Count -eq 1) 'doctor warns about an MPEG-4 trailer'
+        Assert-True (@($messages | Where-Object { $_ -match '^INFO Steam trailer trailer\.mp4: mp4, h264 1920x1080 at 30 fps, aac 48000 Hz, 1 s$' }).Count -eq 1) 'doctor reports the good trailer''s format and length'
+    }
+    Assert-True (@($messages | Where-Object { $_ -match "^WARN Steam tags\.txt: 'Roguelike' is listed 2 times" }).Count -eq 1) 'doctor warns about a duplicate tag'
+    Assert-True (@($messages | Where-Object { $_ -match '^WARN Steam tags\.txt: 22 tags; Steam takes up to 20' }).Count -eq 1) 'doctor warns about more than 20 tags'
+    Assert-True (@($messages | Where-Object { $_ -match '^WARN The game collects player data \(TelemetryClient in res://telemetry\.cs\) but has no privacy policy' }).Count -eq 1) 'doctor warns about telemetry without a privacy policy'
+    Assert-True (@($messages | Where-Object { $_ -match '^FAIL (Steam t|Steam tags|The game collects)' }).Count -eq 0) 'trailer, tag and privacy problems never fail doctor'
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }

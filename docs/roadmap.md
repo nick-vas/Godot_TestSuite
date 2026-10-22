@@ -260,7 +260,7 @@ From this pass (`docs/steam.md`):
 | GodotSteam 4.23.2 on macOS (its `.gdextension` names files the zip lacks) | No macOS; `doctor` reports the missing files |
 | Whether Valve's 9 px means the font size or the letters' height | Valve does not say; `textsize` fails the first and warns on the second |
 | `SteamDeck=1`, `OS.GetDistributionName()` on a Deck, focus events in gamescope, real sleep | No Deck |
-| Rich presence token file and achievement-name lint, build VDF lint | Proposed checks, not built yet |
+| Achievement, stat and rich presence names held in constants (as Breakout's `BreakoutProgress` does) or in code outside the Godot project (`Breakout.Core`) | `doctor`'s Steamworks checks read string literals in the project's own `.cs` and `.gd` files; following constants needs a C# and GDScript parser |
 
 ## To do: store pages, legal basics and credits
 
@@ -270,9 +270,9 @@ From this pass (`docs/store-and-legal.md`):
 |---|---|
 | Steam's short description limit, capsule file formats and size caps; whether a trailer is still required for review; custom EULA setup; whether Steam wants a game privacy policy | Not in Steamworks' public pages; the owner's partner account (no app yet) would show the real forms |
 | IARC's questions | Only inside a store's portal; a `ratings.json` answers file with a plan gate is the planned check once they are seen |
-| A release timeline check in `plan` (fee + 21 days, Coming Soon + 14 days, 7 business days per review, date freeze, Next Fest deadlines) | Needs dates in `plan.json`; a kit feature for a later pass |
-| A privacy check in `doctor` (telemetry or an Android/iOS preset without a policy; `policyVersion` not found in the policy) | A kit feature for a later pass |
-| Trailer and tag checks (`ffprobe` on `store/steam/trailer*`, `tags.txt`) | A kit feature for a later pass |
+| Next Fest registration deadlines in the release timeline (February 2027: register by January 10) | Valve publishes them per edition; the timeline checks only the demo review lead, which the Next Fest page states |
+| Public holidays in the timeline's business days | Valve does not say whose holidays count; the timeline counts Monday to Friday |
+| A trailer's container, length and minimum size | No source the kit read states them; `doctor` reports them as INFO |
 | A flow test that the credits screen is reachable from the main menu | Game-specific; the skill tells games to add one |
 | GodotSteam's licence, the Steamworks SDK redistribution terms, FMOD's credit terms, GOG's asset specs | 403, 404 or JavaScript-only pages from the cloud session, or partner-only |
 | COPPA amendment dates and the Belgian loot box report | Only secondary sources read |
@@ -301,22 +301,20 @@ From this pass (`docs/mobile-web.md`):
 GameCI (Unity's CI, `docs/` of game-ci/documentation, MIT) was read in October 2026. Done: cache keys per Godot build
 flavour and asset content, caches kept when tests fail, job timeouts, pre-release tags, no misleading PR-comment
 warning on forks, a pinned actionlint, `doctor`'s repository checks (`Test-RepoHygiene.ps1`), a link checker
-(`Test-DocLinks.ps1`), and Steam, Play and TestFlight notes in `godot-export-release`. Still to do:
+(`Test-DocLinks.ps1`), Steam, Play and TestFlight notes in `godot-export-release`, `-GameVersion auto` (git's tags;
+`shallow-checkout` for a shallow clone) with the Android `version/code` set for the export only and the action's
+`version`, `android-version-code` and `build-path` outputs (`Test-GameVersion.ps1`), Git LFS and Gradle caches in the
+action, `setup` on macOS, optional signing secrets and an `environment` input on `godot.yml`, and
+[self-hosted-runners.md](self-hosted-runners.md). Still to do:
 
-- [ ] Versions from git: `-GameVersion auto` (latest tag plus commits since, `git describe`; needs a full-history
-      checkout) and the Android preset's `version/code` set for the export only (GameCI: major*1,000,000 + minor*1,000 +
-      patch). The action would output `version`, `android-version-code` and `build-path`.
-- [ ] Cache Git LFS objects (`.git/lfs`, keyed on a hash of `git lfs ls-files -l`) and Gradle's caches for Android
-      exports.
-- [ ] macOS: download the macOS build of Godot in `setup` (it stops on macOS today), so iOS and macOS exports can run on
-      `macos-latest`.
-- [ ] Optional secrets and an `environment` input on `godot.yml`, so callers can sign Windows, macOS and Android builds
-      through it.
 - [ ] A GitLab CI template using the JUnit and Cobertura files the kit already writes; a container image with Godot,
       templates, PowerShell and .NET, refreshed by the canary.
 - [ ] Tag the kit's releases and keep a moving `v1` tag, so callers stop pinning `@main`.
-- [ ] A short page on self-hosted runners (labels, one workspace per runner, disk clean-up; `~/.godot-ci` persists
-      there, so the cache steps are redundant).
+- [ ] Run on a real runner what could not be run here: `setup` and an export on `macos-latest` (the macOS download was
+      written from the release's asset names and tested only as names and paths), a signed Android, Windows and macOS
+      export through the workflow's secrets, the LFS and Gradle caches, and `environment:` left empty (GitHub runs the
+      job without one). The session that wrote these could not start PowerShell (its sandbox refused it), so
+      `Test-GameVersion.ps1`, PSScriptAnalyzer and the example exports were first run by the self-test, not locally.
 
 
 ## To do: from Valve's public material

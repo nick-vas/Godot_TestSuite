@@ -237,7 +237,8 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 | | |
 |---|---|
 | [docs/usage.md](docs/usage.md) | Ten usage scenarios |
-| [docs/reference.md](docs/reference.md) | Parameters, workflow inputs, cost |
+| [docs/reference.md](docs/reference.md) | Parameters, workflow inputs and secrets, the action's outputs, cost |
+| [docs/self-hosted-runners.md](docs/self-hosted-runners.md) | Running the workflow on your own machines: labels, workspaces, disk, what persists |
 | [docs/json.md](docs/json.md) | The `-Json` contract and error codes |
 | [docs/godot-pipelines.md](docs/godot-pipelines.md) | Test frameworks, versions, release-safe packaging |
 | [docs/plan.md](docs/plan.md) | The A-to-Z plan, tasks and Trello sync, and where it comes from |
