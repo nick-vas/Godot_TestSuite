@@ -22,6 +22,8 @@
     ./ci/godot/godot-ci.ps1 soak -Clients 10 -Seconds 600 -MaxGrowthMbPerHour 50   # a headless server and 10 clients for 10 minutes
 .EXAMPLE
     ./ci/godot/godot-ci.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
+.EXAMPLE
+    ./ci/godot/godot-ci.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
 #>
 [CmdletBinding()]
 param(
@@ -34,8 +36,9 @@ param(
     # soak: one headless server and -Clients headless clients of the game, run together; fails on crashes, errors and leaks.
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
+    # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -85,7 +88,8 @@ param(
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
     [double]$BudgetMs = 0,
     # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
-    # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D.
+    # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D. playtest: the heat maps' cell (0: playtest.json's, else
+    # 2 m in 3D, 64 px in 2D).
     [double]$HotspotCell = 0,
     # bench: a name for this run in bench.csv, e.g. 'vsync-off 1080p'.
     [string]$Label = '',
@@ -113,6 +117,8 @@ param(
     [string]$Vary,
     [double]$Amount = 0.05,
     [double]$PeakDb = -6,
+    # playtest: the folder of session files (telemetry batches, .json or .jsonl) to read. Default: <project>/playtests/sessions.
+    [string]$Sessions,
     # soak: fail when any process's memory grows faster than this many MB per hour (a leak). 0: report only.
     [double]$MaxGrowthMbPerHour = 0,
     # soak: flood the server's own port on 127.0.0.1 with this many junk UDP packets a second (loopback only), to measure
@@ -172,7 +178,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 if ($Json) {
     Enable-JsonMode $Command
 }
@@ -567,6 +573,10 @@ switch ($Command) {
     'sfx' {
         Invoke-Sfx -Info $info -Sound $Sound -Count $Count -Seed $Seed -Vary $Vary -Amount $Amount -PeakDb $PeakDb `
             -OutputDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { Join-Path $info.ProjectDir 'sounds/sfx' })))
+    }
+    'playtest' {
+        Invoke-Playtest -Info $info -Cell $HotspotCell -SessionsDir $(if ($Sessions) { $Sessions } else { Join-Path $info.ProjectDir 'playtests/sessions' }) `
+            -ResultsDir $(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'playtest-results' })
     }
     'credits' {
         Invoke-Setup

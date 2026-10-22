@@ -85,6 +85,8 @@ have a lawyer read the privacy notice and the consent flow before release.
 - Puzzle and level games also send `level_opened` and `level_solved` with the level id: the share opened but never
   solved ("bounce", Zachtronics' difficulty measure) per level, in game order, shows which one stops players
   (`godot-game-design`).
+- Playtest builds add `PlaytestEvents` (stalls, revisits, deaths and items with positions) to the same schema and
+  consent; `godot-playtest` says how to raise and read them.
 - With `using Godot;` and `using System.Net.Http;` in one file, `HttpClient` is ambiguous (CS0104): keep the transport in
   a file without `using Godot;`, or name `System.Net.Http.HttpClient` in full.
 

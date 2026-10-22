@@ -1,0 +1,2 @@
+{"schema":1,"session":"s1","build":"0.3.0-greybox","consent":{"policy":1,"diagnostics":"NotAsked","analytics":"Granted"},"events":[{"event":"stuck","v":1,"seq":4,"t":"2026-10-20T10:01:30.0000000Z","fields":{"level":"hub","x":70,"y":10,"z":0,"level_seconds":45,"seconds":130}}]}
+{"schema":1,"session":"s1","build":"0.3.0-greybox","consent":{"policy":1,"diagnostics":"NotAsked","analytics":"Granted"},"events":[{"event":"stuck","v":1,"seq":4,"t":"2026-10-20T10:01:30.0000000Z","fields":{"level":"hub","x":70,"y":10,"z":0,"level_seconds":45,"seconds":130}}]}

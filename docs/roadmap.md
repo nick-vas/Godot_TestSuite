@@ -332,9 +332,11 @@ action, `setup` on macOS, optional signing secrets and an `environment` input on
 Valve's talks, handbook, Cabal article and developer commentary were read in October 2026 (`docs/valve.md`). Done:
 `PacingDirector` and `Intensity` (Left 4 Dead's AI Director), `ResponseSystem` (Valve's dialogue rule database), the
 `godot-playtest` skill, Valve's process in `godot-game-plan`, a dialogue authoring path (`"kind": "responses"` tables
-in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `docs/data.md`), and from the commentaries
+in `data.json`, checked by the `data` runner and loaded by `ResponseTable`; `docs/data.md`), from the commentaries
 `LookTrigger` (a look target with a fallback timer) and `SoftLockCheck` (every order of using up or losing key items
-searched, the shortest path into a dead end reported). Still to do:
+searched, the shortest path into a dead end reported), and playtest telemetry: the skill's events as a ready schema
+(`ci/godot/templates/playtest-events.json`, `PlaytestEvents`), `PlaytestTracker`'s detectors in Breakout.Core, and the
+`playtest` command's per-level medians and PNG heat maps from a folder of sessions ([telemetry.md](telemetry.md)). Still to do:
 
 - [ ] Read what could not be fetched: Valve's developer wiki ("Cabal process": a proof-of-work page that refuses
       scripts), the Left 4 Dead and Team Fortress 2 commentary transcripts (Fandom's Cloudflare challenge; the TF2 wiki
@@ -342,8 +344,8 @@ searched, the shortest path into a dead end reported). Still to do:
       page), and the Xperf deck (its slides are images; it needs OCR). Pasting any of them is enough.
 - [ ] Dialogue tables in more than one language: per-locale lines (and voice files) in a responses table, checked for
       lines missing in a locale. The `data` runner has no locales today, so lines are translated as keys.
-- [ ] Playtest telemetry: the events `godot-playtest` names (`stuck`, `revisit`, `solved_but_stayed`, `item_found`,
-      `deaths`, `level_time`) as a ready schema, and a heat-map report from a folder of sessions.
+- [ ] Playtest telemetry in a real game: Breakout has no levels to walk, so nothing raises `PlaytestTracker`'s events
+      yet, and there is no file sink for playtest builds or GDScript tracker.
 - [ ] An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play),
       from Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 - [ ] Soft-lock levels as data: read a `SoftLockLevel` from a `data.json` table (areas, passages, pickups, supplies,

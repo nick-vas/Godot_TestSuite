@@ -67,8 +67,19 @@ The plan's gates `prototype.stranger` and `beta.playtest` say when; this says ho
 
 With consent (`godot-telemetry`), from playtest builds: `stuck` (same area for more than 120 s), `revisit` (time in
 areas already seen), `solved_but_stayed` (still in a puzzle room 30 s after solving it), `item_found` per placed
-pickup, `deaths` with position per checkpoint, `hint_requested` with position, and `level_time` for grey-box and art
+pickup, `death` with position and checkpoint, `hint_requested` with position, and `level_time` for grey-box and art
 passes. A heat map of deaths and stalls over all testers beats any single replay.
+
+- The schema is ready: `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/playtest-events.json` (any language), and in C#
+  `PlaytestEvents.Definitions(levels)` added to the game's `TelemetrySchema`, with `PlaytestTracker` raising the events
+  from the player's position each frame and calls such as `Progress()`, `ItemFound(id)`, `Died(checkpoint)`,
+  `PuzzleSolved(id)` and `EndLevel(result)` (`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Telemetry/Playtest.cs`,
+  tested with a fake clock). Do not write a parallel event system.
+- Playtest builds write each batch to a file; collect the testers' files in one folder, then
+  `godot-ci.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
+  session, the share who found each item, and a PNG heat map per event type (`playtest.json` lays one over a level
+  screenshot from `shot`). Open the maps, put the table in `docs/playtests/<date>.md`, and compare one build's folder with
+  the next. Sessions from different builds go in different folders.
 
 ## 6. Soft-locks: search, do not wait for a tester
 

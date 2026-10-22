@@ -18,7 +18,7 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `godot-ci/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
@@ -60,6 +60,8 @@ Branch on `error.code`; `message` can change.
 | `audio-off-target` | `audio -Mix`: the mix's integrated loudness is more than 2 LU from `-TargetLufs` | `audio.mix` |
 | `no-asset-manifest` | `credits`: the project has no `assets.json` | - |
 | `credits-invalid` | `credits`: an entry lacks what its licence needs, or its licence cannot ship in a sold game (the files are still written) | `credits.errors[]` |
+| `no-playtest-sessions` | `playtest`: the sessions folder (`-Sessions`, default `<project>/playtests/sessions`) does not exist or holds no telemetry batch | `error.message` |
+| `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
 | `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
@@ -259,6 +261,24 @@ parameters, which bfxr2's editor and library open), `sound` (the preset, or the 
 `seconds`, `peakDb`), and `assetsEntry` (the `assets.json` entry for the output folder, added to the project's
 `assets.json` when it has one and not already there; `null` when the output is outside the project). An unknown
 `-Sound` is `invalid-arguments`, with the nearest name.
+
+**playtest**: `playtest` with `sessionsDir`, `resultsDir`, `files` (`.json` and `.jsonl` files read), `batches`, `sessions`
+(distinct session ids), `builds[]`, `events` (playtest events counted), `otherEvents` (events that are not playtest events,
+such as `run_end`, ignored), `duplicates` (the same session and `seq` seen again: a batch sent twice), `invalidEvents` and
+`invalid[]` (up to 20: `file`, `session`, `event`, `seq`, `reason`: an event that does not fit
+`ci/godot/templates/playtest-events.json`, left out), `skipped[]` (`file`, `reason`: a file or `.jsonl` line that is not JSON
+or not a batch), `unknownLevels[]` (levels with events that `playtest.json` does not list, when it lists any), `levels[]`
+and `heatmaps[]`, `report` (the same document, `<Results>/playtest.json`) and `summary` (`<Results>/playtest.md`, a table and
+the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any event in it), `levelTime` (`count`, `median`,
+`min`, `max` seconds of its `level_time` events, and how many `finished`, `quit`, `failed`), `deaths` (`total`,
+`medianPerSession`, `maxPerSession`), `stuck` (`total`, `sessions` with one, `medianPerSession`, `medianSeconds`,
+`maxSeconds`), `revisits`, `solvedButStayed` (`total`, `medianSeconds`), `hints`, `items[]` (`item`, `sessions` that found it,
+`share` of the level's sessions). Per-session medians count sessions with none as 0; a median of nothing is `null`. Each
+`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`),
+`width`, `height`, `background` (the screenshot, or `null`), `plane` (`xy` or `xz`), `cell`, `origin` (the grid's corner), `cols`,
+`rows`, `count`, `outside` (events outside `bounds`, not drawn), `maxCount` and `hotCells[]` (up to 5, most events first, then
+by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in the plane's coordinates). Only reports: no
+counts fail the run.
 
 **soak**: `soak` with `clients`, `seconds` (actual), `port`, `server` and `processes[]` (each: `name`, `ready`, `exitCode`,
 `memoryMb` (`start`, `end`, `growthPerHour`), `cpuPercent`, `metrics` (the `[soak] metric` values the game printed),
