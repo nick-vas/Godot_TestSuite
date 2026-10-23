@@ -1,0 +1,6 @@
+[
+  { "id": "keeper", "cards": ["ember_mote", "ember_mote", "reed_hound", "reed_hound", "glow_imp", "glow_imp", "bog_warden", "bog_warden", "fen_stalker", "fen_stalker", "lantern_heron", "lantern_heron", "flare", "flare", "mending_oil", "mending_oil", "marsh_insight", "marsh_insight", "douse", "rekindle"] },
+  { "id": "rival_1", "cards": ["ember_mote", "ember_mote", "reed_hound", "reed_hound", "glow_imp", "glow_imp", "bog_warden", "bog_warden", "fen_stalker", "mending_oil", "mending_oil", "marsh_insight", "marsh_insight", "flare", "flare", "rekindle", "rekindle", "douse", "fen_stalker", "lantern_heron"] },
+  { "id": "rival_2", "cards": ["ember_mote", "ember_mote", "reed_hound", "reed_hound", "bog_warden", "bog_warden", "glow_imp", "fen_stalker", "fen_stalker", "lantern_heron", "mending_oil", "mending_oil", "marsh_insight", "marsh_insight", "flare", "douse", "douse", "rekindle", "rekindle", "glow_imp"] },
+  { "id": "rival_3", "cards": ["glow_imp", "glow_imp", "reed_hound", "reed_hound", "ember_mote", "ember_mote", "fen_stalker", "fen_stalker", "lantern_heron", "bog_warden", "flare", "flare", "douse", "douse", "marsh_insight", "marsh_insight", "mending_oil", "rekindle", "rekindle", "lantern_heron"] }
+]

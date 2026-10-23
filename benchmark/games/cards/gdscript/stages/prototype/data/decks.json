@@ -1,0 +1,4 @@
+[
+  { "id": "keeper", "cards": ["ember_mote", "ember_mote", "reed_hound", "reed_hound", "glow_imp", "glow_imp", "bog_warden", "bog_warden", "fen_stalker", "fen_stalker", "lantern_heron", "lantern_heron", "flare", "flare", "mending_oil", "mending_oil", "marsh_insight", "marsh_insight", "douse", "rekindle"] },
+  { "id": "rival_1", "cards": ["ember_mote", "ember_mote", "reed_hound", "reed_hound", "glow_imp", "glow_imp", "bog_warden", "bog_warden", "fen_stalker", "mending_oil", "mending_oil", "marsh_insight", "marsh_insight", "flare", "flare", "rekindle", "rekindle", "douse", "fen_stalker", "lantern_heron"] }
+]

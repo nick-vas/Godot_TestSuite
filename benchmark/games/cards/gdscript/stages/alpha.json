@@ -1,0 +1,178 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "test/flows/settings.flow.json"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Version 2 is current; version 1 kept only a list of the rivals beaten, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\t# Version 1 kept no losses and no duel: each rival it lists was beaten once.\n\t\tvar beaten: Variant = raw.get(\"beaten\", [])\n\t\tif typeof(beaten) == TYPE_ARRAY:\n\t\t\tfor id: Variant in beaten:\n\t\t\t\tdata.record[str(int(id))] = {\"wins\": 1, \"losses\": 0}\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_beaten_rivals():\n\t_write_raw('{\"version\": 1, \"beaten\": [1, 2]}')\n\tvar data := SaveStore.new(PATH).read()\n\tassert_true(Ladder.is_beaten(data, 1))\n\tassert_true(Ladder.is_beaten(data, 2))\n\tassert_true(Ladder.is_unlocked(data, 3))\n\tassert_false(Ladder.is_unlocked(data, 4))\n\n\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "## SaveStore: reading, writing and the move from version 1.",
+      "replace": "## SaveStore: reading and writing."
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "## The game's own flags, after \"--\" on the command line: --autoplay, --seed=N, --no-save, --rival=N.\n\nvar autoplay := false\n",
+      "replace": "## The game's own flags, after \"--\" on the command line: --seed=N, --no-save, --rival=N.\n\n"
+    },
+    {
+      "file": "scripts/launch_options.gd",
+      "find": "\t\tif arg == \"--autoplay\":\n\t\t\toptions.autoplay = true\n\t\telif arg == \"--no-save\":",
+      "replace": "\t\tif arg == \"--no-save\":"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "LaunchOptions.parse(PackedStringArray([\"--autoplay\", \"--seed=7\", \"--no-save\", \"--rival=3\"]))\n\tassert_true(options.autoplay)\n",
+      "replace": "LaunchOptions.parse(PackedStringArray([\"--seed=7\", \"--no-save\", \"--rival=3\"]))\n"
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "\tassert_false(options.autoplay)\n",
+      "replace": ""
+    },
+    {
+      "file": "test/unit/test_launch_options.gd",
+      "find": "## LaunchOptions: the flags bot runs and tests pass after \"--\".",
+      "replace": "## LaunchOptions: the flags runs and tests pass after \"--\"."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "rival 4, The Heron Knight (its name under the key RIVAL_4 in i18n/strings.csv), in data/rivals.json with 21 light and an aggressive AI (aggression above 1), playing its own deck in data/decks.json: legal like every deck (20 cards from data/cards.json, at most two of each), with at least four wisps that cost 4 or more. The duel must be fair: in twenty duels between two AIs (Ai.play_out on Rivals.start_duel, seeds 1 to 20, the player's AI being Ai.new()), the player's deck wins at least 5 and loses at least 2"
+      },
+      "hidden": [
+        "hidden/test_hidden_rival4.gd",
+        {
+          "from": "hidden/rival4.flow.json",
+          "to": "test/flows/rival4.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/table.gd (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_rival_light.text = tr(\"HUD_LIGHT\") % duel.keepers[1].light\n",
+          "replace": ""
+        },
+        {
+          "file": "game/table.gd",
+          "find": "func lane_center(seat: int, lane: int) -> Vector2:\n",
+          "replace": "func _process(_delta: float) -> void:\n\tif duel != null:\n\t\tget_node(\"../HUD/RivalLight\").text = tr(\"HUD_LIGHT\") % duel.keepers[1].light\n\n\nfunc lane_center(seat: int, lane: int) -> Vector2:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_rival_light.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the rivals they had beaten are locked again after the update. The previous version saved user://save.json as {\"version\": 1, \"beaten\": [<rival ids>]}, with no losses, no duel and no settings"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after Continue, a duel carried on from the save has lost both discard piles: the cards played before it was saved are gone, and Rekindle has nothing to bring back"
+      },
+      "edits": [
+        {
+          "file": "scripts/keeper.gd",
+          "find": "\t\t\"discard\": discard.duplicate(),\n",
+          "replace": ""
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_duel_save.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_discard.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/ContinueButton, Menu/SettingsButton and Menu/QuitButton, where Start adds a rival select (a child of Main named RivalSelect, with a button Box/Grid/Rival<N>Button per rival, open once the rival before is beaten, and Box/BackButton back to the menu) and choosing a rival adds the game scene res://game/game.tscn as a child of Main named Game, with its rival in the property rival and the rival's name in its HUD/RivalLabel (rival 1 is Tallow the Novice); pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; rivals 2 and 3 in data/rivals.json, each with its own legal deck in data/decks.json; a data.json for the kit's data runner; and a save by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary whose record maps rival ids, as text, to {\"wins\", \"losses\"} and whose duel holds the duel in progress as Duel.to_dict() gives it) in user://save.json, so that ContinueButton carries on that duel, restored by Duel.from_dict with both keepers' hands, decks, discard piles and rows"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/select.flow.json",
+        "to": "test/flows/select.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/test_hidden_three_rivals.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

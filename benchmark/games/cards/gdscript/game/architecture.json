@@ -1,0 +1,8 @@
+{
+  "simulation": ["scripts"],
+  "rules": {
+    "parent-path": "error",
+    "per-frame-lookup": "error",
+    "nondeterministic-sim": "error"
+  }
+}

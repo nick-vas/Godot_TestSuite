@@ -1,0 +1,327 @@
+{
+  "schema": "godot-plan/1",
+  "game": "Lanternfen",
+  "pitch": "A duel of lantern-keepers in a fen: play wisps and rites from twenty cards, out-think five rivals and put out their light.",
+  "weeklyHours": 10,
+  "testBudgetSeconds": 900,
+  "wipLimit": 2,
+  "release": {
+    "date": null,
+    "steamFeePaid": null,
+    "comingSoon": null,
+    "storePageSubmitted": null,
+    "buildSubmitted": null,
+    "nextFest": null,
+    "demoSubmitted": null,
+    "pressPreview": false
+  },
+  "phases": [
+    {
+      "id": "concept",
+      "name": "Concept",
+      "timeboxWeeks": 2,
+      "goal": "Decide what the game is, and what it is not, before writing code.",
+      "gates": [
+        {
+          "id": "concept.pitch",
+          "text": "One-sentence pitch and 3 design pillars written (docs/GDD.md)",
+          "check": "file:docs/GDD.md"
+        },
+        {
+          "id": "concept.scope",
+          "text": "Scope ladder written: must / should / could / won't, sized to your weekly hours",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "concept.decisions",
+          "text": "Decided up front, in docs/decisions/: multiplayer or not, saves, languages, accessibility, target platforms and input devices (bolted on late, these cost the most)",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "concept.market",
+          "text": "Market check: 3 comparable games, what yours does differently, who plays it",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "concept.name",
+          "text": "Game name searched before a logo or store page: the web, Steam and the trademark databases where it will sell (any video game with the same or a similar name conflicts; godot-legal)",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "concept.kill",
+          "text": "Kill criteria for the prototype written down (e.g. 'a stranger doesn't ask for a second run')",
+          "check": "manual",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "prototype",
+      "name": "Prototype",
+      "timeboxWeeks": 4,
+      "goal": "Prove the core loop is fun with the ugliest possible build.",
+      "gates": [
+        {
+          "id": "prototype.setup",
+          "text": "Project builds and the kit is wired in (hyperdot init)",
+          "check": "ci"
+        },
+        {
+          "id": "prototype.trailer",
+          "text": "Trailer script written before the game is built (docs/TRAILER.md): the genre clear in the first 5 seconds, then the hook, content last; three standout moments; every core mechanic with the on-screen feedback that shows a viewer the player caused it",
+          "check": "file:docs/TRAILER.md"
+        },
+        {
+          "id": "prototype.loop",
+          "text": "Core loop is playable from the main scene",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "prototype.variants",
+          "text": "Two or three variants of the core action built cheaply and one chosen by playing them, not by argument",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "prototype.stranger",
+          "text": "A stranger played 15 minutes unprompted and you watched what they did",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "prototype.verdict",
+          "text": "Verdict recorded in docs/DECISIONS.md: PROCEED, PIVOT or KILL",
+          "check": "file:docs/DECISIONS.md"
+        }
+      ]
+    },
+    {
+      "id": "vertical-slice",
+      "name": "Vertical slice",
+      "timeboxWeeks": 8,
+      "goal": "One polished, representative slice that runs end to end: menu, play, save, quit.",
+      "gates": [
+        {
+          "id": "slice.tests",
+          "text": "A test framework is chosen and tests run in CI (hyperdot detect lists a test runner)",
+          "check": "tests"
+        },
+        {
+          "id": "slice.hooks",
+          "text": "Automation flags exist and work in an export: --seed reproduces a run, --autoplay plays it, --no-save protects the player's save (godot-automation-hooks)",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "slice.flow",
+          "text": "Menu, one full level/encounter, UI and save/load work together",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "slice.screens",
+          "text": "Every screen screenshotted at the target resolution and one other aspect ratio, and reviewed (hyperdot.ps1 shot)",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "slice.feel",
+          "text": "Game feel pass: input, feedback, audio and juice on the core action",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "slice.debt",
+          "text": "Tech debt listed in docs/TECH-DEBT.md: every system the slice hacked, stubbed or never started, the work it needs at the size of the whole game, and the total you accept",
+          "check": "file:docs/TECH-DEBT.md"
+        },
+        {
+          "id": "slice.budget",
+          "text": "Frame budget met on the busiest slice scene filled as the finished game will be (draw distance, level of detail, crowds, effects), not on showcase assets: hyperdot.ps1 bench -Scene <that scene> -BudgetMs <budget> passes",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "slice.verdict",
+          "text": "Slice verdict recorded: PROCEED, PIVOT or KILL. PROCEED only if it plays as the intended experience (not a feature list or a tech demo), core gameplay is settled and the tech debt fits; otherwise take more slice time. Scope ladder re-sized from real velocity",
+          "check": "manual",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "production",
+      "name": "Production",
+      "timeboxWeeks": 24,
+      "goal": "Build the rest as a series of playable milestones, cutting scope (never testing) when one slips.",
+      "gates": [
+        {
+          "id": "production.milestones",
+          "text": "Milestones listed in docs/MILESTONES.md, each a playable build 2-6 weeks apart",
+          "check": "file:docs/MILESTONES.md"
+        },
+        {
+          "id": "production.content",
+          "text": "All 'must' scope items implemented",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "production.balance",
+          "text": "Bot balance runs: a bot with human-like error plays every encounter headless over several seeds; lengths and difficulty hit their targets",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "production.regression",
+          "text": "Every fixed bug has a regression test",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "production.freeze",
+          "text": "Feature freeze: no new features, only the existing list gets finished",
+          "check": "manual",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "alpha-beta",
+      "name": "Alpha and beta",
+      "timeboxWeeks": 8,
+      "goal": "Stabilise: bugs, balance, performance, accessibility, localisation. No new features.",
+      "gates": [
+        {
+          "id": "beta.playthrough",
+          "text": "A bot reaches the ending on every CI run (the playthrough runner: playthrough.json lists the milestones), so no build ships that nobody finished",
+          "check": "runner:playthrough"
+        },
+        {
+          "id": "beta.export",
+          "text": "An export preset exists and hyperdot export -Run passes",
+          "check": "preset"
+        },
+        {
+          "id": "beta.alpha",
+          "text": "Alpha: every feature exists end to end, even if rough; internal playthrough done",
+          "check": "manual",
+          "done": true
+        },
+        {
+          "id": "beta.playtest",
+          "text": "Closed playtest with 5+ people you don't know; top issues triaged",
+          "check": "manual"
+        },
+        {
+          "id": "beta.iterate",
+          "text": "At least one change-and-replay round after the alpha: what playtesters struggled with was redesigned, not only bug-fixed, and played again",
+          "check": "manual"
+        },
+        {
+          "id": "beta.perf",
+          "text": "Worst case benchmarked (hyperdot.ps1 bench): p99 within budget with V-Sync on and off, at the target resolution, zero GC collections in the frame loop; also checked on minimum-spec hardware",
+          "check": "manual"
+        },
+        {
+          "id": "beta.a11y",
+          "text": "Accessibility basics: rebindable input, readable text, no colour-only cues",
+          "check": "manual"
+        },
+        {
+          "id": "beta.localization",
+          "text": "Every shipped language played start to end by a native speaker who had not played the game (one language: done when it ships)",
+          "check": "manual"
+        },
+        {
+          "id": "beta.tests",
+          "text": "Full suite green with a coverage floor you chose",
+          "check": "tests"
+        }
+      ],
+      "startedAt": "2026-10-01T00:00:00.0000000Z"
+    },
+    {
+      "id": "launch",
+      "name": "Release candidate and launch",
+      "timeboxWeeks": 4,
+      "goal": "Ship it, from a clean export, with a page people could find.",
+      "gates": [
+        {
+          "id": "launch.store",
+          "text": "Store page live ('Coming soon'), at least 2 weeks before release on Steam and ideally months: capsules at the current sizes (doctor checks store/steam), gameplay trailer, 5+ screenshots, tags",
+          "check": "manual"
+        },
+        {
+          "id": "launch.demo",
+          "text": "Demo build tested on a clean machine",
+          "check": "manual"
+        },
+        {
+          "id": "launch.gold",
+          "text": "Gold master: release build exported by CI, launched with export -Run, no engine errors",
+          "check": "preset"
+        },
+        {
+          "id": "launch.archive",
+          "text": "The release is exactly the build that was tested: tagged in git, source and build archived together",
+          "check": "manual"
+        },
+        {
+          "id": "launch.credits",
+          "text": "Credits and third-party notices built from assets.json (credits command), reachable from the main menu",
+          "check": "file:THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "id": "launch.privacy",
+          "text": "Privacy policy published if the game sends any data (telemetry, accounts, online play); Google Play and the App Store want one in every case",
+          "check": "manual"
+        },
+        {
+          "id": "launch.rating",
+          "text": "Age ratings: Steam's content survey (Germany and Indonesia need its ratings), IARC for other stores",
+          "check": "manual"
+        },
+        {
+          "id": "launch.legal",
+          "text": "End-user licence (or the store's own terms) and refund rules checked; copyright and trademark registration decided (godot-legal)",
+          "check": "manual"
+        },
+        {
+          "id": "launch.release",
+          "text": "Tagged GitHub release created from CI; builds uploaded to the store",
+          "check": "manual"
+        }
+      ]
+    },
+    {
+      "id": "post-launch",
+      "name": "Post-launch",
+      "timeboxWeeks": 8,
+      "goal": "Fix what players hit, listen, then decide what the next game or update is.",
+      "gates": [
+        {
+          "id": "post.hotfix",
+          "text": "Day-one hotfix path rehearsed (tag, CI export, upload)",
+          "check": "manual"
+        },
+        {
+          "id": "post.feedback",
+          "text": "First two weeks of feedback and crash reports triaged",
+          "check": "manual"
+        },
+        {
+          "id": "post.retro",
+          "text": "Retrospective written: what to repeat, what to stop (docs/RETRO.md)",
+          "check": "file:docs/RETRO.md"
+        }
+      ]
+    }
+  ],
+  "tasks": []
+}

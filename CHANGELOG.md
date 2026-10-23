@@ -8,6 +8,16 @@
   solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre platformer -Language csharp`. The
   `placement` runner reads limits from GDScript constants only, so the C# game writes the climber's reach into
   `placement.json` as a number; `DESIGN.md`'s "As built" records this and the port's other choices.
+- **The staged game programme's fourth genre: a turn-based card game**, Lanternfen, in GDScript
+  (`benchmark/games/cards/`). Two lantern-keepers duel with wisps that strike across three lanes and rites that act
+  once; a turn is written as named phases (Draw, Main, Clash, End) in a plain class, each transition logged and tested.
+  Cards, decks and five rivals are JSON checked by the `data` runner, the rivals are played by a utility AI with
+  per-rival weights, every duel shuffles from its own seed, fatigue ends every duel, and the save keeps the duel in
+  progress for Continue. The release candidate has 55 GUT tests, five flows, a bot that plays the AI against itself up
+  the whole ladder, juice, three languages, store art rendered from the game and credits. Its four stages carry 17
+  tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre cards -Language gdscript`. `DESIGN.md` holds the language-neutral contract for
+  the C# port, which is still to come.
 - **Blind review and the judge's calibration.** `benchmark/Invoke-SideBySide.ps1 -ReviewOut` writes the pairs the judge
   sees for a person instead (A and B in a seeded order, nothing naming the plugin, the key kept apart);
   `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`

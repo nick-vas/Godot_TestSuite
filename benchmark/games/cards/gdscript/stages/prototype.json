@@ -1,0 +1,203 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/pause_menu.gd",
+    "game/result_menu.gd",
+    "scripts/ladder.gd",
+    "scripts/save_store.gd",
+    "scripts/launch_options.gd",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/unit/test_duel_rules.gd",
+    "test/unit/test_fatigue.gd",
+    "test/unit/test_ai.gd",
+    "test/unit/test_cards.gd",
+    "test/unit/test_rivals.gd",
+    "test/unit/test_ladder.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_duel_save.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/duel.gd",
+      "find": "## Draws the top card. A card drawn into a full hand goes to the discard pile; an empty deck costs light (fatigue).\nfunc draw_card(seat: int) -> bool:\n\tvar keeper := keepers[seat]\n\tif keeper.deck.is_empty():\n\t\tkeeper.fatigue += 1\n\t\t_burn(seat, keeper.fatigue)\n\t\treturn false\n",
+      "replace": "## Draws the top card. A card drawn into a full hand goes to the discard pile; an empty deck gives nothing.\nfunc draw_card(seat: int) -> bool:\n\tvar keeper := keepers[seat]\n\tif keeper.deck.is_empty():\n\t\treturn false\n"
+    },
+    {
+      "file": "scripts/keeper.gd",
+      "find": "## How many times it drew from an empty deck; the nth such draw costs n light.\nvar fatigue := 0\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/keeper.gd",
+      "find": "\t\t\"fatigue\": fatigue,\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/keeper.gd",
+      "find": "\tkeeper.fatigue = int(data.get(\"fatigue\", 0))\n",
+      "replace": ""
+    },
+    {
+      "file": "game/table.gd",
+      "find": "var name_text := tr(str(cards.card(wisp.id).get(\"name\", wisp.id)))",
+      "replace": "var name_text := str(wisp.id).capitalize()"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "when the rival has no wisp on the table, their own wisps never strike it: the turn goes straight from Main to End and the rival's light stays where it was"
+      },
+      "edits": [
+        {
+          "file": "scripts/duel.gd",
+          "find": "_go(Phase.CLASH if keepers[active].wisp_count() > 0 else Phase.END)",
+          "replace": "_go(Phase.CLASH if keepers[1 - active].wisp_count() > 0 else Phase.END)"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_turn.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_clash.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Duel class (scripts/duel.gd: kindling, playing cards, the lanes, the Clash, the discard pile and the hand limit)",
+        "file": "test/unit/test_duel_rules.gd",
+        "rules": "a card costs kindling and one that costs more than is left cannot be played, a keeper's kindling each turn is its own turn number up to 6, a wisp goes to the first free lane of its row and none can be played into a full row, the wisps across a lane strike each other with their power, a wisp whose guard reaches 0 falls to its owner's discard pile, a wisp with an empty lane across strikes the other keeper's light, and a card drawn into a hand of 7 goes to the discard pile",
+        "code": "scripts/duel.gd"
+      },
+      "unchanged": [
+        "scripts/duel.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_duel_rules.gd"
+      ],
+      "mutants": [
+        {
+          "name": "a card costing more than the kindling left can be played",
+          "file": "scripts/duel.gd",
+          "find": "if card.cost > keeper.kindling:",
+          "replace": "if card.cost > keeper.kindling + 1:"
+        },
+        {
+          "name": "kindling does not grow with the turns",
+          "file": "scripts/duel.gd",
+          "find": "keeper.kindling = mini(keeper.turns, MAX_KINDLING)",
+          "replace": "keeper.kindling = mini(1, MAX_KINDLING)"
+        },
+        {
+          "name": "a wisp can be played into a full row",
+          "file": "scripts/duel.gd",
+          "find": "return keeper.free_lane() >= 0",
+          "replace": "return true"
+        },
+        {
+          "name": "the wisp across does not strike back",
+          "file": "scripts/duel.gd",
+          "find": "_wound(active, lane, taken)",
+          "replace": "_wound(active, lane, 0)"
+        },
+        {
+          "name": "a fallen wisp is not discarded",
+          "file": "scripts/duel.gd",
+          "find": "\t\tkeepers[seat].discard.append(wisp.id)\n",
+          "replace": ""
+        },
+        {
+          "name": "a card drawn into a full hand is kept",
+          "file": "scripts/duel.gd",
+          "find": "if keeper.hand.size() >= HAND_MAX:",
+          "replace": "if keeper.hand.size() > HAND_MAX:"
+        },
+        {
+          "name": "an unblocked wisp does not burn the keeper",
+          "file": "scripts/duel.gd",
+          "find": "\t\t_burn(1 - active, wisp.power)\n",
+          "replace": "\t\t_burn(1 - active, 0)\n"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "fatigue: when a keeper must draw from an empty deck (Duel.draw_card), it loses light equal to the number of times it has drawn from an empty deck in this duel (1 the first time, then 2, then 3), counted in a new Keeper property fatigue for each keeper, and a keeper whose light reaches 0 that way loses the duel (the phase becomes Over and the other keeper is the winner)"
+      },
+      "hidden": [
+        "hidden/test_hidden_fatigue.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "scripts/duel.gd",
+          "find": "\t\t\"bolt\":\n\t\t\t_burn(1 - seat, amount)\n",
+          "replace": "\t\t\"bolt\":\n\t\t\t_burn(1 - seat, amount)\n\t\t\t_burn(1 - seat, amount)\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/duel.gd",
+        "scripts/keeper.gd",
+        "scripts/ai.gd",
+        "scripts/deck.gd",
+        "scripts/cards.gd",
+        "game/game.gd",
+        "test/unit/test_duel.gd",
+        "test/unit/test_turn.gd",
+        "test/unit/test_deck.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_flare_burns_the_rival_for_three",
+          "re:test_duel\\.gd\\D{0,40}\\b19\\b",
+          "re:(?<![\\d.])17(?!\\d)",
+          "re:(?<![\\d.])14(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

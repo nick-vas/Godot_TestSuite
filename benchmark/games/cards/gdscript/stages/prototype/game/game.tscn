@@ -1,0 +1,95 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/table.gd" id="2_table"]
+[ext_resource type="Texture2D" path="res://art/lantern.png" id="3_lantern"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Lanterns" type="Node2D" parent="."]
+
+[node name="RivalLantern" type="Sprite2D" parent="Lanterns"]
+position = Vector2(1060, 205)
+texture = ExtResource("3_lantern")
+
+[node name="PlayerLantern" type="Sprite2D" parent="Lanterns"]
+position = Vector2(220, 385)
+texture = ExtResource("3_lantern")
+
+[node name="Table" type="Node2D" parent="."]
+script = ExtResource("2_table")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="RivalLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 14.0
+offset_right = 540.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 26
+text = "Rival 1"
+
+[node name="RivalLight" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 56.0
+offset_right = 540.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 22
+text = "Light: 12"
+
+[node name="TurnLabel" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 100.0
+offset_right = 300.0
+offset_bottom = 134.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 22
+text = "Turn 1: Draw"
+horizontal_alignment = 1
+
+[node name="PlayerLight" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 456.0
+offset_right = 360.0
+offset_bottom = 490.0
+theme_override_font_sizes/font_size = 22
+text = "Light: 20"
+
+[node name="KindlingLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 494.0
+offset_right = 360.0
+offset_bottom = 528.0
+theme_override_font_sizes/font_size = 22
+text = "Kindling: 1 / 1"
+
+[node name="EndTurnButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -356.0
+offset_top = 340.0
+offset_right = -140.0
+offset_bottom = 428.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 24
+text = "End turn"
+
+[node name="Hand" type="HBoxContainer" parent="HUD"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -570.0
+offset_top = -192.0
+offset_right = 570.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 8
+alignment = 1
