@@ -1,6 +1,73 @@
 # Changelog
 
 ## Unreleased
+- **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
+  the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
+  - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per
+    task, geometric mean, × 100, with the washing machine's thresholds;
+  - a minimum requirement (half the answers pass);
+  - a product information sheet and an SVG label per configuration (model, with or without the plugin), and a tested
+    class;
+  - verification as Annex IX does it: one unit, then three more whose mean decides;
+  - a rescale review when 30% of what is rated reaches class A;
+  - a new scale reports whether class A starts empty.
+
+  Scale 2026-10 was set from 216 sessions of 0.1.0. Haiku 5.5 rates D (AEI 74.2, 96% of answers pass), Sonnet 5.5 F
+  (92.8, 54%, nearly every failure over the stated word limit). The plugin makes both worse on these tasks, which are
+  about Hyperdot's own code.
+- Token benchmark: a grader that cannot be fooled.
+  - Whole-word terms, `re:` regular expressions, `mustAdd` for a diff's added lines, forbidden commands found where a
+    statement starts. Markup is not counted as words.
+  - A spec whose required term is in the task's own prompt is refused.
+  - Sessions run in a copy of the repository without the benchmark, so they cannot read the expected answers.
+  - Only an answer that never came is retried. A run with an ungraded session exits 1.
+  - Profiles rotate so no profile always meets a cold cache. `maxCalls` holds with retries.
+  - CI-PS-003 replaces CI-PS-002, which needed the spec. CI-PS-001 and CODE-PS-001 no longer require a word good
+    answers do without.
+- Coverage: `HYPERDOT_COVERAGE` makes the kit record the commands, functions and error codes a run reaches.
+  - `tests/Get-KitCoverage.ps1` reports them.
+  - Every self-test job collects them, and a `coverage` job fails below its floors.
+  - The first full run found 27 of the 50 documented error codes raised by no test. `tests/Test-ErrorCodes.ps1` raises
+    them.
+- An adversarial review of every area (core, planning, measurement, skills and plugin, CI and benchmark, examples and
+  docs) found 62 defects. 59 are fixed, each with a regression test. One (a fuzzy PO comment) is how Godot itself
+  behaves, so it stays. Binding errors that print no JSON are documented, and a download race is recorded in the roadmap. Among the fixes:
+  - **Results folder:** `test -Results` naming a folder inside the project deleted it; now `unsafe-results-dir`.
+  - **GUT:** a test script that fails to parse left the gut runner green.
+  - **Solution detection:** outside a git checkout, `detect` picked the C# example's csproj instead of its solution, so
+    552 of 580 tests never ran. A solution that lists a project of the same name elsewhere was also taken.
+  - **Stop hook:** any passing `test` run satisfied it (`-Runners none`, a `-Filter`). It also missed deletions,
+    commits, non-ASCII names and data files.
+  - **Trello sync:**
+    - undid a local `plan -Do move`;
+    - duplicated cards after a failure halfway;
+    - dropped a custom `trello.lists` mapping.
+  - **Plan and status:**
+    - the `tests` gate and doctor counted the data and l10n runners as tests;
+    - `status` failed outright on a plan problem.
+  - **Measurement:**
+    - the palette check missed off-palette colours close together;
+    - `shot` overwrote pictures of scenes that share a file name;
+    - `bench -Seconds 0` passed any budget and `audio -Mix -Seconds 0` hung;
+    - the hitch count was capped at 50;
+    - CSV numbers followed the machine's culture.
+  - **Data and soak:**
+    - `data` compared `enum` and `pattern` without regard to case;
+    - soak metrics in scientific notation were misread.
+  - **Error codes and logs:**
+    - a game printing "Error:" failed with an empty error list;
+    - paths with brackets broke a GUT upgrade;
+    - paths with spaces lost their failure location;
+    - the time limit was not enforced on a program that closed its output.
+  - **Release and canary:**
+    - a tag push would have published the C# example as the kit's release;
+    - the canary mapped Godot 4.7 to GUT's 4.8 release;
+    - anyone's marker comment could stop the PR summary;
+    - a fork could set the coverage baseline.
+  - **Examples:** the C# example's tests deleted a developer's own telemetry consent and saved key bindings.
+
+  New self-tests: `Test-Detect`, `Test-InstallAddon`, `Test-StopGate`, `Test-ResultsDir`, `Test-HyperdotLabel`,
+  `Test-ErrorCodes`.
 - Versioning: the first Hyperdot release will be 0.1.0 (Semantic Versioning; 0.x while it is used on its first real
   game, 1.0.0 once the criteria in `docs/roadmap.md` hold). `plugin.json` goes from 0.4.0 to 0.1.0 with the new name.
 - Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`); before this the repository had no licence. The files a

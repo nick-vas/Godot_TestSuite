@@ -42,7 +42,7 @@ instead of 1.0: see [Versions](#versions).
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
    (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
-   ([label.md](label.md)): an adversarial review of every area (66 findings, fixed with regression tests), a grader
+   ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
    that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
 6. **Retro** over all of the above.
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0` (the workflow snippet and `init` pin it instead of `@main`), a
