@@ -1,0 +1,5 @@
+name: Godot
+on: [push, pull_request]
+jobs:
+  godot:
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
