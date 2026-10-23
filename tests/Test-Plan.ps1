@@ -177,6 +177,21 @@ try {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# A day-first culture (Greek here) must read the phase's start time back: it once failed with "String '10/23/2026
+# 05:57:27' was not recognized as a valid DateTime" on every plan command after init.
+$culture = Join-Path ([IO.Path]::GetTempPath()) "plan-culture-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force $culture | Out-Null
+    Set-Content -LiteralPath (Join-Path $culture 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Culture""`n"
+    $command = "[cultureinfo]::CurrentCulture = 'el-GR'; & '$ci' plan -Do init -Project '$culture' *> `$null; & '$ci' plan -Do add -Title Task -Json -Project '$culture' 2>`$null"
+    $added = pwsh -NoProfile -Command $command | ConvertFrom-Json
+    Assert-True ($added.ok) 'plan reads its start time back under a day-first culture (el-GR)'
+    Assert-True ((ConvertTo-UtcTime ([datetime]::new(2026, 10, 23, 5, 57, 27, [DateTimeKind]::Utc))) -eq [datetime]::new(2026, 10, 23, 5, 57, 27, [DateTimeKind]::Utc) -and
+        (ConvertTo-UtcTime '2026-10-23T05:57:27.0000000Z') -eq [datetime]::new(2026, 10, 23, 5, 57, 27, [DateTimeKind]::Utc)) 'ConvertTo-UtcTime keeps a UTC DateTime and reads an ISO string as the same instant'
+} finally {
+    Remove-Item -LiteralPath $culture -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }
 Write-Host 'plan self-test passed'
 # One kit run failed on purpose (the refused gate); GitHub's pwsh wrapper would exit with its code.

@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `plan` works on PCs with a day-first date format (Greek, and most of Europe): every plan command after `init` failed
+  with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
+  through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps
+  `status`'s error history from shifting by the UTC offset. `Test-Plan.ps1` runs `plan` under el-GR.
 - Fixes before 1.0. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
   `invalid-arguments` before any setup, instead of passing `a.tscn,b.tscn` on as one scene. The run log (`log`,
   `godot-ci.log`) now sits with each command's own results: `bench-results`, `soak-results`, `audio-results`, and `shot`'s
