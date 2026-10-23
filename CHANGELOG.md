@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- **The staged game programme's second genre: a platformer**, Glowmoss Ridge, in GDScript
+  (`benchmark/games/platformer/`). A side view of a 3D world, so the `placement` runner measures every tuft of glowmoss
+  against the climber's reach, read from the movement code. The jump has coyote time, a jump buffer and a short hop, and
+  moves by each tick's average velocity, so it peaks at the same height at any tick rate. The release candidate has 34
+  GUT tests, four flows, a bot that finishes five levels, juice, three languages, store art and credits. Its four stages
+  carry 17 tasks and three milestones, each with hidden checks and a reference solution, most with a decoy; all pass
+  `tests/Test-GameProgramme.ps1 -Genre platformer -Language gdscript`. `DESIGN.md` holds the language-neutral contract
+  for the C# port, which is still to come.
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run
