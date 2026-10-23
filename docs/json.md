@@ -10,11 +10,13 @@ pwsh -NoProfile -File ci/godot/hyperdot.ps1 test -Json 2>$null | ConvertFrom-Jso
 Add `-Quiet` when an agent reads the output: Godot's and dotnet's output then goes only to the run log (see `log`
 below) and stderr carries just the kit's own lines, about 1 KB instead of 7 to 16 KB per test run on the examples.
 
-One exception: arguments PowerShell rejects before the script starts print no JSON. That is a command not in the
-`command` list below, a value outside a parameter's set or range (`-Do`, `-Mcp`, `-Retry` above 5), an unknown flag, or a value of the wrong
+Arguments the kit cannot use give `invalid-arguments` in JSON too, with a message naming the parameter, the value and
+what it takes: a command not in the `command` list below, a value outside a parameter's set (`-Do`, `-Mcp`,
+`-Profile`, `-Retry` above 5), an unknown flag (with the nearest real one), a word that belongs to no parameter, an
+unknown runner, a misspelt sound or a bad environment variable. Two mistakes are still refused by PowerShell before the
+script starts, and print no JSON: a flag left without its value (`-Project` as the last word) and a value of the wrong
 type (`-Retry abc`). Then stdout is empty, the exit code is 1 and stderr says which argument was wrong; treat an empty
-stdout with exit code 1 as such an error. Values the kit checks itself (an unknown runner, a misspelt sound, a bad
-environment variable) give `invalid-arguments` in JSON as usual.
+stdout with exit code 1 as such an error.
 
 Run it as a child process, as an agent does. The document is written to the process's standard output, so dot-sourcing or calling the script
 in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
@@ -45,7 +47,7 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |

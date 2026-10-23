@@ -2,7 +2,7 @@
 # Self-test: every error code in docs/json.md that no other self-test raises, raised here by the smallest input that
 # should cause it, and checked in the -Json result. Error codes are API: a code an agent branches on must be one the kit
 # really returns. Most cases use a copy of examples/gdscript (or examples/csharp) in a temporary folder.
-# -NoGodot runs only the cases that need no Godot (plan, init, detect, doctor); bench and shot need a display.
+# -NoGodot runs only the cases that need no Godot (plan, init, detect, doctor, and arguments the kit cannot use); bench and shot need a display.
 param([switch]$NoGodot)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -52,6 +52,26 @@ try {
     Assert-Code 'failed' @('detect', '-Project', $empty)
     Assert-Code 'no-plan' @('plan', '-Project', $gd)
     Assert-Code 'doctor-problems' @('doctor', '-Project', $gd) @{ GODOT_BIN = (Join-Path $temp 'no-godot') }
+
+    # Arguments PowerShell used to refuse before the script started (no JSON at all): each gives invalid-arguments, with
+    # a message naming the parameter, the bad value and what it takes, before any project is looked for.
+    foreach ($case in @(
+            @{ Args = @('tset'); Says = @("'tset' is not a command", 'did you mean test?', 'help, deck') },
+            @{ Args = @('plan', '-Do', 'finish'); Says = @('-Do finish', 'status, init, done') },
+            @{ Args = @('plan', '-Do', 'init', '-Profile', 'sprint'); Says = @('-Profile sprint', 'full, jam') },
+            @{ Args = @('init', '-Mcp', 'godot'); Says = @('-Mcp godot', 'none, godot-mcp, godot-ai') },
+            @{ Args = @('test', '-Retry', '9'); Says = @('-Retry 9', '0, 1, 2, 3, 4, 5') },
+            @{ Args = @('test', '-Projct', $gd); Says = @('-Projct is not a parameter', 'did you mean -Project?') },
+            @{ Args = @('help', 'shot', 'bench'); Says = @("'bench' belongs to no parameter") },
+            @{ Args = @('test', '-GameArgs', '--seed=3', '--autoplay'); Says = @("'--autoplay' belongs to no parameter", '-GameArgs') })) {
+        $r = Invoke-Kit (@($case.Args) + @('-Project', $temp))
+        $message = if ($r.Doc -and $r.Doc.PSObject.Properties['error']) { $r.Doc.error.message } else { '' }
+        $says = @($case.Says | Where-Object { -not $message.Contains($_) })
+        Assert-True ($r.Exit -eq 1 -and $r.Doc.error.code -eq 'invalid-arguments' -and $says.Count -eq 0) "invalid-arguments  <- $($case.Args -join ' ')  (exit $($r.Exit): $message)"
+    }
+    # A value in a set is matched without regard to case, as PowerShell's ValidateSet did.
+    $r = Invoke-Kit @('HELP', 'shot')
+    Assert-True ($r.Exit -eq 0 -and $r.Doc.ok) 'HELP shot binds, as help shot does'
 
     $planned = Copy-Example 'planned'
     git -C $planned init -q 2>$null

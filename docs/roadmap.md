@@ -139,10 +139,10 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   pinned model judge and human review, min/mid/max tiers, a private field test, and sessions isolated as a separate user.
 - **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
   surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
-- **Binding errors as JSON.** A bad value for a `ValidateSet` or `ValidateRange` parameter, or an unknown command, prints
-  nothing on stdout (documented in `docs/json.md`). Moving those checks into the script body would return
-  `invalid-arguments`, but `Test-Skills.ps1`, `lib/Context.ps1` and `tests/Get-KitCoverage.ps1` read the sets from the
-  parameter block.
+- **The last two binding errors as JSON.** A flag left without its value (`-Project` as the last word) and a value of the
+  wrong type (`-Retry abc`) are still refused by PowerShell before `hyperdot.ps1` runs, so `-Json` prints nothing.
+  Catching them needs a process in front of the script; forwarding `@args` from a wrapper loses `-Switch:$false`, so it
+  would have to re-parse the command line itself.
 - **gdUnit4 skipping two tests on Windows, sometimes.** Self-test run 39930228730 (local-windows, the C# example with
   `-Coverage`): "gdUnit4 found 28 tests but ran 26", so the kit's guard failed the run, as it should; the next run on the
   same kit code ran all 28. The log does not say which two, and a "CLR: Assert failure ... after the .NET runtime thread

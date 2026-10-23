@@ -49,7 +49,7 @@ function Get-HelpSubjects {
     $root = Get-HelpKitRoot
     $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'ci/godot/hyperdot.ps1'), [ref]$null, [ref]$null)
     $command = @($ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'Command' })
-    $set = @($command[0].Attributes | Where-Object { $_.TypeName.Name -eq 'ValidateSet' })
+    $set = @($command[0].Attributes | Where-Object { $_.TypeName.Name -in 'ArgumentCompletions', 'ValidateSet' })
     $skills = Join-Path $root '.agents/skills'
     $agents = Join-Path $root 'agents'
     return [ordered]@{

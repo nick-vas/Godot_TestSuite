@@ -44,8 +44,10 @@ param(
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
+    # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
+    # enforce while binding: Assert-KitArguments checks them in the script, so a wrong value still gives a JSON result.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck')]
+    [ArgumentCompletions('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck')]
     [string]$Command = 'test',
     # help: the command, skill or subagent to show the page of, e.g. help shot.
     [Parameter(Position = 1)]
@@ -63,7 +65,7 @@ param(
     [string]$Filter,
     # test: run a runner that failed again, up to this many times; a test that passes on a retry passes, but is listed in
     # flaky[] and recorded in the history (status lists the repeat offenders). 0: no retries.
-    [ValidateRange(0, 5)]
+    [ArgumentCompletions('0', '1', '2', '3', '4', '5')]
     [int]$Retry = 0,
     # Collect coverage (dotnet, gdunit4, godottest) into one report.
     [switch]$Coverage,
@@ -172,7 +174,7 @@ param(
     # detect: also write the values to $GITHUB_OUTPUT. export: also write version and android-version-code there.
     [switch]$GitHubOutput,
     # init: also register an editor-bridge MCP server for the project.
-    [ValidateSet('none', 'godot-mcp', 'godot-ai')]
+    [ArgumentCompletions('none', 'godot-mcp', 'godot-ai')]
     [string]$Mcp = 'none',
     # init: also register minimal-godot-mcp (GDScript diagnostics and the running game's console).
     [switch]$McpDiagnostics,
@@ -185,7 +187,7 @@ param(
     # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
     # move (a task to -Column: -Id), remove (delete a task: -Id), sync (with a Trello -Board), link (a task to a GDD
     # -Feature or a Trello -Card: -Id).
-    [ValidateSet('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
+    [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
     # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id.
     [string]$Id,
@@ -199,7 +201,7 @@ param(
     [string]$Game,
     # plan -Do init: full (seven phases sized in weeks) or jam (a game jam of 2 to 9 days, sized in days).
     # The flag is -Profile; the variable has another name because $PROFILE is PowerShell's own.
-    [ValidateSet('full', 'jam')]
+    [ArgumentCompletions('full', 'jam')]
     [Alias('Profile')]
     [string]$PlanProfile = 'full',
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
@@ -215,7 +217,11 @@ param(
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
     # so an agent reads the verdict, with failure messages, files and lines, instead of the whole log.
-    [switch]$Quiet
+    [switch]$Quiet,
+    # Not a flag: whatever PowerShell could not bind to the parameters above (an unknown flag, a word too many) lands here,
+    # so the script can answer it with invalid-arguments, in JSON with -Json, instead of PowerShell printing an error.
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [object[]]$UnboundArguments
 )
 
 $ErrorActionPreference = 'Stop'
@@ -228,6 +234,7 @@ if ($Json) {
 $script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
+Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundParameters
 
 # help needs no project: it is answered before one is looked for.
 if ($Topic -and $Command -ne 'help') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help takes a name (help $Topic)" 'invalid-arguments' }

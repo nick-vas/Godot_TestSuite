@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **Argument mistakes come back as JSON.** An unknown command, a value outside a parameters set (`-Do`, `-Mcp`,
+  `-Profile`, `-Retry` above 5), an unknown flag or a word that belongs to no parameter used to be refused by PowerShell
+  before the script started, with nothing on stdout under `-Json`. They now give `invalid-arguments` with the parameter,
+  the value, what it takes and the nearest name (`-Projct` → `-Project`). The sets stay in the param block, as
+  `[ArgumentCompletions]` (tab completion, not enforced while binding), checked by `Assert-KitArguments`; `help`, the skill and
+  context checks and the coverage report read the same attributes. A flag without its value and a value of the wrong type
+  (`-Retry abc`) are still PowerShells. Self-test: `tests/Test-ErrorCodes.ps1 -NoGodot`.
 - **The staged programme's first pilot** (min tier, 32 sessions, $1.89; `benchmark/PLAN.md`): five of the eight arcade
   GDScript tasks were solved by every configuration, Haiku's fix-playthrough sessions ran out of time (the template now
   allows 1800 s), the plugin used about twice the tokens again, and `cost-model.json` now holds the measured costs. The

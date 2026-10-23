@@ -36,7 +36,7 @@ foreach ($source in $sources) {
     }
     if ($source.Name -eq 'hyperdot.ps1') {
         $param = $ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'Command' }
-        $set = $param.Attributes | Where-Object { $_.TypeName.Name -eq 'ValidateSet' }
+        $set = $param.Attributes | Where-Object { $_.TypeName.Name -in 'ArgumentCompletions', 'ValidateSet' }
         $commands = @($set.PositionalArguments | ForEach-Object { $_.Value })
     }
 }
