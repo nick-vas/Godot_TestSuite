@@ -159,12 +159,12 @@ param(
     [switch]$Agents,
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
-    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), add (a task: -Title),
+    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
     # move (a task to -Column: -Id), remove (delete a task: -Id), sync (with a Trello -Board), link (a task to a GDD
     # -Feature or a Trello -Card: -Id).
-    [ValidateSet('status', 'init', 'done', 'add', 'move', 'remove', 'sync', 'link')]
+    [ValidateSet('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
-    # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move|remove|link: the task id.
+    # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id.
     [string]$Id,
     # plan -Do add: the task title.
     [string]$Title,

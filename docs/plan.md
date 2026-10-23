@@ -1,7 +1,7 @@
 # A-to-Z plan for a solo developer
 
 `hyperdot.ps1 plan` tracks a game from first idea to post-launch as seven phases with gates. This page explains
-where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init | status | done -Id <gate>`,
+where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init | status | done -Id <gate> | reopen -Id <gate>`, tasks with `add | move | remove | link | sync`,
 all with `-Json` (see [json.md](json.md)).
 
 ## Where it comes from
@@ -42,7 +42,8 @@ Three inputs, cross-referenced:
 | 7 | Post-launch | 8 | What do players hit, and what next? | `docs/RETRO.md` exists |
 
 \*Defaults for about 10 hours a week; the slice gate re-sizes the rest from measured velocity. Edit `timeboxWeeks`, add or
-remove gates freely: `plan.json` is yours after `init`.
+remove gates freely: `plan.json` is yours after `init`. A manual gate marked done too early opens again with
+`plan -Do reopen -Id <gate>`; an automatic gate opens by itself when the project stops meeting it.
 
 ## Rules baked into the gates
 

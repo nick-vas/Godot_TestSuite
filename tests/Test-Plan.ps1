@@ -167,6 +167,20 @@ try {
     $d = Invoke-PlanJson @('-Do', 'done', '-Id', 'slice.budget')
     Assert-True ($d.ok -and 'slice.budget' -notin @($d.nextActions | ForEach-Object id)) 'slice.budget is marked done by hand'
 
+    # plan -Do reopen undoes done for a manual gate; an automatic gate, an unknown gate and a missing -Id are refused.
+    $d = Invoke-PlanJson @('-Do', 'reopen', '-Id', 'slice.budget')
+    Assert-True ($d.ok -and 'slice.budget' -in @($d.nextActions | ForEach-Object id)) 'plan -Do reopen opens slice.budget again'
+    $gate = @((Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json).phases.gates | Where-Object id -eq 'slice.budget')[0]
+    Assert-True (-not $gate.PSObject.Properties['done']) 'and plan.json no longer marks it done'
+    $d = Invoke-PlanJson @('-Do', 'reopen', '-Id', 'slice.budget')
+    Assert-True ($d.ok -and 'slice.budget' -in @($d.nextActions | ForEach-Object id)) 'reopening an open gate changes nothing'
+    foreach ($case in @(@('slice.debt', 'auto-gate'), @('no.such.gate', 'unknown-gate'), @('', 'invalid-arguments'))) {
+        $refused = Invoke-PlanJson @('-Do', 'reopen', '-Id', $case[0])
+        Assert-True (-not $refused.ok -and $refused.error.code -eq $case[1]) "plan -Do reopen -Id '$($case[0])' fails with $($case[1]): $(if (-not $refused.ok) { $refused.error.code })"
+    }
+    $d = Invoke-PlanJson @('-Do', 'done', '-Id', 'slice.budget')
+    Assert-True ($d.ok -and 'slice.budget' -notin @($d.nextActions | ForEach-Object id)) 'and it can be marked done again'
+
     # plan -Json reports the release timeline; five days out with no other date, the app fee is flagged and the date locked.
     Assert-True ($null -eq $d.release) 'a plan without a release date reports no release'
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10

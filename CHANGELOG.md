@@ -15,6 +15,8 @@
     plain 24-hex id; `sync` fixes an ARI an older plan stored; a card URL is refused. `-Board` also takes a board URL or
     ARI.
   - `move`, `remove` and `link` return `task` with `-Json`, like `add`.
+- **`plan -Do reopen -Id <gate>`** opens a manual gate marked done again, without editing `plan.json` (note 13). An
+  automatic gate is refused with `auto-gate`: it opens by itself when the project stops meeting it.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

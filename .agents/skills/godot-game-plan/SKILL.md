@@ -12,6 +12,7 @@ and warns on timebox overruns. Genre-independent.
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do init -Game "My Game"     # once; never overwrites
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Json                        # where am I, what is next
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do done -Id concept.scope   # mark a manual gate (you or the user decides, not the agent)
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do reopen -Id concept.scope # undo it, never by editing plan.json
 ```
 
 | Phase | Weeks | Exit gate in one line |

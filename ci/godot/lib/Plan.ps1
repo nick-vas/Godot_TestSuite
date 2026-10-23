@@ -528,6 +528,22 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
             Write-CiLog "Marked $Id done"
         }
+        'reopen' {
+            # Undoes plan -Do done: the gate counts as open again. Phase clocks are left as they are.
+            if (-not $Id) { Stop-GodotCi 'plan -Do reopen needs -Id <gate id>' 'invalid-arguments' }
+            $plan = Read-Plan $path
+            $gate = $plan.phases.gates | Where-Object { $_.id -eq $Id } | Select-Object -First 1
+            if (-not $gate) { Stop-GodotCi "No gate '$Id' in $path" 'unknown-gate' }
+            if ($gate.PSObject.Properties['check'] -and $gate.check -ne 'manual') {
+                Stop-GodotCi "Gate '$Id' is checked automatically ($($gate.check)); it is open again as soon as the project no longer meets it" 'auto-gate'
+            }
+            if ($gate.PSObject.Properties['done'] -and $gate.done -eq $true) {
+                $gate.PSObject.Properties.Remove('done')
+                Save-Plan $plan $path
+                Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
+                Write-CiLog "Reopened $Id"
+            } else { Write-CiLog "$Id is not done; nothing to reopen" }
+        }
         'add' {
             if (-not $Title) { Stop-GodotCi 'plan -Do add needs -Title' 'invalid-arguments' }
             $plan = Read-Plan $path
