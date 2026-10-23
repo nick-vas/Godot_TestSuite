@@ -420,6 +420,15 @@ function Find-ProjectFiles {
     }
 }
 
+# A stored time as UTC. ConvertFrom-Json turns ISO 8601 strings into DateTime values, and PowerShell turns those back
+# into US-format text ("10/23/2026 05:57:27") that the PC's culture may not parse (day-first cultures fail on month 23),
+# so never round-trip a time through text: take the DateTime as it is, and parse strings with the invariant culture.
+function ConvertTo-UtcTime($Value) {
+    if ($Value -is [datetime]) { return $Value.ToUniversalTime() }
+    if ($Value -is [System.DateTimeOffset]) { return $Value.UtcDateTime }
+    return [datetime]::Parse([string]$Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal)
+}
+
 # res:// path of a file inside the project.
 function ConvertTo-ResPath([string]$ProjectDir, [string]$File) {
     $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $File) -replace '\\', '/'

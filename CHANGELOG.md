@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `plan` works on PCs with a day-first date format (Greek, and most of Europe): every plan command after `init` failed
+  with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
+  through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps
+  `status`'s error history from shifting by the UTC offset. `Test-Plan.ps1` runs `plan` under el-GR.
 - Evals: the cases now run with `TMPDIR` on the runner's temp disk. Under `/tmp`, Claude Code's sandbox refused every
   write in a run's own folder, so no case could run Godot (run 6); with the change, Godot and GUT run (run 7).
   `fix-score-bug`'s `used-kit` grader now matches the kit called by a quoted path. `docs/research.md` records runs 6 and 7.

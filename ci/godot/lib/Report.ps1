@@ -511,8 +511,7 @@ function Get-FlakyOffenders([object[]]$History, [int]$Days = 30, [datetime]$Now 
     $counts = @{}; $last = @{}; $runs = 0
     foreach ($entry in $History) {
         if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test' -or -not $entry.PSObject.Properties['time']) { continue }
-        $time = if ($entry.time -is [datetime]) { $entry.time.ToUniversalTime() } else {
-            try { [datetime]::Parse([string]$entry.time, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal) } catch { continue } }
+        $time = try { ConvertTo-UtcTime $entry.time } catch { continue }
         if ($time -lt $since) { continue }
         $runs++
         if (-not $entry.PSObject.Properties['flaky']) { continue }
@@ -597,8 +596,8 @@ function Get-OlderErrors([object[]]$History, [object[]]$Recurring) {
     if (-not $latest -or ($latest[0].PSObject.Properties['ok'] -and $latest[0].ok) -or -not $latest[0].PSObject.Properties['errorKeys']) { return @() }
     $run = $latest[0]
     $commit = if ($run.PSObject.Properties['commit']) { $run.commit } else { $null }
-    $toTime = { param($t) try { [datetime]::Parse([string]$t, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal) } catch { $null } }
-    $now = if ($run.PSObject.Properties['time']) { & $toTime $(if ($run.time -is [datetime]) { $run.time.ToUniversalTime().ToString('o') } else { $run.time }) } else { $null }
+    $toTime = { param($t) try { ConvertTo-UtcTime $t } catch { $null } }
+    $now = if ($run.PSObject.Properties['time']) { & $toTime $run.time } else { $null }
     $keys = @($run.errorKeys | ForEach-Object { [string]$_ })
     return @($Recurring | Where-Object { $_.key -cin $keys -and $_.count -ge 2 } | Where-Object {
             if ($commit -and $_.firstSeen.commit) { return $_.firstSeen.commit -ne $commit }
