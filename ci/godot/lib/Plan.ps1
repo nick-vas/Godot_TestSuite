@@ -10,8 +10,37 @@ function Get-PlanPath($Info) {
 
 function Read-Plan([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { Stop-GodotCi "No plan at $Path. Run: $(Format-KitCommand 'plan -Do init')" 'no-plan' }
-    try { return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -Depth 10 }
+    try { $plan = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -Depth 10 }
     catch { Stop-GodotCi "$Path is not valid JSON: $($_.Exception.Message)" 'invalid-plan' }
+    $problems = @(Get-PlanProblems $plan)
+    if ($problems.Count) { Stop-GodotCi "${Path}: $($problems -join '; ')" 'invalid-plan' }
+    return $plan
+}
+
+# What would stop the plan being read, as messages: `plan` fails with invalid-plan on them, `status` reports them as a
+# warning (it never fails on what it finds). Hand edits are what break a plan, so only what the kit reads is checked.
+function Get-PlanProblems($Plan) {
+    if ($null -eq $Plan -or $Plan.PSObject.BaseObject -isnot [System.Management.Automation.PSCustomObject]) { return @('it is not a JSON object') }
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $wip = $Plan.PSObject.Properties['wipLimit']
+    if (-not $wip -or -not ($wip.Value -is [int] -or $wip.Value -is [long]) -or $wip.Value -lt 1) {
+        $problems.Add('wipLimit must be a whole number of tasks, 1 or more (the template has 2)')
+    }
+    if (-not $Plan.PSObject.Properties['phases']) { $problems.Add('it has no phases') }
+    foreach ($phase in @($Plan.PSObject.Properties['phases'] ? $Plan.phases : @())) {
+        if ($phase -isnot [pscustomobject] -or -not $phase.PSObject.Properties['id'] -or -not $phase.PSObject.Properties['gates']) { $problems.Add('a phase has no id or no gates'); continue }
+        foreach ($gate in @($phase.gates)) {
+            if ($gate -isnot [pscustomobject] -or -not $gate.PSObject.Properties['id']) { $problems.Add("a gate of phase '$($phase.id)' has no id"); continue }
+            $check = $gate.PSObject.Properties['check'] ? "$($gate.check)" : 'manual'
+            if ($check -notmatch '^(manual|tests|preset|ci|runner:[a-z0-9]+|file:.+)$') {
+                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, file:<path>, runner:<name>)")
+            }
+        }
+    }
+    foreach ($task in @($Plan.PSObject.Properties['tasks'] ? $Plan.tasks : @())) {
+        if ($task -isnot [pscustomobject] -or -not $task.PSObject.Properties['id'] -or -not $task.PSObject.Properties['column']) { $problems.Add('a task has no id or no column') }
+    }
+    return @($problems)
 }
 
 function Save-Plan($Plan, [string]$Path) {

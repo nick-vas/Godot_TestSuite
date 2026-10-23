@@ -201,20 +201,31 @@ function Invoke-Status($Info) {
     $plan = $null; $tasks = @(); $planDoc = $null
     $planPath = Get-PlanPath $Info
     if (Test-Path -LiteralPath $planPath) {
-        $planDoc = Read-Plan $planPath
-        $state = Get-PlanState $planDoc $Info
-        $tasks = @($planDoc.tasks | ForEach-Object {
-            [ordered]@{ id = $_.id; title = $_.title; column = $_.column; phase = $_.phase
-                feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
-                boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
-        $plan = [ordered]@{
-            path = $planPath
-            board = ($planDoc.PSObject.Properties['trello'] ? $planDoc.trello.board : $null)
-            currentPhase = ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal } : $null)
-            openGates = @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object { [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto } }) : @())
-            wipLimit = $state.wipLimit; columns = $state.board; tasks = $tasks
+        # status never fails on what it finds: a plan it cannot read is a warning, and plan is null.
+        $problems = @()
+        try { $planDoc = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10 } catch { $problems = @("it is not valid JSON: $($_.Exception.Message)") }
+        if ($problems.Count -eq 0) { $problems = @(Get-PlanProblems $planDoc) }
+        if ($problems.Count -eq 0) {
+            try {
+                $state = Get-PlanState $planDoc $Info
+                $tasks = @($planDoc.tasks | ForEach-Object {
+                    [ordered]@{ id = $_.id; title = $_.title; column = $_.column; phase = $_.phase
+                        feature = ($_.PSObject.Properties['feature'] ? $_.feature : $null); cardId = ($_.PSObject.Properties['cardId'] ? $_.cardId : $null)
+                        boardColumn = ($_.PSObject.Properties['boardColumn'] ? $_.boardColumn : $null) } })
+                $plan = [ordered]@{
+                    path = $planPath
+                    board = ($planDoc.PSObject.Properties['trello'] ? $planDoc.trello.board : $null)
+                    currentPhase = ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal } : $null)
+                    openGates = @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object { [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto } }) : @())
+                    wipLimit = $state.wipLimit; columns = $state.board; tasks = $tasks
+                }
+                foreach ($w in $state.warnings) { $warnings.Add($w) }
+            } catch { $problems = @($_.Exception.Message) }
         }
-        foreach ($w in $state.warnings) { $warnings.Add($w) }
+        if ($problems.Count) {
+            $warnings.Add("$planPath cannot be read, so the plan is left out: $(($problems -join '; ').TrimEnd('.')). Fix it, then run plan")
+            $plan = $null; $tasks = @(); $planDoc = $null
+        }
     }
 
     $features = @()

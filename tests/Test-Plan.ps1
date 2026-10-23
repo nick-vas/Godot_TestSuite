@@ -4,7 +4,8 @@
 # `bench` command, the trailer template asks what its gate says, and every gate id, template and hyperdot.ps1 flag that
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
 # cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
-# count test frameworks only (not data tables or flows). `init` never overwrites an existing test/test_example.gd. No Godot needed.
+# count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
+# warning in `status`. `init` never overwrites an existing test/test_example.gd. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -202,6 +203,31 @@ try {
         (ConvertTo-UtcTime '2026-10-23T05:57:27.0000000Z') -eq [datetime]::new(2026, 10, 23, 5, 57, 27, [DateTimeKind]::Utc)) 'ConvertTo-UtcTime keeps a UTC DateTime and reads an ISO string as the same instant'
 } finally {
     Remove-Item -LiteralPath $culture -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# A hand-broken plan: plan fails with invalid-plan (not unexpected-error), and status, which never fails on what it finds,
+# warns and reports plan as null.
+$broken = Join-Path ([IO.Path]::GetTempPath()) "plan-broken-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force $broken | Out-Null
+    Set-Content -LiteralPath (Join-Path $broken 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Broken""`n"
+    pwsh -NoProfile -File $ci plan -Do init -Project $broken 2>$null | Out-Null
+    $brokenPath = Join-Path $broken 'plan/plan.json'
+    $good = Get-Content -LiteralPath $brokenPath -Raw
+    $noWip = $good | ConvertFrom-Json -Depth 10
+    $noWip.PSObject.Properties.Remove('wipLimit')
+    $badCheck = $good | ConvertFrom-Json -Depth 10
+    $badCheck.phases[0].gates[1] | Add-Member -NotePropertyName check -NotePropertyValue 'files:docs/x.md' -Force
+    foreach ($case in @(@('no wipLimit', ($noWip | ConvertTo-Json -Depth 10), 'wipLimit'), @('an unknown check', ($badCheck | ConvertTo-Json -Depth 10), 'files:docs/x\.md'),
+            @('broken JSON', '{ "phases": [', 'not valid JSON'))) {
+        Set-Content -LiteralPath $brokenPath -Value $case[1] -Encoding utf8
+        $d = pwsh -NoProfile -File $ci plan -Json -Project $broken 2>$null | ConvertFrom-Json
+        Assert-True (-not $d.ok -and $d.error.code -eq 'invalid-plan' -and $d.error.message -match $case[2]) "plan with $($case[0]) fails with invalid-plan: $($d.error.code) $($d.error.message)"
+        $s = pwsh -NoProfile -File $ci status -Json -Project $broken 2>$null | ConvertFrom-Json
+        Assert-True ($s.ok -and $null -eq $s.plan -and @($s.warnings | Where-Object { $_ -match 'cannot be read' -and $_ -match $case[2] }).Count -eq 1) "status with $($case[0]) warns and reports no plan: $(if ($s.ok) { $s.warnings -join ' | ' } else { $s.error.message })"
+    }
+} finally {
+    Remove-Item -LiteralPath $broken -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # init sets up the project the plan's gates check: it adds a starter test, but never over a file the user already has
