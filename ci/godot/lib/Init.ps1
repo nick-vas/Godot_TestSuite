@@ -143,6 +143,8 @@ $sceneTest}
 function Add-GutStarterTest([string]$ProjectDir) {
     if (@(Get-GutTestFiles $ProjectDir).Count -gt 0) { Write-InitStep skipped 'GUT tests already exist'; return }
     $testFile = Join-Path $ProjectDir 'test/test_example.gd'
+    # A file of that name that is not a GutTest (another framework, or extends GUT's script by path) is still the user's.
+    if (Test-Path -LiteralPath $testFile) { Write-InitStep skipped 'test/test_example.gd exists'; return }
     $mainScene = if ((Get-Content -LiteralPath (Join-Path $ProjectDir 'project.godot') -Raw) -match '(?m)^run/main_scene="(?<s>[^"]+)"') { $Matches.s } else { '' }
     $sceneTest = if ($mainScene) { @"
 

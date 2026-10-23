@@ -333,13 +333,13 @@ and `noticesFile`.
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved`, `warnings`).
+`plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `warnings`).
 
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
 - `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
-  tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest test run passed).
-- `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
+  tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest full test run passed: every runner of the project, no `-Filter`).
+- `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan, or with one `plan` would refuse as `invalid-plan` (a warning says why).
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/hyperdot-history.jsonl`.
 - `testDuration`: `runners` (the usual scope), `runs` and `medianSeconds` (the last 10 passing test runs of that scope without
@@ -361,5 +361,5 @@ see [plan.md](plan.md#release-dates)).
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
   unknown kind of fun, features with no plan task, tags or tasks naming
-  features the GDD does not have, a failed or missing latest test run, plan overruns, repeatedly flaky tests, ended
+  features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
   quarantines and a latest failure whose error predates the current commit.

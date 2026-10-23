@@ -3,7 +3,9 @@
 # docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
 # `bench` command, the trailer template asks what its gate says, and every gate id, template and hyperdot.ps1 flag that
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
-# cannot be kept, and `plan -Json` reports it. No Godot needed.
+# cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
+# count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
+# warning in `status`. `init` never overwrites an existing test/test_example.gd. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -173,6 +175,17 @@ try {
     $d = Invoke-PlanJson @()
     Assert-True ($d.ok -and $d.release.daysLeft -eq 5 -and $d.release.dateLocked -eq $true -and $d.release.deadlines.steamFee) "plan -Json reports the release: $($d.release | ConvertTo-Json -Compress)"
     Assert-True (@($d.warnings | Where-Object { $_ -match 'release\.steamFeePaid is not set' }).Count -eq 1) "plan warns that the app fee is not recorded five days before release: $($d.warnings -join ' | ')"
+
+    # The tests gate and doctor's test check count test frameworks only: data tables and flows are checks, not tests.
+    Set-Content -LiteralPath (Join-Path $dir 'data.json') -Value '{}'
+    Set-Content -LiteralPath (Join-Path $dir 'start.flow.json') -Value '{ "steps": [] }'
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'slice.tests' -in @($d.nextActions | ForEach-Object id)) 'slice.tests stays open with only the data and flows runners'
+    $doctor = pwsh -NoProfile -File $ci doctor -Json -Project $dir 2>$null | ConvertFrom-Json
+    Assert-True (@($doctor.checks | Where-Object { $_.status -eq 'WARN' -and $_.message -match '^No tests found' }).Count -eq 1) "doctor warns that there are no tests: $(@($doctor.checks | Where-Object { $_.message -match 'test' } | ForEach-Object message) -join ' | ')"
+    Set-Content -LiteralPath (Join-Path $dir 'test_paddle.gd') -Value "extends GutTest`n`nfunc test_paddle():`n`tassert_true(true)`n"
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'slice.tests' -notin @($d.nextActions | ForEach-Object id)) 'slice.tests is done once a GUT test exists'
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -190,6 +203,46 @@ try {
         (ConvertTo-UtcTime '2026-10-23T05:57:27.0000000Z') -eq [datetime]::new(2026, 10, 23, 5, 57, 27, [DateTimeKind]::Utc)) 'ConvertTo-UtcTime keeps a UTC DateTime and reads an ISO string as the same instant'
 } finally {
     Remove-Item -LiteralPath $culture -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# A hand-broken plan: plan fails with invalid-plan (not unexpected-error), and status, which never fails on what it finds,
+# warns and reports plan as null.
+$broken = Join-Path ([IO.Path]::GetTempPath()) "plan-broken-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force $broken | Out-Null
+    Set-Content -LiteralPath (Join-Path $broken 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Broken""`n"
+    pwsh -NoProfile -File $ci plan -Do init -Project $broken 2>$null | Out-Null
+    $brokenPath = Join-Path $broken 'plan/plan.json'
+    $good = Get-Content -LiteralPath $brokenPath -Raw
+    $noWip = $good | ConvertFrom-Json -Depth 10
+    $noWip.PSObject.Properties.Remove('wipLimit')
+    $badCheck = $good | ConvertFrom-Json -Depth 10
+    $badCheck.phases[0].gates[1] | Add-Member -NotePropertyName check -NotePropertyValue 'files:docs/x.md' -Force
+    foreach ($case in @(@('no wipLimit', ($noWip | ConvertTo-Json -Depth 10), 'wipLimit'), @('an unknown check', ($badCheck | ConvertTo-Json -Depth 10), 'files:docs/x\.md'),
+            @('broken JSON', '{ "phases": [', 'not valid JSON'))) {
+        Set-Content -LiteralPath $brokenPath -Value $case[1] -Encoding utf8
+        $d = pwsh -NoProfile -File $ci plan -Json -Project $broken 2>$null | ConvertFrom-Json
+        Assert-True (-not $d.ok -and $d.error.code -eq 'invalid-plan' -and $d.error.message -match $case[2]) "plan with $($case[0]) fails with invalid-plan: $($d.error.code) $($d.error.message)"
+        $s = pwsh -NoProfile -File $ci status -Json -Project $broken 2>$null | ConvertFrom-Json
+        Assert-True ($s.ok -and $null -eq $s.plan -and @($s.warnings | Where-Object { $_ -match 'cannot be read' -and $_ -match $case[2] }).Count -eq 1) "status with $($case[0]) warns and reports no plan: $(if ($s.ok) { $s.warnings -join ' | ' } else { $s.error.message })"
+    }
+} finally {
+    Remove-Item -LiteralPath $broken -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# init sets up the project the plan's gates check: it adds a starter test, but never over a file the user already has
+# (here a test of that name that extends GUT's script by path, so it is not found as a GutTest).
+$starter = Join-Path ([IO.Path]::GetTempPath()) "plan-init-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $starter 'test') | Out-Null
+    Set-Content -LiteralPath (Join-Path $starter 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Starter""`n"
+    $mine = "extends ""res://addons/gut/test.gd""`n`nfunc test_mine():`n`tassert_true(true)`n"
+    Set-Content -LiteralPath (Join-Path $starter 'test/test_example.gd') -Value $mine -NoNewline
+    $d = pwsh -NoProfile -File $ci init -Json -Project $starter 2>$null | ConvertFrom-Json
+    Assert-True ((Get-Content -LiteralPath (Join-Path $starter 'test/test_example.gd') -Raw) -ceq $mine) 'init leaves an existing test/test_example.gd as it was'
+    Assert-True (@($d.steps | Where-Object { $_.status -eq 'skipped' -and $_.message -match 'test_example\.gd exists' }).Count -eq 1) "init says it skipped it: $(@($d.steps | ForEach-Object message) -join ' | ')"
+} finally {
+    Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }

@@ -76,12 +76,14 @@ Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo`
 **Trello sync** (`plan -Do sync -Board <id or short link>`, experimental) keeps the plan the source of truth and uses Trello as the place you drag things:
 - a task with no card gets one in the matching list;
 - a card you moved to another list moves its task (Trello wins on column only);
+- a task you moved in the plan (`plan -Do move`) moves its card. Each task records the list its card was in at the last
+  sync (`boardColumn`), so a card in another list was moved on the board, and a card still in that list follows the task;
 - a card that is gone (archived or deleted) is reported and left alone;
 - it never imports cards you created on the board, and never deletes anything.
 
 Set `TRELLO_KEY` and `TRELLO_TOKEN` in the environment: on https://trello.com/power-ups/admin, make a Power-Up (any
 name), open its API key page and copy the key (32 hex characters), then use the Token link beside it. They are sent in a request header, never in a URL,
-and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json.
+and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json (sync and `link -Board` keep it). A task in a column the plan does not have stops the sync before any call, and the card ids made before a failed call are saved, so the next sync does not make them again.
 `tests/Test-TrelloSync.ps1` runs these steps against a stand-in Trello on every change, and with `-Live` against the
 real API on a private board it creates and deletes (the Trello sync workflow, with the `TRELLO_KEY` and `TRELLO_TOKEN`
 repository secrets).

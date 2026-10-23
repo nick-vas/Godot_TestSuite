@@ -87,8 +87,11 @@ function Get-RepositoryHygiene([string]$ProjectDir) {
     $candidates = @($relative | Where-Object { $_ -match $secretPattern })
     $gitRoot = Get-GitRoot $root
     if ($candidates -and $gitRoot) {
-        $tracked = @(& git -C $root ls-files -- @($candidates) 2>$null)
-        $result.secrets = @($candidates | Where-Object { $_ -in $tracked })
+        # One call per file, checked for any output: git quotes non-ASCII names in what it prints (and the console's code
+        # page may not be UTF-8), so comparing its output with the names missed keys in a folder such as "clés".
+        $result.secrets = @(foreach ($candidate in $candidates) {
+            if (@(& git -C $root ls-files -- ":(literal)$candidate" 2>$null).Count -gt 0) { $candidate }
+        })
     }
 
     $result.reserved = @($relative | Where-Object {
@@ -391,7 +394,7 @@ function Invoke-Doctor($Info) {
     }
 
     # --- Tests ------------------------------------------------------------------------------------
-    $testRunners = @($Info.Runners | Where-Object { $_ -notin 'validate', 'architecture', 'smoke' })
+    $testRunners = @($Info.Runners | Where-Object { $_ -in $script:TestFrameworkRunners })
     if ($testRunners.Count -eq 0) {
         Add-Check WARN 'No tests found; only the load check and smoke run will happen' "Run: $(Format-KitCommand 'init') (adds a starter test)"
     } else {

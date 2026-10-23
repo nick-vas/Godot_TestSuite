@@ -10,13 +10,45 @@ function Get-PlanPath($Info) {
 
 function Read-Plan([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { Stop-GodotCi "No plan at $Path. Run: $(Format-KitCommand 'plan -Do init')" 'no-plan' }
-    try { return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -Depth 10 }
+    try { $plan = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -Depth 10 }
     catch { Stop-GodotCi "$Path is not valid JSON: $($_.Exception.Message)" 'invalid-plan' }
+    $problems = @(Get-PlanProblems $plan)
+    if ($problems.Count) { Stop-GodotCi "${Path}: $($problems -join '; ')" 'invalid-plan' }
+    return $plan
+}
+
+# What would stop the plan being read, as messages: `plan` fails with invalid-plan on them, `status` reports them as a
+# warning (it never fails on what it finds). Hand edits are what break a plan, so only what the kit reads is checked.
+function Get-PlanProblems($Plan) {
+    if ($null -eq $Plan -or $Plan.PSObject.BaseObject -isnot [System.Management.Automation.PSCustomObject]) { return @('it is not a JSON object') }
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $wip = $Plan.PSObject.Properties['wipLimit']
+    if (-not $wip -or -not ($wip.Value -is [int] -or $wip.Value -is [long]) -or $wip.Value -lt 1) {
+        $problems.Add('wipLimit must be a whole number of tasks, 1 or more (the template has 2)')
+    }
+    if (-not $Plan.PSObject.Properties['phases']) { $problems.Add('it has no phases') }
+    foreach ($phase in @($Plan.PSObject.Properties['phases'] ? $Plan.phases : @())) {
+        if ($phase -isnot [pscustomobject] -or -not $phase.PSObject.Properties['id'] -or -not $phase.PSObject.Properties['gates']) { $problems.Add('a phase has no id or no gates'); continue }
+        foreach ($gate in @($phase.gates)) {
+            if ($gate -isnot [pscustomobject] -or -not $gate.PSObject.Properties['id']) { $problems.Add("a gate of phase '$($phase.id)' has no id"); continue }
+            $check = $gate.PSObject.Properties['check'] ? "$($gate.check)" : 'manual'
+            if ($check -notmatch '^(manual|tests|preset|ci|runner:[a-z0-9]+|file:.+)$') {
+                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, file:<path>, runner:<name>)")
+            }
+        }
+    }
+    foreach ($task in @($Plan.PSObject.Properties['tasks'] ? $Plan.tasks : @())) {
+        if ($task -isnot [pscustomobject] -or -not $task.PSObject.Properties['id'] -or -not $task.PSObject.Properties['column']) { $problems.Add('a task has no id or no column') }
+    }
+    return @($problems)
 }
 
 function Save-Plan($Plan, [string]$Path) {
     $Plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Path -Encoding utf8
 }
+
+# The runners of test frameworks. The others (validate, smoke, data, flows, l10n, ...) check the project, not its tests.
+$script:TestFrameworkRunners = 'dotnet', 'gdunit4', 'godottest', 'gut'
 
 # True/false for gates the project can answer by itself; $null for manual gates.
 function Test-PlanGate($Gate, $Info) {
@@ -24,7 +56,7 @@ function Test-PlanGate($Gate, $Info) {
     $root = Split-Path (Split-Path (Get-PlanPath $Info))
     switch -Regex ($check) {
         '^manual$' { return $null }
-        '^tests$' { return @($Info.Runners | Where-Object { $_ -notin 'validate', 'architecture', 'smoke' }).Count -gt 0 }
+        '^tests$' { return @($Info.Runners | Where-Object { $_ -in $script:TestFrameworkRunners }).Count -gt 0 }
         '^preset$' { return $Info.Presets.Count -gt 0 }
         # The runner is set up for the project (detected or listed), so every CI run enforces it.
         '^runner:(?<runner>[a-z0-9]+)$' { return @($Info.Runners) -contains $Matches.runner }
@@ -249,8 +281,10 @@ function Invoke-Trello([string]$Method, [string]$Resource, [hashtable]$Body) {
         if ($result -is [array]) { foreach ($item in $result) { $item } } else { $result }
         return
     } catch {
-        $status = $_.Exception.Response ? [int]$_.Exception.Response.StatusCode : 0
-        Stop-GodotCi "Trello $Method $Resource failed ($status)" 'trello-error'
+        # A network failure has no response (and no Response property, which strict mode would trip on).
+        $response = $_.Exception.PSObject.Properties['Response'] ? $_.Exception.Response : $null
+        $status = $response ? [int]$response.StatusCode : 0
+        Stop-GodotCi "Trello $Method $Resource failed ($(if ($response) { $status } else { "no response: $($_.Exception.Message)" }))" 'trello-error'
     }
 }
 
@@ -265,47 +299,75 @@ function Get-TrelloListMap($Plan, [string]$BoardId) {
     foreach ($column in $script:PlanColumns) {
         $list = $lists | Where-Object { $_.name.StartsWith($names[$column], [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
         if (-not $list) {
-            Stop-GodotCi "Trello board has no list for '$column' (looked for '$($names[$column])'; it has: $(($lists.name) -join ', '))" 'trello-list-missing'
+            Stop-GodotCi "Trello board has no list for '$column' (looked for '$($names[$column])'; it has: $(if ($lists.Count) { @($lists | ForEach-Object name) -join ', ' } else { 'no open lists' }))" 'trello-list-missing'
         }
         $map[$column] = $list.id
     }
     return $map
 }
 
+# Sets plan.json's Trello board and keeps the rest of the trello block (a custom trello.lists mapping).
+function Set-PlanTrelloBoard($Plan, [string]$Board) {
+    if ($Plan.PSObject.Properties['trello'] -and $Plan.trello -is [pscustomobject]) {
+        if ($Plan.trello.PSObject.Properties['board']) { $Plan.trello.board = $Board }
+        else { $Plan.trello | Add-Member -NotePropertyName board -NotePropertyValue $Board }
+    } else {
+        $Plan | Add-Member -NotePropertyName trello -NotePropertyValue ([pscustomobject]@{ board = $Board }) -Force
+    }
+}
+
 # plan.json stays the source of truth for what the tasks are; Trello is where you drag them. New tasks become
-# cards, and a card moved on the board moves its task.
+# cards, a card moved on the board moves its task, and a task moved with `plan -Do move` moves its card. Each task
+# records the list its card was in at the last sync (boardColumn), which tells the two kinds of move apart.
 function Sync-PlanTrello([string]$Path, [string]$Dir, $Info, [string]$Board) {
     $plan = Read-Plan $Path
     if (-not $Board -and $plan.PSObject.Properties['trello']) { $Board = $plan.trello.board }
     if (-not $Board) { Stop-GodotCi 'plan -Do sync needs -Board <board id or short link> (saved to plan.json afterwards)' 'invalid-arguments' }
+    # Checked before any call, so a bad column cannot stop the sync halfway.
+    foreach ($task in @($plan.tasks)) {
+        if ("$($task.column)" -notin $script:PlanColumns) {
+            Stop-GodotCi "Task $($task.id) is in an unknown column '$($task.column)'; use $($script:PlanColumns -join ', ')" 'invalid-plan'
+        }
+    }
     $listIds = Get-TrelloListMap $plan $Board
     $columnOf = @{}; foreach ($column in $listIds.Keys) { $columnOf[$listIds[$column]] = $column }
     $cards = @{}; foreach ($card in @(Invoke-Trello GET "boards/$Board/cards?fields=name,idList")) { $cards[$card.id] = $card }
 
-    $created = 0; $moved = 0; $warnings = @()
-    foreach ($task in @($plan.tasks)) {
-        $cardId = $task.PSObject.Properties['cardId'] ? $task.cardId : $null
-        if ($cardId -and $cards.ContainsKey($cardId)) {
-            $listColumn = $columnOf[$cards[$cardId].idList]
-            if ($listColumn -and $listColumn -ne $task.column) {
-                Write-CiLog "$($task.id): $($task.column) -> $listColumn (moved on the board)"
-                $task.column = $listColumn; $moved++
+    $created = 0; $moved = 0; $cardsMoved = 0; $warnings = @()
+    Set-PlanTrelloBoard $plan $Board
+    # Saved whatever happens: a card created before a failed call keeps its id, so the next sync does not duplicate it.
+    try {
+        foreach ($task in @($plan.tasks)) {
+            $cardId = $task.PSObject.Properties['cardId'] ? $task.cardId : $null
+            if ($cardId -and $cards.ContainsKey($cardId)) {
+                $listColumn = $columnOf[$cards[$cardId].idList]
+                if (-not $listColumn) { continue }
+                $recorded = $task.PSObject.Properties['boardColumn'] ? $task.boardColumn : $null
+                if ($listColumn -ne $task.column -and ($null -eq $recorded -or $listColumn -ne $recorded)) {
+                    Write-CiLog "$($task.id): $($task.column) -> $listColumn (moved on the board)"
+                    $task.column = $listColumn; $moved++
+                } elseif ($listColumn -ne $task.column) {
+                    Write-CiLog "$($task.id): card $listColumn -> $($task.column) (moved in the plan)"
+                    Invoke-Trello PUT "cards/$cardId" @{ idList = $listIds[$task.column] } | Out-Null
+                    $cardsMoved++
+                }
+                $task | Add-Member -NotePropertyName boardColumn -NotePropertyValue $task.column -Force
+            } elseif ($cardId) {
+                $warnings += "Card for $($task.id) is gone from the board (archived or deleted); left as is"
+            } else {
+                $card = Invoke-Trello POST 'cards' @{ idList = $listIds[$task.column]; name = $task.title; desc = "plan task $($task.id), phase $($task.phase)" }
+                $task | Add-Member -NotePropertyName cardId -NotePropertyValue $card.id -Force
+                $task | Add-Member -NotePropertyName boardColumn -NotePropertyValue $task.column -Force
+                $created++
             }
-        } elseif ($cardId) {
-            $warnings += "Card for $($task.id) is gone from the board (archived or deleted); left as is"
-        } else {
-            $card = Invoke-Trello POST 'cards' @{ idList = $listIds[$task.column]; name = $task.title; desc = "plan task $($task.id), phase $($task.phase)" }
-            $task | Add-Member -NotePropertyName cardId -NotePropertyValue $card.id -Force
-            $created++
         }
+    } finally {
+        Save-Plan $plan $Path
     }
-    $trello = [pscustomobject]@{ board = $Board }
-    $plan | Add-Member -NotePropertyName trello -NotePropertyValue $trello -Force
-    Save-Plan $plan $Path
     Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $Dir 'PLAN.md')
     foreach ($warning in $warnings) { Write-Console "WARNING: $warning" -ForegroundColor Yellow }
-    Write-CiLog "Trello sync: $created card(s) created, $moved task(s) moved from the board"
-    Set-JsonField sync ([ordered]@{ board = $Board; created = $created; moved = $moved; warnings = $warnings })
+    Write-CiLog "Trello sync: $created card(s) created, $moved task(s) moved from the board, $cardsMoved card(s) moved to follow the plan"
+    Set-JsonField sync ([ordered]@{ board = $Board; created = $created; moved = $moved; cardsMoved = $cardsMoved; warnings = $warnings })
 }
 
 function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Card) {
@@ -380,7 +442,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             # next /game can tell a card the user moved from one it placed itself. -Board alone sets the plan's board.
             $plan = Read-Plan $path
             if ($Board) {
-                $plan | Add-Member -NotePropertyName trello -NotePropertyValue ([pscustomobject]@{ board = $Board }) -Force
+                Set-PlanTrelloBoard $plan $Board
                 if (-not $Id) {
                     Save-Plan $plan $path
                     Write-CiLog "Trello board set to $Board"
