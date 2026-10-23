@@ -24,11 +24,32 @@ public class DiagnosticsTest
         catch (Exception e) { return e.ToString(); }
     }
 
+    // The game's own telemetry files: user:// is the same folder when a developer plays the game, so the player's consent
+    // and session marker are set aside before each test and put back after it, not deleted.
+    static readonly string[] TelemetryFiles = { "user://telemetry/state.json", "user://telemetry/session.running" };
+    const string SetAside = ".before-test";
+
+    [BeforeTest]
+    public void SetTheGamesStateAside()
+    {
+        foreach (var file in TelemetryFiles)
+        {
+            var path = ProjectSettings.GlobalizePath(file);
+            // A copy already set aside is the game's, left by a run that stopped early; what is in its place is a test's.
+            if (System.IO.File.Exists(path + SetAside)) System.IO.File.Delete(path);
+            else if (System.IO.File.Exists(path)) System.IO.File.Move(path, path + SetAside);
+        }
+    }
+
     [AfterTest]
     public void ForgetEverything()
     {
-        foreach (var file in new[] { "user://telemetry/state.json", "user://telemetry/session.running" })
-            if (System.IO.File.Exists(ProjectSettings.GlobalizePath(file))) System.IO.File.Delete(ProjectSettings.GlobalizePath(file));
+        foreach (var file in TelemetryFiles)
+        {
+            var path = ProjectSettings.GlobalizePath(file);
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+            if (System.IO.File.Exists(path + SetAside)) System.IO.File.Move(path + SetAside, path);
+        }
     }
 
     [TestCase]
