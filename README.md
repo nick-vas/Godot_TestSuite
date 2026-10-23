@@ -214,7 +214,8 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
 images stay out of the main conversation. The `godot-architect` subagent compares designs for a new system before code is
-written and records the decision in `docs/decisions/` for you to accept.
+written, records the decision in `docs/decisions/` for you to accept, and keeps `docs/ARCHITECTURE.md`, the code's shape on
+one page (autoloads, scene tree, signals, authored and runtime data, save version, minimum spec, open questions).
 
 The skills are checked like code: `ci/godot/tools/Test-Skills.ps1` enforces structure and a 16 KB budget, and verifies that
 every command, flag, error code and package version a skill quotes exists. See [docs/skills-quality.md](docs/skills-quality.md).

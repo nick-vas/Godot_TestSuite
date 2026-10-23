@@ -70,7 +70,9 @@ leave out anything without evidence, and fix nothing here (each finding becomes 
   (the GDD's) that no tagged test or flow plays through.
 - **Architecture:** the `architecture` runner's `warnings` in the latest `test -Json` you ran (run
   `test -Json -Quiet -Runners architecture` if there is none this session), most frequent rule first; an autoload in
-  `inventory.autoloads` that no file in `docs/decisions/` names; decisions still `Proposed`; a `todoCount` that keeps
+  `inventory.autoloads` that no file in `docs/decisions/` names; `docs/ARCHITECTURE.md` missing once the game has an
+  autoload or a decision, or its autoloads and main scene differ from `inventory` (the `godot-architect` subagent writes
+  and updates it); decisions still `Proposed`; a `todoCount` that keeps
   growing; `handoffs` where the verifier's latest verdict for a check is a FAIL with nothing passing after it, or an
   architect proposal nobody answered.
 

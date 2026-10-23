@@ -306,4 +306,5 @@ It records each handoff with status -Handoff. Ask for it by name: "have godot-ve
 ### godot-architect
 Compares designs for a new system, autoload or scene dependency and records the decision for you to accept.
 
-It writes docs/decisions/NNNN-title.md with Status: Proposed and records the handoff with status -Handoff.
+It writes docs/decisions/NNNN-title.md with Status: Proposed, keeps docs/ARCHITECTURE.md (autoloads, scene tree, signals,
+data, save version, minimum spec, open questions) and records the handoff with status -Handoff.

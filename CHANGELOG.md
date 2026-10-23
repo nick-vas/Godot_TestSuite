@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **`templates/ARCHITECTURE.md`**, the shape of a game's code on one page: autoloads (each with its decision), the scene
+  tree, signals that cross scenes, authored versus runtime data, the save schema version with its migrations, the
+  minimum spec and the open technical questions an ADR answers. The `godot-architect` subagent creates it from the code
+  with its first decision and adds what each proposal would change; `/game`'s review flags it missing or out of step
+  with `status`'s inventory.
 - **First-session steps as stubs.** `status -Json` lists the GDD's "First session, step by step" as
   `gdd.firstSession[]` (`S1`... from each step's number), with the flows, tests and `playthrough.json` tagged `GDD:S<n>`
   that play it and the `*.stub.json` files that only stub it; a confirmed GDD warns about steps with neither, and about
