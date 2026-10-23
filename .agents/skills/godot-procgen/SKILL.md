@@ -121,7 +121,7 @@ some player eventually gets: a die over seven pieces gave six in a row within 10
 
 Eldritch's recipe (one developer, about two weeks of tech and two of building levels): an abstract 3D maze, one hand-built
 module per cell, then spawns. The tested version is `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Procgen/`
-(`Maze.cs`, `ModuleKit.cs`, `Placement.cs`, plain .NET) with `examples/csharp/tests/Example.Core.Tests/ProcgenMazeTests.cs`.
+(`Maze.cs`, `ModuleKit.cs`, `Placement.cs`, plain .NET) with `${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/ProcgenMazeTests.cs`.
 
 - **Grow, then tune with three knobs.** Prim's algorithm: every room closed; open one; repeatedly pick an open room and
   open a wall into a closed neighbour. Growing from the newest room (`NewestPercent`) gives long twisty corridors, from any

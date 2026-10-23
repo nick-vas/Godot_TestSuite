@@ -50,7 +50,8 @@ pwsh <kit>/tests/Test-SkillFixtures.ps1
 ```
 
 If the change touches a skill, agent or hook, run the kit's evals before and after (from the kit folder):
-`claude plugin eval . --runs 3`. Put both score tables (with, without, delta, cost) in the PR description. Do not open
+`claude plugin eval . --runs 3 --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish` (the flags of the kit's
+`.github/workflows/evals.yml`). Put both score tables (with, without, delta, cost) in the PR description. Do not open
 the PR if the validators fail or the score went down; tell the user instead.
 
 Commit as the user, with no AI attribution, push the branch and open a pull request (`gh pr create` when `gh` is installed;

@@ -8,7 +8,7 @@ description: Use when a Godot game is played over a network: choosing a netcode 
 The server owns the truth; each client shows its own player at once and everyone else a little in the past; and every
 claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and loss. The tested model is in
 `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Net/` (`Netcode.cs`, `Link.cs`) with
-`examples/csharp/tests/Example.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
 `tests/soak-fixture`. Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/multiplayer.md`. Hosting, stopping and
 draining servers, join tokens, matchmaking and chat moderation are `godot-servers`.
 

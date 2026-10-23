@@ -111,7 +111,8 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
   each step from tiny to huge (say 1/240 s to 0.25 s), a save and reload every 200 updates, nothing may break. Dill's
   found bugs that appear only at bad frame rates.
 - Slow tests (stress, long replays) get a category, `[Trait("Category", "Slow")]`; the inner loop leaves them out with
-  `-Filter 'Category!=Slow'`, and CI runs everything.
+  `test -Runners dotnet -Filter 'Category!=Slow'` (a dotnet test filter: the other runners would take it for a test
+  name, find none and fail the run), and CI runs everything.
 - A test that passes and fails on the same code usually waits a fixed time (a boot that grows with content), depends on
   state an earlier test left, or calls an outside service (Jafar Soltani, Rare, on Sea of Thieves, GDC 2018). Wait on a
   condition with a time-out, set up its own state, fake the service.

@@ -139,7 +139,7 @@ Tested in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Platformer/Jum
   tick, high without (the usual `if (!IsOnFloor())`: 266.7 px in Godot 4.7.2). Move by the tick's average velocity;
   `JumpGravity.Advance` also splits the tick that passes the apex, so a heavier fall starts exactly there (switching on
   the next tick put a fourfold fall 16.6 px off). The wiring, input aside, is tested in
-  `examples/csharp/game/test/gdunit4/JumpArcWiringTest.cs`:
+  `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/test/gdunit4/JumpArcWiringTest.cs`:
 
 ```csharp
 public override void _PhysicsProcess(double delta)

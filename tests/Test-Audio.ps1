@@ -81,6 +81,20 @@ if (-not $slow -or -not $slow.PSObject.Properties['onsetMaxMs'] -or $slow.onsetM
     $failures += "-MaxOnsetMs 200 should be accepted and silence the onset warnings: $($d | ConvertTo-Json -Depth 4 -Compress)"
 }
 
+# Run from the game's folder, the results land inside it: they get a .gdignore (Godot neither imports nor exports them),
+# and a recording left there (a mix.wav) is not measured as one of the game's sounds, with or without that .gdignore.
+Push-Location $game
+try { $d = Invoke-Kit @('audio') } finally { Pop-Location }
+$inside = Join-Path $game 'audio-results'
+if (-not $d.ok -or -not (Test-Path -LiteralPath (Join-Path $inside '.gdignore'))) { $failures += "audio-results inside the game should get a .gdignore: $($d | ConvertTo-Json -Depth 3 -Compress)" }
+Copy-Item -LiteralPath (Join-Path $game 'music/theme.wav') (Join-Path $inside 'mix.wav')
+foreach ($marked in $true, $false) {
+    if (-not $marked) { Remove-Item -LiteralPath (Join-Path $inside '.gdignore') -Force -ErrorAction SilentlyContinue }
+    $d = Invoke-Kit @('audio', '-Results', (Join-Path $work 'audio-again'))
+    $measured = @(if ($d -and $d.PSObject.Properties['audio']) { $d.audio.files | ForEach-Object file })
+    if ($measured.Count -eq 0 -or ($measured -match 'audio-results')) { $failures += "the results folder's mix.wav was measured (.gdignore $marked): $($measured -join ', ')" }
+}
+
 # Doctor: sound files, a bus layout without Ambience and UI buses.
 $d = Invoke-Kit @('doctor')
 $messages = @($d.checks | ForEach-Object message)
