@@ -1,0 +1,6 @@
+{
+  "rules": {
+    "parent-path": "error",
+    "per-frame-lookup": "error"
+  }
+}
