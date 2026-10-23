@@ -38,10 +38,10 @@ Notes from the question round, each to be fixed, built or written down before 1.
 | # | Note | What to do |
 |---|---|---|
 | 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
-| 2 | The README says eighteen skills; there are 55 | Fix in the cleanup; count from the folder, not by hand |
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Test against a real board, or mark it experimental |
+| 2 | The README says eighteen skills; there are 55 | Done in the skills cleanup: the README names no count; 50 skills after five merges |
+| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental in 1.0 in `game`, `godot-game-plan`, `weekly-review`, `docs/plan.md` and the README; a real-board test is still to do |
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
-| 5 | `lost-in-level`: two of three answers left out testing with the minimap and markers off | Make that check a firm line in the level design skill |
+| 5 | `lost-in-level`: two of three answers left out testing with the minimap and markers off | Done: `godot-game-design` section 7 states it as the check |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
 | 8 | The sandbox bug took three eval runs to find; one transcript showed it | Keep transcripts from every eval run (done in #119) |
@@ -452,3 +452,16 @@ Optimization" (AMD, Digital Dragons 2019). Done: `Net/BitPacker.cs` and `Net/Eve
 | `doctor`: duplicate files under `res://`, and occluders with occlusion culling off; a build size breakdown on `export -Json` | Not built in this pass | Hash files (skipping `.godot/`, `.import` and `.gdignore` folders); sum `.godot/imported/*` per source file; each with a fixture |
 | A `data` rule that every currency has a sink, and adaptive difficulty (`DifficultyDirector`) | `EconomySim` checks sinks in code; the data rule and difficulty curves were not built | A `sinks` check beside `totals` in `data.json`; a director with slow, bounded steps and hysteresis, tested so it never flips every attempt |
 | A test pinning the maths book's 3D yaw sign and cross-product area | Checked headless in Godot 4.7.2 for the skill; Breakout.Core uses `System.Numerics`, whose conventions differ, so a test there would not prove Godot's | A GDScript or gdUnit4 test in `examples/breakout/game` |
+
+## To do: from the skills cleanup (October 2026)
+
+The cleanup merged the test-frameworks skill into `godot-test-loop` and the credits skill into `godot-asset-pipeline`.
+Two files outside the skills still name the old ones; they were left alone because another change was editing the kit's code
+at the same time.
+
+| Item | Why it is open | How |
+|---|---|---|
+| `ci/godot/tools/Update-Versions.ps1` pins versions in the removed test-frameworks skill's `SKILL.md` (five places) | The file is gone, so `-Apply` with a new Godot minor stops at `Read-Text`, and the self-test job "Version updates rewrite every pin" fails | Replace the path with `.agents/skills/godot-test-loop/SKILL.md`; the version block there keeps the same wording, and on a copy the self-test's run then passes and the skills validate |
+| `ci/godot/lib/Credits.ps1` names the removed credits skill when `assets.json` is missing | The message names a skill that no longer exists | Name `godot-asset-pipeline` |
+| Breakout's `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random` | `godot-game-ai` now says to pass a seeded `RandomNumberGenerator` or `DeterministicRandom`, as `godot-determinism` and `godot-procgen` do | Take `DeterministicRandom` (or an interface over it), with the tests updated |
+
