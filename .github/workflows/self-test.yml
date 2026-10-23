@@ -185,7 +185,9 @@ jobs:
           $project = Join-Path $root 'game'
           $ci = './ci/godot/hyperdot.ps1'
           pwsh -NoProfile -File $ci plan -Do init -Project $project 2>$null | Out-Null
+          if ($LASTEXITCODE) { throw "plan -Do init failed ($LASTEXITCODE)" }
           pwsh -NoProfile -File $ci plan -Do add -Title 'Title screen' -Feature F5 -Project $project 2>$null | Out-Null
+          if ($LASTEXITCODE) { throw "plan -Do add failed ($LASTEXITCODE)" }
           $p = pwsh -NoProfile -File $ci plan -Do link -Id t1 -Card card1 -Column todo -Json -Project $project 2>$null | ConvertFrom-Json
           if ($p.tasks[0].feature -ne 'F5' -or $p.tasks[0].cardId -ne 'card1' -or $p.tasks[0].boardColumn -ne 'todo') { throw "plan link: $($p | ConvertTo-Json -Depth 6)" }
           $bad = pwsh -NoProfile -File $ci plan -Do add -Title x -Feature 7 -Json -Project $project 2>$null | ConvertFrom-Json
@@ -222,10 +224,11 @@ jobs:
     uses: ./.github/workflows/godot.yml
 
   # C# project: every detected runner, a coverage minimum, the Windows export launched on a Windows
-  # runner, and a release dry run (a real release on tags).
+  # runner, and a release dry run on branches. Never on a tag: a release there would publish the example game as the
+  # kit's own release (or add its zips to it), so the job also gets no write access to contents.
   csharp:
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     uses: ./.github/workflows/godot.yml
     with:
@@ -233,7 +236,7 @@ jobs:
       min-coverage: 40
       exports: all
       run-exports: true
-      release: true
+      release: ${{ github.ref_type != 'tag' }}
       retention-days: 3
 
   # Runners picked by hand.
@@ -255,7 +258,9 @@ jobs:
           New-Item -ItemType Directory $game | Out-Null
           Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $game
           git -C $game init -q
+          # A failed command only sets $LASTEXITCODE; the step would carry on to the next one.
           ./ci/godot/hyperdot.ps1 init -Project $game
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./ci/godot/hyperdot.ps1 doctor -Project $game
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./ci/godot/hyperdot.ps1 test -Project $game -Results (Join-Path $game 'test-results')
@@ -336,11 +341,13 @@ jobs:
           if (& $hook 'false') { throw 'the Stop hook should allow stopping after a passing run' }
           # init -Agents copies the verifier with this machine's kit path; init -Plugin enables the plugin instead of copying.
           ./ci/godot/hyperdot.ps1 init -Agents -Project $game | Out-Null
+          if ($LASTEXITCODE) { throw "init -Agents failed ($LASTEXITCODE)" }
           $agent = Get-Content (Join-Path $game '.claude/agents/godot-verifier.md') -Raw
           if ($agent.Contains('${CLAUDE_PLUGIN_ROOT}') -or -not $agent.Contains('ci/godot/hyperdot.ps1')) { throw 'the copied agent should name the kit path' }
           $plugged = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'plugin-game')
           Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $plugged
           ./ci/godot/hyperdot.ps1 init -Plugin -Project $plugged | Out-Null
+          if ($LASTEXITCODE) { throw "init -Plugin failed ($LASTEXITCODE)" }
           $settings = Get-Content (Join-Path $plugged '.claude/settings.json') -Raw | ConvertFrom-Json -AsHashtable
           if (-not $settings.enabledPlugins['hyperdot@hyperdot'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
           # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
@@ -544,6 +551,7 @@ jobs:
           git -C $dir init -q
           Copy-Item -Recurse examples/gdscript/* $dir
           ./ci/godot/hyperdot.ps1 plan -Do init -Project $dir
+          if ($LASTEXITCODE) { throw "plan -Do init failed ($LASTEXITCODE)" }
           $d = pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
           if ($d.currentPhase.id -ne 'concept' -or $d.nextActions.Count -lt 1) { throw "unexpected plan output" }
       - name: MCP config is written, kept on re-run, and merged into an existing file; -McpAseprite finds Aseprite.exe
@@ -553,8 +561,10 @@ jobs:
           git -C $dir init -q
           Copy-Item -Recurse examples/gdscript/* $dir
           '{"mcpServers":{"other":{"command":"x"}}}' | Set-Content (Join-Path $dir '.mcp.json')
-          pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
-          pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
+          foreach ($run in 1, 2) {
+              pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
+              if ($LASTEXITCODE) { throw "init -Mcp run $run failed ($LASTEXITCODE)" }
+          }
           $servers = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.PSObject.Properties.Name
           if (($servers | Sort-Object) -join ',' -ne 'godot-mcp,minimal-godot-mcp,other') { throw "unexpected servers: $servers" }
           if (-not (Test-Path (Join-Path $dir '.mcp.json.bak'))) { throw 'no backup of the existing .mcp.json' }
@@ -562,6 +572,7 @@ jobs:
           $ase = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'Aseprite Test')
           New-Item -ItemType File (Join-Path $ase 'Aseprite.exe') | Out-Null
           pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 init -McpAseprite $ase -Project $dir
+          if ($LASTEXITCODE) { throw "init -McpAseprite failed ($LASTEXITCODE)" }
           $entry = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.aseprite
           if ($entry.command -ne 'uvx' -or $entry.env.ASEPRITE_PATH -ne (Join-Path $ase 'Aseprite.exe') -or $entry.args -notcontains 'aseprite_mcp') { throw "unexpected aseprite entry: $($entry | ConvertTo-Json -Compress)" }
           $d = pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 init -McpAseprite (Join-Path $env:RUNNER_TEMP 'no-aseprite') -Project $dir -Json 2>$null | ConvertFrom-Json

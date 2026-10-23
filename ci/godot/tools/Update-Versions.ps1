@@ -97,6 +97,9 @@ if ($godotUpdate -and (& $minor $godotUpdate[0].latest) -ne (& $minor $godotUpda
 # Every place a version is a promise, not history: each pattern names the context, so notes such as "seen on 4.7.2" stay.
 $godotPins = @(
     @{ File = 'examples/csharp/game/Example.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
+    # The C# fixtures the self-tests build: an older SDK would have the kit fetch and test them on the old Godot.
+    @{ File = 'tests/capture-fixture/CaptureFixture.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
+    @{ File = 'tests/soak-fixture-cs/SoakCs.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
     @{ File = '.agents/skills/godot-test-loop/SKILL.md'; Pattern = 'Godot\.NET\.Sdk/{v}|verified on Godot {v}' }
     @{ File = 'ci/godot/lib/Detect.ps1'; Pattern = "else \{ '{v}' \}" }
     @{ File = 'ci/godot/hyperdot.ps1'; Pattern = 'else {v}\.' }
@@ -131,6 +134,12 @@ if ($Apply) {
                 foreach ($pin in $godotPins) { Update-Pin $pin.File $pin.Pattern $u.current $u.latest }
             }
             'gut' {
+                # The GUT update found for a new Godot minor is that minor's release: alone, it would map the current
+                # minor to it (Godot 4.7 to GUT v9.8.0). It goes with the Godot update or not at all.
+                if ((& $minor $latest['godot']) -ne (& $minor $current['godot']) -and -not ($selected | Where-Object { $_.name -eq 'godot' })) {
+                    $notes.Add("GUT $($u.latest) is for Godot $(& $minor $latest['godot']): not applied without the Godot update")
+                    continue
+                }
                 $godot = ($selected | Where-Object { $_.name -eq 'godot' } | Select-Object -First 1)
                 $newMinor = & $minor ($godot ? $godot.latest : $current['godot'])
                 $oldMinor = & $minor $current['godot']
