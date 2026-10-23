@@ -15,9 +15,16 @@ a Claude Code session, so a total without them is wrong by orders of magnitude. 
 Writes results.csv, results.json, summary.json and summary.md (and each answer, with -SaveResponses) to a folder under
 -OutputDir. Each call costs money: -DryRun shows the plan, and the spec's maxCalls stops an accidentally large run.
 
+With -Isolate (or HYPERDOT_ISOLATE=1) every session runs as a user made for the run that can read only its game copy
+(benchmark/Isolation.ps1); on Linux only, with root or passwordless sudo, and with a warning elsewhere.
+
+-GameSource runs the private field test (benchmark/FieldTest.ps1, benchmark/field-test.json): generic tasks on a game of
+yours, in a copy, with every configuration of the spec, reported as numbers only in field-test.md.
+
 .EXAMPLE
 pwsh benchmark/Invoke-TokenBenchmark.ps1 -DryRun
 pwsh benchmark/Invoke-TokenBenchmark.ps1 -TaskId COMP-PS-001 -Repeat 1 -Model haiku
+pwsh benchmark/Invoke-TokenBenchmark.ps1 -GameSource C:/games/mygame
 #>
 [CmdletBinding()]
 param(
@@ -46,6 +53,12 @@ param(
     [string[]]$Language,
     # The most this run may cost (Claude Code's own figure). Default: the tier's ceiling, shared over its configurations.
     [double]$BudgetUsd = 0,
+    # The private field test: the game in this folder (a copy of it), the field spec's templates and configurations.
+    [string]$GameSource,
+    # Fixes which defects the field test plants (default: the spec's).
+    [int]$Seed = 0,
+    # Run every session as a separate user that can read only its game copy (also HYPERDOT_ISOLATE=1).
+    [switch]$Isolate,
     [switch]$SaveResponses,
     [switch]$DryRun,
     # Print summary.json on stdout (logs go to stderr).
@@ -58,6 +71,8 @@ $ErrorActionPreference = 'Stop'
 function Write-BenchLog([string]$Message) { [Console]::Error.WriteLine("[benchmark] $Message") }
 
 . (Join-Path $PSScriptRoot 'GameProgramme.ps1')
+. (Join-Path $PSScriptRoot 'Isolation.ps1')
+. (Join-Path $PSScriptRoot 'FieldTest.ps1')
 
 function Read-BenchmarkSpec([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { throw "Spec not found: $Path" }
@@ -70,6 +85,18 @@ function Read-BenchmarkSpec([string]$Path) {
         $spec.selectedTier = $expanded.Tier
     } elseif ($Tier -or $Genre -or $Stage -or $Language) {
         throw "-Tier, -Genre, -Stage and -Language select from a staged game programme; $Path is not one"
+    }
+    if ($spec.Contains('field')) {
+        if (-not $GameSource) { throw "$Path is the field test: pass -GameSource, the folder of the game to run it on" }
+        $seedValue = if ($Seed) { $Seed } elseif ($spec.field.Contains('seed')) { [int]$spec.field.seed } else { 1 }
+        $expanded = Expand-FieldTest $spec $GameSource $seedValue $WorkDir $TaskId -Plan:$DryRun
+        if (@($expanded.Tasks).Count -eq 0) {
+            throw "No field template applies to this game: $((@($expanded.NotApplicable.Keys) | ForEach-Object { "$_ ($($expanded.NotApplicable[$_]))" }) -join '; ')"
+        }
+        $spec.tasks = @($expanded.Tasks)
+        $spec.fieldNotApplicable = $expanded.NotApplicable; $spec.fieldLanguage = $expanded.Language; $spec.fieldSeed = $seedValue
+    } elseif ($GameSource) {
+        throw "-GameSource runs the field test, whose spec is benchmark/field-test.json; $Path is not one"
     }
     foreach ($key in 'profiles', 'tasks') {
         if (-not $spec.Contains($key) -or @($spec[$key]).Count -eq 0) { throw "The spec has no $key" }
@@ -138,9 +165,19 @@ function Get-StepPrompts($ProfileSpec, $TaskSpec) {
 }
 
 # Runs the CLI once with the prompt on stdin. Never throws for the program's own failures: they come back as data.
-function Invoke-ClaudeProcess([string]$Program, [string[]]$Arguments, [string]$Prompt, [int]$TimeoutSeconds, [string]$Directory) {
+# -AsSession runs it as the isolated session user, when the run isolates its sessions.
+function Invoke-ClaudeProcess([string]$Program, [string[]]$Arguments, [string]$Prompt, [int]$TimeoutSeconds, [string]$Directory, [switch]$AsSession) {
     $info = [System.Diagnostics.ProcessStartInfo]::new()
-    if ($Program -like '*.ps1') {
+    $isolated = $AsSession -and $script:Isolation
+    if ($isolated) {
+        $start = Get-SessionStart $Arguments
+        $info.FileName = (Get-Command $start.FileName -CommandType Application)[0].Source
+        foreach ($a in $start.Arguments) { $info.ArgumentList.Add($a) }
+        $info.Environment.Clear()
+        foreach ($name in $start.Environment.Keys) { $info.Environment[$name] = $start.Environment[$name] }
+        $info.Environment['PATH'] = $env:PATH
+        $Arguments = @()
+    } elseif ($Program -like '*.ps1') {
         $info.FileName = (Get-Command pwsh -CommandType Application)[0].Source
         foreach ($a in '-NoProfile', '-File', (Resolve-Path -LiteralPath $Program).Path) { $info.ArgumentList.Add($a) }
     } else {
@@ -166,7 +203,14 @@ function Invoke-ClaudeProcess([string]$Program, [string[]]$Arguments, [string]$P
     $process.StandardInput.Write($Prompt)
     $process.StandardInput.Close()
     $timedOut = -not $process.WaitForExit($TimeoutSeconds * 1000)
-    if ($timedOut) { try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }; $process.WaitForExit() }
+    if ($timedOut) {
+        # A session user's processes may not be the runner's to kill; they all end with that user's.
+        try { $process.Kill($true) } catch { Write-Verbose "It exited meanwhile, or is not ours to kill: $($_.Exception.Message)" }
+        if ($isolated) { Stop-SessionProcesses }
+        $process.WaitForExit()
+    }
+    # A process the session left running holds its output open; isolated, it ends with the session.
+    if ($isolated) { Stop-SessionProcesses }
     $clock.Stop()
     return [pscustomobject]@{ ExitCode = $(if ($timedOut) { 124 } else { $process.ExitCode }); TimedOut = $timedOut
         Stdout = $stdout.Result; Stderr = $stderr.Result; ElapsedMs = [int]$clock.ElapsedMilliseconds }
@@ -308,9 +352,12 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
             $game = New-GameWorkspace $Spec $TaskSpec (Split-Path $PSScriptRoot -Parent)
         }
         $directory = if ($isGame) { $game.Dir } else { $WorkDir }
+        # Isolated, the session user gets the game for the session and the runner takes it back before grading.
+        if ($script:Isolation) { Enter-IsolatedSession $(if ($isGame) { $game.Dir }) }
+        try {
         for ($step = 0; $step -lt $prompts.Count; $step++) {
             $arguments = Get-ClaudeArguments $Spec $ProfileSpec $sessionId $step $prompts.Count $ModelName $TaskSpec
-            $run = Invoke-ClaudeProcess $Claude $arguments $prompts[$step] ([int](Get-TaskLimit $Spec $TaskSpec 'timeoutSeconds')) $directory
+            $run = Invoke-ClaudeProcess $Claude $arguments $prompts[$step] ([int](Get-TaskLimit $Spec $TaskSpec 'timeoutSeconds')) $directory -AsSession
             $parsed = ConvertFrom-ClaudeOutput $run
             foreach ($key in 'input', 'cacheWrite', 'cacheRead', 'output', 'costUsd', 'turns') { $totals[$key] += $parsed[$key] }
             $totals.durationMs += $run.ElapsedMs
@@ -325,6 +372,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
             }
             if (-not $parsed.ok) { break }
         }
+        } finally { if ($script:Isolation) { Exit-IsolatedSession $(if ($isGame) { $game.Dir }) } }
         if ($final.ok -or -not $final.infrastructure -or $attempt -ge [int]$Spec.retries) { break }
         Write-BenchLog "  $($ProfileSpec.id) $($TaskSpec.id) #$Repetition failed ($($final.problem)); retrying"
         $attempt++
@@ -350,6 +398,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
     }
     return [pscustomobject][ordered]@{
         profile = $ProfileSpec.id; task = $TaskSpec.id; category = $TaskSpec.category; repetition = $Repetition; plugin = [bool]$Plugin
+        configuration = "$ModelName$(if ($Plugin) { ' + plugin' })"
         model = (@($models) | Sort-Object) -join '+'; success = ($final.ok -and @($reasons).Count -eq 0 -and $gameReasons.Count -eq 0); retries = $attempt
         steps = $prompts.Count; turns = $totals.turns; infrastructure = [bool]$final.infrastructure; spendKnown = $spendKnown
         tokensInput = $totals.input; tokensCacheWrite = $totals.cacheWrite; tokensCacheRead = $totals.cacheRead; tokensOutput = $totals.output
@@ -419,7 +468,7 @@ function Format-BenchmarkMarkdown($Summary, $Meta) {
 # tests quote both, and evals/ holds the scenarios the game tasks were made from, with their graders. The EU label forbids a product that recognises its test; here the test cannot be read at all.
 $script:HiddenFromSessions = @('benchmark/', 'docs/token-benchmark.md', 'docs/label.md', 'docs/label/', 'tests/Test-TokenBenchmark.ps1',
     'tests/token-benchmark/', 'tests/Test-HyperdotLabel.ps1', 'tests/label-fixture/', 'tests/Test-GameBenchmark.ps1', 'tests/game-benchmark/', 'tests/Test-GameProgramme.ps1',
-    'evals/', '.github/workflows/token-benchmark.yml')
+    'evals/', '.github/workflows/token-benchmark.yml', 'tests/Test-BenchmarkIsolation.ps1', 'tests/Test-FieldTest.ps1')
 
 # A copy of the repository's files (tracked and untracked, not ignored) without those paths, for the sessions to run in.
 function New-BenchmarkWorkspace([string]$RepoRoot) {
@@ -447,80 +496,106 @@ $TaskId = & $splitList $TaskId
 $Genre = & $splitList $Genre
 $Stage = & $splitList $Stage
 $Language = & $splitList $Language
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$fieldMode = [bool]$GameSource
+if ($fieldMode) {
+    if (-not $PSBoundParameters.ContainsKey('SpecPath')) { $SpecPath = Join-Path $PSScriptRoot 'field-test.json' }
+    # Answers and diffs would hold the game's code and text; the field test reports numbers only.
+    if ($SaveResponses) { throw '-SaveResponses is refused with -GameSource: the field test keeps no answers or diffs, only numbers' }
+    if ($Tier -or $Genre -or $Stage -or $Language) { throw '-Tier, -Genre, -Stage and -Language select from a staged game programme, not the field test' }
+}
+$isolating = ($Isolate -or $env:HYPERDOT_ISOLATE -eq '1') -and -not $DryRun
+$ownWorkspace = $false
+try {
+# Isolation first, so the temporary folder every later step uses is the run's own.
+if ($isolating) { [void](Initialize-SessionIsolation $repoRoot $Claude) }
+# The kit's copy without the benchmark exists before the spec is read: the field test's prompts name it.
+if (-not $DryRun -and -not $WorkDir) {
+    $ownWorkspace = $true
+    $WorkDir = New-BenchmarkWorkspace $repoRoot
+    Write-BenchLog "Sessions run in $(if ($fieldMode) { 'copies of the game; the kit is copied' } else { 'a copy' }) without the benchmark ($WorkDir)"
+}
 $spec = Read-BenchmarkSpec $SpecPath
+if ($script:Isolation) {
+    foreach ($folder in @($script:StageRoot, $script:FieldRoot) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }) { Assert-IsolationCommand @('chmod', '700', $folder) 'closing the runner''s fixtures' }
+}
 $profiles = @($spec.profiles | Where-Object { -not $ProfileId -or $_.id -in $ProfileId })
 $tasks = @($spec.tasks | Where-Object { $t = $_; -not $TaskId -or @($TaskId | Where-Object { $t.id -like $_ }).Count })
 foreach ($id in $ProfileId) { if ($id -notin @($spec.profiles.id)) { throw "No profile '$id' in $SpecPath" } }
 foreach ($id in $TaskId) { if (@($spec.tasks | Where-Object { $_.id -like $id }).Count -eq 0) { throw "No task matches '$id' in $SpecPath" } }
-if ($profiles.Count -eq 0 -or $tasks.Count -eq 0) { Remove-StageFixtures; throw 'Nothing to run: no profile or no task selected' }
+if ($profiles.Count -eq 0 -or $tasks.Count -eq 0) { throw 'Nothing to run: no profile or no task selected' }
 $tierSpec = if ($spec.Contains('selectedTier')) { $spec.selectedTier } else { $null }
 $repeatCount = if ($Repeat -gt 0) { $Repeat } elseif ($tierSpec -and $tierSpec.Contains('repeat')) { [int]$tierSpec.repeat } else { [int]$spec.repeat }
 $modelName = if ($Model) { $Model } else { $spec.model }
+# The field test runs every configuration of its spec in one go, unless -Model or -Plugin names one.
+$configurations = if ($fieldMode -and -not $PSBoundParameters.ContainsKey('Model') -and -not $PSBoundParameters.ContainsKey('Plugin') -and $spec.field.Contains('configurations')) {
+    @($spec.field.configurations | ForEach-Object { [pscustomobject]@{ Model = $_.model; Plugin = [bool]$_.plugin } })
+} else { @([pscustomobject]@{ Model = $modelName; Plugin = [bool]$Plugin }) }
 $limit = if ($MaxCalls -gt 0) { $MaxCalls } else { [int]$spec.maxCalls }
 $calls = 0
-foreach ($p in $profiles) { foreach ($t in $tasks) { $calls += (Get-StepPrompts $p $t).Count * $repeatCount } }
+foreach ($p in $profiles) { foreach ($t in $tasks) { $calls += (Get-StepPrompts $p $t).Count * $repeatCount * $configurations.Count } }
 # The limit holds even if every session is retried.
 $worstCase = $calls * (1 + [int]$spec.retries)
 
 # What the run should cost, from the spec's cost model, and the most it may: -BudgetUsd, or the tier's ceiling shared
-# over the tier's configurations in proportion to what each is expected to cost.
+# over the tier's configurations in proportion to what each is expected to cost (the field test's own ceiling covers
+# all its configurations).
 $costModelPath = if ($spec.Contains('programme') -and $spec.programme.Contains('costModel')) { $spec.programme.costModel } elseif ($spec.Contains('costModel')) { $spec.costModel } else { $null }
-$costModel = if ($costModelPath) { Read-JsonFile (Join-Path (Split-Path $PSScriptRoot -Parent) $costModelPath) } else { $null }
+$costModel = if ($costModelPath) { Read-JsonFile (Join-Path $repoRoot $costModelPath) } else { $null }
 $estimateUsd = $null; $budget = $null; $tierEstimateUsd = $null
 if ($costModel) {
     $judgeModel = if ($spec.Contains('programme') -and $spec.programme.Contains('judge')) { $spec.programme.judge.model } else { '' }
-    $estimateUsd = Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $modelName ([bool]$Plugin) $judgeModel
-    $configurations = @(if ($spec.Contains('programme') -and $spec.programme.Contains('configurations')) { $spec.programme.configurations })
+    $estimateUsd = 0.0
+    foreach ($c in $configurations) { $estimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.Model $c.Plugin $judgeModel }
+    $tierConfigurations = @(if ($spec.Contains('programme') -and $spec.programme.Contains('configurations')) { $spec.programme.configurations })
     $tierEstimateUsd = 0.0
-    foreach ($c in $configurations) { $tierEstimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.model ([bool]$c.plugin) $judgeModel }
+    foreach ($c in $tierConfigurations) { $tierEstimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.model ([bool]$c.plugin) $judgeModel }
     if ($tierEstimateUsd -le 0) { $tierEstimateUsd = $estimateUsd }
 }
 if ($BudgetUsd -gt 0) { $budget = $BudgetUsd }
 elseif ($tierSpec -and $tierSpec.Contains('maxCostUsd') -and $null -ne $tierSpec.maxCostUsd -and $null -ne $estimateUsd) {
     $budget = [double]$tierSpec.maxCostUsd * $(if ($tierEstimateUsd -gt 0) { $estimateUsd / $tierEstimateUsd } else { 1 })
-}
+} elseif ($fieldMode -and $spec.field.Contains('maxCostUsd')) { $budget = [double]$spec.field.maxCostUsd }
 
-Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s): $calls session(s) (more with retries), model $modelName$(if ($Plugin) { ', with the plugin' })"
+Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s), $($configurations.Count) configuration(s): $calls session(s) (more with retries), $(($configurations | ForEach-Object { "$($_.Model)$(if ($_.Plugin) { ' with the plugin' })" }) -join ', ')"
 if ($null -ne $estimateUsd) {
-    Write-BenchLog ("Estimated cost {0:N2} USD for this configuration{1}{2}" -f $estimateUsd,
+    Write-BenchLog ("Estimated cost {0:N2} USD for this run{1}{2}" -f $estimateUsd,
         $(if ($tierEstimateUsd -and [math]::Abs($tierEstimateUsd - $estimateUsd) -gt 1e-9) { (', {0:N2} USD for all the tier''s configurations' -f $tierEstimateUsd) }),
         $(if ($null -ne $budget) { (', ceiling {0:N2} USD' -f $budget) }))
 }
 $overBudget = $null -ne $budget -and $null -ne $estimateUsd -and $estimateUsd -gt $budget
-$overMessage = if ($overBudget) { "The run is expected to cost {0:N2} USD, over its ceiling of {1:N2} USD (the tier's maxCostUsd, or -BudgetUsd)" -f $estimateUsd, $budget }
+$overMessage = if ($overBudget) { "The run is expected to cost {0:N2} USD, over its ceiling of {1:N2} USD (the tier's or the field test's maxCostUsd, or -BudgetUsd)" -f $estimateUsd, $budget }
 if ($DryRun) {
     foreach ($p in $profiles) {
         $arguments = Get-ClaudeArguments $spec $p '<session>' 0 (Get-StepPrompts $p $tasks[0]).Count $modelName $tasks[0]
         Write-BenchLog "  $($p.id): claude $($arguments -join ' ')"
     }
     foreach ($t in $tasks) { Write-BenchLog "  task $($t.id)" }
-    Remove-StageFixtures
     if ($Json) {
-        [ordered]@{ dryRun = $true; calls = $calls; limit = $limit; tasks = @($tasks | ForEach-Object { $_.id })
+        [ordered]@{ dryRun = $true; calls = $calls; limit = $limit; tasks = @($tasks | ForEach-Object { $_.id }); configurations = $configurations.Count
             estimateUsd = $estimateUsd; tierEstimateUsd = $tierEstimateUsd; budgetUsd = $budget; overBudget = $overBudget } | ConvertTo-Json -Compress
     }
     if ($overBudget) { Write-BenchLog $overMessage; exit 1 }
     exit 0
 }
-if ($worstCase -gt $limit) { Remove-StageFixtures; throw "$calls sessions, $worstCase with retries, is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
-if ($overBudget) { Remove-StageFixtures; throw $overMessage }
+if ($worstCase -gt $limit) { throw "$calls sessions, $worstCase with retries, is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
+if ($overBudget) { throw $overMessage }
 
 # Every game the tasks start from must be green before sessions are asked to work on it, and the kit installs GUT into
-# it on the way.
-$gameSources = @($tasks | Where-Object { $_.Contains('game') } | ForEach-Object { Get-GameSource $spec $_ (Split-Path $PSScriptRoot -Parent) } | Sort-Object -Unique)
+# it on the way. The field test checked its game while planting its defects.
+$gameSources = @($tasks | Where-Object { $_.Contains('game') -and -not $fieldMode } | ForEach-Object { Get-GameProjectDir $_.game (Get-GameSource $spec $_ $repoRoot) } | Sort-Object -Unique)
 if ($gameSources.Count) {
-    if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN -PathType Leaf)) { Remove-StageFixtures; throw 'Game tasks need Godot: set GODOT_BIN to it (hyperdot.ps1 setup does)' }
+    if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN -PathType Leaf)) { throw 'Game tasks need Godot: set GODOT_BIN to it (hyperdot.ps1 setup does)' }
     foreach ($source in $gameSources) {
         $preflight = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-game-preflight-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
         $check = Invoke-GameSuite $source @() $preflight
         Remove-Item -LiteralPath $preflight -Recurse -Force -ErrorAction SilentlyContinue
-        if (-not $check.Ok) { Remove-StageFixtures; throw "The game in $source fails its own tests, so it cannot be measured: $($check.Failed -join ', ')" }
+        if (-not $check.Ok) { throw "The game in $source fails its own tests, so it cannot be measured: $($check.Failed -join ', ')" }
     }
     Write-BenchLog "$($gameSources.Count) game(s) pass their tests; Godot is $env:GODOT_BIN"
 }
+if ($script:Isolation) { Grant-SessionGodot }
 
-$ownWorkspace = -not $WorkDir
-if ($ownWorkspace) { $WorkDir = New-BenchmarkWorkspace (Split-Path $PSScriptRoot -Parent); Write-BenchLog "Sessions run in $WorkDir, a copy without the benchmark" }
 $runId = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
 $runDir = Join-Path $OutputDir $runId
 New-Item -ItemType Directory -Force $runDir | Out-Null
@@ -529,43 +604,61 @@ $claudeVersion = try { (Invoke-ClaudeProcess $Claude @('--version') '' 30 $WorkD
 
 $rows = [System.Collections.Generic.List[object]]::new()
 $spentUsd = 0.0; $notRun = [System.Collections.Generic.List[string]]::new()
-try {
-for ($r = 1; $r -le $repeatCount; $r++) {
-    # The profile that runs first meets a cold prompt cache; rotating the order each repetition spreads that cost.
-    $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
-    foreach ($t in $tasks) {
-        foreach ($p in $order) {
-            # Past the ceiling nothing new starts; what was not run is listed, and the run is incomplete.
-            if ($null -ne $budget -and $spentUsd -ge $budget) { $notRun.Add("$($p.id) $($t.id) #$r"); continue }
-            $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
-            $rows.Add($row)
-            # The judge's sessions count toward the ceiling too, though not toward the configuration's tokens.
-            $spentUsd += $row.costUsd + $(if ($row.judge) { $row.judge.costUsd } else { 0 })
-            # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
-            $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
-            Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
-                $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
+foreach ($configuration in $configurations) {
+    $modelName = $configuration.Model
+    $Plugin = [switch]$configuration.Plugin
+    for ($r = 1; $r -le $repeatCount; $r++) {
+        # The profile that runs first meets a cold prompt cache; rotating the order each repetition spreads that cost.
+        $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
+        foreach ($t in $tasks) {
+            foreach ($p in $order) {
+                # Past the ceiling nothing new starts; what was not run is listed, and the run is incomplete.
+                if ($null -ne $budget -and $spentUsd -ge $budget) { $notRun.Add("$($p.id) $($t.id) #$r $modelName$(if ($Plugin) { ' + plugin' })"); continue }
+                $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
+                # The field test reports kinds of failure, never what a test or file is called.
+                if ($fieldMode) { $row.reasons = ConvertTo-FieldReason $row.reasons; $row.gameReasons = ConvertTo-FieldReason $row.gameReasons }
+                $rows.Add($row)
+                # The judge's sessions count toward the ceiling too, though not toward the configuration's tokens.
+                $spentUsd += $row.costUsd + $(if ($row.judge) { $row.judge.costUsd } else { 0 })
+                # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
+                $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
+                Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
+                    $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
+            }
         }
     }
 }
 } finally {
-    if ($ownWorkspace) { Remove-Item -LiteralPath $WorkDir -Recurse -Force -ErrorAction SilentlyContinue }
+    if ($ownWorkspace -and $WorkDir) { Remove-Item -LiteralPath $WorkDir -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-StageFixtures
+    Remove-SessionIsolation
 }
 
 $summary = Get-BenchmarkSummary $rows.ToArray() @($profiles.id) @($tasks.id)
 $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath).Path; repeat = $repeatCount; calls = $calls
-    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = $modelName; claudeVersion = $claudeVersion; plugin = [bool]$Plugin
+    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = (($configurations | ForEach-Object Model | Sort-Object -Unique) -join ', '); claudeVersion = $claudeVersion; plugin = [bool]$Plugin
     tier = $Tier; selection = [ordered]@{ genre = $Genre; stage = $Stage; language = $Language; task = $TaskId; profile = $ProfileId }
-    estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray()
+    estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray(); isolated = [bool]$isolating
     # Only the standard tier, unnarrowed and complete, can set a class (the label tool checks this).
     standard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0) }
+# The field test's spec path names nothing of the game; its meta does not hold the game's folder.
+if ($fieldMode) { $meta.field = $true; $meta.standard = $false }
 $rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8
 $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
 $document = [ordered]@{ meta = $meta; profiles = $summary.profiles; cells = $summary.cells; folder = $runDir }
+if ($fieldMode) {
+    $kitCommit = (& git -C $repoRoot rev-parse --short HEAD 2>$null)
+    $fieldMeta = [ordered]@{ kit = $(if ($LASTEXITCODE -eq 0 -and $kitCommit) { "$kitCommit" } else { 'unknown' }); claudeVersion = $claudeVersion; language = $spec.fieldLanguage
+        seed = $spec.fieldSeed; date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd'); repeat = $repeatCount }
+    $field = Format-FieldSummary $rows.ToArray() $fieldMeta $spec.fieldNotApplicable
+    $document.field = [ordered]@{ meta = $fieldMeta; table = $field.Table; notApplicable = $spec.fieldNotApplicable }
+    Set-Content -LiteralPath (Join-Path $runDir 'field-test.md') -Value $field.Markdown -Encoding utf8 -NoNewline
+    $document.field | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $runDir 'field-test.json') -Encoding utf8
+}
 $document | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $runDir 'summary.json') -Encoding utf8
 Format-BenchmarkMarkdown $summary $meta | Set-Content -LiteralPath (Join-Path $runDir 'summary.md') -Encoding utf8 -NoNewline
 Write-BenchLog "Results: $runDir"
+if ($fieldMode) { Write-BenchLog "Field test summary, numbers only, to paste: $(Join-Path $runDir 'field-test.md')"; [Console]::Error.WriteLine($field.Markdown) }
 if ($Json) { $document | ConvertTo-Json -Depth 6 -Compress }
 # A session that never produced an answer to grade (the network, a rate limit, the time limit) makes the run incomplete.
 $ungraded = @($rows | Where-Object infrastructure)

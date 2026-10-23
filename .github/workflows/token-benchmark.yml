@@ -8,6 +8,9 @@
 # CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals workflow uses). Runs count against that plan's
 # usage, meant for ordinary individual use. The cost columns are Claude Code's own figure, not a charge on the plan.
 #
+# `isolate` (on by default) runs every session as a user made for the run that can read only its game copy, not this
+# checkout with its hidden tests and graders (benchmark/Isolation.ps1); the runner's passwordless sudo makes the user.
+#
 # `configurations: all` runs every configuration of the programme (Sonnet and Haiku, with and without the plugin) as
 # parallel jobs; the plan job checks the whole run's estimate against the tier's ceiling first, so nothing is spent on a
 # run that is over it.
@@ -54,6 +57,10 @@ on:
       tasks:
         description: Comma-separated task ids, wildcards allowed (empty for all)
         default: ''
+      isolate:
+        description: Run each session as a separate user that cannot read the checkout (hidden tests, graders)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -153,9 +160,11 @@ jobs:
           REPEAT: ${{ inputs.repeat }}
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
+          ISOLATE: ${{ inputs.isolate }}
         run: |
           $params = @{ SpecPath = $env:SPEC; OutputDir = 'benchmark/results'; SaveResponses = $true; Model = $env:MODEL }
           if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
+          if ($env:ISOLATE -eq 'true') { $params.Isolate = $true }
           foreach ($pair in @(@('TIER', 'Tier'), @('GENRE', 'Genre'), @('STAGE', 'Stage'), @('LANGUAGE', 'Language'), @('PROFILES', 'ProfileId'), @('TASKS', 'TaskId'))) {
             $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
           }

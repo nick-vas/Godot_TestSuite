@@ -577,6 +577,10 @@ jobs:
       - name: Every task of a test programme catches its defect, passes its reference and fails its decoy
         shell: pwsh
         run: ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
+      # The runner has passwordless sudo, so this checks the sudo launcher with a real separate user.
+      - name: Isolated sessions cannot read the benchmark or a hidden test, and are still graded
+        shell: pwsh
+        run: ./tests/Test-BenchmarkIsolation.ps1
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7
@@ -623,6 +627,31 @@ jobs:
         shell: pwsh
         working-directory: ${{ runner.temp }}
         run: '& "$env:GITHUB_WORKSPACE/tests/Test-GameProgramme.ps1" -Language ${{ matrix.language }}'
+
+  # The private field test (-GameSource) with a stand-in for the model: the mutant planter, and whole runs on copies
+  # of both examples, good and bad work, numbers only in the report.
+  field-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
+      - name: Godot (.NET build), for GODOT_BIN
+        shell: pwsh
+        run: ./ci/godot/hyperdot.ps1 setup -Project examples/csharp/game
+      - name: The field test plants defects the game's checks find, grades the work and reports numbers only
+        shell: pwsh
+        run: ./tests/Test-FieldTest.ps1
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-field-test
+          path: ${{ runner.temp }}/hyperdot-coverage
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
   web:
@@ -794,7 +823,7 @@ jobs:
   # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
   # floors fails the run, so coverage cannot fall unnoticed.
   coverage:
-    needs: [lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, web, action, local-windows]
+    needs: [lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, field-test, web, action, local-windows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

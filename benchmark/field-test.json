@@ -1,0 +1,78 @@
+{
+  "name": "hyperdot field test",
+  "description": "Generic tasks on a game of the owner's, in a copy, reported as numbers only (benchmark/PLAN.md, section 5). Run with -GameSource.",
+  "model": "sonnet",
+  "timeoutSeconds": 900,
+  "maxTurns": 40,
+  "repeat": 1,
+  "retries": 1,
+  "maxCalls": 200,
+  "maxBudgetUsdPerCall": 4.0,
+  "settingSources": "project",
+  "tools": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Edit",
+    "Write"
+  ],
+  "costModel": "benchmark/cost-model.json",
+  "profiles": [
+    {
+      "id": "A-baseline",
+      "description": "The task as asked, in the game's folder"
+    }
+  ],
+  "field": {
+    "seed": 1,
+    "mutantTrials": 12,
+    "writeTestsMutants": 3,
+    "maxCostUsd": 10,
+    "promptSuffix": "Godot is at the path in the environment variable GODOT_BIN; the game's tests use {tests}.",
+    "configurations": [
+      {
+        "model": "sonnet",
+        "plugin": false
+      },
+      {
+        "model": "sonnet",
+        "plugin": true
+      },
+      {
+        "model": "haiku",
+        "plugin": false
+      },
+      {
+        "model": "haiku",
+        "plugin": true
+      }
+    ],
+    "templates": [
+      {
+        "id": "fix-mutant",
+        "title": "Fix a bug the tests catch",
+        "category": "bug_fix",
+        "prompt": "This Godot game, written in {languageName}, has failed its tests since a recent change to its code. Find the bug and fix it in the game's code, without changing the tests, and check the fix with the game's tests."
+      },
+      {
+        "id": "write-tests",
+        "title": "Write tests that catch real bugs",
+        "category": "testing",
+        "prompt": "This Godot game, written in {languageName}, has too few tests of {files}: bugs there could go unnoticed. Write new tests, in new test files, that pin down how that code behaves. Do not change the game's code or its existing tests, and run the game's tests."
+      },
+      {
+        "id": "doctor-green",
+        "title": "Make the kit's doctor pass",
+        "category": "release",
+        "prompt": "Hyperdot's checks report problems with this Godot game, written in {languageName}: run pwsh {kit}/ci/godot/hyperdot.ps1 doctor -Project {project} to see them. Fix them so it reports no failures, without breaking the game's tests."
+      },
+      {
+        "id": "bot-finish",
+        "title": "Make the bot finish the game",
+        "category": "progression",
+        "prompt": "The bot that plays this Godot game, written in {languageName}, through to its ending (playthrough.json) can no longer finish it since a recent change to the game's code. Find the bug and fix it in the game's code, without changing the tests or playthrough.json, and check that the bot finishes."
+      }
+    ]
+  }
+}
