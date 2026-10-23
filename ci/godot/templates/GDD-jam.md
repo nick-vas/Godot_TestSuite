@@ -51,7 +51,7 @@ Nice to have, added only once every must-have works, in this order:
 ## Credits
 
 Every asset made by someone else goes in `assets.json` with its source and licence; `credits` builds the credits page
-(`godot-credits`).
+(`godot-asset-pipeline`).
 
 ## Submission
 

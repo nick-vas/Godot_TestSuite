@@ -67,7 +67,7 @@ source says, and say when it is unconfirmed. Sources: `${CLAUDE_PLUGIN_ROOT}/doc
   one is unsettled (OGA-BY was written to avoid the question). Prefer CC0 or OGA-BY assets for a DRM build, or ask.
 - Fonts under the OFL may be shipped and sold with the game, never sold on their own; a modified font loses its Reserved
   Font Name.
-- Credits and notices are generated: `godot-credits`.
+- Credits and notices are generated: `godot-asset-pipeline`.
 
 **Work made by anyone else, owners included.** From a lawyer's GDC talk (Chris Reed, about 2017; US law).
 

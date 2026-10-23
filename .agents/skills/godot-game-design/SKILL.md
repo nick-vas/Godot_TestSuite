@@ -160,7 +160,7 @@ it is not one yet, so make it clearer.
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
 Pacing (Dan Taylor, "Ten Principles for Good Level Design"): each level introduces, showcases or subverts a mechanic;
-the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first; the
+the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first (Croteam's graybox kit: pacing.md); the
 way back plays differently. Details: [pacing.md](pacing.md).
 
 Size an open world by the minutes it takes to cross, on foot and by vehicle, measured in two comparable games, and time

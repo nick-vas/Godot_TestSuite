@@ -33,7 +33,7 @@ Optional, at boot: a short sound under the splash logo tells the player the game
 Sakamoto write the Dreamcast's (*Untold History*). Keep the splash short and skippable.
 
 Keep feedback on the presentation side: it must never change gameplay state, so tests and bots stay deterministic
-(`godot-architecture`).
+(`godot-patterns`).
 
 ## Screen shake
 

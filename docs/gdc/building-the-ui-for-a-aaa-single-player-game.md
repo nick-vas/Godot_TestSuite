@@ -58,5 +58,5 @@
   scene, so the flow would test a menu written only for it. The one-value property is tested in the model instead.
 - The 24-point body minimum: points in their Maya-based pipeline do not convert to the kit's rule, which stays XAG 101's
   body height in pixels (26 px console, 18 px PC at 1080p).
-- Remapping by action, dynamic layouts and readable fonts: already in `godot-input`, `godot-ui-layout` and the `textsize`
+- Remapping by action, dynamic layouts and readable fonts: already in `godot-input`, `godot-ui-accessibility` and the `textsize`
   runner. The engine-specific parts (pre-allocated memory, icon fonts, the journal's render targets) do not apply to Godot.

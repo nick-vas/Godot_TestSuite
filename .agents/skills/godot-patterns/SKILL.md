@@ -1,6 +1,6 @@
 ---
 name: godot-patterns
-description: Use when choosing how to structure a Godot system, or when a design question names a pattern such as state machine, object pool, event bus, singleton or component.
+description: Use when structuring a new Godot game or system, separating gameplay rules and state from visuals, or when a design question names a pattern such as state machine, object pool, event bus, singleton or component.
 ---
 
 # Game programming patterns in Godot 4
@@ -8,6 +8,25 @@ description: Use when choosing how to structure a Godot system, or when a design
 Robert Nystrom's *Game Programming Patterns* ([gameprogrammingpatterns.com](https://gameprogrammingpatterns.com/contents.html))
 names the problems games keep solving. Godot already solves many of them; reach for the engine first, add a pattern when the
 problem actually shows up, and never for its own sake. Each row links the book's chapter; the summaries are ours.
+
+## Simulate simple, present rich
+
+Keep gameplay deterministic, testable without a renderer and easy for an agent to verify: run it in the simplest space
+that works, and mirror it onto the visuals every frame.
+
+- Physics and rules in 2D (`CharacterBody2D` with `MoveAndCollide`, one-way platforms), presentation in 3D: a view node
+  copies positions with a fixed scale (`40 px = 1 m`). Visual styles become swappable, and gameplay stays deterministic
+  and testable headless.
+- A `Visual` wrapper owns flash, tint and squash for every actor, so effects are added in one place.
+- Style definitions (stage, actors, colour grade) as data classes, so a level's look is a value, not a scene fork.
+- Visuals mirror state; nothing in a visual decides gameplay.
+
+## State in plain C#
+
+Run state (`RunState`, the map, encounters) as plain C# classes owned by one autoload, not spread over nodes. Plain
+classes are testable with xUnit in milliseconds (`godot-test-loop`), can be saved by serialising one object, and survive
+scene changes. Nodes read state and send intents; they do not own the rules. Every random decision comes from a seeded,
+per-decision generator (`godot-procgen`).
 
 ## What Godot gives you, and when to add your own
 
@@ -37,13 +56,15 @@ problem actually shows up, and never for its own sake. Each row links the book's
 
 - **Observer:** C# events and lambdas on an autoload outlive the node that subscribed: unsubscribe in `_ExitTree`
   (`event-not-unsubscribed`). In GDScript, a signal connected to a lambda is not dropped when its node is freed either.
-- **Singleton:** put the run's state in plain C# classes owned by one autoload (`godot-architecture`), so it is testable
-  without Godot; UI sends intents to it rather than writing its fields (`ui-mutates-state`).
+- **Singleton:** put the run's state in plain C# classes owned by one autoload (State in plain C#, above), so it is
+  testable without Godot; UI sends intents to it rather than writing its fields (`ui-mutates-state`).
 - **Component:** reach siblings through exported `NodePath`s or `%UniqueName`, not `../..` (`parent-path`).
 - **Object Pool:** pooled nodes kept off the tree are orphans; free the pool in `_ExitTree`, or the orphan count climbs and
   every scene change leaks. Pre-warm the pool before gameplay so the first use does not hitch (`godot-performance`).
 - **Update Method / Data Locality:** find nodes once in `_Ready`, never in `_Process` (`per-frame-lookup`); allocate nothing
   per frame in C# (`per-frame-alloc`).
+  Far from the player, run the simulation as plain data at a lower rate and give actors nodes only near the player
+  (A-Life's offline mode); every AI system that runs this way gets a debug view, pause and time scale.
 
 The names in brackets are the `architecture` runner's rules, which warn when the code drifts from these. A change that adds a
 system, an autoload or a dependency between scenes goes to the `godot-architect` subagent first, which records the decision.

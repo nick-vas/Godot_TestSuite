@@ -17,7 +17,7 @@ what to build next. This kit supplies both:
 - **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
 - **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
 - **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
-- **Teach**: `AGENTS.md` and eighteen skills that make the agent work test first and prove it is done before it says so.
+- **Teach**: `AGENTS.md` and the skills in `.agents/skills`, which make the agent work test first and prove it is done before it says so.
 - **Stay lean and get better**: a Claude Code plugin with a verifier subagent and a Stop hook, quiet JSON output that keeps
   logs out of the agent's context, and a `retro` that turns a session's mistakes into kit changes, each measured with evals.
 
@@ -97,7 +97,7 @@ each change; `.mcp.json` is backed up first. `doctor` checks a machine and a pro
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity; `/game` judges each feature with evidence in `plan/STATUS.md`, keeps Trello in step and asks what next |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, eighteen skills and the `godot-verifier` subagent, copied or as a plugin |
+| **Teach the agent** | `init -Agents` or `init -Plugin` | `AGENTS.md`, `CLAUDE.md`, the skills and the `godot-verifier` subagent, copied or as a plugin |
 | **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last passing `test` run |
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens (cache included), cost, time and answer checks per task and way of working, as medians over repeated runs |
@@ -108,24 +108,22 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 
 | Skill | Use it when |
 |---|---|
-| `godot-test-loop` | adding or changing behaviour: write the failing test, make it pass, run everything |
+| `godot-test-loop` | adding or changing behaviour: write the failing test, make it pass, run everything; choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-verify-before-done` | about to say something is done, fixed or passing |
 | `godot-ui-flows` | a change affects menus, HUD, scene flow or input |
 | `godot-editor-bridge` | using an editor MCP server alongside this kit |
 | `godot-diagnose` | starting work or when something fails mysteriously: detect, doctor, validate |
 | `godot-performance` | stutter, hitches, frame drops, or a milestone where frame rate matters; profiling C# with dotnet-trace, GC settings measured |
 | `godot-automation-hooks` | the game must be played, measured or balanced without a person; runs must be reproducible |
-| `godot-ui-layout` | menus, HUD or text must look right at several resolutions |
-| `godot-ui-accessibility` | menus and HUD must work with a gamepad alone, a screen reader, low vision or motion sensitivity (WCAG 2.2, read for games) |
-| `godot-architecture` | structuring a game or system so it stays deterministic and testable |
+| `godot-ui-accessibility` | menus and HUD must look right at every resolution and work with a gamepad alone, a screen reader, low vision or motion sensitivity (WCAG 2.2, read for games) |
 | `godot-game-design` | deciding what a game or feature is for, whether it is fun, and what to cut: MDA's kinds of fun, design rules of thumb, gameplay patterns |
 | `godot-math` | vectors, angles, rotations, bounces and oscillation in Godot, and where textbook formulas and the engine disagree |
 | `godot-playtest` | running and reading playtests Valve's way, the fixes for what testers keep doing, and the telemetry that finds it |
 | `godot-progression` | rewards, loot, experience and unlocks, difficulty tuning, side systems and updates after launch, with a check that rewards add up to the next step |
 | `godot-narrative` | story, lore and voice: a bible, a timeline and canon in the repository, one spelling per name (checked), voice recorded last |
 | `godot-procgen` | generating levels, maps, loot, names or text, reproducible from a seed and tested over thousands of seeds |
-| `godot-patterns` | choosing a structure: state machines, pools, event queues, components, and what Godot already provides |
-| `godot-asset-pipeline` | importing textures, pixel art and 3D models, Blender to glTF, LODs, palettes, free libraries and where each asset came from |
+| `godot-patterns` | structuring a game or system: gameplay apart from visuals, run state in plain classes, state machines, pools, event queues, components, and what Godot already provides |
+| `godot-asset-pipeline` | importing textures, pixel art and 3D models, Blender to glTF, LODs, palettes, free libraries, where each asset came from, and the credits and licence notices built from it |
 | `godot-shaders-vfx` | shaders, particles, post-processing and graphics quality tiers, and what they cost |
 | `godot-animation` | animation state machines that do not cut attacks short, blending, root motion, the twelve principles |
 | `godot-audio` | buses and volume settings, adaptive music, sound variation and voice limits, 3D sound, ducking, loudness targets |
@@ -138,20 +136,17 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-servers` | dedicated servers and matchmaking: stopping on SIGTERM, health, join tokens, floods, a matchmaking queue, chat moderation |
 | `godot-llm` | a language model inside the game: the code stays the referee, deadlines and fallbacks, prompt budgets, keys off the client |
 | `godot-steam` | Steam: choosing a C# binding that works, start-up without Steam, achievements, stats, leaderboards, rich presence, Cloud conflicts, DLC, demos, servers, branches |
-| `godot-steam-deck` | Steam Deck Verified: input, text size measured at 1280x800, defaults per device, text entry, sleep and resume |
 | `godot-telemetry` | crash reports and analytics with consent and without personal data: Sentry, catching C# errors, export and erasure |
 | `godot-data` | items, enemies and balance as data: the traps of custom Resources, JSON and CSV that survive export, the `data` runner |
 | `godot-determinism` | replays, rollback, lockstep and replay-checked scores: what .NET and Godot's physics really repeat, fixed-point cost |
 | `godot-modding` | player-made mods: PCK and ZIP packs, C# mods that load in an export, Steam Workshop, mod.io, safety |
 | `godot-anti-cheat` | online play, leaderboards and economies: server authority, trusted scores, replay checks, client anti-cheat costs |
-| `godot-console-cert` | Xbox, PlayStation, Switch and Steam Deck: the public certification list, what fails most, tests to run first |
+| `godot-console-cert` | Xbox, PlayStation, Switch and Steam Deck: the public certification list, what fails most, Steam Deck Verified (text size at 1280x800, text entry, sleep and resume), tests to run first |
 | `godot-juice` | the game feels flat, or an action needs feedback: hit-stop, shake, squash, sound, telegraphs |
-| `godot-test-frameworks` | choosing GUT vs gdUnit4Net vs GoDotTest, pinning versions |
 | `godot-pitfalls` | it works in the editor but not in CI or the export |
 | `godot-mobile-web` | phones, tablets and browsers: touch, notches and safe areas, battery and pausing, Android and iOS exports, web builds and hosting |
 | `godot-store-page` | Steam, itch.io and Epic store pages: current capsule sizes, screenshots, trailer, short description, tags, wishlists, Next Fest, Steam's dates |
 | `godot-legal` | age ratings (IARC, Steam's Content Survey, PEGI's loot box rules), privacy policies, EULAs, the rights to every asset |
-| `godot-credits` | credits screens, attribution and licence notices built from the asset manifest |
 | `godot-release-readiness` | is it ready to ship: a checklist where each line names the command or skill that proves it |
 | `godot-export-release` | exporting, smoke-launching, tagged releases, versions, signing, Steam, itch.io, Epic and GOG uploads |
 | `godot-debug-tools` | cheats, consoles, overlays, debug drawing and logging that never reach the shipped build |
@@ -219,7 +214,7 @@ What has been run, and what has not.
 
 **GDScript or C#?** Both. GDScript projects use GUT and need no .NET; C# projects can use all frameworks.
 
-**Which test framework should I pick?** [`godot-test-frameworks`](.agents/skills/godot-test-frameworks/SKILL.md) has the table.
+**Which test framework should I pick?** [`godot-test-loop`](.agents/skills/godot-test-loop/SKILL.md#choosing-a-framework) has the table.
 
 **Why does it fail when Godot exited 0?** Godot exits 0 after printing script errors, so the kit scans the log and fails.
 

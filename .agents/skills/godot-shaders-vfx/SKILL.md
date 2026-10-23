@@ -90,6 +90,10 @@ void fragment() {
 }
 ```
 
+In a 3D game, put that `CanvasLayer` at layer -1: it grades the 3D world but not the UI on layers 0 and up. Posterize,
+crosshatch, paper tint, grain and vignette all work there, and cheerful assets under a stark grade give a distinctive look
+cheaply (posterize under soft fog bands: `godot-pitfalls`).
+
 In the Compatibility renderer colours above 1.0 are clamped, so an edge or rim cannot glow through bloom there.
 
 ## 3. What a shader costs

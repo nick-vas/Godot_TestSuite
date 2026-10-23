@@ -13,7 +13,7 @@ of TheAlgorithms/C-Sharp's implementations against the helpers in
 ## 1. Licence before code
 
 - TheAlgorithms/C-Sharp is GPL-3.0. Pasting any of it into a game makes the whole game GPL: its source must go to every
-  player, and console stores and most publishers refuse it (`godot-credits` refuses the GPL family). Read it to learn the
+  player, and console stores and most publishers refuse it (`credits` refuses the GPL family, `godot-asset-pipeline`). Read it to learn the
   idea, close it, then write and test your own.
 - Its explanations (TheAlgorithms/Algorithms-Explanation) are MIT. Stack Overflow answers are CC BY-SA (credit, and
   share-alike for the snippet); Rosetta Code is GFDL. Record anything kept in `assets.json` (`godot-asset-pipeline`).
@@ -90,7 +90,21 @@ var command = Suggest.Closest(typed, commands);   // null when nothing is close 
 It reports `steam -> physics -> optics -> steam is a cycle: none of them can come first`, and a missing id with its
 near name: `'forge' requires names 'minning', which is not in techs; did you mean 'mining'?`.
 
-## 6. Prove it
+## 6. Exact solvers for small systems
+
+When a system has a small state space (a puzzle, a crafting graph, a path), give it an exact solver. It powers autoplay,
+par scores, hints and generation:
+
+- Tower of Hanoi: recursive optimal next move from any legal position. Toads and Frogs, Chinese rings, river crossing:
+  breadth-first search. Lights Out: Gauss-Jordan elimination over GF(2), trying every free-variable combination for the
+  shortest solution.
+- Par = optimal + small slack. Generate starts by random moves from the solved state, or verify them with the solver.
+- On a dead end, take back only as many moves as the solver needs to make it solvable again; a full reset is too harsh.
+- Do not mark the start state with a sentinel move value (`-1`) if `-1` can be a legal move; compare against the start
+  state.
+- Show which pieces can act right now; it cuts frustration.
+
+## 7. Prove it
 
 - Test against a slow, obvious version on random small inputs (`RegionsAgreeWithUnionFind` checks labels against
   union-find on a random 40 x 30 grid).

@@ -1,6 +1,6 @@
 ---
 name: godot-ui-accessibility
-description: Use when building or reviewing menus, HUD, dialogs or settings screens in a Godot game, or when it must be playable with only a gamepad, with a screen reader, with low vision, colour blindness or motion sensitivity.
+description: Use when building or reviewing a Godot game's menus, HUD, dialogs or settings screens, for any resolution or aspect ratio, a gamepad alone, a screen reader, low vision, colour blindness or motion sensitivity.
 ---
 
 # Accessible menus and UI (WCAG 2.2, read for games)
@@ -63,7 +63,21 @@ Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. 
   (59 px at 100 DPI), 24 mm on tablets, and resizable (XAG 107).
 - Text is `Label`s with a font, never painted into textures (logos aside): it scales, translates and can be read aloud.
 - A UI scale setting up to 200% (`GetWindow().ContentScaleFactor`, or theme font sizes) with nothing clipped and lists
-  scrolling one way only. Take screenshots at 200% and at the smallest resolution (`godot-ui-layout`).
+  scrolling one way only. Take screenshots at 200% and at the smallest resolution (section below).
+
+## Every resolution and aspect ratio
+
+Layout bugs (blank labels, overflowing text, a game area stuck in a corner) are invisible to unit tests and headless
+runs: look at real frames, at the target resolution and at least one other aspect ratio, after every UI change.
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
+```
+
+Set a stretch mode first (`canvas_items` with `expand` for UI anchored to edges, `keep` for a fixed play area,
+`viewport` with integer scaling for pixel art): without one, a larger window shows the game in the top-left corner.
+The stretch table, anchoring, fonts, text over a 3D backdrop and comparing shots with a baseline: [layout.md](layout.md).
+Phones, notches and safe areas: `godot-mobile-web`.
 
 ## Screen readers (1.1.1, 1.3.1, 2.5.3, 4.1.2, 4.1.3)
 
@@ -131,7 +145,7 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
 - A setting playtesters cannot find goes in every category they look in (Ragnarok lists auto pickup under gameplay and
   accessibility): one setting with one value shown on both pages, never two copies that drift apart.
 - Text size belongs on that first screen: nearly 60% of Ragnarok's players moved it to large, one step above the default.
-  Design at the default size, then check the largest for clipping and scrolling (`godot-ui-layout`).
+  Design at the default size, then check the largest for clipping and scrolling ([layout.md](layout.md)).
 - Cognitive load (panel, GDC 2024): content warnings name each topic ("serious topics" lets nobody decide), come just
   before the scene with a way to pause or hide it, and are listed on the store page too (the Dead Space remake). A phobia
   option is a graded slider (Grounded's spiders, down to a blob), since the trigger differs per person. Control prompts

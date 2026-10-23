@@ -151,7 +151,7 @@ matches it.
    Game Loop and Update Method are `_Process`, Component is node composition, Type Object is a custom `Resource`, Singleton
    and Service Locator are autoloads), when to add the pattern yourself (Command for replays and undo, State for
    controllers, Object Pool, Event Queue, Dirty Flag, Data Locality with `MultiMesh` and structs), and when not to.
-   It replaces the generic parts of `godot-architecture`, which keeps the project-specific patterns.
+   It replaced the generic parts of the former architecture skill, since merged into it.
 2. **Design reviews.** A `godot-architect` subagent reviews a feature's design before code is written when it adds a system,
    an autoload or a cross-scene dependency. The outcome is an ADR in `docs/decisions/NNNN-title.md` (context, options,
    decision, consequences). `/game` lists decisions awaiting the owner.

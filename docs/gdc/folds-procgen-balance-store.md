@@ -79,7 +79,7 @@ not stated; about 2019 (inferred: Kongregate's Cartridge platform announced "two
 
 **How to Reduce In-Game Inflation by Monitoring Your Economic Systems**: Yingqin Fang and Liu Yongcheng, NetEase (names as
 transcribed; spellings vary within the transcript). Year not stated. https://www.youtube.com/watch?v=T55AXQEUybA
-- Taken, `godot-architecture` "Data, simulation and networking": one currency ledger tagged by source and sink, daily
+- Taken, `godot-progression` section 5: one currency ledger tagged by source and sink, daily
   issued, collected and stock with an alert, currency held by players who left, transfer logs to spot one-to-many trading.
 - Not taken: the transcript's currency totals (inconsistent; not quoted) and the exchange-rate and price-index dashboards.
 

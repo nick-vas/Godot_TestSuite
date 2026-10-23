@@ -25,9 +25,8 @@ draining servers, join tokens, matchmaking and chat moderation are `godot-server
 
 - **Fixed tick.** Server and clients simulate in fixed steps with the same code (`Sim.Move`); rendering interpolates
   between steps. Valve uses 66 ticks a second, Valorant 128; 30 to 60 suits most games. In Godot 4.7 that is physics
-  interpolation, off by default (`physics/common/physics_interpolation`): without it a body moved in `_PhysicsProcess`
-  at 60 Hz judders on a 144 Hz screen. After a spawn, respawn or teleport call `ResetPhysicsInterpolation()`, or the
-  body slides from its old place (TRIBES "tweens" frames between ticks).
+  interpolation, off by default (turning it on and resetting it after a spawn or teleport: `godot-performance`; TRIBES
+  "tweens" frames between ticks the same way).
 - **Inputs, not positions.** Each client sends numbered inputs, every packet repeating the last 3 unconfirmed ones: at
   5% loss nothing is lost; with one copy, every lost packet is a correction the player sees.
 - **Server queue.** The server applies each client's inputs one per tick, in order, waits a few ticks for a missing
@@ -100,7 +99,11 @@ Lobbies, linked state, host migration and crossplay: [sessions.md](sessions.md).
 - RPCs: `[Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered, TransferChannel = 1)]`
   for inputs, reliable for events that must arrive (chat, a goal scored). Call `RpcId(1, MethodName.SendInput, ...)`
   only after `ConnectedToServer`. Check `Multiplayer.GetRemoteSenderId()` on the server: never trust what a client says
-  it is.
+  it is. A client asks with `RpcId(1, ...)`; the server method (`[Rpc(MultiplayerApi.RpcMode.AnyPeer)]`) runs the same
+  `CanPerform` check again before it changes anything (DayZ).
+- Replicate the smallest state (Arma Reforger's drawer is one float) and derive animation, sound and labels from it on
+  every peer. Put the synchronizer in the base scene so inherited variants replicate; parts that detach or spawn at
+  run time are their own scenes in a `MultiplayerSpawner`.
 - `MultiplayerSynchronizer` replicates properties (`ReplicationInterval`, `DeltaInterval`, visibility per peer) but
   does no prediction, interpolation or input acknowledgement: build those on top, or use netfox (MIT; GDScript,
   Netfox Sharp for C# is experimental). Resources and other objects cannot be synchronised.
@@ -109,7 +112,8 @@ Lobbies, linked state, host migration and crossplay: [sessions.md](sessions.md).
   the server drops a peer whose list differs, saying why (Sea of Thieves, Rare, GDC 2018).
 - Headless Godot runs at about 144 frames a second unless capped: set `Engine.MaxFps` on a server to its tick rate
   (about a third less CPU). A dedicated-server export adds the `dedicated_server` feature tag
-  (`OS.HasFeature("dedicated_server")`).
+  (`OS.HasFeature("dedicated_server")`). Build and run the headless server from the first multiplayer commit, started
+  from a config file that names a scenario scene: the shared map plus one logic node, so maps are not copied per mode.
 - Several peers in one process: `GetTree().SetMultiplayer(new SceneMultiplayer(), branch.GetPath())` per branch, handy for
   a test with a server and many clients in one Godot.
 - ENet has no simulated lag. For tests: a `MultiplayerPeerExtension` that wraps ENet and delays, reorders and drops
