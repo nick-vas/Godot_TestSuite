@@ -1,0 +1,78 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/camera_rig.gd" id="2_camera"]
+[ext_resource type="Script" path="res://game/player.gd" id="3_player"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_body"]
+size = Vector3(0.8, 1, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_coat"]
+shading_mode = 0
+albedo_color = Color(0.93, 0.55, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+material = SubResource("StandardMaterial3D_coat")
+size = Vector3(0.8, 1, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lamp"]
+shading_mode = 0
+albedo_color = Color(1, 0.92, 0.55, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_lamp"]
+material = SubResource("StandardMaterial3D_lamp")
+radius = 0.15
+height = 0.3
+
+[node name="Game" type="Node3D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 20)
+projection = 1
+current = true
+size = 12.0
+far = 60.0
+script = ExtResource("2_camera")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+axis_lock_linear_z = true
+floor_snap_length = 0.2
+script = ExtResource("3_player")
+
+[node name="Shape" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_body")
+
+[node name="Body" type="MeshInstance3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="Lamp" type="MeshInstance3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 1.15, 0.35)
+mesh = SubResource("SphereMesh_lamp")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="MossLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 60.0
+offset_right = 420.0
+offset_bottom = 100.0
+pivot_offset = Vector2(0, 20)
+theme_override_font_sizes/font_size = 26
+text = "Glowmoss: 0"
+
+[node name="HeartsLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -460.0
+offset_top = 20.0
+offset_right = -140.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 26
+text = "Hearts: 3"
+horizontal_alignment = 2
+

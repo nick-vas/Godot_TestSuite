@@ -1,0 +1,4 @@
+[
+  { "id": "crawler", "speed": 1.5, "points": 50, "color": "#a0522d" },
+  { "id": "runner", "speed": 3.5, "points": 80, "color": "#5b3fa8" }
+]
