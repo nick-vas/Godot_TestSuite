@@ -304,13 +304,23 @@ function Invoke-Build {
 }
 
 # -Results is wiped before each run, so refuse folders whose loss would hurt: the current folder, the
-# project, anything containing either, or a drive root.
+# project, anything containing either, or a drive root; and inside the project, a folder with files in it that the kit did
+# not make (no run log or summary of its own), such as -Results test, which would delete the game's tests.
 function Assert-SafeToClear([string]$Dir) {
     $norm = { param($p) ([System.IO.Path]::GetFullPath($p).TrimEnd('\', '/') -replace '\\', '/') + '/' }
     $target = & $norm $Dir
     foreach ($precious in $PWD.Path, $info.ProjectDir) {
         if ((& $norm $precious).StartsWith($target, [StringComparison]::OrdinalIgnoreCase)) {
             Stop-GodotCi "-Results $Dir would delete $precious; point it at a dedicated folder such as test-results" 'unsafe-results-dir'
+        }
+    }
+    $full = [System.IO.Path]::GetFullPath($Dir)
+    if ($target.StartsWith((& $norm $info.ProjectDir), [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $full -PathType Container)) {
+        $ours = (Test-Path -LiteralPath (Join-Path $full 'summary.json')) -or (Test-Path -LiteralPath (Join-Path $full 'hyperdot.log'))
+        $items = @(Get-ChildItem -LiteralPath $full -Force)
+        if ($items.Count -gt 0 -and -not $ours) {
+            Stop-GodotCi ("-Results $Dir would delete $($items.Count) item(s) of the project that the kit did not make ($(@($items | Select-Object -First 3 | ForEach-Object Name) -join ', '));" +
+                " point it at a dedicated folder such as test-results") 'unsafe-results-dir'
         }
     }
 }
