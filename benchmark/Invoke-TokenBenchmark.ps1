@@ -204,7 +204,8 @@ function Test-BenchmarkAnswer([string]$Text, $Expected) {
         foreach ($term in @(if ($Expected.Contains('forbid')) { $Expected.forbid })) {
             if ([regex]::IsMatch($Text, "(?im)(^|[|;{(=&])[ \t]*$([regex]::Escape($term))(?![\w-])")) { $reasons.Add("uses '$term'") }
         }
-        $words = @($Text -split '\s+' | Where-Object { $_ }).Count
+        # A word holds a letter or a digit: table pipes, list dashes and ** are layout, not words.
+        $words = @($Text -split '\s+' | Where-Object { $_ -match '[\p{L}\p{N}]' }).Count
         if ($Expected.Contains('maxWords') -and $words -gt [int]$Expected.maxWords) { $reasons.Add("$words words, limit $($Expected.maxWords)") }
     }
     return , $reasons.ToArray()
@@ -262,7 +263,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
         tokensInput = $totals.input; tokensCacheWrite = $totals.cacheWrite; tokensCacheRead = $totals.cacheRead; tokensOutput = $totals.output
         tokensTotal = $totals.input + $totals.cacheWrite + $totals.cacheRead + $totals.output
         costUsd = [Math]::Round($totals.costUsd, 6); durationMs = $totals.durationMs; ttftMs = $firstTtft
-        words = @($final.text -split '\s+' | Where-Object { $_ }).Count; reasons = (@($reasons) -join '; ')
+        words = @($final.text -split '\s+' | Where-Object { $_ -match '[\p{L}\p{N}]' }).Count; reasons = (@($reasons) -join '; ')
     }
 }
 

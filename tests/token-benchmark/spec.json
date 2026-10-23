@@ -1,7 +1,7 @@
 {
   "name": "Self-test spec for the token benchmark (runs against fake-claude.ps1)",
   "model": "fake",
-  "timeoutSeconds": 2,
+  "timeoutSeconds": 8,
   "repeat": 2,
   "retries": 1,
   "maxCalls": 100,

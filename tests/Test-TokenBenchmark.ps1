@@ -114,6 +114,8 @@ try {
     Assert-True ((Test-BenchmarkAnswer $diff $added) -contains "does not add '$($added.mustAdd[0])'") 'a term on an unchanged context line of a diff is not an addition'
     Assert-True ((Test-BenchmarkAnswer ($diff + "`n+    [ValidateRange(1, 9)]") $added).Count -eq 0) 'a term on an added line is'
     Assert-True ((Test-BenchmarkAnswer '+ ValidateRange' @{ mustInclude = @('Validate') }) -contains "missing 'Validate'") 'a plain term is a whole word, not a prefix'
+    Assert-True ((Test-BenchmarkAnswer "| a | b |`n|---|---|`n- **c** d" @{ maxWords = 4 }).Count -eq 0) 'table pipes, list dashes and ** do not count as words (4 words)'
+    Assert-True ((Test-BenchmarkAnswer 'one two three four five' @{ maxWords = 4 }) -contains '5 words, limit 4') 'five words are over a limit of four'
     $echoSpec = Join-Path $work 'echo-spec.json'
     $echo = Get-Content -LiteralPath $spec -Raw | ConvertFrom-Json -AsHashtable
     $echo.tasks[0].expected.mustInclude = @('please')
@@ -123,7 +125,7 @@ try {
 
     $slow = Invoke-Bench @('-TaskId', 'T-SLOW', '-ProfileId', 'P1-plain', '-Repeat', '1')
     $slowRow = @(Get-Content -LiteralPath (Join-Path $slow.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]
-    Assert-True (-not $slowRow.success -and $slowRow.reasons -eq 'timed out' -and $slowRow.retries -eq 1 -and $slowRow.durationMs -ge 4000) 'a hung session is stopped at the time limit and retried once'
+    Assert-True (-not $slowRow.success -and $slowRow.reasons -eq 'timed out' -and $slowRow.retries -eq 1 -and $slowRow.durationMs -ge 16000) 'a hung session is stopped at the time limit and retried once'
     Assert-True ($slow.Code -ne 0 -and $slowRow.spendKnown -eq $false) 'a run with a session that never answered is incomplete (exit 1), and that spend is marked unknown'
 
     # The sessions run in a copy without the benchmark: its spec holds every expected answer.

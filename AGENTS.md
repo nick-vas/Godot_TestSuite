@@ -15,6 +15,9 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` and `godot-architect` subagents, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
 - `benchmark/` the token benchmark (`Invoke-TokenBenchmark.ps1`, `token-benchmark.json`); each real run costs money, `-DryRun` does not.
+  `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label ([docs/label.md](docs/label.md)).
+  Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
+  the sessions must not be able to recognise the test.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract.
@@ -104,7 +107,8 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
-| `Test-TokenBenchmark.ps1` | the token benchmark's counting and retries (a stand-in CLI) | - |
+| `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
+| `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification and rescaling (`label-fixture`, made-up runs) | - |
 
 ## Targets
 

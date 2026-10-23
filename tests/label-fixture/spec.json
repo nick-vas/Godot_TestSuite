@@ -1,0 +1,9 @@
+{
+  "name": "Self-test spec for the label (no model is called)",
+  "model": "fake",
+  "profiles": [ { "id": "A-baseline" }, { "id": "B-scoped" } ],
+  "tasks": [
+    { "id": "T1", "category": "comprehension", "title": "One", "prompt": "Say the first word.", "expected": { "mustInclude": ["alpha"] } },
+    { "id": "T2", "category": "comprehension", "title": "Two", "prompt": "Say the second word.", "expected": { "mustInclude": ["beta"], "maxWords": 50 } }
+  ]
+}

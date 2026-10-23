@@ -53,7 +53,7 @@
       "category": "code_change",
       "title": "Write a reusable test runner function in the repository's style",
       "prompt": "Write a minimal PowerShell function that runs one test runner and returns a structured result, following this repository's conventions in AGENTS.md (strict mode, how failures are reported, no Write-Output from helpers). Return code only.",
-      "expected": { "mustInclude": ["param(", "Stop-GodotCi"], "forbid": ["Write-Output", "echo"], "maxWords": 320 },
+      "expected": { "mustInclude": ["re:\\bfunction\\s+[A-Za-z]+-[A-Za-z]+", "Stop-GodotCi"], "forbid": ["Write-Output", "echo"], "maxWords": 320 },
       "context": ["AGENTS.md", "ci/godot/lib/Common.ps1", "ci/godot/lib/Runners.ps1"]
     },
     {
@@ -85,7 +85,7 @@
       "category": "automation",
       "title": "Reduce token use in AI-assisted CI",
       "prompt": "Recommend five concrete changes that would reduce token use and time when agents work in this repository, covering scoping context, prompt templates, caching and output size. Bullets only.",
-      "expected": { "mustInclude": ["re:\\bscop(e|ed)\\b", "cache"], "maxWords": 220 },
+      "expected": { "mustInclude": ["AGENTS.md", "cache"], "maxWords": 220 },
       "context": ["docs/research.md", "AGENTS.md", ".claude-plugin/plugin.json", "agents/godot-verifier.md"]
     },
     {

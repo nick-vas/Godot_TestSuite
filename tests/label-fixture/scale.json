@@ -1,0 +1,97 @@
+{
+  "scale": "test",
+  "introduced": "2026-10-23",
+  "standardProfile": "A-baseline",
+  "classes": [
+    {
+      "class": "A",
+      "maxIndex": 52,
+      "color": "#00843d"
+    },
+    {
+      "class": "B",
+      "maxIndex": 60,
+      "color": "#4ba946"
+    },
+    {
+      "class": "C",
+      "maxIndex": 69,
+      "color": "#bed630"
+    },
+    {
+      "class": "D",
+      "maxIndex": 80,
+      "color": "#fff200"
+    },
+    {
+      "class": "E",
+      "maxIndex": 91,
+      "color": "#fdb913"
+    },
+    {
+      "class": "F",
+      "maxIndex": 102,
+      "color": "#f37021"
+    },
+    {
+      "class": "G",
+      "maxIndex": null,
+      "color": "#ed1c24"
+    }
+  ],
+  "standardTokensPerSolvedTask": {
+    "T1": 1000,
+    "T2": 2000
+  },
+  "minimum": {
+    "successPercent": 50,
+    "everyTaskSolved": false
+  },
+  "tolerance": {
+    "indexPercent": 10,
+    "successPoints": 10
+  },
+  "rescale": {
+    "topClassPercent": 30,
+    "topTwoClassesPercent": 50
+  },
+  "coverage": {
+    "classes": [
+      {
+        "class": "A",
+        "minPercent": 95,
+        "color": "#00843d"
+      },
+      {
+        "class": "B",
+        "minPercent": 90,
+        "color": "#4ba946"
+      },
+      {
+        "class": "C",
+        "minPercent": 85,
+        "color": "#bed630"
+      },
+      {
+        "class": "D",
+        "minPercent": 75,
+        "color": "#fff200"
+      },
+      {
+        "class": "E",
+        "minPercent": 65,
+        "color": "#fdb913"
+      },
+      {
+        "class": "F",
+        "minPercent": 50,
+        "color": "#f37021"
+      },
+      {
+        "class": "G",
+        "minPercent": null,
+        "color": "#ed1c24"
+      }
+    ]
+  }
+}

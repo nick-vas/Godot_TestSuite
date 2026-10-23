@@ -1,0 +1,104 @@
+{
+  "scale": "2026-10",
+  "introduced": "2026-10-23",
+  "standardProfile": "A-baseline",
+  "classes": [
+    {
+      "class": "A",
+      "maxIndex": 52,
+      "color": "#00843d"
+    },
+    {
+      "class": "B",
+      "maxIndex": 60,
+      "color": "#4ba946"
+    },
+    {
+      "class": "C",
+      "maxIndex": 69,
+      "color": "#bed630"
+    },
+    {
+      "class": "D",
+      "maxIndex": 80,
+      "color": "#fff200"
+    },
+    {
+      "class": "E",
+      "maxIndex": 91,
+      "color": "#fdb913"
+    },
+    {
+      "class": "F",
+      "maxIndex": 102,
+      "color": "#f37021"
+    },
+    {
+      "class": "G",
+      "maxIndex": null,
+      "color": "#ed1c24"
+    }
+  ],
+  "standardTokensPerSolvedTask": {
+    "COMP-PS-001": 256000.0,
+    "COMP-GD-001": 73000.0,
+    "CODE-PS-001": 48000.0,
+    "CODE-PS-002": 86000.0,
+    "DEBUG-PS-001": 116000.0,
+    "DEBUG-GD-001": 93000.0,
+    "CI-PS-001": 56000.0,
+    "CI-PS-003": 66000.0
+  },
+  "minimum": {
+    "successPercent": 50,
+    "everyTaskSolved": false
+  },
+  "tolerance": {
+    "indexPercent": 20.0,
+    "successPoints": 10.0
+  },
+  "rescale": {
+    "topClassPercent": 30,
+    "topTwoClassesPercent": 50
+  },
+  "coverage": {
+    "classes": [
+      {
+        "class": "A",
+        "minPercent": 95,
+        "color": "#00843d"
+      },
+      {
+        "class": "B",
+        "minPercent": 90,
+        "color": "#4ba946"
+      },
+      {
+        "class": "C",
+        "minPercent": 85,
+        "color": "#bed630"
+      },
+      {
+        "class": "D",
+        "minPercent": 75,
+        "color": "#fff200"
+      },
+      {
+        "class": "E",
+        "minPercent": 65,
+        "color": "#fdb913"
+      },
+      {
+        "class": "F",
+        "minPercent": 50,
+        "color": "#f37021"
+      },
+      {
+        "class": "G",
+        "minPercent": null,
+        "color": "#ed1c24"
+      }
+    ]
+  },
+  "introducedFrom": "Hyperdot 0.1.0 at commit e4ccc2e: claude-sonnet-5-5 and claude-haiku-5-5, profiles A, B and C, and A with the plugin; 8 configurations, 216 sessions (GitHub Actions runs 39930259189 to 39930286282)"
+}
