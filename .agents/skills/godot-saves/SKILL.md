@@ -6,8 +6,8 @@ description: Use when a Godot game saves progress, settings or profiles, when a 
 # Save systems in Godot 4 (C#)
 
 A save must survive a crash in the middle of writing, a disk that flips a bit, the next five versions of the game and a
-second device. The working, tested version is `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Saves/SaveStore.cs`
-(plain .NET, no engine) with its tests in `examples/breakout/tests/Breakout.Core.Tests/SaveStoreTests.cs`; copy it and
+second device. The working, tested version is `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Saves/SaveStore.cs`
+(plain .NET, no engine) with its tests in `examples/csharp/tests/Example.Core.Tests/SaveStoreTests.cs`; copy it and
 change the schema. Sources and the measurements behind each rule: `${CLAUDE_PLUGIN_ROOT}/docs/saves.md`.
 
 ## 1. Where and with what to write
@@ -92,7 +92,7 @@ Steam Cloud (and Epic, GOG) sync files at launch and exit; when both sides chang
 advises "the most recently modified", which picks wrong when a clock is off or the player played offline on both.
 Decide in the game, the way git fast-forwards:
 
-- Each save keeps the hashes of the last 32 saves it descends from (`CloudSync.Decide` in Breakout).
+- Each save keeps the hashes of the last 32 saves it descends from (`CloudSync.Decide` in the C# example).
 - Same hash: in sync. The cloud's hash is in the local history: local is newer, upload. The local hash is in the
   cloud's history: download. Neither: a real conflict.
 - A conflict shows both sides with what players recognise: device, play time, progress (chapter, level, %), save time,
@@ -117,7 +117,7 @@ Decide in the game, the way git fast-forwards:
 ## 7. Prove it
 
 - [ ] golden saves for every shipped version load and migrate to the expected values (`godot-test-loop`, plain
-      xUnit like Breakout's `EveryShippedVersionLoadsAndMigrates`)
+      xUnit like the C# example's `EveryShippedVersionLoadsAndMigrates`)
 - [ ] truncating the save at every byte and flipping a bit at every byte never loads wrong data and never throws
 - [ ] each crash state (partial tmp, unswapped tmp, missing save with tmp and bak, damaged save) loads the right copy,
       and after a recovery the next save still leaves a good backup

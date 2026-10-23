@@ -50,11 +50,11 @@ function Get-InstructionFiles([string[]]$Folders, [string]$Root) {
     return @{ files = $files; brokenImports = @($broken) }
 }
 
-# The kit's commands and parameters, read from godot-ci.ps1's own param block, so the check follows the script.
+# The kit's commands and parameters, read from hypedot.ps1's own param block, so the check follows the script.
 $script:KitCommandLine = $null
 function Get-KitCommandLine {
     if ($script:KitCommandLine) { return $script:KitCommandLine }
-    $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '../godot-ci.ps1'), [ref]$null, [ref]$null)
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '../hypedot.ps1'), [ref]$null, [ref]$null)
     $names = [System.Collections.Generic.List[string]]::new()
     $commands = @()
     foreach ($p in $ast.ParamBlock.Parameters) {
@@ -89,7 +89,7 @@ function Get-TemplateLinePatterns {
     })
 }
 
-# Kit commands in a text: each godot-ci.ps1 call with an unknown command or a flag that binds to no parameter.
+# Kit commands in a text: each hypedot.ps1 call with an unknown command or a flag that binds to no parameter.
 function Get-KitCommandProblems([string]$Text, [string]$Where, [string[]]$Skip = @()) {
     $kit = Get-KitCommandLine
     $problems = [System.Collections.Generic.List[string]]::new()
@@ -98,7 +98,7 @@ function Get-KitCommandProblems([string]$Text, [string]$Where, [string[]]$Skip =
         $number++
         if (@($Skip | Where-Object { $line.Trim() -match $_ }).Count -gt 0) { continue }
         # Only a call: after pwsh (and its own switches) or &, or as ./ (a file listing or Get-Help naming the script is not one).
-        foreach ($m in [regex]::Matches($line, '(?<lead>\bpwsh(?:\.exe)?(?:\s+-(?:NoProfile|NoLogo|NonInteractive|File|ExecutionPolicy\s+\S+))*\s+|&\s*)?["'']?(?<path>[^\s"''`]*godot-ci\.ps1)["'']?(?<rest>[^`\r\n]*)')) {
+        foreach ($m in [regex]::Matches($line, '(?<lead>\bpwsh(?:\.exe)?(?:\s+-(?:NoProfile|NoLogo|NonInteractive|File|ExecutionPolicy\s+\S+))*\s+|&\s*)?["'']?(?<path>[^\s"''`]*hypedot\.ps1)["'']?(?<rest>[^`\r\n]*)')) {
             if (-not $m.Groups['lead'].Success -and $m.Groups['path'].Value -notmatch '^\.[\\/]') { continue }
             $rest = ($m.Groups['rest'].Value -split '\s#|\s\||;')[0]
             $words = @($rest.Trim() -split '\s+' | Where-Object { $_ })

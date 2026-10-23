@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Godot 4.7.2 game. Tests, builds and checks go through the Godot test suite (`{{SUITE}}`, PowerShell 7).
+Godot 4.7.2 game. Tests, builds and checks go through Hypedot (`{{SUITE}}`, PowerShell 7).
 
 ## Commands
 

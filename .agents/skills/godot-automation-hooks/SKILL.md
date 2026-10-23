@@ -30,10 +30,10 @@ public static class Flags
 The kit passes the same flags everywhere with `-GameArgs` (comma-separated, so one value cannot contain a comma):
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners playthrough -GameArgs '--bot-skill=0.5'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -GameArgs '--stress'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/Map.tscn -GameArgs '--seed=7'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners playthrough -GameArgs '--bot-skill=0.5'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 bench -Json -Quiet -GameArgs '--stress'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/Map.tscn -GameArgs '--seed=7'
 ```
 
 These flags are debug tools, read only under `#if DEBUG` (`godot-debug-tools`). `test` (its `smoke` and `playthrough`
@@ -55,7 +55,7 @@ nothing.
 | `--playback=<file>`, `--skip-to-frame=N` | replays an `InputLog` the game saved on quit or on an error (`godot-determinism`); the skip plays N ticks undrawn, then hands control back, still recording |
 
 Every session records its input, so a bug found by hand ends as a file: quit, then `-- --playback=user://replays/last.replay
---skip-to-frame=N` lands on the frame of the bug. Playback also means `--no-save` and Breakout's `LocalPlatform` in place of Steam,
+--skip-to-frame=N` lands on the frame of the bug. Playback also means `--no-save` and the C# example's `LocalPlatform` in place of Steam,
 never stored, so a replay unlocks and posts nothing real. Unlike `--replay` below, which stores intent and survives level edits,
 an input log holds raw ticks: it needs the same simulation rules (or its `Rules` branch) to play.
 
@@ -100,7 +100,7 @@ seed gives a different run on every launch. Never use the global `GD.Randf()` fo
 ## Comparing two versions
 
 Did the change help (a new jump, an easier puzzle, a shop coupon)? Two averages from a few runs differ by chance alone, so let a
-test decide. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/Stats.cs` has them, engine-free, with
+test decide. `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Analytics/Stats.cs` has them, engine-free, with
 `StatsTests`; pick by what is measured:
 
 | Outcome | Test |
@@ -127,7 +127,7 @@ test decide. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytic
 ## Reading balance from run data
 
 Pick and win rates per card, relic or upgrade, from one summary per finished run (bots or players): `BalanceReport` in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie four ways:
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Analytics/`, with `BalanceReportTests`. Plain averages lie four ways:
 
 - **Late options flatter themselves.** An option found near the end is seen mostly in runs that were already winning (Slay the
   Spire's Madness, from an event just before the last boss). Compare its runs only with all runs that reached the floor where
@@ -184,7 +184,7 @@ or physics change was known safe within the hour. Its recordings survived level 
   People still play it. It proves one route: NetEase's shortest path never jumped down the cliff that players could not
   climb back up, so add the seeded random bot. It proves nothing about pictures: Square Enix's passed on a black
   screen, so save `--shot` pictures at named steps and look at them.
-- A hung run (a deadlock, an `await` that never resumes) is stopped after `GODOT_CI_TIMEOUT` seconds (default 1800) and
+- A hung run (a deadlock, an `await` that never resumes) is stopped after `HYPEDOT_TIMEOUT` seconds (default 1800) and
   fails; set it a little above the run's real length so a hang is caught early.
 
 ## One log line per meaningful event

@@ -24,7 +24,7 @@ function New-RepoCopy([string]$Name) {
 
 try {
     New-Item -ItemType Directory -Force $temp | Out-Null
-    $current = [regex]::Match((Get-Content -LiteralPath (Join-Path $root 'examples/breakout/game/Breakout.csproj') -Raw), 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
+    $current = [regex]::Match((Get-Content -LiteralPath (Join-Path $root 'examples/csharp/game/Example.csproj') -Raw), 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
     $parts = $current -split '\.'
     $next = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 1)"
     $latest = Join-Path $temp 'latest.json'

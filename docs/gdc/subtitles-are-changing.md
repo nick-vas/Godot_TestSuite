@@ -46,7 +46,7 @@ ideal, never four or more; sound captions in brackets, short subject and verb; a
 - `tests/textsize-fixture/subtitles`, `tests/Test-TextSize.ps1`: 24 px fails (16.00 px against 20.74 at 1280x800), 36 px
   warns, 52 px passes, a label inside a hidden grouped container is measured, a 24 px label outside the group is not
   held to the subtitle size, and the same scene with `"subtitleGroup": "captions"` gives the same results.
-- `examples/breakout/src/Breakout.Core/Ui/Subtitles.cs` with `SubtitlesTests.cs`: one subtitle per sentence, at most 2
+- `examples/csharp/src/Example.Core/Ui/Subtitles.cs` with `SubtitlesTests.cs`: one subtitle per sentence, at most 2
   lines of 38 characters, lines as even as the words allow, the speaker's name glued to the first word of every
   subtitle, hand-made breaks kept when they fit, over-long words cut, `MinDuration` at 180 words a minute (name
   included), `Caption` in brackets.

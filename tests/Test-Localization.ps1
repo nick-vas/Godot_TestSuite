@@ -129,7 +129,7 @@ try {
 if ($noTool['Failure'] -or $noTool['Skipped'] -notmatch 'ffmpeg') { $failures += "without ffmpeg, localized audio should be skipped: $($noTool | ConvertTo-Json -Compress)" }
 Remove-Item -Recurse -Force $voice
 # A project with remaps and no translation table still gets the runner.
-$detected = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') detect -Json -Project (Join-Path $fixture 'voice') 2>$null) -join "`n" | ConvertFrom-Json
+$detected = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') detect -Json -Project (Join-Path $fixture 'voice') 2>$null) -join "`n" | ConvertFrom-Json
 if ('l10n' -notin @($detected.runners)) { $failures += "detect did not pick l10n for a project with translation remaps: $(@($detected.runners) -join ', ')" }
 
 # Glyphs, without Godot: the texts as the player sees them, the characters that need a glyph, and the tool's lines read back.
@@ -163,7 +163,7 @@ if ($NoGodot) {
     $copy = Join-Path ([System.IO.Path]::GetTempPath()) "l10n-glyphs-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
     Copy-Item -Recurse $glyphs $copy
     $results = "$copy-results"
-    $run = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') test -Json -Project $copy -Runners l10n -Results $results 2>$null) -join "`n" | ConvertFrom-Json
+    $run = (& pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') test -Json -Project $copy -Runners l10n -Results $results 2>$null) -join "`n" | ConvertFrom-Json
     $l10n = @($run.runnerResults | Where-Object runner -eq 'l10n')
     if ($run.ok -or $l10n.Count -ne 1) { $failures += "the glyphs project should fail the l10n runner: $($run | ConvertTo-Json -Compress -Depth 8)" }
     else {

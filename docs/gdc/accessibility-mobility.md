@@ -31,13 +31,13 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Controls/StickSettings.cs`: `StickSettings.Apply` (radial deadzone rescaled so
+- `examples/csharp/src/Example.Core/Controls/StickSettings.cs`: `StickSettings.Apply` (radial deadzone rescaled so
   full deflection is still 1, optional axial deadzone rescaled the same way, X and Y sensitivity 0.5x to 2x, a response
   curve, per-axis invert, output limited to the unit circle) and `StickLayout` (move and look settings, stick swap, JSON
   with a version; damaged or foreign files return null, values out of range are clamped).
-- `examples/breakout/game/Controls/InputBindings.cs`: `InputBindings.Sticks`, saved in the bindings file and reset with
+- `examples/csharp/game/Controls/InputBindings.cs`: `InputBindings.Sticks`, saved in the bindings file and reset with
   it; older files without it still load.
-- Tests: `examples/breakout/tests/Breakout.Core.Tests/StickSettingsTests.cs` (18 cases, two of them property sweeps over
+- Tests: `examples/csharp/tests/Example.Core.Tests/StickSettingsTests.cs` (18 cases, two of them property sweeps over
   random settings and readings) and `ControlsTest.Bindings_survive_saving_and_loading` (gdUnit4, in Godot).
 - `.agents/skills/godot-input/SKILL.md`: how `GetAxis` and `GetVector` treat per-action deadzones in 4.7.2, and §7's
   mobility settings (adjustable and axial deadzones, sensitivity both ways per axis, stick swap and one-stick play,
@@ -60,6 +60,6 @@
   `godot-ui-accessibility`, `godot-multiplayer`, `godot-saves`, `godot-modding`), and the talk gives no rule beyond
   "offer it".
 - Device support beyond keyboard, mouse and controller (eye gaze, adaptive controllers): they arrive as one of those.
-- Breakout's paddle is one axis on keys and the d-pad, so the stick settings are saved but not yet read by the game.
+- The C# example's paddle is one axis on keys and the d-pad, so the stick settings are saved but not yet read by the game.
 - Xbox Accessibility Guideline 107 was read for the sensitivity number (at least 50% up and down); it does not mention
   deadzones.

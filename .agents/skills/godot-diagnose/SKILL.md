@@ -7,10 +7,10 @@ description: Use when a Godot build, import, export or test run fails and the ca
 
 Three cheap commands tell you almost everything before you change code. All accept `-Json` and `-Project <dir>`.
 
-## `detect` - what the suite found (changes nothing)
+## `detect` - what the kit found (changes nothing)
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 detect -Json
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 detect -Json
 ```
 Returns `project`, `name`, `csharp`, `solution`, `godotVersion`, `runners[]`, `goDotTestScene`,
 `presets[]` (`name`, `platform`). If `runners` lacks what you expect, the framework is not wired: the C#
@@ -19,7 +19,7 @@ test packages, `extends GutTest` scripts or main scene it keys off are missing.
 ## `doctor` - what is misconfigured
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 doctor -Json
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 doctor -Json
 ```
 `checks[]` has `status` (`OK`, `INFO`, `WARN`, `FAIL`), `message`, and `fix`. Exit 1 only on `FAIL`. Act on every
 `FAIL` and `WARN`; the usual ones are:
@@ -39,14 +39,14 @@ one test case per file. It finds parse errors, bad `res://` paths and missing no
 test touches. Run it alone while editing scenes:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners validate
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners validate
 ```
 Failures name the file (`res://scenes/Hud.tscn`). Open that file; the message is Godot's own.
 
 ## When the JSON is not enough
 
 Each failure in `runnerResults[].failures[]` carries `message`, `file`, `line` and a few lines of `details`; read
-those first. The full output of the run is in the file the JSON's `log` field names (`test-results/godot-ci.log`):
+those first. The full output of the run is in the file the JSON's `log` field names (`test-results/hypedot.log`):
 search it for the test or file name instead of reading it whole. `summary.json`, `summary.md` and per-runner
 JUnit/TRX files stay in `test-results/`; coverage is in `test-results/coverage/index.html`.
 
@@ -55,7 +55,7 @@ JUnit/TRX files stay in `test-results/`; coverage is in `test-results/coverage/i
 Before debugging an engine error, look it up in the run history:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 status -Json
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 status -Json
 ```
 `recurringErrors[]` groups past runs by error key (the error line with its numbers taken out, plus its `res://` file;
 `engineErrors[].key` is the same): `count`, `failedRuns`, `firstSeen` and `lastSeen` (`time`, `commit`, `command`).

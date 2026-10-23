@@ -69,7 +69,7 @@ of four letters or more are checked; the same word in capitals is fine.
   character's arc as a curve across the acts.
 - **Co-op and busy scenes**: repeat the key point, keep beats short, and leave silence for players to talk.
 - **Barks and conversations as rules, not trees** (Left 4 Dead 2, Portal 2, Dota 2). `ResponseSystem` in
-  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Narrative/ResponseRules.cs`: each line is a rule over one flat
+  `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Narrative/ResponseRules.cs`: each line is a rule over one flat
   query of facts (the event, the speaker, the speaker's memory, the world's); the rule with most criteria wins, ties are
   drawn at random, a rule naming a fact the query lacks rejects. Writers add rows, never code:
 
@@ -82,7 +82,7 @@ of four letters or more are checked; the same word in capitals is fine.
   `Once`, removing itself after it plays. `!key` (missing or 0) is the kit's addition for "not yet".
 - **Keep the rows in a checked table.** In `data.json`, `"barks": { "file": "data/barks.json", "kind": "responses",
   "facts": ["health", "danger"] }`; one JSON object per rule, as in
-  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/data/barks.json`:
+  `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/data/barks.json`:
 
   ```json
   { "id": "nick_plan", "who": "nick", "concept": "Idle", "criteria": "danger=false;!gag_cooldown",
@@ -95,7 +95,7 @@ of four letters or more are checked; the same word in capitals is fine.
   not exist (every line needs one with `"voiced": true`, at content lock), two rules with the same who, concept and
   criteria, and criteria that can never hold together; it warns on a fact read but never remembered and not in `facts`
   (the facts the game supplies), which is usually a typo. The game loads the same file with `ResponseTable.Load` in
-  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Narrative/ResponseTable.cs`; the grammar is in
+  `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Narrative/ResponseTable.cs`; the grammar is in
   `${CLAUDE_PLUGIN_ROOT}/docs/data.md`. Lines are one language: make them translation keys for other languages.
 
 ## 5. Voice

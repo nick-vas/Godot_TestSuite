@@ -64,7 +64,7 @@ jobs:
               git add -A
               git commit -m $title
               git push -u origin $branch
-              $body = @('Newer releases that pass both example projects (`examples/gdscript`, `examples/breakout/game`) and the skill validator:', '')
+              $body = @('Newer releases that pass both example projects (`examples/gdscript`, `examples/csharp/game`) and the skill validator:', '')
               $body += @($c.passing | ForEach-Object { "- $($_.name): $($_.current) -> $($_.latest)" })
               $body += '', "Files: $(@($c.changed) -join ', ')", '', "Canary run: $run"
               if ($c.failing) { $body += '', 'Not included (see the canary issues):'; $body += @($c.failing | ForEach-Object { "- $($_.name) $($_.latest)" }) }

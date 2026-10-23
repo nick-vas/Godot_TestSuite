@@ -73,7 +73,7 @@ CreateTween().TweenMethod(Callable.From<float>(db => layers.SetSyncStreamVolume(
 
 Repetition is what makes game audio sound cheap; unlimited voices are what make it muddy.
 
-- No sounds yet: `godot-ci.ps1 sfx -Sound jump,coin,hit -Count 3` writes placeholder WAVs to `sounds/sfx` (bfxr's synth,
+- No sounds yet: `hypedot.ps1 sfx -Sound jump,coin,hit -Count 3` writes placeholder WAVs to `sounds/sfx` (bfxr's synth,
   each at -6 dBFS) with a `.bfxr` file that bfxr's editor opens; `sfx -Vary sounds/sfx/jump-1.bfxr -Count 5` makes
   variations of one sound for a randomizer.
 
@@ -99,7 +99,7 @@ Repetition is what makes game audio sound cheap; unlimited voices are what make 
   radius", Guy Somberg's rule on Hellgate: London and BioShock 2; past two sources, people hear "footsteps", not steps).
   Ten bricks breaking in one corner play two voices, bricks breaking on both sides still sound from both sides, and the
   mix stays clear. A tested version, with a total and a cooldown per kind:
-  `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Audio/VoiceLimiter.cs`. Game code keeps its integer handle,
+  `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Audio/VoiceLimiter.cs`. Game code keeps its integer handle,
   never the pooled player (by then it may be playing another sound), and releases it when the player emits `Finished` or is
   stopped. A refused sound is dropped: do not ask again every frame.
 - A pooled player may take `GlobalPosition`, `VolumeDb` and `PitchScale` just before or just after `Play()` in the same
@@ -159,8 +159,8 @@ Sony's ASWG-R001 (also the industry's IESD guidance for consoles), measured as t
 | Handheld | -18 LUFS ± 2 LU (IESD says -16 for phones) | at most -1 dBTP |
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Json -Quiet                          # every sound file
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Mix -Seconds 120 -GameArgs '--autoplay' -Json -Quiet   # the game's own mix
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 audio -Json -Quiet                          # every sound file
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 audio -Mix -Seconds 120 -GameArgs '--autoplay' -Json -Quiet   # the game's own mix
 ```
 
 - `audio` measures each file (category from its folder: `music/`, `voice/`, `ambience/`, `ui/`, else effects) and warns
@@ -184,7 +184,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 audio -Mix -Seconds 120 -GameAr
 For rhythm-action (as in Hi-Fi Rush) the player presses whenever they like and the game lands the action on the beat.
 Read [beat.md](beat.md) before writing it. In short: the clock is the song's playback position (`MusicClock`), never
 summed `delta`; set the animation's speed so its impact lands on the beat (`BeatSync.SpeedScale`); reward on-beat play
-with extras and never punish off-beat play. Tested in `Breakout.Core/Audio/BeatSync.cs`.
+with extras and never punish off-beat play. Tested in `Example.Core/Audio/BeatSync.cs`.
 
 ## 9. Prove it
 

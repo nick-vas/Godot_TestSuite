@@ -1,7 +1,7 @@
 # Narrating the world (godot-ui-accessibility reference)
 
 Screen readers read controls, not the world. To describe objects, places and tutorials, speak through `DisplayServer`.
-Tested core: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Access/Narration.cs`; the research:
+Tested core: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Access/Narration.cs`; the research:
 `${CLAUDE_PLUGIN_ROOT}/docs/gdc/loud-and-clear-low-vision.md`.
 
 - Turn on Project Settings > Audio > General > Text To Speech (`audio/general/text_to_speech`, off by default). Off,

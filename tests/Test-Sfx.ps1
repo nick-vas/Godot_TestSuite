@@ -39,7 +39,7 @@ New-Item -ItemType Directory -Force $project | Out-Null
 Set-Content -LiteralPath (Join-Path $project 'project.godot') "config_version=5`n`n[application]`n`nconfig/name=`"Sfx`"`n"
 Set-Content -LiteralPath (Join-Path $project 'assets.json') '{ "assets": [ { "path": "art/**", "source": "own", "licence": "own" } ] }'
 function Invoke-Sfx([string[]]$Arguments) {
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') sfx -Project $project -Json @Arguments 2>$null
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') sfx -Project $project -Json @Arguments 2>$null
     return ($json | Out-String | ConvertFrom-Json)
 }
 

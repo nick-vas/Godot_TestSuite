@@ -27,7 +27,7 @@ Hand the screenshots to the `godot-verifier` subagent so the images stay out of 
 (or the main scenes from `status` `inventory.scenes`), at every resolution in `look.resolutions`:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/Menu.tscn,res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/Menu.tscn,res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/1920x1080
 ```
 
 Ask it to judge each picture against `docs/STYLE.md` and its "Choices": text too small or clipped, contrast, overlap, things
@@ -48,13 +48,13 @@ screen | resolution | problem | rule it breaks | screenshot path. Do not fix any
 For a visual change, take the "before" pictures first, at the design resolution:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/before
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/before
 ```
 
 Make the change, then compare:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/after -Baseline screenshots/before
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/after -Baseline screenshots/before
 ```
 
 Each shot gets `compare.changedPercent` and `compare.image`: before | after | changes in red. Look at the comparison image,

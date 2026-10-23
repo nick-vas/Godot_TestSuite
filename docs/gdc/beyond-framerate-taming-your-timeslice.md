@@ -31,14 +31,14 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Ai/FrameBudget.cs`: the single-threaded C# form of the idea. Jobs are
+- `examples/csharp/src/Example.Core/Ai/FrameBudget.cs`: the single-threaded C# form of the idea. Jobs are
   iterators (the talk's coroutine route) stepped round-robin on the main thread until a per-frame budget is spent.
   The clock is injected and read once per frame plus once every `checkEvery` steps; `BudgetJob.Resumed` is the
   "it slept" flag; `Cancel()` disposes the iterator (its `finally` blocks run); `Priority` sets a job's share; the
   completion callback runs inside `Run`. No threads, so no locks to hold across a pause.
 - `FrameBudget.CountingWork`: a budget in units of work, not time, so a job finishes on the same frame on every
   machine. This is the kit's addition for replays and lockstep (`godot-determinism`), not the talk's.
-- `examples/breakout/tests/Breakout.Core.Tests/FrameBudgetTests.cs`, all on a fake clock: a 200-step job at 0.1 ms a
+- `examples/csharp/tests/Example.Core.Tests/FrameBudgetTests.cs`, all on a fake clock: a 200-step job at 0.1 ms a
   step and a 1 ms budget finishes in exactly 20 frames, none past budget + `checkEvery` steps; three jobs share
   evenly and a priority-3 job gets three times the steps; clock reads stay within frames + steps / 16; a cancelled
   job releases its reservation at once, including one that cancels itself; `Resumed` is true only on the first step
@@ -58,7 +58,7 @@
 | Worst single `Run` per run | median 7 ms, up to 16 ms: the OS pre-empted the process; a budget cannot stop that |
 | `Stopwatch.GetTimestamp` | 29 to 96 ns a call; an empty `FrameBudget` step costs about 24 ns |
 
-`bench` on a Godot stress scene was skipped: it needs a new scene in Breakout and a display, and on a machine this
+`bench` on a Godot stress scene was skipped: it needs a new scene in the C# example and a display, and on a machine this
 loaded the frame times would mostly measure the other processes.
 
 ## What it did not take, and why

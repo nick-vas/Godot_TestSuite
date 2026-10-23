@@ -39,10 +39,10 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Ai/Goap.cs`: `GoapPlanner.Plan` takes an optional `costOf` function that prices
+- `examples/csharp/src/Example.Core/Ai/Goap.cs`: `GoapPlanner.Plan` takes an optional `costOf` function that prices
   each action once per call from the current situation. Fixed `GoapAction.Cost` stays the default, and negative or NaN
   costs throw. Existing calls are unchanged.
-- `examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`: `GoapCostsFollowTheSituation` uses Conway's numbers. At 2 m
+- `examples/csharp/tests/Example.Core.Tests/AiTests.cs`: `GoapCostsFollowTheSituation` uses Conway's numbers. At 2 m
   the plan is walk then melee (3 against 11). At 20 m it is move into range then shoot (11 against 21). At 20 m with no
   ammo it walks in to melee. With fixed costs the plan is melee at every distance (2 against 11). If the planner ignores
   `costOf`, the test fails at 20 m (it expects ranged and gets melee).
@@ -53,7 +53,7 @@
 ## What it did not take, and why
 
 - Motives, multiple plan candidates, situational requirements, parent monitoring and open-ended actions with a
-  remaining cost: each needs a stateful plan executor, and Breakout's planner is a pure search. Worth a later change if
+  remaining cost: each needs a stateful plan executor, and the C# example's planner is a pure search. Worth a later change if
   a game needs it.
 - Learned costs from success statistics: Conway raises open questions himself (whether early-game results should affect
   late-game NPCs).

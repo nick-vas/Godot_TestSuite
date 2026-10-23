@@ -1,6 +1,6 @@
 # Anti-cheat: sources and measurements
 
-The research behind the `godot-anti-cheat` skill and the speed check in Breakout's `Net/` server, gathered on
+The research behind the `godot-anti-cheat` skill and the speed check in the C# example's `Net/` server, gathered on
 2026-10-21. It draws on Godot's networking documentation and source, Steamworks, Epic Online Services, BattlEye and Riot
 pages. Tests ran on Linux with Godot 4.7.2 (mono and standard) and .NET 8. Marks: **tested** means run here, **source**
 means read in the engine code, **doc** means stated by the vendor, and **unconfirmed** means general practice or a
@@ -43,7 +43,7 @@ secondary source.
 
 | What | Result |
 |---|---|
-| Breakout's `Server` (`examples/breakout/src/Breakout.Core/Net/Netcode.cs`) receiving two inputs per tick for 600 ticks, before the fix | The client moved 3997 px where real time allows 2000 |
+| The C# example's `Server` (`examples/csharp/src/Example.Core/Net/Netcode.cs`) receiving two inputs per tick for 600 ticks, before the fix | The client moved 3997 px where real time allows 2000 |
 | The same, after the fix (`AClientSendingExtraInputsDoesNotMoveFaster` in `NetcodeTests.cs`) | No more than 2% over 2000 px (the test's bound); the extra inputs counted in `InputsRejected` |
 | An honest client whose packets are held for half a second (`AnHonestClientCatchesUpAfterAStall`) | Catches up to the exact distance; `InputsRejected` stays 0 |
 | A `.tres` with an embedded GDScript, loaded with `ResourceLoader.load` (standard 4.7.2) | The script ran: an edited save in that format is code execution |

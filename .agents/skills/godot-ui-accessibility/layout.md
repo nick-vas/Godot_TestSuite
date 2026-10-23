@@ -6,8 +6,8 @@ to headless runs. Look at real frames.
 ## See it
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn -Resolution 1280x720 -Output screenshots/720p
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn -Resolution 1280x720 -Output screenshots/720p
 ```
 
 `shots[]` lists the PNG files. Screenshots fill context fast: for more than a couple of screens, ask the `godot-verifier`
@@ -26,7 +26,7 @@ image (`/look` builds its choices on it).
 | A fixed play area (a 640x480 arena drawn at fixed coordinates) | `canvas_items` | `keep`: scaled up whole, with bars |
 | Pixel art that must stay crisp | `viewport` | `keep`, integer scaling |
 
-Without a stretch mode, a larger window simply shows the game in the top-left corner: the kit's own Breakout example did
+Without a stretch mode, a larger window simply shows the game in the top-left corner: the kit's own C# example example did
 this until a screenshot at 1920x1080 showed it.
 
 ## Rules

@@ -2,7 +2,7 @@
 
 The research behind the `godot-steam` and `godot-console-cert` (Steam Deck) skills, the `textsize` runner, the `steam-removed-api` and
 `steam-env-dotnet` architecture rules, `doctor`'s GDExtension, Steam package and Steamworks file checks, the `SteamAppId=480` default,
-and Breakout's `Platform/` (`IPlatformServices`, `LocalPlatform`, `BreakoutProgress`) and `SaveStore.SaveResolved`,
+and the C# example's `Platform/` (`IPlatformServices`, `LocalPlatform`, `BreakoutProgress`) and `SaveStore.SaveResolved`,
 gathered on 2026-10-21. Tests ran on Godot 4.7.2 mono and standard, .NET 8 (SDK 8.0.131), Linux x86_64, with no Steam
 client and no Steamworks partner account. Marks: **tested** means run here, **doc** means stated by Valve or Godot,
 **source** means read in the code, and **unconfirmed** means memory, community knowledge or inference not checked here.
@@ -213,7 +213,7 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
     missing from the English tokens, since Steam then shows nothing; a token in the file without `#`, a `{#Token}` it
     refers to that is not defined, and a file with no English warn. Tokens in the code with no file in `steam/`: INFO.
   - **Achievements and stats**: `steam/achievements.json`, `{ "achievements": [...], "stats": [...] }` with the API
-    names as created in Steamworks (Breakout's `PlatformCatalog` rule: letters, digits and underscores, each once; a
+    names as created in Steamworks (the C# example's `PlatformCatalog` rule: letters, digits and underscores, each once; a
     name that breaks it warns). A name the code passes to `SetAchievement`, `ClearAchievement`, `GetAchievement`,
     `IndicateAchievementProgress`, `UnlockAchievement`, GodotSteam's `setAchievement` or `Call("setAchievement", ...)`
     or Facepunch's `new Achievement(...)`, or to `SteamUserStats.SetStat`/`GetStat`/`AddStat` or GodotSteam's
@@ -239,10 +239,10 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
   problems is named and nothing else, the depot that excludes `steam_appid.txt` passes, and doctor fails on a copy of
   the fixture.
 - **`SteamAppId=480`**: `Test-UsesSteam` (`ci/godot/lib/Detect.ps1`) is true when the project has `addons/godotsteam` or
-  a `.csproj` that references `Steamworks.NET*`, `Facepunch.Steamworks*` or `GodotSteam*`. `ci/godot/godot-ci.ps1` then
+  a `.csproj` that references `Steamworks.NET*`, `Facepunch.Steamworks*` or `GodotSteam*`. `ci/godot/hypedot.ps1` then
   sets `SteamAppId=480` for every command, unless `SteamAppId` is already set, so a relaunch through Steam cannot end a
   smoke or `export -Run` early.
-- **Breakout's `Platform/`** (`examples/breakout/src/Breakout.Core/Platform/`): `IPlatformServices` (achievements, an
+- **The C# example's `Platform/`** (`examples/csharp/src/Example.Core/Platform/`): `IPlatformServices` (achievements, an
   integer stat, a leaderboard, rich presence, `StoreStats`); `PlatformCatalog` (Steam API names, letters, digits and
   underscores, no duplicates); `LocalPlatform` keeps state in one JSON file written atomically only by `StoreStats`,
   throws on unknown ids, keeps the higher score for `KeepBest`, enforces the rich presence limits and a `#` token for

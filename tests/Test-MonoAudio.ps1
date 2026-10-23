@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 $fixture = Join-Path $PSScriptRoot 'mono-fixture'
 $results = Join-Path ([System.IO.Path]::GetTempPath()) "mono-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
-& pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') test -Json -Quiet -Project $fixture -Runners smoke -Frames 100000 -Results $results 2>$null | Out-Null
+& pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') test -Json -Quiet -Project $fixture -Runners smoke -Frames 100000 -Results $results 2>$null | Out-Null
 $levels = @{}
 foreach ($line in Get-Content -LiteralPath (Join-Path $results 'smoke/smoke.log')) {
     if ($line -match '^@@mono (?<s>\w+) (?<e>on|off) (?<l>[\d.]+) (?<r>[\d.]+)$') {

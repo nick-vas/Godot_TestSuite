@@ -23,7 +23,7 @@
 # gdUnit4Net reads GODOT_BIN and the Godot arguments from here; other frameworks ignore the GdUnit4
 # section. No TreatNoTestsAsError: with a filter, projects without a match would fail the run, and
 # Write-TestSummary already fails runs that report nothing. CompileProcessTimeout: gdUnit4Net rebuilds the project in
-# the editor before running, and its 20 s default runs out on a loaded machine or a cold Windows runner; the suite
+# the editor before running, and its 20 s default runs out on a loaded machine or a cold Windows runner; the kit
 # then runs no Godot test and only the exit code says so.
 function New-RunSettings([string]$ResultsDir) {
     $path = Join-Path $ResultsDir 'godot.runsettings'

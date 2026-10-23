@@ -7,7 +7,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$kit = Join-Path $root 'ci/godot/godot-ci.ps1'
+$kit = Join-Path $root 'ci/godot/hypedot.ps1'
 $fixture = Join-Path $PSScriptRoot 'bench-fixture'
 if ($IsLinux -and -not $env:DISPLAY) { throw 'bench needs a display: start Xvfb :99 & and set DISPLAY=:99' }
 # Under Xvfb, Mesa's software renderer draws with one thread per core by default; on a busy machine those threads wait on

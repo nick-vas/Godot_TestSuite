@@ -43,14 +43,14 @@ The slides are not in the transcript, and the talk was cut short during the time
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Determinism/Rewind.cs`: `RewindLog` and `RewindEntity` (id plus a fixed array
+- `examples/csharp/src/Example.Core/Determinism/Rewind.cs`: `RewindLog` and `RewindEntity` (id plus a fixed array
   of int fields, floats as bits). `Record(frame, entities)` and `Seek(frame)`/`TrySeek`; defaults are the talk's
   numbers (keyframe every 120 frames, chunks of 12 keyframes = 1,440 frames, 40 MB, read as 40 MiB). Keyframes store
   (field, value) pairs differing from a default entity; other frames store gone ids, born ids and per-entity pairs
   differing from the keyframe or the birth record. Births are written once into the keyframe's birth list. Chunks are
   append-only byte arenas forgotten whole. Recording a frame already held drops the future from it (the kit's
   addition: rewinding and playing on), and `Checksum` hashes a frame with `DeterminismCheck.Fnv1a`.
-- `examples/breakout/tests/Breakout.Core.Tests/RewindTests.cs` (7 tests).
+- `examples/csharp/tests/Example.Core.Tests/RewindTests.cs` (7 tests).
 - `.agents/skills/godot-determinism/SKILL.md`, section 7 "Time rewind", with a Godot example where nodes draw the
   decoded state and the simulation resumes from it; a source row in `docs/determinism.md`.
 

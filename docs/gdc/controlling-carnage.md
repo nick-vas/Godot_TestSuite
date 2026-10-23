@@ -31,15 +31,15 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Controls/TouchPads.cs`: `TouchPadLayout` (the line, round pads with separate art
+- `examples/csharp/src/Example.Core/Controls/TouchPads.cs`: `TouchPadLayout` (the line, round pads with separate art
   and hit radii, overlaps decided by distance relative to the pad's size, a clamped `PadScale`, `DeadSpots` over a
   thumb's reach, `IsCompactScreen` below 7 inches), `TouchPadInput` (fingers by touch index, sliding, drift keeps the
   pad, an action held while any finger is on it, `ReleaseAll`), `ButtonFade`.
-- `examples/breakout/tests/Breakout.Core.Tests/TouchPadsTests.cs`, 16 tests. On a layout shaped like the talk's iPad
+- `examples/csharp/tests/Example.Core.Tests/TouchPadsTests.cs`, 16 tests. On a layout shaped like the talk's iPad
   scheme (2048x1536), no dead spot in either hand's reach at an 8 px grid; with only the art live, 88% of the right
   hand's reach does nothing. Jump owns about 54% of the right reach, melee 30%, ranged 16%. 20,000 random finger events
   per seed check that what is held always matches where the fingers are.
-- `examples/breakout/game/Controls/TouchControls.cs`: Breakout's two pads (move_left, move_right) pressing the game's
+- `examples/csharp/game/Controls/TouchControls.cs`: The C# example's two pads (move_left, move_right) pressing the game's
   actions, added by `Main` on touchscreens; `test/gdunit4/TouchControlsTest.cs`, 6 tests in Godot 4.7.2 with
   `Input.ParseInputEvent`: a touch 150 px beside the art moves the paddle, a finger slides between pads, two thumbs,
   above the line is the game's, pausing releases both pads, no dead spot in the band.
@@ -55,7 +55,7 @@ in Godot no pause handling or ignored drags. Every variant fails at least one te
 
 - Angled pad shapes tuned to the three thumb positions: they need measured thumbs on a real device; round pads with a
   size per action keep the rule (the most important action gets the most area) testable.
-- Breakout's compact layout only moves the art closer to the corners and draws it smaller; its viewport stretches, so
+- The C# example's compact layout only moves the art closer to the corners and draws it smaller; its viewport stretches, so
   pads already shrink physically on a phone. No device was available to measure misclicks.
 - Switchable control schemes and visual feedback for pad edges: design choices for a game, not kit code.
 - The `layout` runner does not check these pads (they are not Controls); `TouchScreenButton` sizes are another change.

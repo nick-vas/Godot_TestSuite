@@ -1,6 +1,6 @@
 # Reference
 
-**Script** (`ci/godot/godot-ci.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
+**Script** (`ci/godot/hypedot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
 `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx` and `playtest`.
 
 | Parameter | Default | |
@@ -15,10 +15,10 @@
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
 | `-Run` | off | `export`: launch builds this machine can run; Web builds open in a browser (a debug export of the preset, served on 127.0.0.1, with cross-origin isolation headers only for a threads build) |
-| `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `GODOT_CI_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `GODOT_CI_WEB_HEADED=1` opens a browser window instead of running headless |
+| `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `HYPEDOT_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `HYPEDOT_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
 | `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`). The run log, `godot-ci.log`, goes in the command's results folder (`-Output` for `shot`) |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`). The run log, `hypedot.log`, goes in the command's results folder (`-Output` for `shot`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
@@ -51,7 +51,7 @@
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
-| `-Quiet` | off | Godot and dotnet output only in `godot-ci.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
+| `-Quiet` | off | Godot and dotnet output only in `hypedot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
 | `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board; `link -Column` the card's list, `link -Board` the plan's board |
 | `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
@@ -66,11 +66,11 @@
 
 | Variable | |
 |---|---|
-| `GODOT_BIN` | A Godot binary to use instead of the kit's own download (in `~/.godot-ci`); `setup -Templates` still installs the kit's Godot when this one has no export templates for the project's version |
+| `GODOT_BIN` | A Godot binary to use instead of the kit's own download (in `~/.hypedot`); `setup -Templates` still installs the kit's Godot when this one has no export templates for the project's version |
 | `GODOT_VERSION` | The Godot version when neither `-GodotVersion` nor the project names one (default `4.7.2`) |
-| `GODOT_CI_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
-| `GODOT_CI_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
-| `GODOT_CI_PLAYWRIGHT`, `GODOT_CI_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
+| `HYPEDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
+| `HYPEDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
+| `HYPEDOT_PLAYWRIGHT`, `HYPEDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
 | `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync`: the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
 
 **Workflow inputs** (`godot.yml`), all optional:
@@ -114,7 +114,7 @@ preset's value, so the credentials stay out of `export_credentials.cfg`.
 jobs:
   godot:
     permissions: { contents: write }
-    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
+    uses: nick-vas/hypedot/.github/workflows/godot.yml@main
     with: { exports: all, release: true, environment: release }
     secrets: inherit
 ```
@@ -122,7 +122,7 @@ jobs:
 **Your own workflow:** the composite action runs one command with setup and caching, then uploads the
 results or the build.
 ```yaml
-      - uses: nick-vas/Godot_TestSuite/.github/actions/godot@main
+      - uses: nick-vas/hypedot/.github/actions/godot@main
         with:
           command: export        # test, build or export
           preset: Windows

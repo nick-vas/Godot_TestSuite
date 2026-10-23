@@ -10,7 +10,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 foreach ($lib in 'Common', 'Report') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
-$kit = Join-Path $root 'ci/godot/godot-ci.ps1'
+$kit = Join-Path $root 'ci/godot/hypedot.ps1'
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
@@ -131,7 +131,7 @@ try {
         "with -Retry 1 it passes, listed in flaky[] ($(@($r.flaky | ForEach-Object name) -join ','), attempts $($gut.attempts))"
     Assert-True ((Test-Path -LiteralPath (Join-Path $r.resultsDir 'gut.attempt1/gut.junit.xml')) -and
         ((Get-Content -LiteralPath (Join-Path $r.resultsDir 'summary.md') -Raw) -match 'Passed only on a retry \(flaky\)')) 'the failed attempt is kept and summary.md lists the flaky test'
-    $line = @(Get-Content -LiteralPath (Join-Path $game '.godot/godot-ci-history.jsonl'))[-1] | ConvertFrom-Json
+    $line = @(Get-Content -LiteralPath (Join-Path $game '.godot/hypedot-history.jsonl'))[-1] | ConvertFrom-Json
     Assert-True ((@($line.flaky) -join ',') -eq "gut|$sometimes" -and $line.retry -eq 1 -and @($line.failures).Count -eq 0) "the history line records the flaky test: $(@($line.flaky) -join ',')"
 
     $r = Invoke-Kit @('test', '-Filter', 'test_always', '-Retry', '2')

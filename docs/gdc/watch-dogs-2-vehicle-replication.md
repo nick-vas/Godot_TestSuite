@@ -49,7 +49,7 @@ velocities").
 
 | Lesson | Where | How |
 |---|---|---|
-| Extrapolate along a circle from the yaw rate | `examples/breakout/src/Breakout.Core/Net/DeadReckoning.cs`: `DeadReckoning.Extrapolate`, `MotionState` | Closed-form constant-turn-rate motion in the ground plane; a straight line when the turn is negligible or for comparison (`curved: false`) |
+| Extrapolate along a circle from the yaw rate | `examples/csharp/src/Example.Core/Net/DeadReckoning.cs`: `DeadReckoning.Extrapolate`, `MotionState` | Closed-form constant-turn-rate motion in the ground plane; a straight line when the turn is negligible or for comparison (`curved: false`) |
 | Snapshot buffer: interpolate inside, extrapolate past the newest | `SnapshotBuffer.Sample` | Between snapshots a cubic Hermite through both positions and velocities, so it meets the extrapolation without a kink; late snapshots are put in their place |
 | Projective velocity blending | `Replica` | The published formula: Curtiss Murphy, "Believable Dead Reckoning for Networked Games", *Game Engine Gems 2* (2011). Two changes, both the kit's: the target path is the buffer's sample at the render time (Murphy's projection from the last snapshot when extrapolating), and the projection from the old position turns at the new yaw rate. Blend time 150 ms, three snapshot intervals at 20 a second. No acceleration term (the snapshot carries none) |
 | The time offset: lag, speed, collision, damped, clamped | `TimeOffset` | Target = (0.5 × one-way lag + up to 60 ms for slow bodies) × (1 − 0.5 × collision likelihood), clamped to 0 to 250 ms, eased with a 1 s time constant and moving at most 10% of real time (so the replica plays at 0.9 to 1.1 times real speed while it moves). All defaults are the kit's choices, measured below, not the talk's numbers |
@@ -74,7 +74,7 @@ that is largest when the body is still and falls linearly to 0 at `FastSpeed`.
 
 ## Measured
 
-`examples/breakout/tests/Breakout.Core.Tests/DeadReckoningTests.cs`: a car integrated in small steps (independently of
+`examples/csharp/tests/Example.Core.Tests/DeadReckoningTests.cs`: a car integrated in small steps (independently of
 the closed form), sending its state 20 times a second over `SimulatedLink` (seeded) at 50, 100 and 250 ms round trip with
 10% jitter and 2% loss, drawn 60 times a second. Both sides share a clock in the test; a real peer estimates the owner's.
 The "slalom" varies speed between 16 and 24 m/s and steers left and right (yaw rate up to 0.5 rad/s).

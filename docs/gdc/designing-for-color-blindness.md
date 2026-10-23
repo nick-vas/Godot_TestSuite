@@ -30,7 +30,7 @@
 
 ## What the kit took
 
-- `shot -ColorVision protan,deutan,tritan` (`ci/godot/tools/shot.gd`, `ci/godot/lib/Measure.ps1`, `ci/godot/godot-ci.ps1`):
+- `shot -ColorVision protan,deutan,tritan` (`ci/godot/tools/shot.gd`, `ci/godot/lib/Measure.ps1`, `ci/godot/hypedot.ps1`):
   every screenshot is also saved as `<name>.protan.png`, `.deutan.png`, `.tritan.png`, listed in `shots[].colorVision`
   (`docs/json.md`). The model is Machado, Oliveira and Fernandes (2009), severity 1.0, applied in linear RGB: sRGB decode,
   matrix, clamp, encode. The matrices are the authors' published table; their page (inf.ufrgs.br/~oliveira) could not be
@@ -61,4 +61,4 @@
   severity 1.0 is the worst case of each.
 - DaltonLens notes that Machado's model is less accurate for tritanopia than Brettel (1997); the tritan picture is a guide,
   not a diagnosis. A colour-blind tester remains the real check, as the talk insists.
-- A colour-blind mode or colour picker in Breakout: the rule is in the skill; the kit's part is letting an agent see the screens.
+- A colour-blind mode or colour picker in the C# example: the rule is in the skill; the kit's part is letting an agent see the screens.

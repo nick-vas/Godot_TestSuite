@@ -62,7 +62,7 @@ $project = Join-Path ([IO.Path]::GetTempPath()) "failure-delta-$PID"
 New-Item -ItemType Directory -Force (Join-Path $project '.godot') | Out-Null
 try {
     if (@(Read-RunHistory $project).Count -ne 0) { $failures += 'a project without history should have no entries' }
-    $file = Join-Path $project '.godot/godot-ci-history.jsonl'
+    $file = Join-Path $project '.godot/hypedot-history.jsonl'
     Set-Content -LiteralPath $file -Value @('{"time":"2026-10-21T09:00:00Z","command":"test"', '', 'not json',
         ((New-Entry '2026-10-21T09:00:00Z' @('gut', 'validate') '' @('gut|test_b')) | ConvertTo-Json -Compress -Depth 4))
     $read = @(Read-RunHistory $project)

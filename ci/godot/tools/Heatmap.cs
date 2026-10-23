@@ -1,4 +1,4 @@
-// Heat maps for `godot-ci.ps1 playtest`: counts on a grid drawn as a PNG, alone or over a level screenshot. Compiled into
+// Heat maps for `hypedot.ps1 playtest`: counts on a grid drawn as a PNG, alone or over a level screenshot. Compiled into
 // the PowerShell session with Add-Type (as Sfxr.cs is), because System.Drawing is Windows-only on .NET 6 and later,
 // pixel loops in PowerShell take seconds per picture, and Godot's Image would mean setting up the engine to read a
 // folder of JSON. PNG only, written and read here: RGBA output; input 8-bit grey, RGB, palette, grey+alpha or RGBA,

@@ -183,7 +183,7 @@ public partial class CaptureMode : Node
 - Put the group on the HUD's `CanvasLayer`s and on world-space prompts (`Label3D`), not on nodes the game shows and
   hides itself: F6 brings the whole group back.
 - Through the kit, separate modes with `+` (it splits `-GameArgs` on commas):
-  `godot-ci.ps1 shot -GameArgs '--capture=nohud+nocursor' -Resolution 1920x1080` takes clean pictures for GIFs and press
+  `hypedot.ps1 shot -GameArgs '--capture=nohud+nocursor' -Resolution 1920x1080` takes clean pictures for GIFs and press
   kits; with `-Baseline` set to normal shots, only the HUD's area should change. Store screenshots keep the UI
   (`godot-store-page`).
 

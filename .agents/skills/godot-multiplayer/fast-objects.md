@@ -1,7 +1,7 @@
 # Fast objects: extrapolate along a curve (godot-multiplayer reference)
 
 Cars, bikes, anything fast that collides (Watch Dogs 2's vehicle talk: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/watch-dogs-2-vehicle-replication.md`).
-Tested in Breakout's `Net/DeadReckoning.cs` with `DeadReckoningTests.cs`: a car at 16 to 24 m/s, 20 snapshots a second,
+Tested in the C# example's `Net/DeadReckoning.cs` with `DeadReckoningTests.cs`: a car at 16 to 24 m/s, 20 snapshots a second,
 50 to 250 ms round trip, 10% jitter, 2% loss.
 
 - **Too far behind.** Interpolated 100 ms behind the newest snapshot, a car at 20 m/s is 2.6 to 4.6 m from where its

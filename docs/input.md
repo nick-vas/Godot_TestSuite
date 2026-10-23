@@ -1,6 +1,6 @@
 # Input: sources and measurements
 
-The research behind the `godot-input` skill and Breakout's `Controls/`, gathered on 2026-10-21 from the Godot 4.7.2
+The research behind the `godot-input` skill and the C# example's `Controls/`, gathered on 2026-10-21 from the Godot 4.7.2
 class reference and source, Valve's Steam Input documentation and the accessibility guidelines. Checks ran headless on
 4.7.2 mono; there was no physical controller.
 
@@ -15,9 +15,9 @@ class reference and source, Valve's Steam Input documentation and the accessibil
 | [GodotSteam input](https://godotsteam.com/classes/input/), [Steamworks.NET](https://github.com/rlabrecque/Steamworks.NET) (MIT) | Steam Input from Godot, in GDScript or C# |
 | [Kenney Input Prompts 1.5](https://kenney.nl/assets/input-prompts) (CC0) | Folder and file names of the prompt pictures |
 | [Xbox Accessibility Guideline 107](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/107), [Game Accessibility Guidelines](https://gameaccessibilityguidelines.com/allow-controls-to-be-remapped-reconfigured/) | Remap everything, labels follow remaps, hold-or-toggle, no simultaneous presses, one input method for menus and play |
-| [Forgiveness Mechanics](gdc/forgiveness-mechanics.md) (Seth Coster, GDC talk on Levelhead) | Coyote time, the jump buffer, hold-to-confirm restart and fall-through resets with their windows; `Breakout.Core/Platformer/Forgiveness.cs` |
-| [Building a Better Jump](gdc/building-a-better-jump.md) (Kyle Pittman, GDC Math for Game Programmers) | Launch speed and gravity from a designed height and distance, heavier fall and release gravities, an exact step instead of Euler (10.7 px of apex error at 60 Hz); `Breakout.Core/Platformer/JumpArc.cs`, `godot-math` |
-| [50 Game Camera Mistakes](gdc/50-game-camera-mistakes.md) (John Nesky, GDC, probably 2014) | The look stick's place among a third-person camera's priorities: the player's turn beats avoidance, hints wait after it, pitch eases into its limits; `godot-camera`, `Breakout.Core/Feel/OrbitCamera.cs` |
+| [Forgiveness Mechanics](gdc/forgiveness-mechanics.md) (Seth Coster, GDC talk on Levelhead) | Coyote time, the jump buffer, hold-to-confirm restart and fall-through resets with their windows; `Example.Core/Platformer/Forgiveness.cs` |
+| [Building a Better Jump](gdc/building-a-better-jump.md) (Kyle Pittman, GDC Math for Game Programmers) | Launch speed and gravity from a designed height and distance, heavier fall and release gravities, an exact step instead of Euler (10.7 px of apex error at 60 Hz); `Example.Core/Platformer/JumpArc.cs`, `godot-math` |
+| [50 Game Camera Mistakes](gdc/50-game-camera-mistakes.md) (John Nesky, GDC, probably 2014) | The look stick's place among a third-person camera's priorities: the player's turn beats avoidance, hints wait after it, pitch eases into its limits; `godot-camera`, `Example.Core/Feel/OrbitCamera.cs` |
 | [Accessibility Best Practices: Mobility Considerations](gdc/accessibility-mobility.md) (Karen Stevens, GDC 2021), Godot 4.7.2 `core/input/input.cpp` | Adjustable and axial deadzones, sensitivity both ways per axis, stick swap, fewer buttons, vibration levels; how `GetAxis` and `GetVector` apply per-action deadzones (`StickSettings`) |
 | [AAA Gaming While Blind](gdc/aaa-gaming-while-blind.md) (Karen Stevens, GDC 2018), Godot 4.7.2 `Input.xml`, `core/input/input.cpp`, `drivers/sdl/joypad_sdl.cpp` | Rumble patterns that carry information, per-player vibration levels and strength, a cue on menu wraps; which motor is which, and that out-of-range magnitudes are ignored (`Haptics`, `LinearMenu`) |
 
@@ -35,7 +35,7 @@ class reference and source, Valve's Steam Input documentation and the accessibil
 | `Input.StartJoyVibration(0, 0.3, 1, 0.45)` headless, no pad | `GetJoyVibrationStrength(0)` reads (0.3, 1) and `GetJoyVibrationDuration(0)` 0.45: testable without hardware |
 | A magnitude outside 0 to 1 | The whole call is ignored, without an error (`input.cpp`) |
 | `ui_down` on the last `Button` of a `VBoxContainer` | Focus stays: Godot does not loop a column by itself |
-| Breakout `ControlsTest` (gdUnit4) | Keyboard and pad at once, rebinding, conflicts, save and load, damaged files, prompt switching, controller families: all pass |
+| The C# example `ControlsTest` (gdUnit4) | Keyboard and pad at once, rebinding, conflicts, save and load, damaged files, prompt switching, controller families: all pass |
 
 ## Not confirmed
 

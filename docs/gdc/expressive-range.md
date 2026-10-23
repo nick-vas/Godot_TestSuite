@@ -32,11 +32,11 @@
 
 ## What the kit took, and where
 
-- `examples/breakout/src/Breakout.Core/Procgen/ExpressiveRange.cs`: `Metric<T>` (name, score, fixed range, so two maps
+- `examples/csharp/src/Example.Core/Procgen/ExpressiveRange.cs`: `Metric<T>` (name, score, fixed range, so two maps
   share axes) and `ExpressiveRange.Map(generate, seeds, x, y, bins)`, a bins x bins count grid with `OccupiedShare`,
   `PeakShare`, `PeakBin`, `MeanX`/`MeanY`, `Overlap` and `Unreached` to compare two maps, `Summary()` for the log and
   `ToCsv()` (every bin, culture-independent) for a heat map. A score outside its range throws, naming the seed.
-- `examples/breakout/tests/Breakout.Core.Tests/ExpressiveRangeTests.cs`: 7 tests. A toy platformer row (60 segments of
+- `examples/csharp/tests/Example.Core.Tests/ExpressiveRangeTests.cs`: 7 tests. A toy platformer row (60 segments of
   ground, gap or enemy, stepping up and down) scored on the talk's leniency (gap 1, enemy 0.5) and a least-squares
   linearity, mapped for two parameter sets over seeds 1 to 2000; and the kit's Eldritch maze (`Maze.cs`) mapped on
   dead-end share against junction share for its newest-room knob at 0 and 100%.

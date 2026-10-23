@@ -31,11 +31,11 @@ of relay" for velocity Verlet, "RK-Far" for RK4 and "Gaff Runge Games" for Gaffe
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Platformer/JumpArc.cs`: `JumpArc.FromHeightAndTime`, `FromHeightAndDistance`,
+- `examples/csharp/src/Example.Core/Platformer/JumpArc.cs`: `JumpArc.FromHeightAndTime`, `FromHeightAndDistance`,
   `FallGravity`, `ReleaseGravity` (v0² / 2h_min) and `Step` (the projectile formula); `JumpGravity` picks rise, release
   or fall gravity and `Advance` moves one tick, splitting the tick that passes the apex (the kit's addition).
-- `examples/breakout/tests/Breakout.Core.Tests/JumpArcTests.cs` (19 cases) and, in Godot 4.7.2,
-  `examples/breakout/game/test/gdunit4/JumpArcWiringTest.cs` with the fixture `ArcJumper.cs`: a `CharacterBody2D` moved
+- `examples/csharp/tests/Example.Core.Tests/JumpArcTests.cs` (19 cases) and, in Godot 4.7.2,
+  `examples/csharp/game/test/gdunit4/JumpArcWiringTest.cs` with the fixture `ArcJumper.cs`: a `CharacterBody2D` moved
   by the tick's average velocity (the kit's derivation, not the talk's).
 - `.agents/skills/godot-math/SKILL.md`, "Jumps designed by height and distance"; `godot-input` points there.
 

@@ -47,8 +47,8 @@
   that was compiled against Godot 4.7.2's C# API.
 - `.agents/skills/godot-math/SKILL.md`: "Smoothing toward a target, at any frame rate", with the exponential weight and
   how to convert a per-frame k into a rate per second.
-- `examples/breakout/src/Breakout.Core/Feel/CameraShake.cs` (`CameraShake`, a seeded 1D Perlin `Noise`, `Smoothing.Damp`)
-  with `examples/breakout/tests/Breakout.Core.Tests/CameraShakeTests.cs`.
+- `examples/csharp/src/Example.Core/Feel/CameraShake.cs` (`CameraShake`, a seeded 1D Perlin `Noise`, `Smoothing.Damp`)
+  with `examples/csharp/tests/Example.Core.Tests/CameraShakeTests.cs`.
 
 ## Measured
 

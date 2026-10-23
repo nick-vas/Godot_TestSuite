@@ -17,14 +17,14 @@ and inspected here; nothing ran on a phone (no device, and no KVM for an emulato
 | [CrazyGames technical requirements](https://docs.crazygames.com/requirements/technical/) | 50 MB initial download, 20 MB for the mobile homepage |
 | [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) (MIT) | The other way to get cross-origin isolation on hosts without headers |
 | [Virtual Joystick for Godot 4](https://github.com/MarcoFazioRandom/Virtual-Joystick-Godot) (MIT) | An on-screen stick add-on |
-| "Controlling Carnage: Effective Side-Scroller Controls on Mobile" (Roadhouse Interactive, GDC; [notes](gdc/controlling-carnage.md)) | Hit pads larger than the drawn buttons, no dead spot under a thumb, sliding between pads, the largest pad for jump, fading art, a tighter layout under 7 inches; Breakout's `Controls/TouchPads.cs` and `TouchControls.cs` |
+| "Controlling Carnage: Effective Side-Scroller Controls on Mobile" (Roadhouse Interactive, GDC; [notes](gdc/controlling-carnage.md)) | Hit pads larger than the drawn buttons, no dead spot under a thumb, sliding between pads, the largest pad for jump, fading art, a tighter layout under 7 inches; the C# example's `Controls/TouchPads.cs` and `TouchControls.cs` |
 | Zach Gage, "Controls You Can Feel" (GDC talk on touch controls; [notes](gdc/controls-you-can-feel.md)) | 75 x 75 pt for buttons pressed without looking (Super Crate Box), 44 pt for buttons looked at, nothing under 40 pt; sticks as the weak option; swipe up, not down. The `small-control` check (`minControlDp`) and the skill's thumb-control rules |
 
 ## Measured here
 
 | What | Result |
 |---|---|
-| C# Web export (mono editor, Breakout) | exit 1: "Exporting to Web is currently not supported in Godot 4 when using C#/.NET"; the mono templates have no web zips |
+| C# Web export (mono editor, the C# example) | exit 1: "Exporting to Web is currently not supported in Godot 4 when using C#/.NET"; the mono templates have no web zips |
 | Single-threaded web build | starts in Chromium (SwiftShader WebGL 2) in 1.5 to 3.5 s, with or without COOP/COEP headers |
 | Threads build without headers | never starts: "missing features: Cross-Origin Isolation, SharedArrayBuffer"; with headers it starts |
 | PWA option "Ensure Cross Origin Isolation Headers" | works, but the first load stalled ("Service worker already exists") until a second reload |
@@ -34,7 +34,7 @@ and inspected here; nothing ran on a phone (no device, and no KVM for an emulato
 | `user://` on the web | `/userfs`, IndexedDB; a counter survived a reload; the sync starts on the next frame after the file closes |
 | Touch in Chromium (Playwright, 412x915 at 2.625x) | `InputEventScreenTouch` plus an emulated mouse button; positions in device pixels; `ScreenGetDpi()` 252 |
 | Safe area on the web | the whole window; no cutouts |
-| Headless Firefox on a GitHub Linux runner (no GPU) | the engine never starts: "missing features: WebGL2", also with `webgl.force-enabled`; Chromium (SwiftShader) and the runner's Edge start it. With `GODOT_CI_WEB_HEADED=1` and a window under Xvfb (`libgl1-mesa-dri`), Firefox passes every check |
+| Headless Firefox on a GitHub Linux runner (no GPU) | the engine never starts: "missing features: WebGL2", also with `webgl.force-enabled`; Chromium (SwiftShader) and the runner's Edge start it. With `HYPEDOT_WEB_HEADED=1` and a window under Xvfb (`libgl1-mesa-dri`), Firefox passes every check |
 | Audio unlock | could not be reproduced: headless and headed Chromium started the AudioContext without a gesture |
 | Android APK (GDScript) | 26.4 MB, 14 s; minSdk 24, targetSdk 36, arm64-v8a; `zipalign -c -P 16` passed; every `.so` aligned to 16 KB |
 | Android export without `import_etc2_astc` | refused: "ETC2/ASTC texture compression is required for Android export" |

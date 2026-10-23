@@ -1,12 +1,15 @@
-# Godot Agent Kit
+# Hypedot
 
-[![Self-test](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/self-test.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/self-test.yml)
-[![Godot](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/godot.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/godot.yml)
-[![Token benchmark](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/token-benchmark.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/token-benchmark.yml)
-[![Evals](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/evals.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/evals.yml)
-[![Canary](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/canary.yml/badge.svg)](https://github.com/nick-vas/Godot_TestSuite/actions/workflows/canary.yml)
+[![Self-test](https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml)
+[![Godot](https://github.com/nick-vas/hypedot/actions/workflows/godot.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/godot.yml)
+[![Token benchmark](https://github.com/nick-vas/hypedot/actions/workflows/token-benchmark.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/token-benchmark.yml)
+[![Evals](https://github.com/nick-vas/hypedot/actions/workflows/evals.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/evals.yml)
+[![Canary](https://github.com/nick-vas/hypedot/actions/workflows/canary.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/canary.yml)
 
 **Tools that let AI coding agents build, test, ship and plan Godot 4.7 games - for any genre, solo or small team.**
+
+Hypedot is a game development interface for agents working in Godot. It is not affiliated with or endorsed by the Godot
+Foundation; Godot is a trademark of the Godot Foundation.
 
 An agent can already write GDScript and C#. What it lacks is a way to know whether the game still works, and a plan that says
 what to build next. This kit supplies both:
@@ -22,7 +25,7 @@ what to build next. This kit supplies both:
   logs out of the agent's context, and a `retro` that turns a session's mistakes into kit changes, each measured with evals.
 
 ```powershell
-$kit = 'C:\Tools\godot-test-suite\ci\godot\godot-ci.ps1'              # your clone of this repository
+$kit = 'C:\Tools\hypedot\ci\godot\hypedot.ps1'              # your clone of this repository
 pwsh $kit init -Agents -Mcp godot-mcp -Project 'C:\path\to\your\game'   # once: tests, CI, AGENTS.md, skills, editor bridge
 pwsh $kit test -Json -Quiet -Project 'C:\path\to\your\game'             # every time: build + every test, one JSON result
 ```
@@ -34,7 +37,7 @@ pwsh $kit test -Json -Quiet -Project 'C:\path\to\your\game'             # every 
         |
    editor MCP            author and inspect: scenes, nodes, running game, live state   (needs the editor)
         |
-   godot-ci.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
+   hypedot.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
    bench / shot          measure frame pacing, look at screens                          (with a display)
    audio [-Mix]          loudness of the sound files and of the game's own mix          (ffmpeg; -Mix needs a display)
         |
@@ -48,7 +51,7 @@ separate, headless tool.
 ## Prerequisites
 
 - [PowerShell 7.2+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`winget install Microsoft.PowerShell`) and Git.
-- Godot: the kit downloads the version your project needs into `~/.godot-ci` on the first run. Set `GODOT_BIN` to use your own.
+- Godot: the kit downloads the version your project needs into `~/.hypedot` on the first run. Set `GODOT_BIN` to use your own.
 - For C# projects, the [.NET 8 SDK](https://dotnet.microsoft.com/download).
 
 Only for some commands:
@@ -69,8 +72,8 @@ Only for some commands:
 1. Clone the kit once, **outside** your game, and point it at the game with `-Project`. Nothing of the kit goes into your
    game's repository or its exported builds:
    ```powershell
-   git clone https://github.com/nick-vas/Godot_TestSuite C:\Tools\godot-test-suite
-   $kit = 'C:\Tools\godot-test-suite\ci\godot\godot-ci.ps1'
+   git clone https://github.com/nick-vas/hypedot C:\Tools\hypedot
+   $kit = 'C:\Tools\hypedot\ci\godot\hypedot.ps1'
    $game = 'C:\path\to\your\game'
    pwsh $kit doctor -Project $game
    pwsh $kit init -Agents -Mcp godot-mcp -Project $game
@@ -80,7 +83,7 @@ Only for some commands:
    and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
 2. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
    game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
-   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install godot-agent-kit@godot-agent-kit`.
+   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hypedot@hypedot`.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
 4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
 
@@ -166,7 +169,7 @@ on: [push, pull_request]
 jobs:
   godot:
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main
+    uses: nick-vas/hypedot/.github/workflows/godot.yml@main
 ```
 Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. Version 1.0 will
 publish a release tag to pin instead of `@main`. In this repository, a weekly canary tries new Godot, test-framework and GUT
@@ -210,7 +213,7 @@ Results, logs and exports go to folders in the current directory (`test-results`
 history to the project's `.godot/` folder. Run `detect` or
 `doctor` first to see before anything is written.
 
-**Can I call it from a script?** Yes: run it as a process (`pwsh -NoProfile -File ci/godot/godot-ci.ps1 test -Json`) and read stdout.
+**Can I call it from a script?** Yes: run it as a process (`pwsh -NoProfile -File ci/godot/hypedot.ps1 test -Json`) and read stdout.
 Logs go to stderr. See [docs/json.md](docs/json.md).
 
 ## Documentation

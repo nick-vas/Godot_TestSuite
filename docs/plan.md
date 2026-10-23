@@ -1,6 +1,6 @@
 # A-to-Z plan for a solo developer
 
-`godot-ci.ps1 plan` tracks a game from first idea to post-launch as seven phases with gates. This page explains
+`hypedot.ps1 plan` tracks a game from first idea to post-launch as seven phases with gates. This page explains
 where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init | status | done -Id <gate>`,
 all with `-Json` (see [json.md](json.md)).
 
@@ -67,8 +67,8 @@ remove gates freely: `plan.json` is yours after `init`.
 Day-to-day work lives in `plan.json` `tasks`, edited with commands so an agent cannot corrupt the file:
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
-pwsh ci/godot/godot-ci.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
+pwsh ci/godot/hypedot.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
+pwsh ci/godot/hypedot.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
 ```
 
 Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
@@ -111,7 +111,7 @@ the timeline as `release` ([json.md](json.md)): days and business days left and 
 
 `docs/GDD.md` (template: `ci/godot/templates/GDD.md`) is the game's scope. Features are headings of the form
 `### F3 Lives and game over`, each with a `Priority:` line (must, should, could, won't) and `Done when:` bullets. Tests that
-prove a feature carry a `GDD:F3` tag in their name or a comment; `examples/breakout` shows the convention. The other
+prove a feature carry a `GDD:F3` tag in their name or a comment; `examples/csharp` shows the convention. The other
 sections (audience and expected rating, the loop at three scales, the first session step by step, world rules, what
 failing costs, content counts and length, open questions, changes) are for people and agents; `status` reads only the
 pitch and the features.

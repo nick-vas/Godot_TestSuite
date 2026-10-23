@@ -93,7 +93,7 @@ there is no palette to check against. The pixels are read by `ci/godot/tools/Pal
 - **Default tolerance 3** (`-PaletteTolerance`, 0.5 to 50). Measured over the same grid, one 8-bit level in each channel
   (rounding, dithering, an sRGB round trip) moves a colour by up to 2.40 (at `#1B1818`; dark near-greys are the most
   sensitive), two levels by up to 4.76. CIEDE2000 1 is about one just-noticeable difference, so 3 takes in rounding and
-  dithering everywhere while a colour a viewer would call different is out. Breakout's coral, white, grey and gold come
+  dithering everywhere while a colour a viewer would call different is out. The C# example's coral, white, grey and gold come
   out of Godot exactly.
 - **Blends are not bloat.** A colour within the tolerance of a mix of two palette colours that are both on screen is a
   blend: anti-aliased edges, filtered sprites, translucent panels. Mixes are tried in sRGB (Godot's 2D blending) and in
@@ -105,7 +105,7 @@ there is no palette to check against. The pixels are read by `ci/godot/tools/Pal
   `offPalettePercent`; smaller ones are `scatteredPercent` (noise, grain, the corner where three colours meet), listed in
   `colours[]` with `counted: false` but never failing the run. On generated pictures: a green box over 5% gives 5.00% off
   and names `#2EC27E`; 0.5% of single pixels in random colours gives 0% off and 0.49% scattered; a vertical gradient over a
-  third of the screen gives 33.33% off in five clusters. Breakout's gold ball (0.037%) is listed but not counted.
+  third of the screen gives 33.33% off in five clusters. The C# example's gold ball (0.037%) is listed but not counted.
 - **Time:** about 0.2 to 0.4 s for a 1920x1080 picture with tens to thousands of colours; 3 s for the worst case, every
   pixel a different random colour (1.95 million colours), on four cores.
 - **Not handled:** lighting. A lit 3D scene shades every palette colour towards black and white, which is not a blend of

@@ -9,9 +9,9 @@ A short, written look back at the week and forward at the next one. Read the fac
 
 ## 1. Facts
 
-- `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 status -Json` (features, plan, runs, git, warnings).
+- `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 status -Json` (features, plan, runs, git, warnings).
 - `git log --since=7.days --stat --format='%cs %s'` for what changed.
-- `.godot/godot-ci-history.jsonl`: this week's runs; failure codes that recur.
+- `.godot/hypedot-history.jsonl`: this week's runs; failure codes that recur.
 - The previous `plan/STATUS.md` and the last file in `plan/reviews/`, to see what moved since then.
 - `bench-results/bench.csv`, if present: compare this week's rows with earlier ones under the same label.
 

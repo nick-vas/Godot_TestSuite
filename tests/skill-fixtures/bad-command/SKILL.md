@@ -6,6 +6,6 @@ description: Use when a fixture uses a command that is not real.
 # Fixture
 
 ```powershell
-pwsh ci/godot/godot-ci.ps1 frobnicate -Nope
-pwsh ci/godot/godot-ci.ps1 test -Runners gut,unreal
+pwsh ci/godot/hypedot.ps1 frobnicate -Nope
+pwsh ci/godot/hypedot.ps1 test -Runners gut,unreal
 ```

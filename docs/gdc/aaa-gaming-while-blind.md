@@ -32,15 +32,15 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Controls/Haptics.cs`: `HapticPattern` (pulses of weak and strong motor for a
+- `examples/csharp/src/Example.Core/Controls/Haptics.cs`: `HapticPattern` (pulses of weak and strong motor for a
   time, then a pause), `HapticSettings` (off, important only, all, and a strength; clamps magnitudes to 0..1),
   `HapticPlayback` (which pulse to start each frame, once, shortened if a long frame overshot) and `HapticPatterns`
-  (Breakout's four, and `Confusable`: same pulse count, same motors and longest pulses less than 2x apart). The 2x
+  (the C# example's four, and `Confusable`: same pulse count, same motors and longest pulses less than 2x apart). The 2x
   factor is the kit's guess, not the talk's.
-- `examples/breakout/src/Breakout.Core/Ui/MenuCursor.cs`: a step through a list that reports a wrap, or stops.
-- `examples/breakout/src/Breakout.Core/Settings/GameSettings.cs`: `vibration` and `vibrationStrength` in Breakout's
+- `examples/csharp/src/Example.Core/Ui/MenuCursor.cs`: a step through a list that reports a wrap, or stops.
+- `examples/csharp/src/Example.Core/Settings/GameSettings.cs`: `vibration` and `vibrationStrength` in the C# example's
   settings, on the gameplay and accessibility pages.
-- `examples/breakout/game/Controls/Haptics.cs`: plays patterns per device with that device's settings
+- `examples/csharp/game/Controls/Haptics.cs`: plays patterns per device with that device's settings
   (`Input.StartJoyVibration`, `Input.VibrateHandheld` on phones); `LinearMenu.cs`: up and down through a column, a
   step sound per move, and a wrap sound, the `menuWrap` rumble and a `Wrapped` event on the wrap. `Main.cs` rumbles the
   pad used last on a brick hit, a lost ball and a cleared floor.
@@ -49,8 +49,8 @@
 
 ## Measured
 
-- Tests: `examples/breakout/tests/Breakout.Core.Tests/HapticsTests.cs` (11 xUnit cases) and
-  `examples/breakout/game/test/gdunit4/HapticsTest.cs` (5 gdUnit4 cases, Godot 4.7.2 headless).
+- Tests: `examples/csharp/tests/Example.Core.Tests/HapticsTests.cs` (11 xUnit cases) and
+  `examples/csharp/game/test/gdunit4/HapticsTest.cs` (5 gdUnit4 cases, Godot 4.7.2 headless).
 - With no pad connected, `Input.GetJoyVibrationStrength(1)` reads back (0.3, 1) after `ballLost` is played on pad 1,
   and (0.15, 0.5) on pad 0 at strength 0.5; pad 0 set to off reads (0, 0).
 - `ui_down` on the last `Button` of a `VBoxContainer` leaves focus there: Godot does not loop a column on its own. With
@@ -65,5 +65,5 @@
   on yet; `godot-game-design` and the plan's gates are their place if a rule becomes testable.
 - 3D sound, commentary, assisted aim and auto steering: they are what made the games playable, but the talk gives no
   rule beyond "do it well"; `godot-audio` covers positional sound.
-- Exact rumble lengths and strengths for Breakout's patterns are the kit's choice; the talk gives none.
+- Exact rumble lengths and strengths for the C# example's patterns are the kit's choice; the talk gives none.
 - Not verified on hardware: there was no controller or phone. `VibrateHandheld` is not exercised by any test.

@@ -1,4 +1,4 @@
-# Measures frame pacing of one scene and prints the result as one "@@bench <json>" line. Run by `godot-ci.ps1 bench`:
+# Measures frame pacing of one scene and prints the result as one "@@bench <json>" line. Run by `hypedot.ps1 bench`:
 #   godot [--headless] --path <project> -s <this file> -- --bench-scene=res://x.tscn --bench-seconds=20 --bench-warmup=3 [game args]
 # It records the wall-clock time of every frame, not an average FPS: averages hide the hitches players notice. Game args
 # after "--" stay visible to the game (OS.get_cmdline_user_args()), so a "--stress" or "--autoplay" flag still works.

@@ -1,8 +1,8 @@
 {
-  "name": "godot-agent-kit",
+  "name": "hypedot",
   "owner": { "name": "nick-vas" },
-  "description": "The Godot Agent Kit as a Claude Code plugin.",
+  "description": "Hypedot as a Claude Code plugin.",
   "plugins": [
-    { "name": "godot-agent-kit", "source": "./", "description": "Skills, a verifier subagent and a test gate for Godot 4.7 games." }
+    { "name": "hypedot", "source": "./", "description": "Skills, a verifier subagent and a test gate for Godot 4.7 games." }
   ]
 }

@@ -36,7 +36,7 @@
 - `ci/godot/tools/bench.gd`: each frame time is paired with the root viewport's camera (`Camera3D` position, or the
   screen centre under a `Camera2D`). New result fields `camera`, `hotspotCell`, `hotspots[]` (the 10 grid cells with the
   worst p99: `centre`, `frames`, `p99Ms`, `maxMs`) and `pos` on each `hitches[]` entry. No camera: `camera` is `none`,
-  no hotspots, and the log says so. `-HotspotCell` (`ci/godot/godot-ci.ps1`, `ci/godot/lib/Measure.ps1`) sets the cell;
+  no hotspots, and the log says so. `-HotspotCell` (`ci/godot/hypedot.ps1`, `ci/godot/lib/Measure.ps1`) sets the cell;
   0 means 10 m in 3D and 512 px in 2D. Documented in `docs/json.md` and `docs/reference.md`.
 - `tests/bench-fixture` (a camera flying at a constant 5 m/s, or 100 px/s in 2D, with 25 ms of `OS.delay_usec` per
   frame while x is in [40, 60], or 400 to 600 px) and `tests/Test-BenchHotspots.ps1`, run in the self-test workflow's
@@ -52,7 +52,7 @@
   by the busy machine, outranked the slow cell, and cells outside reached 10.6 to 30.7 ms at a load average of 9 to 13.
   With Mesa's default thread count cells outside reached 14 ms at load 8, so the test draws on one thread.
 - 2D, default 512 px cells: the slow stretch (400 to 600 px) straddles two cells; the worst was one of them, p99 29 to
-  61 ms. Breakout and the GDScript example have no camera: `camera` `none`, and bench still passes.
+  61 ms. The C# example and the GDScript example have no camera: `camera` `none`, and bench still passes.
 - For cells crossed in under 100 frames the nearest-rank p99 is the maximum, so one stall ranks such a cell; the skill
   tells the reader to check `frames` and `maxMs`.
 

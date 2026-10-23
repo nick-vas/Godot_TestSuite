@@ -160,7 +160,7 @@ it goes to the crash service (`sentry-cli debug-files upload -o <org> -p <projec
 ### Import cache (tested)
 
 A project copied with `cp -r` (a new path and new file times) re-ran `--import` with no import lines; a cold run of
-`examples/breakout` logged 59. So `.godot/imported`, `.godot/uid_cache.bin` and `.godot/editor/filesystem_cache*` can
+`examples/csharp` logged 59. So `.godot/imported`, `.godot/uid_cache.bin` and `.godot/editor/filesystem_cache*` can
 be restored from a cache; `.godot/mono` holds build output and stale DLLs and stays out. On this small project no time
 was saved, since startup dominates.
 
@@ -199,12 +199,12 @@ a temporary file deleted in an `always()` step, and passes no secret as a logged
 
 - `bench` places each frame by camera position and reports the slowest places (`hotspots`), and the skill budgets per
   area; from a Halo 4 talk, see [gdc/halo-4-content-performance.md](gdc/halo-4-content-performance.md).
-- `export -GameVersion` (`Invoke-Export` in `ci/godot/godot-ci.ps1`) takes a tag such as `v1.2.3-rc.1`; anything not
+- `export -GameVersion` (`Invoke-Export` in `ci/godot/hypedot.ps1`) takes a tag such as `v1.2.3-rc.1`; anything not
   starting with up to four dot-separated numbers fails with `invalid-arguments`. It writes the numbers (`1.2.3`) to
   `config/version` in `project.godot` for the export, sets `Version` and `InformationalVersion` (`1.2.3-rc.1`) in the
   environment, adds `gameVersion` to the JSON, and restores `project.godot` and the environment
   afterwards. The action's `game-version` input passes it, and `.github/workflows/godot.yml` sets it to the tag name on
-  tag runs. Tested on `examples/breakout` with `-GameVersion v1.2.3-rc.1`: `Breakout.dll` FileVersion 1.2.3.0 and
+  tag runs. Tested on `examples/csharp` with `-GameVersion v1.2.3-rc.1`: `Example.dll` FileVersion 1.2.3.0 and
   ProductVersion `1.2.3-rc.1+<commit sha>`; with the preset's `application/modify_resources=true` the Windows exe's
   FileVersion and ProductVersion became 1.2.3.0, with `false` they stayed Godot's 4.7.2; `project.godot` was restored.
 - `Invoke-ExportPresets` fails a C# export for Windows or Linux with `export-failed` when no `data_*` folder holds a

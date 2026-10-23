@@ -1,6 +1,6 @@
 # Crash reports and telemetry: sources and measurements
 
-The research behind the `godot-telemetry` skill, Breakout's `Telemetry/` and `Diagnostics/`, and `doctor`'s Sentry check,
+The research behind the `godot-telemetry` skill, the C# example's `Telemetry/` and `Diagnostics/`, and `doctor`'s Sentry check,
 gathered on 2026-10-21. Nothing was sent to a real service: every test used a listener on the machine itself. This is
 engineering research, not legal advice.
 
@@ -26,8 +26,8 @@ engineering research, not legal advice.
 | A `Task` nobody awaited | Reported only to `TaskScheduler.UnobservedTaskException`, after a garbage collection |
 | `OS.Crash` in a release mono export | Exit 132 and no crash banner in the output or the log; the debug export printed it |
 | A release stack trace | The developer's absolute source paths; with `ContinuousIntegrationBuild` (or `PathMap`) they read `/_/` |
-| A process that had registered a C# `Logger`, even one removed again, run under coverlet | Hung at exit after its tests passed (Breakout's GoDotTest run); fine without coverlet. Breakout installs its logger only when Main is the running game |
-| Breakout's `TelemetryClient` | Nothing recorded before consent; withdrawal deletes the queue; 8 threads × 1000 events while sending: all 8000 delivered once |
+| A process that had registered a C# `Logger`, even one removed again, run under coverlet | Hung at exit after its tests passed (the C# example's GoDotTest run); fine without coverlet. The C# example installs its logger only when Main is the running game |
+| The C# example's `TelemetryClient` | Nothing recorded before consent; withdrawal deletes the queue; 8 threads × 1000 events while sending: all 8000 delivered once |
 
 ## Not confirmed
 
@@ -60,7 +60,7 @@ other event: analytics, recorded only after the player agrees, numbers and fixed
 | `level_time` | `seconds`, `result` (`finished`, `quit`, `failed`); no position | `EndLevel(result)` |
 
 - The schema is `ci/godot/templates/playtest-events.json` for any language, and `PlaytestEvents.Definitions(levels)` in
-  `examples/breakout/src/Breakout.Core/Telemetry/Playtest.cs`, where `level` is a label whose values are the game's level
+  `examples/csharp/src/Example.Core/Telemetry/Playtest.cs`, where `level` is a label whose values are the game's level
   ids, so a typo throws in development as any schema mistake does. `PlaytestTests` keep the two equal.
 - `PlaytestTracker` takes the game's clock (paused time does not count) and the player's position every frame; the cell
   size, the 120 s, 30 s and 10 s and the radius are `PlaytestOptions`. Positions are rounded to hundredths and clamped to
@@ -69,7 +69,7 @@ other event: analytics, recorded only after the player agrees, numbers and fixed
 - For a playtest build, a sink that writes each batch to a file (`user://playtest/<session>.json`) is enough; collect the
   files from the testers' machines into one folder.
 
-`godot-ci.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
+`hypedot.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
 line) and writes `playtest-results/`: per level, the median level time, deaths and stalls per session (sessions without
 any count as 0, so one tester stuck for ten minutes is not averaged away), the share of sessions that found each item, and
 one PNG heat map per level and event type, on a grid, alone or over a level screenshot that `playtest.json` places in the

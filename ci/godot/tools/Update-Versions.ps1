@@ -36,7 +36,7 @@ function Write-Text([string]$Relative, [string]$Text) { Set-Content -LiteralPath
 $csprojs = @(Get-ChildItem -LiteralPath (Join-Path $Root 'examples') -Recurse -File -Filter '*.csproj' |
     ForEach-Object { [System.IO.Path]::GetRelativePath($Root, $_.FullName) -replace '\\', '/' })
 $current = [ordered]@{}
-$current['godot'] = [regex]::Match((Read-Text 'examples/breakout/game/Breakout.csproj'), 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
+$current['godot'] = [regex]::Match((Read-Text 'examples/csharp/game/Example.csproj'), 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
 foreach ($file in $csprojs) {
     foreach ($m in [regex]::Matches((Read-Text $file), '<PackageReference Include="(?<n>[^"]+)" Version="(?<v>[^"]+)"')) {
         $current[$m.Groups['n'].Value] = $m.Groups['v'].Value
@@ -48,7 +48,7 @@ $current['gut'] = $gutLine.Groups['t'].Value
 
 # --- What is newest ----------------------------------------------------------------------------------------------
 function Get-Json([string]$Url) {
-    $headers = @{ 'User-Agent' = 'godot-agent-kit' }
+    $headers = @{ 'User-Agent' = 'hypedot' }
     if ($env:GITHUB_TOKEN -and $Url -like 'https://api.github.com/*') { $headers['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
     Invoke-RestMethod -Uri $Url -Headers $headers
 }
@@ -96,10 +96,10 @@ if ($godotUpdate -and (& $minor $godotUpdate[0].latest) -ne (& $minor $godotUpda
 # --- Rewrite the pins --------------------------------------------------------------------------------------------
 # Every place a version is a promise, not history: each pattern names the context, so notes such as "seen on 4.7.2" stay.
 $godotPins = @(
-    @{ File = 'examples/breakout/game/Breakout.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
+    @{ File = 'examples/csharp/game/Example.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
     @{ File = '.agents/skills/godot-test-loop/SKILL.md'; Pattern = 'Godot\.NET\.Sdk/{v}|verified on Godot {v}' }
     @{ File = 'ci/godot/lib/Detect.ps1'; Pattern = "else \{ '{v}' \}" }
-    @{ File = 'ci/godot/godot-ci.ps1'; Pattern = 'else {v}\.' }
+    @{ File = 'ci/godot/hypedot.ps1'; Pattern = 'else {v}\.' }
     @{ File = '.github/actions/godot/action.yml'; Pattern = 'else {v}\)' }
     @{ File = '.github/workflows/godot.yml'; Pattern = 'else {v}\)' }
     @{ File = 'docs/reference.md'; Pattern = 'else `{v}`' }

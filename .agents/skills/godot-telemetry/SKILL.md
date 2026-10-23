@@ -6,9 +6,9 @@ description: Use when a Godot game reports crashes or errors, sends analytics or
 # Crash reports and telemetry in Godot 4 (C#)
 
 Know when the game breaks and how it is played, without collecting anything a player did not agree to or anything
-that identifies them. The tested pieces are in `${CLAUDE_PLUGIN_ROOT}/examples/breakout`:
-`src/Breakout.Core/Telemetry/` (`TelemetryClient`, `TelemetrySchema`, `CrashFingerprint`, `SessionMarker`) and
-`game/Diagnostics/Diagnostics.cs`, with tests in `tests/Breakout.Core.Tests/` and `game/test/gdunit4/DiagnosticsTest.cs`.
+that identifies them. The tested pieces are in `${CLAUDE_PLUGIN_ROOT}/examples/csharp`:
+`src/Example.Core/Telemetry/` (`TelemetryClient`, `TelemetrySchema`, `CrashFingerprint`, `SessionMarker`) and
+`game/Diagnostics/Diagnostics.cs`, with tests in `tests/Example.Core.Tests/` and `game/test/gdunit4/DiagnosticsTest.cs`.
 Sources, tests and what is unconfirmed: `${CLAUDE_PLUGIN_ROOT}/docs/telemetry.md`. This is engineering, not legal advice:
 have a lawyer read the privacy notice and the consent flow before release.
 
@@ -19,13 +19,13 @@ have a lawyer read the privacy notice and the consent flow before release.
   crashes go through Crashpad, which writes a minidump from a separate process. GlitchTip (MIT) accepts the same reports
   if you host it yourself.
 - **Gameplay events** (levels finished, settings changed): a small client of your own with a fixed schema, like
-  Breakout's `TelemetryClient`. Do not push them through the crash service.
+  The C# example's `TelemetryClient`. Do not push them through the crash service.
 
 ## 2. Consent first
 
 - Analytics needs opt-in consent. A game that reads device information or a stored id and sends it needs it even when
   nothing is personal (ePrivacy Art. 5(3); EDPB Guidelines 2/2023). Crash reporting may rest on legitimate interest
-  (GDPR Art. 6(1)(f)), but the safe default, and the one Breakout uses, is consent for each.
+  (GDPR Art. 6(1)(f)), but the safe default, and the one the C# example uses, is consent for each.
 - Ask in the game's own settings: a separate switch for crash reports and for analytics, both off until the player
   turns them on, the game fully playable either way. Withdrawing is in the same place and as easy (Art. 7(3)); it stops
   recording and deletes what is still on the device (`SetConsent(..., Consent.Refused)` does).
@@ -38,7 +38,7 @@ have a lawyer read the privacy notice and the consent flow before release.
 
 ## 3. What may be sent
 
-- No free text, ever: player names, chat, file paths, exception messages and log lines carry personal data. Breakout's
+- No free text, ever: player names, chat, file paths, exception messages and log lines carry personal data. The C# example's
   schema has no string kind except fixed labels; a field whose name sounds personal (`player_email`, `device_id`,
   `chat_text`) is refused when the schema is built, and an event that does not match exactly throws.
 - No device or account ids: not `OS.GetUniqueId()`, not a SteamID, not the machine name. A random session id, new each
@@ -58,7 +58,7 @@ have a lawyer read the privacy notice and the consent flow before release.
   `OS.AddLogger(new ErrorCapture(client))`, where `_LogError` receives the exception text as `code` and
   `ExceptionUtils.LogException` as `function`.
 - A `Logger` runs on the thread that failed, maybe several at once: no engine calls, no printing (it recurses), no
-  throwing. Breakout's records one event per fingerprint and nothing else.
+  throwing. The C# example's records one event per fingerprint and nothing else.
 - Install it once, from the game's entry point. On Godot 4.7.2 mono, a process that had registered a C# `Logger`, even
   one removed again, hung at exit under coverlet (the kit's coverage), so scenes that tests instantiate must not.
 - An exception on a thread you created kills the process (exit 134): write a marker file synchronously in
@@ -80,7 +80,7 @@ have a lawyer read the privacy notice and the consent flow before release.
   removed loot boxes alongside an event, an anniversary, a free character, a new legendary and the Q4 peak: daily
   players rose 60% and nobody could say why. Report returning players' retention apart from new players'.
 - For balance, send one summary per run on victory or death, so quiet players count too: the floor reached, the result,
-  the difficulty and the floor each option was taken on (Breakout's `run_end`, `RunSummary`). Reading it without being
+  the difficulty and the floor each option was taken on (the C# example's `run_end`, `RunSummary`). Reading it without being
   fooled: `godot-automation-hooks`, "Reading balance from run data".
 - Puzzle and level games also send `level_opened` and `level_solved` with the level id: the share opened but never
   solved ("bounce", Zachtronics' difficulty measure) per level, in game order, shows which one stops players

@@ -1,4 +1,4 @@
-# Exercises the suite on every change: the reusable workflow on Linux runners, and the script on Windows
+# Exercises the kit on every change: the reusable workflow on Linux runners, and the script on Windows
 # exactly as it runs on a developer machine.
 name: Self-test
 
@@ -47,7 +47,7 @@ jobs:
         run: |
           # The fixture's project.godot was written by Godot: jump has both, dash only a key, aim only a stick, and only
           # ui_accept was given a gamepad button.
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project tests/doctor-fixture 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 doctor -Json -Project tests/doctor-fixture 2>$null | ConvertFrom-Json
           $messages = @($d.checks | ForEach-Object message)
           if (-not ($messages -match 'no gamepad binding: dash$')) { throw "dash: $($messages -join ' | ')" }
           if (-not ($messages -match 'no keyboard or mouse binding: aim$')) { throw "aim: $($messages -join ' | ')" }
@@ -64,7 +64,7 @@ jobs:
           $godotFile = Join-Path $copy 'project.godot'
           Set-Content $godotFile ((Get-Content $godotFile -Raw).Replace('accessibility_support=2', 'accessibility_support=0')) -NoNewline
           Add-Content $godotFile "`n[audio]`n`ngeneral/text_to_speech=true"
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project $copy 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 doctor -Json -Project $copy 2>$null | ConvertFrom-Json
           $messages = @($d.checks | ForEach-Object message)
           if ($messages -match 'text_to_speech is off' -or -not ($messages -match '^Text-to-speech: started at launch')) { throw "tts on: $($messages -join ' | ')" }
           if ($messages -match '^Screen readers') { throw "screen reader on Auto: $($messages -join ' | ')" }
@@ -161,7 +161,7 @@ jobs:
           '{"godot":"4.99.0","gut":"v9.99.0","gdUnit4.api":"9.9.9"}' | Set-Content $latest
           $r = pwsh -NoProfile -File ./ci/godot/tools/Update-Versions.ps1 -Root $copy -LatestFile $latest -Apply -Json | ConvertFrom-Json
           if ($r.updates.Count -ne 3 -or $r.changed.Count -lt 10) { throw "unexpected result: $($r | ConvertTo-Json -Depth 5)" }
-          $csproj = Get-Content (Join-Path $copy 'examples/breakout/game/Breakout.csproj') -Raw
+          $csproj = Get-Content (Join-Path $copy 'examples/csharp/game/Example.csproj') -Raw
           if ($csproj -notmatch 'Godot\.NET\.Sdk/4\.99\.0' -or $csproj -notmatch '"gdUnit4.api" Version="9\.9\.9"') { throw 'csproj pins were not updated' }
           if ((Get-Content (Join-Path $copy 'ci/godot/lib/Setup.ps1') -Raw) -notmatch "'\^4\\\.99' \{ 'v9\.99\.0' \} '\^4\\\.7'") { throw 'the GUT mapping for the new minor is missing' }
           pwsh -NoProfile -File ./ci/godot/tools/Test-Skills.ps1 -Root $copy
@@ -169,18 +169,18 @@ jobs:
       - name: status reads the GDD, tagged tests and plan links
         shell: pwsh
         run: |
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 status -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 status -Json -Project examples/csharp/game 2>$null | ConvertFrom-Json
           $f2 = $d.features | Where-Object id -eq 'F2'
           if (-not $d.ok -or $d.gdd.featureCount -ne 5 -or $f2.taggedTests.Count -ne 4 -or $f2.priority -ne 'must') { throw "status: $($d | ConvertTo-Json -Depth 6)" }
           if (($f2.fun -join ',') -ne 'challenge,sensation' -or ($d.warnings -match 'kind of fun')) { throw "Fun lines: $($f2.fun) / $($d.warnings)" }
           if ($d.inventory.mainScene -ne 'res://Main.tscn' -or $null -ne $d.plan) { throw "status inventory or plan: $($d | ConvertTo-Json -Depth 6)" }
           # In a game of its own: a plan task linked to a feature and a card, and the warnings that follow.
           $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'status-game')
-          git ls-files examples/breakout | tar -cf - -T - | tar -x -C $game
-          $root = Join-Path $game 'examples/breakout'
+          git ls-files examples/csharp | tar -cf - -T - | tar -x -C $game
+          $root = Join-Path $game 'examples/csharp'
           git -C $root init -q
           $project = Join-Path $root 'game'
-          $ci = './ci/godot/godot-ci.ps1'
+          $ci = './ci/godot/hypedot.ps1'
           pwsh -NoProfile -File $ci plan -Do init -Project $project 2>$null | Out-Null
           pwsh -NoProfile -File $ci plan -Do add -Title 'Title screen' -Feature F5 -Project $project 2>$null | Out-Null
           $p = pwsh -NoProfile -File $ci plan -Do link -Id t1 -Card card1 -Column todo -Json -Project $project 2>$null | ConvertFrom-Json
@@ -226,7 +226,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/godot.yml
     with:
-      project: examples/breakout/game
+      project: examples/csharp/game
       min-coverage: 40
       exports: all
       run-exports: true
@@ -237,7 +237,7 @@ jobs:
   explicit-runners:
     uses: ./.github/workflows/godot.yml
     with:
-      project: examples/breakout/game
+      project: examples/csharp/game
       runners: gdunit4,gut
 
   # init on a bare game (no tests, no CI), then doctor and a full test run of what it generated.
@@ -252,10 +252,10 @@ jobs:
           New-Item -ItemType Directory $game | Out-Null
           Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $game
           git -C $game init -q
-          ./ci/godot/godot-ci.ps1 init -Project $game
-          ./ci/godot/godot-ci.ps1 doctor -Project $game
+          ./ci/godot/hypedot.ps1 init -Project $game
+          ./ci/godot/hypedot.ps1 doctor -Project $game
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          ./ci/godot/godot-ci.ps1 test -Project $game -Results (Join-Path $game 'test-results')
+          ./ci/godot/hypedot.ps1 test -Project $game -Results (Join-Path $game 'test-results')
       - name: The kit inside a game stays out of it
         shell: pwsh
         run: |
@@ -265,7 +265,7 @@ jobs:
           Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $game
           New-Item -ItemType Directory (Join-Path $game 'tools/kit') | Out-Null
           git archive HEAD | tar -x -C (Join-Path $game 'tools/kit')
-          $kit = Join-Path $game 'tools/kit/ci/godot/godot-ci.ps1'
+          $kit = Join-Path $game 'tools/kit/ci/godot/hypedot.ps1'
           $d = pwsh -NoProfile -File $kit detect -Json -Project $game 2>$null | ConvertFrom-Json
           if (($d.runners -join ',') -ne 'validate,architecture,smoke') { throw "the kit's own examples leaked into detection: $($d.runners -join ',')" }
           $d = pwsh -NoProfile -File $kit test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
@@ -277,7 +277,7 @@ jobs:
           Set-Content (Join-Path $game 'project.godot') "config_version=5`n[application]`nconfig/name=`"Shaders`""
           Set-Content (Join-Path $game 'good.gdshader') "shader_type canvas_item;`nvoid fragment() {`n`tCOLOR.rgb = vec3(1.0);`n}"
           Set-Content (Join-Path $game 'bad.gdshader') "shader_type canvas_item;`nvoid fragment() {`n`tCOLOR = vec4(undefined_thing, 1.0);`n}"
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 test -Json -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null | ConvertFrom-Json
           $failed = @($d.runnerResults[0].failures | ForEach-Object name)
           # Godot may also report the broken shader once at startup; the good one must never be named.
           if ($d.ok -or 'validate.res://bad.gdshader' -notin $failed -or ($failed -match 'good')) { throw "bad.gdshader, and only it, should fail: $($d | ConvertTo-Json -Depth 6)" }
@@ -311,7 +311,7 @@ jobs:
           (Get-Content $test -Raw).Replace('assert_eq(score.hit(10), 20)', 'assert_eq(score.hit(10), 25)') | Set-Content $test -NoNewline
           $results = Join-Path $game 'test-results'
           $errFile = Join-Path $env:RUNNER_TEMP 'quiet.err'
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$errFile | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$errFile | ConvertFrom-Json
           $errBytes = (Get-Item $errFile).Length
           if ($errBytes -gt 3000) { throw "-Quiet still wrote $errBytes bytes to stderr" }
           $f = $d.runnerResults[0].failures[0]
@@ -319,7 +319,7 @@ jobs:
           # The first run has nothing to compare with, so no failure claims to be new.
           if ($null -ne $d.failureDelta.comparedWith -or $null -ne $f.new) { throw "first run's failureDelta: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (-not (Test-Path $d.log) -or (Get-Item $d.log).Length -lt 2000) { throw "the full log should be in $($d.log)" }
-          $history = @(Get-Content (Join-Path $game '.godot/godot-ci-history.jsonl') | ConvertFrom-Json)
+          $history = @(Get-Content (Join-Path $game '.godot/hypedot-history.jsonl') | ConvertFrom-Json)
           if ($history[-1].ok -or $history[-1].code -ne 'tests-failed') { throw "history: $($history | ConvertTo-Json)" }
           # The Stop hook blocks once while changed code has no passing run, lets a second stop through, and is quiet after a green run.
           $hook = { param($active) "{""cwd"":""$($game -replace '\\', '/')"",""stop_hook_active"":$active}" | pwsh -NoProfile -File ./hooks/stop-gate.ps1 }
@@ -327,30 +327,30 @@ jobs:
           if (($first | ConvertFrom-Json).decision -ne 'block') { throw "the Stop hook should block: $first" }
           if (& $hook 'true') { throw 'the Stop hook should let the same changes through the second time' }
           (Get-Content $test -Raw).Replace('25)', '20)') | Set-Content $test -NoNewline
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 test -Json -Quiet -Project $game -Runners gut -Results $results 2>$null | ConvertFrom-Json
           if (-not $d.ok) { throw "the fixed test should pass: $($d | ConvertTo-Json -Depth 6)" }
           if (@($d.failureDelta.fixed | ForEach-Object name) -notcontains $f.name -or @($d.failureDelta.new).Count -ne 0) { throw "the fixed test should be in failureDelta.fixed: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (& $hook 'false') { throw 'the Stop hook should allow stopping after a passing run' }
           # init -Agents copies the verifier with this machine's kit path; init -Plugin enables the plugin instead of copying.
-          ./ci/godot/godot-ci.ps1 init -Agents -Project $game | Out-Null
+          ./ci/godot/hypedot.ps1 init -Agents -Project $game | Out-Null
           $agent = Get-Content (Join-Path $game '.claude/agents/godot-verifier.md') -Raw
-          if ($agent.Contains('${CLAUDE_PLUGIN_ROOT}') -or -not $agent.Contains('ci/godot/godot-ci.ps1')) { throw 'the copied agent should name the kit path' }
+          if ($agent.Contains('${CLAUDE_PLUGIN_ROOT}') -or -not $agent.Contains('ci/godot/hypedot.ps1')) { throw 'the copied agent should name the kit path' }
           $plugged = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'plugin-game')
           Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $plugged
-          ./ci/godot/godot-ci.ps1 init -Plugin -Project $plugged | Out-Null
+          ./ci/godot/hypedot.ps1 init -Plugin -Project $plugged | Out-Null
           $settings = Get-Content (Join-Path $plugged '.claude/settings.json') -Raw | ConvertFrom-Json -AsHashtable
-          if (-not $settings.enabledPlugins['godot-agent-kit@godot-agent-kit'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
+          if (-not $settings.enabledPlugins['hypedot@hypedot'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
           # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
       - name: The juice runner passes timely feedback and fails late feedback
         shell: pwsh
         run: |
           $game = 'tests/juice-fixture'
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 detect -Json -Project $game 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 detect -Json -Project $game 2>$null | ConvertFrom-Json
           if ('juice' -notin $d.runners) { throw "juice.json should enable the juice runner: $($d.runners -join ',')" }
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners juice -Results (Join-Path $env:RUNNER_TEMP 'juice-ok') 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 test -Json -Quiet -Project $game -Runners juice -Results (Join-Path $env:RUNNER_TEMP 'juice-ok') 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.runnerResults[0].total -ne 2) { throw "feedback in time: $($d | ConvertTo-Json -Depth 6)" }
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 test -Json -Quiet -Project $game -Runners juice -GameArgs '--late' -Results (Join-Path $env:RUNNER_TEMP 'juice-late') 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 test -Json -Quiet -Project $game -Runners juice -GameArgs '--late' -Results (Join-Path $env:RUNNER_TEMP 'juice-late') 2>$null | ConvertFrom-Json
           $f = @($d.runnerResults[0].failures)
           if ($d.ok -or $d.error.code -ne 'tests-failed' -or $f.Count -ne 1 -or $f[0].message -notmatch "had no 'flash' within 100 ms") { throw "late feedback: $($d | ConvertTo-Json -Depth 6)" }
           exit 0   # the last run failed on purpose; see the step above
@@ -371,12 +371,12 @@ jobs:
       - name: bench, headless and with a window
         shell: pwsh
         run: |
-          $ci = './ci/godot/godot-ci.ps1'
-          $d = pwsh -NoProfile -File $ci bench -Json -Headless -Project examples/breakout/game -Seconds 2 -Warmup 1 -Label headless 2>$null | ConvertFrom-Json
+          $ci = './ci/godot/hypedot.ps1'
+          $d = pwsh -NoProfile -File $ci bench -Json -Headless -Project examples/csharp/game -Seconds 2 -Warmup 1 -Label headless 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.bench.display -ne 'headless' -or $d.bench.frames -lt 10) { throw "headless bench: $($d | ConvertTo-Json -Depth 5)" }
-          $d = pwsh -NoProfile -File $ci bench -Json -Project examples/breakout/game -Seconds 2 -Warmup 1 -Resolution 1280x720 -Label window 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File $ci bench -Json -Project examples/csharp/game -Seconds 2 -Warmup 1 -Resolution 1280x720 -Label window 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.bench.display -eq 'headless' -or $d.bench.resolution -ne '1280x720') { throw "window bench: $($d | ConvertTo-Json -Depth 5)" }
-          $d = pwsh -NoProfile -File $ci bench -Json -Headless -Project examples/breakout/game -Seconds 1 -Warmup 0 -BudgetMs 0.001 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File $ci bench -Json -Headless -Project examples/csharp/game -Seconds 1 -Warmup 0 -BudgetMs 0.001 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'bench-over-budget') { throw "budget gate: $($d | ConvertTo-Json -Depth 5)" }
           $rows = @(Import-Csv bench-results/bench.csv)
           if ($rows.Count -ne 3) { throw "expected 3 rows in bench.csv, got $($rows.Count)" }
@@ -388,17 +388,17 @@ jobs:
       - name: shot
         shell: pwsh
         run: |
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Resolution 1920x1080 -Frames 30 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 shot -Json -Project examples/csharp/game -Resolution 1920x1080 -Frames 30 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.shots.Count -ne 1 -or -not (Test-Path $d.shots[0].file)) { throw "shot: $($d | ConvertTo-Json -Depth 5)" }
           # The example keeps its 4:3 arena (aspect "keep"), so a 1920x1080 window gives a 1440x1080 picture.
           if ($d.shots[0].width -ne 1440 -or $d.shots[0].height -ne 1080) { throw "unexpected size $($d.shots[0].width)x$($d.shots[0].height)" }
           # The same scene again barely changes; at another size the comparison says so; the baseline cannot be the output.
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Resolution 1920x1080 -Frames 30 -Output screenshots/after -Baseline screenshots 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 shot -Json -Project examples/csharp/game -Resolution 1920x1080 -Frames 30 -Output screenshots/after -Baseline screenshots 2>$null | ConvertFrom-Json
           $c = $d.shots[0].compare
           if (-not $d.ok -or $c.changedPercent -gt 5 -or $c.sizeChanged -or -not (Test-Path $c.image)) { throw "compare: $($d | ConvertTo-Json -Depth 5)" }
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Resolution 1280x720 -Frames 30 -Output screenshots/small -Baseline screenshots 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 shot -Json -Project examples/csharp/game -Resolution 1280x720 -Frames 30 -Output screenshots/small -Baseline screenshots 2>$null | ConvertFrom-Json
           if (-not $d.ok -or -not $d.shots[0].compare.sizeChanged) { throw "size change: $($d | ConvertTo-Json -Depth 5)" }
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project examples/breakout/game -Output screenshots -Baseline screenshots 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 shot -Json -Project examples/csharp/game -Output screenshots -Baseline screenshots 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'invalid-arguments') { throw "-Baseline equal to -Output should be refused: $($d | ConvertTo-Json -Depth 5)" }
           exit 0
       - name: The textsize runner fails text under 9 px at 1280x800, and integer scaling that cuts off
@@ -420,7 +420,7 @@ jobs:
         shell: pwsh
         run: |
           # A fresh checkout: the import also has to cope with translations listed before they are made.
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 shot -Json -Project tests/l10n-fixture/clean -Resolution 1920x1080 -Frames 5 -Locale fr -Pseudo -Output screenshots/l10n 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 shot -Json -Project tests/l10n-fixture/clean -Resolution 1920x1080 -Frames 5 -Locale fr -Pseudo -Output screenshots/l10n 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'shot-text' -or $d.shots.Count -ne 3) { throw "expected shot-text with 3 shots: $($d | ConvertTo-Json -Depth 6)" }
           $by = @{}; foreach ($s in $d.shots) { $by["$($s.locale)"] = @($s.text | ForEach-Object { "$($_.problem):$($_.node)" }) }
           foreach ($pass in '', 'fr', 'pseudo') {
@@ -462,7 +462,7 @@ jobs:
           Set-Content (Join-Path $game 'project.godot') "config_version=5`n[application]`nconfig/name=`"Args`"`nrun/main_scene=`"res://main.tscn`""
           Set-Content (Join-Path $game 'main.gd') "extends Node`nfunc _ready() -> void:`n`tif not `"--autoplay`" in OS.get_cmdline_user_args():`n`t`tpush_error(`"no --autoplay flag`")"
           Set-Content (Join-Path $game 'main.tscn') "[gd_scene load_steps=2 format=3]`n[ext_resource type=`"Script`" path=`"res://main.gd`" id=`"1`"]`n[node name=`"Main`" type=`"Node`"]`nscript = ExtResource(`"1`")"
-          $ci = './ci/godot/godot-ci.ps1'
+          $ci = './ci/godot/hypedot.ps1'
           $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r1" -GameArgs '--seed=3,--autoplay' 2>$null | ConvertFrom-Json
           if (-not $d.ok) { throw "with the flag: $($d | ConvertTo-Json -Depth 6)" }
           $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r2" 2>$null | ConvertFrom-Json
@@ -484,7 +484,7 @@ jobs:
       - name: Firefox with a window under Xvfb
         shell: pwsh
         env:
-          GODOT_CI_WEB_HEADED: '1'
+          HYPEDOT_WEB_HEADED: '1'
           DISPLAY: ':99'
         run: |
           sudo apt-get install -y -q xvfb libgl1-mesa-dri > $null
@@ -501,7 +501,7 @@ jobs:
       - uses: ./.github/actions/godot
         with:
           command: build
-          project: examples/breakout/game
+          project: examples/csharp/game
 
   # The script on Windows, as on a developer machine: no workflow, no action.
   local-windows:
@@ -511,16 +511,16 @@ jobs:
       - uses: actions/checkout@v7
       - name: GDScript example
         shell: pwsh
-        run: ./ci/godot/godot-ci.ps1 test -Project examples/gdscript
+        run: ./ci/godot/hypedot.ps1 test -Project examples/gdscript
       - name: C# example with coverage
         shell: pwsh
-        run: ./ci/godot/godot-ci.ps1 test -Project examples/breakout/game -Coverage
+        run: ./ci/godot/hypedot.ps1 test -Project examples/csharp/game -Coverage
       - name: Filtered run
         shell: pwsh
-        run: ./ci/godot/godot-ci.ps1 test -Project examples/breakout/game -Runners dotnet -Filter 'FullyQualifiedName~RunState'
+        run: ./ci/godot/hypedot.ps1 test -Project examples/csharp/game -Runners dotnet -Filter 'FullyQualifiedName~RunState'
       - name: Doctor
         shell: pwsh
-        run: ./ci/godot/godot-ci.ps1 doctor -Project examples/breakout/game
+        run: ./ci/godot/hypedot.ps1 doctor -Project examples/csharp/game
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
@@ -530,9 +530,9 @@ jobs:
       - name: JSON output is one valid document
         shell: pwsh
         run: |
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 detect -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
-          if ($d.schema -ne 'godot-ci/1' -or -not $d.ok -or $d.runners.Count -lt 3) { throw "unexpected detect output" }
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 doctor -Json -Project examples/breakout/game 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 detect -Json -Project examples/csharp/game 2>$null | ConvertFrom-Json
+          if ($d.schema -ne 'hypedot/1' -or -not $d.ok -or $d.runners.Count -lt 3) { throw "unexpected detect output" }
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 doctor -Json -Project examples/csharp/game 2>$null | ConvertFrom-Json
           if (-not $d.ok -or $d.checks.Count -lt 1) { throw "unexpected doctor output" }
       - name: Plan
         shell: pwsh
@@ -540,8 +540,8 @@ jobs:
           $dir = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'plan-test')
           git -C $dir init -q
           Copy-Item -Recurse examples/gdscript/* $dir
-          ./ci/godot/godot-ci.ps1 plan -Do init -Project $dir
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
+          ./ci/godot/hypedot.ps1 plan -Do init -Project $dir
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 plan -Json -Project $dir 2>$null | ConvertFrom-Json
           if ($d.currentPhase.id -ne 'concept' -or $d.nextActions.Count -lt 1) { throw "unexpected plan output" }
       - name: MCP config is written, kept on re-run, and merged into an existing file; -McpAseprite finds Aseprite.exe
         shell: pwsh
@@ -550,20 +550,20 @@ jobs:
           git -C $dir init -q
           Copy-Item -Recurse examples/gdscript/* $dir
           '{"mcpServers":{"other":{"command":"x"}}}' | Set-Content (Join-Path $dir '.mcp.json')
-          pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
-          pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
+          pwsh -NoProfile -File ./ci/godot/hypedot.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
+          pwsh -NoProfile -File ./ci/godot/hypedot.ps1 init -Mcp godot-mcp -McpDiagnostics -Project $dir
           $servers = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.PSObject.Properties.Name
           if (($servers | Sort-Object) -join ',' -ne 'godot-mcp,minimal-godot-mcp,other') { throw "unexpected servers: $servers" }
           if (-not (Test-Path (Join-Path $dir '.mcp.json.bak'))) { throw 'no backup of the existing .mcp.json' }
           # -McpAseprite takes Aseprite's folder (a space in its name, as under Program Files) and refuses one without the program.
           $ase = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'Aseprite Test')
           New-Item -ItemType File (Join-Path $ase 'Aseprite.exe') | Out-Null
-          pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -McpAseprite $ase -Project $dir
+          pwsh -NoProfile -File ./ci/godot/hypedot.ps1 init -McpAseprite $ase -Project $dir
           $entry = (Get-Content (Join-Path $dir '.mcp.json') -Raw | ConvertFrom-Json).mcpServers.aseprite
           if ($entry.command -ne 'uvx' -or $entry.env.ASEPRITE_PATH -ne (Join-Path $ase 'Aseprite.exe') -or $entry.args -notcontains 'aseprite_mcp') { throw "unexpected aseprite entry: $($entry | ConvertTo-Json -Compress)" }
-          $d = pwsh -NoProfile -File ./ci/godot/godot-ci.ps1 init -McpAseprite (Join-Path $env:RUNNER_TEMP 'no-aseprite') -Project $dir -Json 2>$null | ConvertFrom-Json
+          $d = pwsh -NoProfile -File ./ci/godot/hypedot.ps1 init -McpAseprite (Join-Path $env:RUNNER_TEMP 'no-aseprite') -Project $dir -Json 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'aseprite-not-found') { throw "expected aseprite-not-found, got: $($d.error.code)" }
           exit 0  # the last pwsh run failed on purpose; GitHub's shell would otherwise end the step with its exit code
       - name: Export the Windows build and launch it
         shell: pwsh
-        run: ./ci/godot/godot-ci.ps1 export -Project examples/breakout/game -Preset Windows -Run
+        run: ./ci/godot/hypedot.ps1 export -Project examples/csharp/game -Preset Windows -Run

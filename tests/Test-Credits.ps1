@@ -47,11 +47,11 @@ try {
     # End to end: the command reads Godot's own notices from the engine.
     $clean = Join-Path $fixture 'clean'
     $cleanOut = Join-Path $out 'clean'
-    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') credits -Json -Project $clean -Output $cleanOut 2>$null | ConvertFrom-Json
+    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') credits -Json -Project $clean -Output $cleanOut 2>$null | ConvertFrom-Json
     Assert-True ($d.ok -and $d.credits.credits -eq 1 -and $d.credits.notices -ge 2) "credits on a clean manifest passes: $($d | ConvertTo-Json -Depth 4 -Compress)"
     $engine = Get-Content -LiteralPath (Join-Path $cleanOut 'THIRD-PARTY-NOTICES.txt') -Raw
     Assert-True ($engine -match 'Godot Engine contributors' -and $engine -match 'FreeType') 'the command includes the engine''s real notices'
-    $bad = pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') credits -Json -Project $fixture -Output (Join-Path $out 'bad') 2>$null | ConvertFrom-Json
+    $bad = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') credits -Json -Project $fixture -Output (Join-Path $out 'bad') 2>$null | ConvertFrom-Json
     Assert-True (-not $bad.ok -and $bad.error.code -eq 'credits-invalid' -and @($bad.credits.errors).Count -eq 3) 'the command fails with credits-invalid and lists the problems'
 } finally {
     Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue

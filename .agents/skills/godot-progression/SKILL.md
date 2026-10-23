@@ -85,7 +85,7 @@ drops) already fails when empty.
 Every currency enters through sources (rewards, loot sold, daily bonuses) and leaves through sinks (repairs, fees,
 upgrades). "If sources exceed sinks: Inflation", and the owner's list of skill gaps asks to "verify economy stability
 over: 10 hours 100 hours 1000 hours". Write each flow down per hour of play, from the design and later from telemetry,
-and simulate it: Breakout's `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Economy/EconomySim.cs`, tested in
+and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Economy/EconomySim.cs`, tested in
 `EconomySimTests`.
 
 - **Net change per hour** (`PlannedNetPerHour`, and `NetPerHour` from a seeded run) stays inside a band you choose:

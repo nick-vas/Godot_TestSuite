@@ -26,7 +26,7 @@ function New-Trx([string]$Name, [string[]]$Outcomes, [string]$StdOut) {
 }
 function Read-One([string]$Path) { $totals = New-TestTotals; Read-Trx $Path $totals; return $totals }
 
-$found = "Discover:  TestSuite Breakout.Tests.ControlsTest with 8 TestCases found.`nDiscover tests done, 2 TestSuites and total 3 Tests found."
+$found = "Discover:  TestSuite Example.Tests.ControlsTest with 8 TestCases found.`nDiscover tests done, 2 TestSuites and total 3 Tests found."
 try {
     # The rebuild failed: three found, none ran, the adapter exited 0. One failure that names the cause.
     $t = Read-One (New-Trx 'failed-build.trx' @() "$found`nCleaning up runner file at x/GdUnit4TestRunnerScene.cs due to compilation failure`nTest execution stopped.")
@@ -43,7 +43,7 @@ try {
 
     # With -Filter, tests the filter left out are found but never run (a Windows CI run with FullyQualifiedName~RunState
     # matched no gdUnit4 test): not a failure, unless the rebuild names its failure.
-    $totals = New-TestTotals; Read-Trx (New-Trx 'filtered.trx' @() "$found`nCompleted tests for assembly: x/Breakout.dll") $totals $true
+    $totals = New-TestTotals; Read-Trx (New-Trx 'filtered.trx' @() "$found`nCompleted tests for assembly: x/Example.dll") $totals $true
     if ($totals.Failed -ne 0) { $failures += "a filter that matches no gdUnit4 test is not a failure, got $($totals.Failed)" }
     $totals = New-TestTotals; Read-Trx (New-Trx 'filtered-broken.trx' @() "$found`nCleaning up runner file at x/GdUnit4TestRunnerScene.cs due to compilation failure") $totals $true
     if ($totals.Failed -ne 1) { $failures += "a filtered run whose rebuild failed still fails, got $($totals.Failed)" }

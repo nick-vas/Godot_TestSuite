@@ -7,8 +7,8 @@ description: Use when a Godot game is played over a network: choosing a netcode 
 
 The server owns the truth; each client shows its own player at once and everyone else a little in the past; and every
 claim about "it feels fine" is measured at 50, 100 and 250 ms with jitter and loss. The tested model is in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Net/` (`Netcode.cs`, `Link.cs`) with
-`examples/breakout/tests/Breakout.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Net/` (`Netcode.cs`, `Link.cs`) with
+`examples/csharp/tests/Example.Core.Tests/NetcodeTests.cs`; the load and soak harness is `soak` with
 `tests/soak-fixture`. Sources and measurements: `${CLAUDE_PLUGIN_ROOT}/docs/multiplayer.md`. Hosting, stopping and
 draining servers, join tokens, matchmaking and chat moderation are `godot-servers`.
 
@@ -31,7 +31,7 @@ draining servers, join tokens, matchmaking and chat moderation are `godot-server
   5% loss nothing is lost; with one copy, every lost packet is a correction the player sees.
 - **Server queue.** The server applies each client's inputs one per tick, in order, waits a few ticks for a missing
   one, and works a backlog down two a tick. Applying them as they arrive loses inputs to reordering and moves other
-  players unevenly (both happened in Breakout's tests before the queue).
+  players unevenly (both happened in the C# example's tests before the queue).
 - **Or never wait (Overwatch: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/overwatch-gameplay-architecture-netcode.md`).** Fixed
   16 ms command frames (7 ms in tournament play), the client half a round trip plus one frame ahead. A starved server
   applies the last input again (`Server.RepeatWhenStarved`) and the client corrects a wrong guess; told the server ran
@@ -62,7 +62,7 @@ blend corrections in (projective velocity blending) instead of snapping. Numbers
 ## 3. Sending state to many players (the TRIBES model)
 
 Starsiege TRIBES (1998) ran 128 players over modems by sorting data by what its delivery needs, and sending each
-player only what matters to them, as partial updates. Breakout's `Net/Replication.cs` is that model, tested.
+player only what matters to them, as partial updates. The C# example's `Net/Replication.cs` is that model, tested.
 
 | Data | Needs | Example | In Godot 4.7 |
 |---|---|---|---|
@@ -119,7 +119,7 @@ Lobbies, linked state, host migration and crossplay: [sessions.md](sessions.md).
 - ENet has no simulated lag. For tests: a `MultiplayerPeerExtension` that wraps ENet and delays, reorders and drops
   unreliable packets (in C#, override `_PutPacketScript` and `_GetPacketScript`), or Linux `tc qdisc ... netem` where
   the kernel has it (GitHub's Ubuntu runners, with sudo; not every container). Keep game logic testable without Godot,
-  like Breakout's `SimulatedLink`.
+  like the C# example's `SimulatedLink`.
 
 **Chat players can all use:** one window for typed and transcribed messages, quick messages and pings beside text
 chat, a speaking icon per player, incoming lines optionally read aloud; in the US, the CVAA (`godot-legal`):
@@ -159,7 +159,7 @@ chat, a speaking icon per player, incoming lines optionally read aloud; in the U
 Logic tests run without Godot over a simulated link (fast, seeded); `soak` runs the real game:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50 -Json -Quiet
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50 -Json -Quiet
 ```
 
 The game takes part through flags and printed lines: it is started with `--soak-role=server|client`, `--soak-port`

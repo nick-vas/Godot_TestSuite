@@ -23,7 +23,7 @@ server deciding everything that matters; client-side software is a later, costly
 - Clients send intentions (inputs), not results: never positions, damage, cooldowns, currency or scores from a client.
 - Validate every RPC argument: types, ranges, `NaN` and infinity, array and string sizes; check
   `Multiplayer.GetRemoteSenderId()` owns what it acts on.
-- Speed and rate: the server grants one input per tick of real time. Breakout's `Server` does: a client that sends two
+- Speed and rate: the server grants one input per tick of real time. The C# example's `Server` does: a client that sends two
   inputs a tick moved twice as fast before the fix (3997 px where real time allows 2000); now it does not, and the extra
   inputs are counted in `InputsRejected`. Cooldowns and timers run on server time.
 - Progress lives with the authority. Destiny's raid boss had one critical step in client-side logic, and pulling the
@@ -41,7 +41,7 @@ server deciding everything that matters; client-side software is a later, costly
   achievements to "GS" so only a game server sets them. Client-set values are trivial to fake.
 - Verify a score by replaying it: the client sends the seed and the inputs, the server re-simulates and accepts only a
   matching score. That needs a deterministic simulation; nothing promises Godot's physics is deterministic across machines
-  (`godot-determinism`, Breakout's `DeterminismCheck.Verify`).
+  (`godot-determinism`, the C# example's `DeterminismCheck.Verify`).
 - Cheaper: plausibility bounds (score per second, items per minute), and a person looking at the top of the board.
 
 ## 4. Client-side anti-cheat

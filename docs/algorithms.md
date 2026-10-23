@@ -3,7 +3,7 @@
 Two repositories were read in October 2026:
 
 - [TheAlgorithms/C-Sharp](https://github.com/TheAlgorithms/C-Sharp) (commit 96e2905, 605 `.cs` files, net8.0),
-  **GPL-3.0**. Studied and measured; none of its code is in the kit or in Breakout.Core, and a game must not copy it
+  **GPL-3.0**. Studied and measured; none of its code is in the kit or in Example.Core, and a game must not copy it
   (the `godot-algorithms` skill says why).
 - [TheAlgorithms/Algorithms-Explanation](https://github.com/TheAlgorithms/Algorithms-Explanation) (`en/`, 47 pages),
   **MIT**. Introductory explanations: sorting, linked lists, stacks and queues, ciphers, basic maths, a few dynamic
@@ -16,10 +16,10 @@ Most of both is what a computer science course covers and Godot or .NET already 
 
 | Gap | Where now | Instead of |
 |---|---|---|
-| Many agents toward one target, and fleeing | `Breakout.Core/Ai/DistanceField.cs` (a Dijkstra map, after Brian Walker's Brogue) | one A* search per agent |
-| Connected regions on a grid | `Breakout.Core/Procgen/Regions.cs` (`Regions.Label`, `RegionMap`) | a recursive flood fill |
+| Many agents toward one target, and fleeing | `Example.Core/Ai/DistanceField.cs` (a Dijkstra map, after Brian Walker's Brogue) | one A* search per agent |
+| Connected regions on a grid | `Example.Core/Procgen/Regions.cs` (`Regions.Label`, `RegionMap`) | a recursive flood fill |
 | Joining as you go | `DisjointSet` in the same file | re-filling after every change |
-| "Did you mean" | `Breakout.Core/Ui/Suggest.cs`; `Get-EditDistance` and `Get-ClosestName` in `ci/godot/lib/Common.ps1` | `String.Similarity`, which misses swapped letters |
+| "Did you mean" | `Example.Core/Ui/Suggest.cs`; `Get-EditDistance` and `Get-ClosestName` in `ci/godot/lib/Common.ps1` | `String.Similarity`, which misses swapped letters |
 | Prerequisites that loop | the `data` runner's `acyclic` field rule (`ci/godot/lib/Data.ps1`, `Find-DataCycles`) | finding out in a playtest that a tech can never be researched |
 
 The kit's own output uses the suggestions: the `data` runner names the near id, enum value, column or table, and
@@ -34,7 +34,7 @@ were measured (below). The rest (Bloom filters, tries, ciphers, quick select) ha
 
 .NET 8.0 (Release), Godot 4.7.2, 4 cores, Linux. A grid with 20% random walls, the largest open region kept, the goal
 in its first cell; 200 agents on random open cells. The comparison program referenced TheAlgorithms' projects from a
-separate clone (StyleCop analyzers off) and Breakout.Core; it is not committed, since it needs the GPL code to run.
+separate clone (StyleCop analyzers off) and Example.Core; it is not committed, since it needs the GPL code to run.
 
 | Grid | `DistanceField.Build` | 200 downhill walks | TheAlgorithms Dijkstra | TheAlgorithms A* x 200 | `AStarGrid2D` x 200 (GDScript) |
 |---|---|---|---|---|---|
@@ -60,7 +60,7 @@ separate clone (StyleCop analyzers off) and Breakout.Core; it is not committed, 
 
 ## Tests
 
-`tests/Breakout.Core.Tests/AlgorithmsTests.cs` (23 cases: a million-element union-find chain, an open
+`tests/Example.Core.Tests/AlgorithmsTests.cs` (23 cases: a million-element union-find chain, an open
 1000 x 1000 fill, labels checked against union-find on a random grid, walking distances round walls and mud, diagonals
 that never cut corners, fleeing, rebuilds that leave nothing behind, edit distances and suggestions) and
 `tests/Test-Data.ps1` (cycles, the near names, a misconfigured `acyclic`, `Get-EditDistance` against the C# values).

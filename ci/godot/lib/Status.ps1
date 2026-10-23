@@ -103,9 +103,9 @@ function Find-FeatureTags($Info) {
     return $tags
 }
 
-# The newest run of each command from .godot/godot-ci-history.jsonl.
+# The newest run of each command from .godot/hypedot-history.jsonl.
 function Get-LastRuns([string]$ProjectDir) {
-    $file = Join-Path $ProjectDir '.godot/godot-ci-history.jsonl'
+    $file = Join-Path $ProjectDir '.godot/hypedot-history.jsonl'
     $last = [ordered]@{}
     if (-not (Test-Path -LiteralPath $file)) { return $last }
     foreach ($entry in Get-Content -LiteralPath $file | Where-Object { Test-Json -Json $_ -ErrorAction SilentlyContinue } | ConvertFrom-Json) {

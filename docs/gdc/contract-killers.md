@@ -51,7 +51,7 @@
 
 ## Not taken, and why
 
-- A C# helper in `Breakout.Core` for the payout. The arithmetic is two lines (s(R - C) against sR - C), Breakout's core is
+- A C# helper in `Example.Core` for the payout. The arithmetic is two lines (s(R - C) against sR - C), the C# example's core is
   not shipped to games, and nothing in a game would call it; the formulas in the skill reach the agent that needs it.
 - A `plan` or `doctor` check: contracts are not in the game's files.
 

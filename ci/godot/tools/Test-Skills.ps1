@@ -30,7 +30,7 @@ $maxBytes = 16KB; $warnBytes = 15.5KB
 $agentsTemplateMaxBytes = 4KB
 
 # --- Ground truth the skills are checked against ---------------------------------------------------------
-$entry = Join-Path $Root 'ci/godot/godot-ci.ps1'
+$entry = Join-Path $Root 'ci/godot/hypedot.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($entry, [ref]$null, [ref]$null)
 $params = @{}
 foreach ($p in $ast.ParamBlock.Parameters) {
@@ -40,7 +40,7 @@ foreach ($p in $ast.ParamBlock.Parameters) {
 $commands = $params['Command']
 $jsonDoc = Get-Content -LiteralPath (Join-Path $Root 'docs/json.md') -Raw
 $knownCodes = @([regex]::Matches($jsonDoc, '`([a-z]+(?:-[a-z]+)+)`') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
-$csproj = Get-Content -LiteralPath (Join-Path $Root 'examples/breakout/game/Breakout.csproj') -Raw
+$csproj = Get-Content -LiteralPath (Join-Path $Root 'examples/csharp/game/Example.csproj') -Raw
 $packages = @{}
 foreach ($m in [regex]::Matches($csproj, '<PackageReference Include="(?<n>[^"]+)" Version="(?<v>[^"]+)"')) { $packages[$m.Groups['n'].Value] = $m.Groups['v'].Value }
 $sdk = [regex]::Match($csproj, 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
@@ -50,16 +50,16 @@ function Add-Finding([string]$Level, [string]$Skill, [string]$Rule, [string]$Mes
     $findings.Add([pscustomobject]@{ Level = $Level; Skill = $Skill; Rule = $Rule; Message = $Message })
 }
 
-# Every godot-ci.ps1 invocation must use a real command, real parameters and real values. $Where names a side file.
+# Every hypedot.ps1 invocation must use a real command, real parameters and real values. $Where names a side file.
 function Test-Invocations([string]$Name, [string]$Text, [string]$Where = '') {
     $at = $Where ? "${Where}: " : ''
     $code = (@([regex]::Matches($Text, '(?s)```.*?```') | ForEach-Object Value) + @([regex]::Matches($Text, '`[^`\r\n]+`') | ForEach-Object Value)) -join "`n"
-    foreach ($m in [regex]::Matches($code, '(?m)godot-ci\.ps1\s+(?<args>[^\r\n#`]*)')) {
+    foreach ($m in [regex]::Matches($code, '(?m)hypedot\.ps1\s+(?<args>[^\r\n#`]*)')) {
         $argv = $m.Groups['args'].Value
         $first = [regex]::Match($argv, '^(?<c>[a-z]+)\b').Groups['c'].Value
-        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "${at}godot-ci.ps1 has no command '$first' (has: $($commands -join ', '))" }
+        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "${at}hypedot.ps1 has no command '$first' (has: $($commands -join ', '))" }
         foreach ($p in [regex]::Matches($argv, '(?<![\w-])-(?<p>[A-Za-z]+)\b')) {
-            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "${at}godot-ci.ps1 has no parameter -$($p.Groups['p'].Value)" }
+            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "${at}hypedot.ps1 has no parameter -$($p.Groups['p'].Value)" }
         }
         foreach ($set in 'Do', 'Runners', 'Column') {
             $v = [regex]::Match($argv, "-$set\s+(?<v>[A-Za-z0-9,|]+)").Groups['v'].Value
@@ -113,7 +113,7 @@ foreach ($dir in $skillDirs) {
     # Cross-references to other skills
     foreach ($m in [regex]::Matches($text, '`(godot-[a-z0-9-]+)`')) {
         $ref = $m.Groups[1].Value
-        if ($ref -ne $name -and $ref -notin $skillNames -and $ref -notin $agentNames -and -not $ref.StartsWith('godot-ci')) { Add-Finding error $name cross-reference "refers to skill '$ref', which does not exist" }
+        if ($ref -ne $name -and $ref -notin $skillNames -and $ref -notin $agentNames) { Add-Finding error $name cross-reference "refers to skill '$ref', which does not exist" }
     }
 
     Test-Invocations $name $text
@@ -135,12 +135,12 @@ foreach ($dir in $skillDirs) {
     foreach ($m in [regex]::Matches($text, '<PackageReference Include="(?<n>[^"]+)" Version="(?<v>[^"]+)"')) {
         $n = $m.Groups['n'].Value
         if ($packages.ContainsKey($n) -and $packages[$n] -ne $m.Groups['v'].Value) {
-            Add-Finding error $name version-drift "$n is $($m.Groups['v'].Value) here but $($packages[$n]) in examples/breakout"
+            Add-Finding error $name version-drift "$n is $($m.Groups['v'].Value) here but $($packages[$n]) in examples/csharp"
         }
     }
     $sdkMention = [regex]::Match($text, 'Godot\.NET\.Sdk/(?<v>[\d.]+)')
     if ($sdkMention.Success -and $sdk -and $sdkMention.Groups['v'].Value -ne $sdk) {
-        Add-Finding error $name version-drift "Godot.NET.Sdk/$($sdkMention.Groups['v'].Value) here but $sdk in examples/breakout"
+        Add-Finding error $name version-drift "Godot.NET.Sdk/$($sdkMention.Groups['v'].Value) here but $sdk in examples/csharp"
     }
 }
 

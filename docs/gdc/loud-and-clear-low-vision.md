@@ -37,11 +37,11 @@ Results: testers who were legally blind or had low vision mostly rated how likel
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Access/Narration.cs`: `Narration.Describe(state, name, shortText)` in the talk's
+- `examples/csharp/src/Example.Core/Access/Narration.cs`: `Narration.Describe(state, name, shortText)` in the talk's
   order, with `Describable.Flavour` never spoken; `AssistNarrator`, a tap-to-speak, tap-to-stop state machine where focus
   never speaks, a focus change stops a description of the old object, tutorials (`Announce`) speak when shown, and `Ducked`
   is true from the request until the current utterance ends or is cancelled. Callbacks for replaced utterances are ignored.
-  Tests: `examples/breakout/tests/Breakout.Core.Tests/NarrationTests.cs` (8). Each of six naive versions (flavour spoken,
+  Tests: `examples/csharp/tests/Example.Core.Tests/NarrationTests.cs` (8). Each of six naive versions (flavour spoken,
   no utterance-id check, ducking only once audible, focus not interrupting, speaking on focus, a second tap not stopping)
   fails at least one test.
 - `doctor` (`ci/godot/lib/Doctor.ps1`) warns when `.gd` or `.cs` files call `tts_speak` / `TtsSpeak` and `project.godot` does
@@ -68,6 +68,6 @@ Results: testers who were legally blind or had low vision mostly rated how likel
   without a menu, and say how at first start).
 - Speech played from the object's position: Godot's OS speech is not positional and cannot be routed through an
   `AudioStreamPlayer3D`, so the skill asks for a positional cue next to the speech instead.
-- Haptics, outlines and named zones stay skill rules, with nothing to measure in a pure core. Breakout has no world objects
+- Haptics, outlines and named zones stay skill rules, with nothing to measure in a pure core. The C# example has no world objects
   to describe, so the core is not wired into the game. Real speech is untested: headless Godot has no TTS
   (`FEATURE_TEXT_TO_SPEECH` is false).
