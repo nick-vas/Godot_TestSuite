@@ -73,7 +73,9 @@ pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused pas
 
 Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
 
-**Trello sync** (`plan -Do sync -Board <id or short link>`, experimental) keeps the plan the source of truth and uses Trello as the place you drag things:
+**Trello sync** (`plan -Do sync -Board <id or short link>`) is **experimental**: it has met only a stand-in Trello so far
+(the live run waits, and the open bugs are under Trello in [roadmap.md](roadmap.md#trello)), and it uses API keys, not the
+Trello connector. It keeps the plan the source of truth and uses Trello as the place you drag things:
 - a task with no card gets one in the matching list;
 - a card you moved to another list moves its task (Trello wins on column only);
 - a task you moved in the plan (`plan -Do move`) moves its card. Each task records the list its card was in at the last
@@ -123,7 +125,7 @@ judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judgi
 1. the first time, it drafts the GDD from the code and confirms it with you section by section;
 2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`;
 3. it adds a plan task (`plan -Do add -Feature F3`) for each feature that is not proven;
-4. through the Trello connector, it creates and moves cards. A card you moved since the last run keeps your column: each task
+4. through the Trello connector (experimental), it creates and moves cards. A card you moved since the last run keeps your column: each task
    records the list its card was in (`plan -Do link -Column`), so a card that is somewhere else was moved by you;
 5. it ends with the three best next tasks to pick from.
 

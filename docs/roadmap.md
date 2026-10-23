@@ -65,7 +65,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 
 | # | Note | What to do |
 |---|---|---|
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental; the live run and the bugs are under [Trello](#trello) |
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |

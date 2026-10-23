@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Trello sync is marked experimental** wherever it is described (README, `docs/plan.md`, `docs/reference.md`,
+  `docs/json.md`, the skills): it has met only a stand-in Trello, and it uses API keys, not the Trello connector.
 - **The Stop hook says what it checks.** The README, `docs/reference.md`, the hook, the plugin's description and
   `godot-verify-before-done` say plainly that it only checks that the tests passed after the last edit; it is not a design
   or code review.

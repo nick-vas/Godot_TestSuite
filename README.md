@@ -37,7 +37,7 @@ what to build next. Hyperdot supplies both.
 | | |
 |---|---|
 | **Verify** | One script detects the project, installs the right Godot, runs every test framework, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**. |
-| **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror. |
+| **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror (experimental). |
 | **Measure** | Frame-pacing benchmarks, real screenshots and loudness checks, so an agent judges performance, layout and sound, not just logic. |
 | **Teach** | `AGENTS.md` and 50 skills that make the agent work test first and prove it is done before it says so. |
 | **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. The hook checks only that; it does not judge the design or the code. |
@@ -177,7 +177,7 @@ separate, headless tool.
 | Capability | Command | Result |
 |---|---|---|
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
-| **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
+| **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror (experimental) |
 
 ### Improve the agent and the kit
 
@@ -223,7 +223,8 @@ Seven phases, each with gates: concept, prototype, vertical slice, production, a
 
 A phase past its timebox warns you to cut scope, never testing. Tasks live in `plan/plan.json` and move through
 Backlog, Design, To Do, Doing, Verify and Done; `move` refuses to put a task in Doing past the work-in-progress limit.
-`plan -Do sync -Board <id>` mirrors tasks to a Trello board (needs `TRELLO_KEY` and `TRELLO_TOKEN`). Where the plan comes
+`plan -Do sync -Board <id>` mirrors tasks to a Trello board (experimental: tested against a stand-in only; needs `TRELLO_KEY`
+and `TRELLO_TOKEN`). Where the plan comes
 from, and the Trello rules: [docs/plan.md](docs/plan.md).
 
 ## GitHub
