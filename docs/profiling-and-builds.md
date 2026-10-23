@@ -199,7 +199,7 @@ a temporary file deleted in an `always()` step, and passes no secret as a logged
 
 - `bench` places each frame by camera position and reports the slowest places (`hotspots`), and the skill budgets per
   area; from a Halo 4 talk, see [gdc/halo-4-content-performance.md](gdc/halo-4-content-performance.md).
-- `export -GameVersion` (`Invoke-Export` in `ci/godot/hypedot.ps1`) takes a tag such as `v1.2.3-rc.1`; anything not
+- `export -GameVersion` (`Invoke-Export` in `ci/godot/hyperdot.ps1`) takes a tag such as `v1.2.3-rc.1`; anything not
   starting with up to four dot-separated numbers fails with `invalid-arguments`. It writes the numbers (`1.2.3`) to
   `config/version` in `project.godot` for the export, sets `Version` and `InformationalVersion` (`1.2.3-rc.1`) in the
   environment, adds `gameVersion` to the JSON, and restores `project.godot` and the environment

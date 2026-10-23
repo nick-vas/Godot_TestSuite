@@ -5,12 +5,12 @@ description: Use when adding, changing or fixing behaviour in a Godot 4.x projec
 
 # Test-first loop for Godot
 
-Run everything through `hypedot.ps1` (PowerShell 7). It detects the project, installs the right Godot, builds,
+Run everything through `hyperdot.ps1` (PowerShell 7). It detects the project, installs the right Godot, builds,
 and runs every test framework the project uses. Always pass `-Json -Quiet`: stdout is one parseable document and Godot's
 own output goes to a log file instead of your context. Where the path below is not filled in, AGENTS.md has it.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet   # failures come with file, line and message; the full log is the file "log" names
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet   # failures come with file, line and message; the full log is the file "log" names
 ```
 
 ## The loop
@@ -53,7 +53,7 @@ Keep engine-free logic in plain classes so most tests need no Godot at all.
 ```
 GUT: v9.7.1 for Godot 4.7 (v9.6.1 for 4.6, v9.5.0 for 4.5, v9.4.0 for 4.4). GUT releases are tied to one Godot
 minor; the kit installs the matching one and keeps it in step when you upgrade Godot. An `addons/gut` you
-committed yourself (no `.hypedot-version` file) is never touched.
+committed yourself (no `.hyperdot-version` file) is never touched.
 
 ### Setup notes
 
@@ -62,7 +62,7 @@ committed yourself (no `.hypedot-version` file) is never touched.
 - **GoDotTest**: needs a small scene whose script calls `GoTest.RunTests(...)`; the kit finds it and runs
   `--run-tests --quit-on-finish`.
 - **GUT**: `test_*.gd` extending `GutTest`; a `.gutconfig.json` overrides folders and prefix.
-- Run `hypedot.ps1 init` to add a starter test with release-safe packaging.
+- Run `hyperdot.ps1 init` to add a starter test with release-safe packaging.
 - Coverage: tests inside the engine (`[RequireGodotRuntime]`) are invisible to coverlet's `dotnet` collector. Use
   GoDotTest for in-engine coverage, or accept dotnet-side coverage as a floor on the pure logic.
 
@@ -95,7 +95,7 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
 ## Rules
 
 - A run with zero tests fails on purpose. Do not "fix" that by lowering expectations; wire the framework.
-- Godot exits 0 after printing `ERROR:`. The kit scans for it; `HYPEDOT_IGNORE_ERRORS` (a regex) is for
+- Godot exits 0 after printing `ERROR:`. The kit scans for it; `HYPERDOT_IGNORE_ERRORS` (a regex) is for
   a known engine message only, never for your own errors.
 - Never skip, delete or loosen a test to get green. Fix the code or ask.
 - New bug -> first a regression test that fails, then the fix.

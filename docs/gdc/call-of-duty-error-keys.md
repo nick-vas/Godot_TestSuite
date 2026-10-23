@@ -41,8 +41,8 @@
   `Get-GodotErrorDetails` reads those lines too; `engineErrors[]` items gain `key` and, more often than before, `file`
   and `line`. A crash (`Program crashed with signal 11`) and a program stopped at the time limit are keys too
   (`Get-RunErrorKeys`).
-- Every history line (`.godot/hypedot-history.jsonl`) records `commit` and `errorKeys`, from the run log
-  (`hypedot.log`) and from soak's process logs (`Add-RunHistory`, `Set-EngineErrors`).
+- Every history line (`.godot/hyperdot-history.jsonl`) records `commit` and `errorKeys`, from the run log
+  (`hyperdot.log`) and from soak's process logs (`Add-RunHistory`, `Set-EngineErrors`).
 - Buckets: `status -Json` has `recurringErrors[]` (`Get-RecurringErrors` in `ci/godot/lib/Report.ps1`): per key the
   count, the failed runs, the first and last time and commit it was seen, and the commands. A warning names any error
   the latest failed run shares with runs at an earlier commit (`Get-OlderErrors`): it predates the change under test.

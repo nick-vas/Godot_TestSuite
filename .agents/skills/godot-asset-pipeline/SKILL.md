@@ -129,7 +129,7 @@ Credits are generated from `assets.json`, never typed by hand, so they stay comp
 here come from the licence texts themselves; not legal advice. Sources: `${CLAUDE_PLUGIN_ROOT}/docs/store-and-legal.md`.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 credits -Json -Quiet   # CREDITS.md, credits.json, THIRD-PARTY-NOTICES.txt in the project
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 credits -Json -Quiet   # CREDITS.md, credits.json, THIRD-PARTY-NOTICES.txt in the project
 ```
 
 ```json

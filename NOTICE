@@ -1,11 +1,11 @@
-Hypedot
-Copyright 2026 nick-vas (https://github.com/nick-vas/hypedot)
+Hyperdot
+Copyright 2026 nick-vas (https://github.com/nick-vas/hyperdot)
 
 This product is licensed under the Apache License, Version 2.0 (LICENSE). Redistributions, modified or not, must keep
 this NOTICE file, or its text, with the copy.
 
 Files a game receives
-  ci/godot/templates/ and the starter tests that `hypedot.ps1 init` writes into a game are licensed under MIT No
+  ci/godot/templates/ and the starter tests that `hyperdot.ps1 init` writes into a game are licensed under MIT No
   Attribution (ci/godot/templates/LICENSE.md): a game may use them without credit. The exceptions in that folder are
   listed below.
 

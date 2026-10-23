@@ -30,7 +30,7 @@
 
 ## What the kit took
 
-- `shot -ColorVision protan,deutan,tritan` (`ci/godot/tools/shot.gd`, `ci/godot/lib/Measure.ps1`, `ci/godot/hypedot.ps1`):
+- `shot -ColorVision protan,deutan,tritan` (`ci/godot/tools/shot.gd`, `ci/godot/lib/Measure.ps1`, `ci/godot/hyperdot.ps1`):
   every screenshot is also saved as `<name>.protan.png`, `.deutan.png`, `.tritan.png`, listed in `shots[].colorVision`
   (`docs/json.md`). The model is Machado, Oliveira and Fernandes (2009), severity 1.0, applied in linear RGB: sRGB decode,
   matrix, clamp, encode. The matrices are the authors' published table; their page (inf.ufrgs.br/~oliveira) could not be

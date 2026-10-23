@@ -89,7 +89,7 @@ $work = Join-Path ([IO.Path]::GetTempPath()) "steam-$([guid]::NewGuid().ToString
 try {
     Copy-Item -Recurse $fixture $work
     Set-Content (Join-Path $work 'project.godot') "config_version=5`n[application]`nconfig/name=`"Steam`""
-    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') doctor -Json -Project $work 2>$null | ConvertFrom-Json
+    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $work 2>$null | ConvertFrom-Json
     $messages = @($d.checks | ForEach-Object { "$($_.status) $($_.message)" })
     Assert-True (-not $d.ok -and $d.error.code -eq 'doctor-problems') 'doctor fails on the fixture''s Steamworks mistakes'
     Assert-True (@($messages | Where-Object { $_ -match "^FAIL The code uses the achievement 'ACH_FRIST_FLOOR'" }).Count -eq 1) 'doctor names the misspelt achievement'

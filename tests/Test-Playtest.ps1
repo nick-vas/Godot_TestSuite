@@ -8,7 +8,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 Add-Type -AssemblyName System.IO.Compression   # ZLibStream, for the screenshot written and the maps read here
-$ci =Join-Path $root 'ci/godot/hypedot.ps1'
+$ci =Join-Path $root 'ci/godot/hyperdot.ps1'
 $fixture = Join-Path $root 'tests/playtest-fixture'
 $failures = [System.Collections.Generic.List[string]]::new()
 $work = Join-Path ([System.IO.Path]::GetTempPath()) "playtest-$([guid]::NewGuid().ToString('n').Substring(0, 8))"

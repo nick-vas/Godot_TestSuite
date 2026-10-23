@@ -36,7 +36,7 @@
 
 ## What the kit took
 
-- `test -Retry <n>` (0 to 5, default 0) in `ci/godot/hypedot.ps1`. A runner that failed is run again, up to n times.
+- `test -Retry <n>` (0 to 5, default 0) in `ci/godot/hyperdot.ps1`. A runner that failed is run again, up to n times.
   Any test that failed in an earlier attempt but passed in the last one is **flaky**. The run passes, but every flaky
   test is listed in `flaky[]`, in the runner's entry, in `summary.md`, in the console ("FLAKY ...") and in the history
   line. The talk had green builds keep that record; here an agent cannot miss it either. Code:

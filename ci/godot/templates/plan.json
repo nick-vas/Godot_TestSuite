@@ -62,7 +62,7 @@
       "gates": [
         {
           "id": "prototype.setup",
-          "text": "Project builds and the kit is wired in (hypedot init)",
+          "text": "Project builds and the kit is wired in (hyperdot init)",
           "check": "ci"
         },
         {
@@ -100,12 +100,12 @@
       "gates": [
         {
           "id": "slice.tests",
-          "text": "A test framework is chosen and tests run in CI (hypedot detect lists a test runner)",
+          "text": "A test framework is chosen and tests run in CI (hyperdot detect lists a test runner)",
           "check": "tests"
         },
         {
           "id": "slice.export",
-          "text": "An export preset exists and hypedot export -Run passes",
+          "text": "An export preset exists and hyperdot export -Run passes",
           "check": "preset"
         },
         {
@@ -120,7 +120,7 @@
         },
         {
           "id": "slice.screens",
-          "text": "Every screen screenshotted at the target resolution and one other aspect ratio, and reviewed (hypedot.ps1 shot)",
+          "text": "Every screen screenshotted at the target resolution and one other aspect ratio, and reviewed (hyperdot.ps1 shot)",
           "check": "manual"
         },
         {
@@ -135,7 +135,7 @@
         },
         {
           "id": "slice.budget",
-          "text": "Frame budget met on the busiest slice scene filled as the finished game will be (draw distance, level of detail, crowds, effects), not on showcase assets: hypedot.ps1 bench -Scene <that scene> -BudgetMs <budget> passes",
+          "text": "Frame budget met on the busiest slice scene filled as the finished game will be (draw distance, level of detail, crowds, effects), not on showcase assets: hyperdot.ps1 bench -Scene <that scene> -BudgetMs <budget> passes",
           "check": "manual"
         },
         {
@@ -206,7 +206,7 @@
         },
         {
           "id": "beta.perf",
-          "text": "Worst case benchmarked (hypedot.ps1 bench): p99 within budget with V-Sync on and off, at the target resolution, zero GC collections in the frame loop; also checked on minimum-spec hardware",
+          "text": "Worst case benchmarked (hyperdot.ps1 bench): p99 within budget with V-Sync on and off, at the target resolution, zero GC collections in the frame loop; also checked on minimum-spec hardware",
           "check": "manual"
         },
         {

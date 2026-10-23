@@ -6,7 +6,7 @@ description: Use when exporting, launching an exported build, or releasing a God
 # Export and release
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 export -Json -Quiet -Preset Windows -Run   # export, then launch it headless and fail on errors
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 export -Json -Quiet -Preset Windows -Run   # export, then launch it headless and fail on errors
 ```
 `export` builds first (so it fails on a broken project), downloads export templates once (about 1 GB), exports each
 preset to `build/<preset>/`, and with `-Run` launches the result for `-Frames` frames on a machine that can run
@@ -31,7 +31,7 @@ holding the game's assembly.
 ## Versions
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 export -Json -Quiet -Preset Windows -GameVersion v1.2.3-rc.1
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 export -Json -Quiet -Preset Windows -GameVersion v1.2.3-rc.1
 ```
 - `-GameVersion` puts the numbers (`1.2.3`) in `application/config/version` for that export only, which becomes the
   Windows file version and the macOS and Android versions (where the preset leaves its own version fields empty), and all of it in the C# assembly's InformationalVersion
@@ -63,7 +63,7 @@ on: { push: { tags: ['v*'] } }
 jobs:
   release:
     permissions: { contents: write }
-    uses: nick-vas/hypedot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
     with: { exports: Windows, run-exports: true, release: true }
 ```
 Tests run first; each preset is exported, launched on a runner of its own OS, zipped as

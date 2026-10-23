@@ -23,7 +23,7 @@ lower Godot version. Pick godot-ai for its tool breadth or if you already use it
 ## Install
 
 ```powershell
-pwsh ci/godot/hypedot.ps1 init -Agents -Mcp godot-mcp     # adds godot-mcp to .mcp.json; existing servers are kept
+pwsh ci/godot/hyperdot.ps1 init -Agents -Mcp godot-mcp     # adds godot-mcp to .mcp.json; existing servers are kept
 ```
 `init` never edits an existing server entry and backs up `.mcp.json` as `.mcp.json.bak` before adding one. It then prints the steps it
 does not run: install the addon (`npx @satelliteoflove/godot-mcp --install-addon <project>`), enable it under
@@ -35,7 +35,7 @@ Project Settings > Plugins, restart the agent. `-Mcp godot-ai` prints the manual
 It talks to the editor's built-in language server and debug adapter, so it needs no addon, only the editor open on the project.
 
 ```powershell
-pwsh ci/godot/hypedot.ps1 init -Mcp godot-mcp -McpDiagnostics     # both; -McpDiagnostics also works on its own
+pwsh ci/godot/hyperdot.ps1 init -Mcp godot-mcp -McpDiagnostics     # both; -McpDiagnostics also works on its own
 ```
 
 | Tool | Does |
@@ -57,7 +57,7 @@ tags, sprite sheets, and `view_sprite`, which shows the agent its own picture zo
 mode (`--batch --script`), so Aseprite needs no window and no plugin.
 
 ```powershell
-pwsh ci/godot/hypedot.ps1 init -McpAseprite "C:\Program Files\Aseprite"     # or the path to Aseprite.exe; Steam's is ...\steamapps\common\Aseprite
+pwsh ci/godot/hyperdot.ps1 init -McpAseprite "C:\Program Files\Aseprite"     # or the path to Aseprite.exe; Steam's is ...\steamapps\common\Aseprite
 ```
 
 `init` finds `Aseprite.exe` (or `aseprite`, or the binary inside `Aseprite.app`), stops with `aseprite-not-found` when there is none,

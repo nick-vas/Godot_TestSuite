@@ -106,7 +106,7 @@ stays where the pivot put it. A tested trauma and noise core:
    window, or never happened at all (the bot did not reach it).
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners juice
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners juice
 ```
 
 How it looks is a different question: screenshots and the style guide are `/look`.

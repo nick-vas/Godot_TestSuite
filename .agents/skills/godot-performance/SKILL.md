@@ -12,8 +12,8 @@ per-frame times, the slowest frames, and when and where they happen. Sources for
 ## Measure
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 bench -Json -Quiet -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -Warmup 5 -Uncapped -Label "uncapped 1080p" -Resolution 1920x1080
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 bench -Json -Quiet -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -MaxFps 60 -BudgetMs 16.7 -Label "60 cap"
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 bench -Json -Quiet -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -Warmup 5 -Uncapped -Label "uncapped 1080p" -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 bench -Json -Quiet -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -MaxFps 60 -BudgetMs 16.7 -Label "60 cap"
 ```
 
 `bench` records the wall-clock time of every frame after a warm-up and returns `fps.low1`/`fps.low01` (1% and 0.1% lows),
@@ -46,7 +46,7 @@ with the milliseconds over and several ways to win them back: the owner picks wh
 ## Where it is slow
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 bench -Json -Quiet -Scene res://levels/Canyon.tscn -GameArgs '--autoplay' -Seconds 120 -HotspotCell 20
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 bench -Json -Quiet -Scene res://levels/Canyon.tscn -GameArgs '--autoplay' -Seconds 120 -HotspotCell 20
 ```
 
 A level's frame times say that it is slow, not where; without a place, optimising means wandering the level. `bench` pairs

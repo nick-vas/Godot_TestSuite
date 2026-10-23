@@ -163,7 +163,7 @@ try {
     Set-Content (Join-Path $project 'telemetry.cs') "class T { TelemetryClient Client; }"
     Copy-Item -Recurse $thin (Join-Path $project 'store/press')
     Set-Content (Join-Path $project 'store/press/fact_sheet.txt') 'Brickfall, a roguelike breakout. Out on Steam.'
-    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') doctor -Json -Project $project 2>$null | ConvertFrom-Json
+    $d = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $project 2>$null | ConvertFrom-Json
     $messages = @($d.checks | ForEach-Object { "$($_.status) $($_.message)" })
     Assert-True (@($messages | Where-Object { $_ -match '^WARN store/ has no \.gdignore' }).Count -eq 1) 'doctor warns that Godot would import the store art'
     Assert-True (@($messages | Where-Object { $_ -match '^FAIL Steam store art: header_capsule must be 920x430, is 460x215' }).Count -eq 1) 'doctor fails an old capsule size'

@@ -42,7 +42,7 @@ CLI's raw JSON. `-Json` prints `summary.json` on stdout.
   (each must appear, ignoring case), `forbid`, `maxWords`. A task passes when the session ends without an error and
   the answer meets `expected`.
 
-The tasks name real files and expect answers grounded in them (`HYPEDOT_TIMEOUT`, `process_frame`, `Stop-GodotCi`), so
+The tasks name real files and expect answers grounded in them (`HYPERDOT_TIMEOUT`, `process_frame`, `Stop-GodotCi`), so
 a vague answer fails instead of passing on generic words.
 
 ## What every session is

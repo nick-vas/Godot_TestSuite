@@ -30,7 +30,7 @@ $maxBytes = 16KB; $warnBytes = 15.5KB
 $agentsTemplateMaxBytes = 4KB
 
 # --- Ground truth the skills are checked against ---------------------------------------------------------
-$entry = Join-Path $Root 'ci/godot/hypedot.ps1'
+$entry = Join-Path $Root 'ci/godot/hyperdot.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($entry, [ref]$null, [ref]$null)
 $params = @{}
 foreach ($p in $ast.ParamBlock.Parameters) {
@@ -50,16 +50,16 @@ function Add-Finding([string]$Level, [string]$Skill, [string]$Rule, [string]$Mes
     $findings.Add([pscustomobject]@{ Level = $Level; Skill = $Skill; Rule = $Rule; Message = $Message })
 }
 
-# Every hypedot.ps1 invocation must use a real command, real parameters and real values. $Where names a side file.
+# Every hyperdot.ps1 invocation must use a real command, real parameters and real values. $Where names a side file.
 function Test-Invocations([string]$Name, [string]$Text, [string]$Where = '') {
     $at = $Where ? "${Where}: " : ''
     $code = (@([regex]::Matches($Text, '(?s)```.*?```') | ForEach-Object Value) + @([regex]::Matches($Text, '`[^`\r\n]+`') | ForEach-Object Value)) -join "`n"
-    foreach ($m in [regex]::Matches($code, '(?m)hypedot\.ps1\s+(?<args>[^\r\n#`]*)')) {
+    foreach ($m in [regex]::Matches($code, '(?m)hyperdot\.ps1\s+(?<args>[^\r\n#`]*)')) {
         $argv = $m.Groups['args'].Value
         $first = [regex]::Match($argv, '^(?<c>[a-z]+)\b').Groups['c'].Value
-        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "${at}hypedot.ps1 has no command '$first' (has: $($commands -join ', '))" }
+        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "${at}hyperdot.ps1 has no command '$first' (has: $($commands -join ', '))" }
         foreach ($p in [regex]::Matches($argv, '(?<![\w-])-(?<p>[A-Za-z]+)\b')) {
-            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "${at}hypedot.ps1 has no parameter -$($p.Groups['p'].Value)" }
+            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "${at}hyperdot.ps1 has no parameter -$($p.Groups['p'].Value)" }
         }
         foreach ($set in 'Do', 'Runners', 'Column') {
             $v = [regex]::Match($argv, "-$set\s+(?<v>[A-Za-z0-9,|]+)").Groups['v'].Value

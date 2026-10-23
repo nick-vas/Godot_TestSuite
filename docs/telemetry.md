@@ -69,7 +69,7 @@ other event: analytics, recorded only after the player agrees, numbers and fixed
 - For a playtest build, a sink that writes each batch to a file (`user://playtest/<session>.json`) is enough; collect the
   files from the testers' machines into one folder.
 
-`hypedot.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
+`hyperdot.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
 line) and writes `playtest-results/`: per level, the median level time, deaths and stalls per session (sessions without
 any count as 0, so one tester stuck for ten minutes is not averaged away), the share of sessions that found each item, and
 one PNG heat map per level and event type, on a grid, alone or over a level screenshot that `playtest.json` places in the

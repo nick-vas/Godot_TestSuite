@@ -5,7 +5,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$kit = Join-Path $root 'ci/godot/hypedot.ps1'
+$kit = Join-Path $root 'ci/godot/hyperdot.ps1'
 $project = Join-Path $root 'examples/gdscript'
 $work = Join-Path ([System.IO.Path]::GetTempPath()) "scene-count-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
 New-Item -ItemType Directory -Force $work | Out-Null

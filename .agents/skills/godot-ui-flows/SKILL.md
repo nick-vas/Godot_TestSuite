@@ -10,8 +10,8 @@ actions, waits, and asserts on node properties. It fills the gap between unit te
 Any genre: it only needs nodes and the Input Map.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners flows                      # all flows
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners flows -Filter main_menu   # flows whose path contains the text
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners flows                      # all flows
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners flows -Filter main_menu   # flows whose path contains the text
 ```
 
 Put files anywhere outside `addons/`, named `*.flow.json` (convention: `test/flows/`). `detect` lists `flows` once one exists.

@@ -12,7 +12,7 @@ function Assert-True([bool]$Condition, [string]$Name) {
 
 foreach ($lib in 'Common', 'Context') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 
-# The kit holds itself to the rule: every hypedot.ps1 call in the template, the skills and the docs binds.
+# The kit holds itself to the rule: every hyperdot.ps1 call in the template, the skills and the docs binds.
 $sources = @(Get-Item (Join-Path $root 'ci/godot/templates/AGENTS.md')) + @(Get-ChildItem (Join-Path $root '.agents/skills') -Recurse -Filter 'SKILL.md') +
     @(Get-ChildItem (Join-Path $root 'docs') -Filter '*.md') + @(Get-ChildItem (Join-Path $root 'agents') -Filter '*.md') + @(Get-Item (Join-Path $root 'README.md'))
 $kitProblems = @(foreach ($file in $sources) {
@@ -38,7 +38,7 @@ try {
     Set-Content -LiteralPath (Join-Path $dir 'scripts/player.gd') 'extends Node'
     Set-Content -LiteralPath (Join-Path $dir 'scenes/Main.tscn') '[gd_scene format=3]'
     & git -C $dir init -q
-    $template = (Get-Content -LiteralPath (Join-Path $root 'ci/godot/templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', 'tools/kit/ci/godot/hypedot.ps1'
+    $template = (Get-Content -LiteralPath (Join-Path $root 'ci/godot/templates/AGENTS.md') -Raw) -replace '\{\{SUITE\}\}', 'tools/kit/ci/godot/hyperdot.ps1'
     Set-Content -LiteralPath (Join-Path $dir 'AGENTS.md') $template
     Set-Content -LiteralPath (Join-Path $dir 'CLAUDE.md') '@AGENTS.md'
 
@@ -49,9 +49,9 @@ try {
 
     Add-Content -LiteralPath (Join-Path $dir 'AGENTS.md') @(
         '', '## This game',
-        '- Quick check: `pwsh tools/kit/ci/godot/hypedot.ps1 test -Json -Quite`',
-        '- Perf: `pwsh tools/kit/ci/godot/hypedot.ps1 benchmark -Json`',
-        '- Only GUT: `pwsh tools/kit/ci/godot/hypedot.ps1 test -Runn gut -Json`',
+        '- Quick check: `pwsh tools/kit/ci/godot/hyperdot.ps1 test -Json -Quite`',
+        '- Perf: `pwsh tools/kit/ci/godot/hyperdot.ps1 benchmark -Json`',
+        '- Only GUT: `pwsh tools/kit/ci/godot/hyperdot.ps1 test -Runn gut -Json`',
         '- The player is `scripts/player.gd`; enemies think in `scripts/enemies/brain.gd`.',
         '- The first level is res://scenes/Main.tscn; the old hub res://scenes/Hub.tscn was cut.',
         '- Tests live in `test/*.gd`; see https://example.com/a/b.html.'
@@ -74,7 +74,7 @@ try {
     Assert-True (@($broken | Where-Object Status -eq 'FAIL').Count -eq 0) 'instruction problems never fail doctor'
 
     # End to end: doctor shows them.
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
     $messages = @($json.checks | ForEach-Object message) -join "`n"
     Assert-True ($messages -match 'commands or flags it does not have' -and $messages -match 'name files that do not exist') 'doctor reports them'
 } finally {

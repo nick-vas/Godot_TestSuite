@@ -5,7 +5,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Layout
 
-- `ci/godot/hypedot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest`, all with `-Json`.
+- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest`, all with `-Json`.
 - `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
@@ -36,7 +36,7 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   stdout and breaks `-Json`.
 - The `.gdignore` files at the repository root and in `ci/godot/` keep the kit out of a game it is placed inside (Godot neither
   imports nor exports it, and `Find-ProjectFiles` skips folders that have one). Do not remove them.
-- Verify with the examples: `pwsh ci/godot/hypedot.ps1 test -Project examples/csharp/game` and `-Project examples/gdscript`
+- Verify with the examples: `pwsh ci/godot/hyperdot.ps1 test -Project examples/csharp/game` and `-Project examples/gdscript`
   must be green, and `doctor` green on both. The examples have no plan, so `plan` on them gives `no-plan` as expected; check
   `plan` the way the Plan step of `.github/workflows/self-test.yml` does: copy `examples/gdscript` to a temporary folder,
   `git init` it, run `plan -Do init -Project <copy>`, then `plan -Json -Project <copy>` (phase `concept`, at least one next
@@ -103,7 +103,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
-| `Test-OldState.ps1` | the one-time move of state from the names before Hypedot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
+| `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting and retries (a stand-in CLI) | - |
 
 ## Targets

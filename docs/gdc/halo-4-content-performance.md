@@ -36,7 +36,7 @@
 - `ci/godot/tools/bench.gd`: each frame time is paired with the root viewport's camera (`Camera3D` position, or the
   screen centre under a `Camera2D`). New result fields `camera`, `hotspotCell`, `hotspots[]` (the 10 grid cells with the
   worst p99: `centre`, `frames`, `p99Ms`, `maxMs`) and `pos` on each `hitches[]` entry. No camera: `camera` is `none`,
-  no hotspots, and the log says so. `-HotspotCell` (`ci/godot/hypedot.ps1`, `ci/godot/lib/Measure.ps1`) sets the cell;
+  no hotspots, and the log says so. `-HotspotCell` (`ci/godot/hyperdot.ps1`, `ci/godot/lib/Measure.ps1`) sets the cell;
   0 means 10 m in 3D and 512 px in 2D. Documented in `docs/json.md` and `docs/reference.md`.
 - `tests/bench-fixture` (a camera flying at a constant 5 m/s, or 100 px/s in 2D, with 25 ms of `OS.delay_usec` per
   frame while x is in [40, 60], or 400 to 600 px) and `tests/Test-BenchHotspots.ps1`, run in the self-test workflow's

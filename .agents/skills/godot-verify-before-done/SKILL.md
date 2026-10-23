@@ -17,7 +17,7 @@ after the last passing `test` run, unless you say why the tests could not run.
 
 ## The gate
 
-1. **Run** the full suite, not the one test you were iterating on: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet`
+1. **Run** the full suite, not the one test you were iterating on: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet`
 2. **Read** `ok`, `error.code` and every `runnerResults[]` entry. `ok: false` is not done, whatever else is true.
 3. **Check what ran.** `detect -Json` lists `runners`; the runner that covers your change must be in `runnerResults` with `total > 0`.
    A UI or scene change needs `validate` and `flows`/`smoke`, not only unit tests.

@@ -1,16 +1,16 @@
 #Requires -Version 7.2
 # Stop hook: Claude may not end its turn while the game's code or scenes changed after the last passing test run.
-# It reads the project's run history (.godot/hypedot-history.jsonl, written by hypedot.ps1) and the changed files git
+# It reads the project's run history (.godot/hyperdot-history.jsonl, written by hyperdot.ps1) and the changed files git
 # reports. Each set of changes is blocked once: if Claude stops again without a new test run, it is let through, because
 # it was told and must now explain why the tests were not run (no Godot on this machine, for example). That keeps the
-# gate from looping. Set HYPEDOT_STOP_GATE=off to disable it.
+# gate from looping. Set HYPERDOT_STOP_GATE=off to disable it.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 
 function Exit-Allow { exit 0 }
 
 try {
-    if ($env:HYPEDOT_STOP_GATE -eq 'off') { Exit-Allow }
+    if ($env:HYPERDOT_STOP_GATE -eq 'off') { Exit-Allow }
     $hookInput = [Console]::In.ReadToEnd() | ConvertFrom-Json -AsHashtable
     $cwd = if ($hookInput -and $hookInput['cwd']) { $hookInput['cwd'] } else { $PWD.Path }
     # A folder with .gdignore is not a game (this kit's own repository has one at its root).
@@ -49,8 +49,8 @@ try {
     if ($files.Count -eq 0) { Exit-Allow }
     $newest = ($files | ForEach-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc } | Measure-Object -Maximum).Maximum
 
-    $history = Join-Path $projectDir '.godot/hypedot-history.jsonl'
-    # The history from before the Hypedot rename, moved once (the kit does the same on its next run).
+    $history = Join-Path $projectDir '.godot/hyperdot-history.jsonl'
+    # The history from before the Hyperdot rename, moved once (the kit does the same on its next run).
     $oldHistory = Join-Path $projectDir '.godot/godot-ci-history.jsonl'
     if (-not (Test-Path -LiteralPath $history) -and (Test-Path -LiteralPath $oldHistory)) { Move-Item -LiteralPath $oldHistory -Destination $history }
     $tests = @(if (Test-Path -LiteralPath $history) {
@@ -64,13 +64,13 @@ try {
     if ($hookInput['stop_hook_active'] -and $lastRun.Count -gt 0 -and ([datetime]$lastRun[0].time).ToUniversalTime() -ge $newest) { Exit-Allow }
 
     # Block each set of changes once.
-    $state = Join-Path $projectDir '.godot/hypedot-stop-gate'
+    $state = Join-Path $projectDir '.godot/hyperdot-stop-gate'
     $stamp = "$($newest.Ticks)"
     if ((Test-Path -LiteralPath $state) -and (Get-Content -LiteralPath $state -Raw).Trim() -eq $stamp) { Exit-Allow }
     New-Item -ItemType Directory -Force (Split-Path $state) | Out-Null
     Set-Content -LiteralPath $state -Value $stamp -NoNewline
 
-    $kit = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../ci/godot/hypedot.ps1')) -replace '\\', '/'
+    $kit = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1')) -replace '\\', '/'
     $projectArg = if ($projectDir -ne $cwd) { " -Project `"$($projectDir -replace '\\', '/')`"" } else { '' }
     $shown = @($files | Select-Object -First 5 | ForEach-Object { [System.IO.Path]::GetRelativePath($cwd, $_) -replace '\\', '/' })
     $more = if ($files.Count -gt 5) { " and $($files.Count - 5) more" } else { '' }

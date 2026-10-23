@@ -27,7 +27,7 @@ They are complementary, which makes them a good cross-check: one catches a malfo
 - Pressure testing a discipline skill: below.
 
 **Ours, because skills here are tied to a real CLI** - `ci/godot/tools/Test-Skills.ps1` also checks that:
-- every `hypedot.ps1` command, `-Parameter` and `-Runners`/`-Do`/`-Column` value in a skill, and in the side files in its folder,
+- every `hyperdot.ps1` command, `-Parameter` and `-Runners`/`-Do`/`-Column` value in a skill, and in the side files in its folder,
   exists in the script's own parameter block;
 - every error code in a skill table is documented in `docs/json.md`;
 - every package version and the Godot SDK version quoted in a skill match `examples/csharp`, which CI runs.

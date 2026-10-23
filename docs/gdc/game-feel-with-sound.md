@@ -38,7 +38,7 @@
 
 - `ci/godot/lib/Audio.ps1`: `Measure-Onset` gives each file an `onsetMs`, the start of the first 10 ms window whose RMS
   level (ffmpeg's `astats`, reset every window, on a mono 48 kHz copy) comes within 10 dB of the file's loudest window.
-  An `sfx` or `ui` file over 20 ms gets a warning; `-MaxOnsetMs` (`ci/godot/hypedot.ps1`) changes the bound. The talk's
+  An `sfx` or `ui` file over 20 ms gets a warning; `-MaxOnsetMs` (`ci/godot/hyperdot.ps1`) changes the bound. The talk's
   5 to 20 ms is the length of the impact, not a delay limit: the 20 ms bound is the kit's choice informed by it.
 - Why 10 dB and not 20: a linear fade-in reaches -20 dB after a tenth of its length, so a 150 ms fade measured 20 ms and
   passed; at 10 dB it measures 60 ms (in theory 47 ms; the noise's window-to-window spread adds a little).

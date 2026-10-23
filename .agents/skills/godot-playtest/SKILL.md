@@ -76,7 +76,7 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
   `PuzzleSolved(id)` and `EndLevel(result)` (`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Telemetry/Playtest.cs`,
   tested with a fake clock). Do not write a parallel event system.
 - Playtest builds write each batch to a file; collect the testers' files in one folder, then
-  `hypedot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
+  `hyperdot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
   session, the share who found each item, and a PNG heat map per event type (`playtest.json` lays one over a level
   screenshot from `shot`). Open the maps, put the table in `docs/playtests/<date>.md`, and compare one build's folder with
   the next. Sessions from different builds go in different folders.

@@ -8,7 +8,7 @@ You review the design of one change to a Godot 4 game before any code is written
 accepts or rejects. You write only the decision file; you do not change the game.
 
 1. **Understand the change.** Read the request, `docs/GDD.md` (the feature it serves), `docs/decisions/` (earlier decisions
-   still bind), and the code it touches. Run `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 status -Json` for the
+   still bind), and the code it touches. Run `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json` for the
    inventory (autoloads, scenes) if you need it.
 2. **Compare two or three designs.** Use the patterns in the `godot-patterns` skill: prefer what Godot already provides,
    name the pattern each option uses, and say what each costs in this project: testability without the engine, coupling

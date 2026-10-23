@@ -239,7 +239,7 @@ no `APPLICATION_PAUSED`. Its next frame had a delta of 0.134 s against 3.013 s o
   problems is named and nothing else, the depot that excludes `steam_appid.txt` passes, and doctor fails on a copy of
   the fixture.
 - **`SteamAppId=480`**: `Test-UsesSteam` (`ci/godot/lib/Detect.ps1`) is true when the project has `addons/godotsteam` or
-  a `.csproj` that references `Steamworks.NET*`, `Facepunch.Steamworks*` or `GodotSteam*`. `ci/godot/hypedot.ps1` then
+  a `.csproj` that references `Steamworks.NET*`, `Facepunch.Steamworks*` or `GodotSteam*`. `ci/godot/hyperdot.ps1` then
   sets `SteamAppId=480` for every command, unless `SteamAppId` is already set, so a relaunch through Steam cannot end a
   smoke or `export -Run` early.
 - **The C# example's `Platform/`** (`examples/csharp/src/Example.Core/Platform/`): `IPlatformServices` (achievements, an

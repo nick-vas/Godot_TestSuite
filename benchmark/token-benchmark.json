@@ -1,5 +1,5 @@
 {
-  "name": "hypedot token consumption benchmark",
+  "name": "hyperdot token consumption benchmark",
   "description": "Tokens, cost and time an agent spends on typical questions and changes in this repository, under three ways of working.",
   "model": "sonnet",
   "timeoutSeconds": 300,
@@ -37,8 +37,8 @@
       "category": "comprehension",
       "title": "Explain the PowerShell test orchestration flow",
       "prompt": "Explain the end-to-end flow of `test` in this repository: the entry script, how the project and runners are detected, how Godot is invoked for each runner, and what files a run produces. Under 220 words.",
-      "expected": { "mustInclude": ["hypedot.ps1", "Runners", "junit"], "maxWords": 240 },
-      "context": ["ci/godot/hypedot.ps1", "ci/godot/lib/Detect.ps1", "ci/godot/lib/Runners.ps1", "ci/godot/lib/Report.ps1", "docs/json.md"]
+      "expected": { "mustInclude": ["hyperdot.ps1", "Runners", "junit"], "maxWords": 240 },
+      "context": ["ci/godot/hyperdot.ps1", "ci/godot/lib/Detect.ps1", "ci/godot/lib/Runners.ps1", "ci/godot/lib/Report.ps1", "docs/json.md"]
     },
     {
       "id": "COMP-GD-001",
@@ -60,16 +60,16 @@
       "id": "CODE-PS-002",
       "category": "code_change",
       "title": "Strengthen parameter validation",
-      "prompt": "Propose a concise diff that strengthens validation of one parameter of ci/godot/hypedot.ps1 that is not validated today (for example with ValidateRange or ValidatePattern). Return only the diff.",
+      "prompt": "Propose a concise diff that strengthens validation of one parameter of ci/godot/hyperdot.ps1 that is not validated today (for example with ValidateRange or ValidatePattern). Return only the diff.",
       "expected": { "mustInclude": ["param", "Validate"], "maxWords": 260 },
-      "context": ["ci/godot/hypedot.ps1"]
+      "context": ["ci/godot/hyperdot.ps1"]
     },
     {
       "id": "DEBUG-PS-001",
       "category": "debugging",
       "title": "Diagnose hanging test runs",
       "prompt": "List the five most likely causes of a hanging test run in this repository's PowerShell orchestration, each with one concrete mitigation, naming the setting or code that already guards against it where one exists.",
-      "expected": { "mustInclude": ["mitigation", "HYPEDOT_TIMEOUT"], "maxWords": 260 },
+      "expected": { "mustInclude": ["mitigation", "HYPERDOT_TIMEOUT"], "maxWords": 260 },
       "context": ["ci/godot/lib/Common.ps1", "ci/godot/lib/Runners.ps1", "AGENTS.md", ".github/workflows/self-test.yml"]
     },
     {

@@ -38,13 +38,13 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const url = `http://127.0.0.1:${server.address().port}/`;
 
 // Headless Chromium draws WebGL 2 with SwiftShader when there is no GPU; Chrome 137+ wants this flag to keep doing so.
-// Headless Firefox on a GitHub runner (no GPU) reports WebGL 2 missing, even with webgl.force-enabled; HYPEDOT_WEB_HEADED=1
+// Headless Firefox on a GitHub runner (no GPU) reports WebGL 2 missing, even with webgl.force-enabled; HYPERDOT_WEB_HEADED=1
 // opens a window instead (on Linux, under a virtual display such as Xvfb).
 const engine = { chromium: 'chromium', chrome: 'chromium', msedge: 'chromium', firefox: 'firefox', webkit: 'webkit' }[browserName];
 if (!engine) { result.errors.push(`[setup] unknown browser ${browserName}`); server.close(); finish(2); }
 let browser;
 try {
-  browser = await playwright[engine].launch({ headless: process.env.HYPEDOT_WEB_HEADED !== '1',
+  browser = await playwright[engine].launch({ headless: process.env.HYPERDOT_WEB_HEADED !== '1',
     channel: ['chrome', 'msedge'].includes(browserName) ? browserName : undefined,
     args: engine === 'chromium' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [] });
 } catch (e) {

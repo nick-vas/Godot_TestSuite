@@ -6,7 +6,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$kit = Join-Path $root 'ci/godot/hypedot.ps1'
+$kit = Join-Path $root 'ci/godot/hyperdot.ps1'
 $fixture = Join-Path $PSScriptRoot 'capture-fixture'
 $work = Join-Path ([IO.Path]::GetTempPath()) "capture-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $failures = [System.Collections.Generic.List[string]]::new()

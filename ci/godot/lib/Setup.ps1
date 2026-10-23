@@ -178,7 +178,7 @@ function Install-GodotTools {
         Add-Content -LiteralPath $env:GITHUB_ENV -Value "GODOT_BIN=$($paths.Bin)"
         # Marks GODOT_BIN as ours, so a later step for another project picks its own Godot build instead
         # of treating this one as a Godot the user chose.
-        Add-Content -LiteralPath $env:GITHUB_ENV -Value 'HYPEDOT_INSTALLED=1'
+        Add-Content -LiteralPath $env:GITHUB_ENV -Value 'HYPERDOT_INSTALLED=1'
         if ($env:DOTNET_ROOT) {
             Add-Content -LiteralPath $env:GITHUB_ENV -Value "DOTNET_ROOT=$env:DOTNET_ROOT"
             Add-Content -LiteralPath $env:GITHUB_PATH -Value $env:DOTNET_ROOT
@@ -203,7 +203,7 @@ function Install-Addon([string]$ProjectDir, [string]$Spec) {
         default { Stop-GodotCi "Unknown addon '$name' (use owner/repo@ref:addons/<name>)" }
     }
     $dest = Join-Path $ProjectDir $addon
-    $stamp = Join-Path $dest '.hypedot-version'
+    $stamp = Join-Path $dest '.hyperdot-version'
     if ((Test-Path -LiteralPath $stamp) -and (Get-Content -LiteralPath $stamp -Raw).Trim() -eq "$repo@$ref") {
         Write-CiLog "$addon already at $repo@$ref"
         return

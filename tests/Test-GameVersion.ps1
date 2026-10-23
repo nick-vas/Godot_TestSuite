@@ -134,9 +134,9 @@ try {
     if ($code -ne 'invalid-arguments') { $failures += "a folder outside git: $code, expected invalid-arguments" }
 
     # Through the script: both stop before Godot is set up, and leave project.godot as it was.
-    $cli = Join-Path $root 'ci/godot/hypedot.ps1'
+    $cli = Join-Path $root 'ci/godot/hyperdot.ps1'
     $saved = @{}
-    foreach ($name in @('GODOT_BIN', 'HYPEDOT_INSTALLED', 'GODOT_TOOLS_DIR', 'EVAL_GODOT_BIN')) {
+    foreach ($name in @('GODOT_BIN', 'HYPERDOT_INSTALLED', 'GODOT_TOOLS_DIR', 'EVAL_GODOT_BIN')) {
         $saved[$name] = [Environment]::GetEnvironmentVariable($name)
         [Environment]::SetEnvironmentVariable($name, $null)
     }

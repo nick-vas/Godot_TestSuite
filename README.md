@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="docs/assets/hypedot-wordmark.svg" alt="Hypedot" width="420">
+  <img src="docs/assets/hyperdot-logo.svg" alt="Hyperdot mascot: a muscular robot flexing" width="200">
 </p>
 
-<h3 align="center">Build, test, ship and plan Godot games with an AI agent.</h3>
+<h1 align="center">Hyperdot</h1>
+
+<h3 align="center">A hyper interface for Godot: build, test, ship and plan games with an AI agent.</h3>
 
 <p align="center">
   One PowerShell script, 50 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
@@ -10,9 +12,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml"><img src="https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml/badge.svg" alt="Self-test"></a>
-  <a href="https://github.com/nick-vas/hypedot/actions/workflows/godot.yml"><img src="https://github.com/nick-vas/hypedot/actions/workflows/godot.yml/badge.svg" alt="Godot"></a>
-  <a href="https://github.com/nick-vas/hypedot/actions/workflows/evals.yml"><img src="https://github.com/nick-vas/hypedot/actions/workflows/evals.yml/badge.svg" alt="Evals"></a>
+  <a href="https://github.com/nick-vas/hyperdot/actions/workflows/self-test.yml"><img src="https://github.com/nick-vas/hyperdot/actions/workflows/self-test.yml/badge.svg" alt="Self-test"></a>
+  <a href="https://github.com/nick-vas/hyperdot/actions/workflows/godot.yml"><img src="https://github.com/nick-vas/hyperdot/actions/workflows/godot.yml/badge.svg" alt="Godot"></a>
+  <a href="https://github.com/nick-vas/hyperdot/actions/workflows/evals.yml"><img src="https://github.com/nick-vas/hyperdot/actions/workflows/evals.yml/badge.svg" alt="Evals"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/Godot-4.7.2-478cbf" alt="Godot 4.7.2">
   <img src="https://img.shields.io/badge/.NET-8-512bd4" alt=".NET 8">
@@ -30,7 +32,7 @@
 ---
 
 An agent can already write GDScript and C#. What it lacks is a way to know whether the game still works, and a plan that says
-what to build next. Hypedot supplies both.
+what to build next. Hyperdot supplies both.
 
 | | |
 |---|---|
@@ -42,7 +44,7 @@ what to build next. Hypedot supplies both.
 | **Get better** | `/retro` turns a session's mistakes into kit changes, each measured with evals, with and without the plugin. |
 
 ```powershell
-$kit = 'C:\Tools\hypedot\ci\godot\hypedot.ps1'                       # your clone of this repository
+$kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'                       # your clone of this repository
 pwsh $kit init -Agents -Mcp godot-mcp -Project 'C:\path\to\your\game'   # once: tests, CI, AGENTS.md, skills, editor bridge
 pwsh $kit test -Json -Quiet -Project 'C:\path\to\your\game'             # every time: build + every test, one JSON result
 ```
@@ -50,7 +52,7 @@ pwsh $kit test -Json -Quiet -Project 'C:\path\to\your\game'             # every 
 What the agent reads back when a test fails:
 
 ```json
-{ "schema": "hypedot/1", "command": "test", "ok": false,
+{ "schema": "hyperdot/1", "command": "test", "ok": false,
   "runnerResults": [
     { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1,
       "failures": [ { "name": "test/test_score.gd.test_x", "message": "[20] expected to equal [25]:",
@@ -64,7 +66,7 @@ What the agent reads back when a test fails:
         |
    editor MCP            author and inspect: scenes, nodes, running game, live state   (needs the editor)
         |
-   hypedot.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
+   hyperdot.ps1 -Json    verify: build, test, flows, export, launch                     (headless, CI-safe)
    bench / shot          measure frame pacing, look at screens                          (with a display)
    audio [-Mix]          loudness of the sound files and of the game's own mix          (ffmpeg; -Mix needs a display)
         |
@@ -78,7 +80,7 @@ separate, headless tool.
 ## Prerequisites
 
 - [PowerShell 7.2+](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`winget install Microsoft.PowerShell`) and Git.
-- Godot: the kit downloads the version your project needs into `~/.hypedot` on the first run. Set `GODOT_BIN` to use your own.
+- Godot: the kit downloads the version your project needs into `~/.hyperdot` on the first run. Set `GODOT_BIN` to use your own.
 - For C# projects, the [.NET 8 SDK](https://dotnet.microsoft.com/download).
 
 <details>
@@ -102,8 +104,8 @@ separate, headless tool.
 1. Clone the kit once, **outside** your game, and point it at the game with `-Project`. Nothing of the kit goes into your
    game's repository or its exported builds:
    ```powershell
-   git clone https://github.com/nick-vas/hypedot C:\Tools\hypedot
-   $kit = 'C:\Tools\hypedot\ci\godot\hypedot.ps1'
+   git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
+   $kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'
    $game = 'C:\path\to\your\game'
    pwsh $kit doctor -Project $game
    pwsh $kit init -Agents -Mcp godot-mcp -Project $game
@@ -113,7 +115,7 @@ separate, headless tool.
    and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
 2. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
    game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
-   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hypedot@hypedot`.
+   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hyperdot@hyperdot`.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
 4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
 
@@ -199,7 +201,7 @@ on: [push, pull_request]
 jobs:
   godot:
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hypedot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
 ```
 Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. Version 1.0 will
 publish a release tag to pin instead of `@main`. In this repository, a weekly canary tries new Godot, test-framework and GUT
@@ -270,7 +272,7 @@ history to the project's `.godot/` folder. Run `detect` or
 <details>
 <summary><b>Can I call it from a script?</b></summary>
 
-Yes: run it as a process (`pwsh -NoProfile -File ci/godot/hypedot.ps1 test -Json`) and read stdout.
+Yes: run it as a process (`pwsh -NoProfile -File ci/godot/hyperdot.ps1 test -Json`) and read stdout.
 Logs go to stderr. See [docs/json.md](docs/json.md).
 
 </details>
@@ -327,10 +329,10 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 
 ## Licence
 
-Hypedot is licensed under the [Apache License 2.0](LICENSE). Copies and modified versions must keep the [NOTICE](NOTICE)
-file, which credits Hypedot and its author. The files Hypedot copies into a game (`ci/godot/templates/` and the starter
+Hyperdot is licensed under the [Apache License 2.0](LICENSE). Copies and modified versions must keep the [NOTICE](NOTICE)
+file, which credits Hyperdot and its author. The files Hyperdot copies into a game (`ci/godot/templates/` and the starter
 tests `init` writes) are under [MIT-0](ci/godot/templates/LICENSE.md): a game owes nothing for them. Third-party parts keep
 their own licences, listed in [NOTICE](NOTICE).
 
-Hypedot is not affiliated with or endorsed by the Godot Foundation. Godot and the Godot logo are trademarks of the Godot
+Hyperdot is not affiliated with or endorsed by the Godot Foundation. Godot and the Godot logo are trademarks of the Godot
 Foundation.
