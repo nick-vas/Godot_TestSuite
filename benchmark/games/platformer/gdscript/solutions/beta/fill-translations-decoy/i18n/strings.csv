@@ -1,0 +1,29 @@
+keys,en,fr
+MENU_TITLE,Glowmoss Ridge,La Crête aux mousses
+MENU_START,Play,Jouer
+MENU_CONTINUE,Continue from level %d,Reprendre au niveau %d
+MENU_SETTINGS,Settings,Réglages
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+HUD_LEVEL,Level %d: %s,Niveau %d : %s
+HUD_MOSS,Glowmoss: %d,Mousse : %d
+HUD_HEARTS,Hearts: %d,Cœurs : %d
+HUD_PAUSE,Pause,Pause
+LEVEL_1,Mossy Steps,Marches moussues
+LEVEL_2,Thorn Hollow,Creux épineux
+LEVEL_3,The Climb,L'ascension
+LEVEL_4,Runner Bridge,Pont des coureurs
+LEVEL_5,Beacon Crest,Crête du phare
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+GAMEOVER_TITLE,Out of hearts,Plus de cœurs
+GAMEOVER_SCORE,Score: %d,Score : %d
+GAMEOVER_BEST,Best: %d,Record : %d
+GAMEOVER_MENU,Back to menu,Retour au menu
+VICTORY_TITLE,The ridge is lit,La crête est illuminée
+VICTORY_MESSAGE,All five beacons burn. Final score: %d,Les cinq phares brûlent. Score final : %d
+VICTORY_MENU,Back to menu,Retour au menu

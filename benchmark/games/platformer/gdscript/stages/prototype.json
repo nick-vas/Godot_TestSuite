@@ -1,0 +1,196 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "main.tscn",
+    "ui",
+    "scripts/levels.gd",
+    "scripts/save_store.gd",
+    "scripts/launch_options.gd",
+    "game/bot.gd",
+    "game/pause_menu.gd",
+    "game/dust.gd",
+    "level/thorns.gd",
+    "level/thorns.tscn",
+    "level/checkpoint.tscn",
+    "levels/level_2.tscn",
+    "levels/level_3.tscn",
+    "levels/level_4.tscn",
+    "levels/level_5.tscn",
+    "data",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "placement.json",
+    "assets.json",
+    "test/flows",
+    "test/unit/test_jump_feel.gd",
+    "test/unit/test_rules_checkpoints.gd",
+    "test/unit/test_levels.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/rules.gd",
+      "find": "## Hearts, invulnerability, glowmoss, checkpoints and what touching things does",
+      "replace": "## Hearts, invulnerability, glowmoss and what touching things does"
+    },
+    {
+      "file": "scripts/rules.gd",
+      "find": "var _checkpoint := Vector3.ZERO\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/rules.gd",
+      "find": "## A level begins at start: hearts full, no checkpoint reached yet.\nfunc start_level(start: Vector3) -> void:\n\thearts = _max_hearts\n\tinvulnerable = 0.0\n\t_checkpoint = start\n",
+      "replace": "## A level begins at start: hearts full.\nfunc start_level(_start: Vector3) -> void:\n\thearts = _max_hearts\n\tinvulnerable = 0.0\n"
+    },
+    {
+      "file": "scripts/rules.gd",
+      "find": "then a respawn at respawn_point().",
+      "replace": "then a respawn at the start."
+    },
+    {
+      "file": "scripts/rules.gd",
+      "find": "\n\n## A checkpoint touched at a place: kept when it is further along the level (by x) than the last one.\nfunc reach_checkpoint(at: Vector3) -> bool:\n\tif at.x <= _checkpoint.x:\n\t\treturn false\n\t_checkpoint = at\n\treturn true\n\n\n## Where the climber comes back after a fall: the furthest checkpoint reached, or the level's start.\nfunc respawn_point() -> Vector3:\n\treturn _checkpoint\n",
+      "replace": "\n"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a jump pressed just after running off a ledge does nothing, though the game is meant to forgive a press up to a tenth of a second late"
+      },
+      "edits": [
+        {
+          "file": "scripts/movement.gd",
+          "find": "\tif _buffer > 0.0 and _coyote > 0.0:",
+          "replace": "\tif _buffer > 0.0 and on_floor:"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_movement.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_coyote.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Movement class (scripts/movement.gd: running, the jump, coyote time and the jump buffer)",
+        "file": "test/unit/test_jump_feel.gd",
+        "rules": "a jump pressed up to a tenth of a second after running off a ledge still jumps and one pressed later does not, a press up to 0.2 seconds before landing jumps on landing and an earlier one is forgotten, one press is one jump (no second jump in mid-air), letting go of jump early gives a lower hop than holding it, and a held jump peaks at the same height at 30, 60 and 120 ticks a second",
+        "code": "scripts/movement.gd"
+      },
+      "unchanged": [
+        "scripts/movement.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_jump_feel.gd"
+      ],
+      "mutants": [
+        {
+          "name": "coyote time is ignored",
+          "file": "scripts/movement.gd",
+          "find": "_coyote = COYOTE_TIME",
+          "replace": "_coyote = delta"
+        },
+        {
+          "name": "the jump buffer forgets at once",
+          "file": "scripts/movement.gd",
+          "find": "_buffer = maxf(_buffer - delta, 0.0)",
+          "replace": "_buffer = 0.0"
+        },
+        {
+          "name": "a press can jump twice",
+          "file": "scripts/movement.gd",
+          "find": "\t\t_coyote = 0.0\n\t\t_buffer = 0.0\n",
+          "replace": "\t\t_buffer = 0.0\n"
+        },
+        {
+          "name": "letting go early does not cut the jump",
+          "file": "scripts/movement.gd",
+          "find": "velocity.y *= JUMP_CUT",
+          "replace": "velocity.y *= 1.0"
+        },
+        {
+          "name": "gravity per tick, not per second",
+          "file": "scripts/movement.gd",
+          "find": "velocity.y - GRAVITY * delta",
+          "replace": "velocity.y - GRAVITY / 60.0"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "checkpoints: Rules (scripts/rules.gd) gets reach_checkpoint(at: Vector3) -> bool, which keeps at and returns true when it is further along the level (a larger x) than the last checkpoint, and false otherwise, and respawn_point() -> Vector3, the furthest checkpoint reached, or the start given to start_level() before any; start_level() forgets the last level's checkpoint"
+      },
+      "hidden": [
+        "hidden/test_hidden_checkpoints.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "test/unit/test_rules.gd",
+          "find": "\tfor i in 3:\n",
+          "replace": "\tfor i in 4:\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/rules.gd",
+        "scripts/movement.gd",
+        "game/game.gd",
+        "test/unit/test_rules.gd",
+        "test/unit/test_movement.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_each_moss_is_worth_ten_points",
+          "re:test_rules\\.gd\\D{0,40}\\b23\\b",
+          "re:(?<![\\d.])30(?!\\d)",
+          "re:(?<![\\d.])40(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

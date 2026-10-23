@@ -1,0 +1,10 @@
+{
+  "name": "The menu shows version 1.1.0",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "assert": { "node": "Menu/VersionLabel", "prop": "text", "contains": "1.1.0" } },
+    { "assert": { "node": "Menu/VersionLabel", "prop": "visible", "equals": true } }
+  ]
+}

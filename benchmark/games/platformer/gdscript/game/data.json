@@ -1,0 +1,22 @@
+{
+  "tables": {
+    "beetles": {
+      "file": "data/beetles.json",
+      "id": "id",
+      "fields": {
+        "speed": { "type": "number", "min": 0.5, "max": 6 },
+        "points": { "type": "int", "min": 0 },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      }
+    },
+    "levels": {
+      "file": "data/levels.json",
+      "id": "id",
+      "fields": {
+        "number": { "type": "int", "min": 1, "max": 9 },
+        "scene": { "type": "string", "pattern": "^res://levels/level_[0-9]+\\.tscn$" },
+        "name": { "type": "string", "pattern": "^LEVEL_[0-9]+$" }
+      }
+    }
+  }
+}

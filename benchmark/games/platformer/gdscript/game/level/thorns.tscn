@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://level/thorns.gd" id="1_thorns"]
+
+[node name="Thorns" type="Node3D"]
+script = ExtResource("1_thorns")

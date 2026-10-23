@@ -1,0 +1,15 @@
+{
+  "name": "Quit to menu on the pause menu leaves the game for the title menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/StartButton" },
+    { "wait": 5 },
+    { "press": "Game/HUD/PauseButton" },
+    { "assert": { "node": "Game/PauseMenu", "prop": "visible", "equals": true } },
+    { "press": "Game/PauseMenu/QuitButton" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}
