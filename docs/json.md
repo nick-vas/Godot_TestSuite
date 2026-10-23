@@ -329,7 +329,7 @@ and `noticesFile`.
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
 
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`), `nextActions[]`
-(`id`, `text`, `auto`, `check`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
+(`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
 (tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `cardId`, `boardColumn`), `trelloBoard`,
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when

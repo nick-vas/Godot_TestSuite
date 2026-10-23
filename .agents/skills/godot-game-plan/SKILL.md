@@ -30,9 +30,9 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 ## How an agent uses it
 
 1. Start every session with `plan -Json`. Work only on `nextActions` of `currentPhase`.
-2. `check` is `manual` or automatic (`tests`: a test framework runner, `ci`, `preset`, `file:<path>`, `runner:<name>`: that
-   runner is set up). Automatic gates turn true when the project makes them true; do the work, not the checkbox.
-   `plan -Do done` refuses automatic gates.
+2. `check` is `manual` or automatic (`tests`: a test framework runner, `ci`, `preset`, `file:<path>`: a file that is not
+   empty, `runner:<name>`: that runner is set up, `placeholders`: none left). Automatic gates turn true when the project
+   makes them true; do the work, not the checkbox. `plan -Do done` refuses automatic gates. An `optional` gate does not hold its phase back.
 3. Manual gates (the playtest happened, the verdict) need the user's word. Ask; do not mark them yourself.
 4. When `warnings` reports an overrun: propose cutting scope from the "could" tier; never cut testing or the gate.
 5. Work items are `tasks` in plan.json, edited with commands, not by hand:
@@ -100,13 +100,13 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 
 ## Concept: risks, money and the business model
 
-- **Risk log** (`docs/RISKS.md`, at `concept.scope`): the top five risks, each with likelihood, impact, how it is retired
+- **Risk log** (`docs/RISKS.md`, gate `concept.risks`): the top five risks, each with likelihood, impact, how it is retired
   and by when. Every system the developer has never built counts as one; the riskiest is prototyped first.
 - **Comparable games** (`concept.market`): a teardown of each of the three, as in `godot-game-design` section 4.
 - **Business model:** name it (premium, demo plus full game, free with ads, free to play) and what is sold. Never sell
   an advantage over another player, or a shortcut past what a learning game teaches; no energy timers or roulettes.
   Paid random items, timed offers and daily rewards raise the age rating (`godot-legal` section 1).
-- **Budget and runway** (optional for a hobby game): the categories, filled in by the user, never guessed. Costs:
+- **Budget and runway** (`docs/BUDGET.md`, the optional gate `concept.budget`; skip it for a hobby game): the categories, filled in by the user, never guessed. Costs:
   people, outsourcing (art, music, trailer), workspace (rent, power, internet, insurance), monthly software and
   services, per-project licences, events (date, cost, go or no-go), marketing (one-off and monthly), age ratings per
   region, taxes. Income: cash on hand, store payouts and when they arrive, funding (savings, a publisher, platform funds,
@@ -117,7 +117,8 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 ## Alpha and beta: exit criteria
 
 - **Placeholders are listed** in `docs/TECH-DEBT.md` (its Placeholders table): every stand-in asset or text, labelled
-  in the game, with what replaces it and by which milestone.
+  in the game, with what replaces it and by which milestone; a stand-in asset is also `"placeholder": true` in
+  `assets.json`. `beta.placeholders` is met when both are empty.
 - **Bug classes:** A blocks finishing the game, crashes or loses data; B is major and seen by most players. Alpha and
   beta both play to the end with no undeclared A or B bug (`godot-playtest` triage uses the same classes).
 - **`beta.alpha`** comes with a statement of completion in `docs/MILESTONES.md`: each missing feature and the build it

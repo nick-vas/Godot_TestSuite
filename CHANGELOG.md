@@ -17,6 +17,12 @@
   - `move`, `remove` and `link` return `task` with `-Json`, like `add`.
 - **`plan -Do reopen -Id <gate>`** opens a manual gate marked done again, without editing `plan.json` (note 13). An
   automatic gate is refused with `auto-gate`: it opens by itself when the project stops meeting it.
+- **Plan gates for what was prose.** `concept.risks` wants `docs/RISKS.md`; `concept.budget` (`docs/BUDGET.md`) is the
+  first optional gate (`"optional": true`: listed while open, with `optional` in `nextActions[]`, but it does not hold
+  its phase back); `beta.placeholders` uses a new check, `placeholders`, met when no `assets.json` entry has
+  `"placeholder": true` and the Placeholders table of `docs/TECH-DEBT.md` has no row (open while neither file exists).
+  `file:<path>` checks now want a file with something in it (or a folder): an empty file no longer meets a gate. A plan
+  made before keeps its gates (plan.json is the game's); `godot-game-plan` offers to add them.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

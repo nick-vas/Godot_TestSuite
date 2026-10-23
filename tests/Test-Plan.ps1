@@ -5,7 +5,9 @@
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
 # cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
 # count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
-# warning in `status`. `init` never overwrites an existing test/test_example.gd. No Godot needed.
+# warning in `status`. `init` never overwrites an existing test/test_example.gd. concept.risks wants a non-empty
+# docs/RISKS.md, the optional concept.budget does not hold its phase back, beta.placeholders reads assets.json and the
+# Placeholders table of docs/TECH-DEBT.md, and `plan -Do reopen` opens a manual gate again. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -116,6 +118,28 @@ try {
 
     $fresh = Get-Content -LiteralPath $planPath -Raw
 
+    # The concept phase: concept.risks wants a docs/RISKS.md with something in it (an empty file is not a risk log), and
+    # the optional concept.budget does not hold the phase back.
+    $d = Invoke-PlanJson @()
+    $risks = @($d.nextActions) | Where-Object id -eq 'concept.risks'
+    $budgetGate = @($d.nextActions) | Where-Object id -eq 'concept.budget'
+    Assert-True ($d.ok -and $d.currentPhase.id -eq 'concept' -and $risks -and $risks.auto -and $risks.check -eq 'file:docs/RISKS.md' -and -not $risks.optional) 'concept.risks is open and checked automatically from docs/RISKS.md'
+    Assert-True ($budgetGate -and $budgetGate.optional -eq $true -and $budgetGate.check -eq 'file:docs/BUDGET.md') 'concept.budget is optional and checked from docs/BUDGET.md'
+    New-Item -ItemType Directory -Force (Join-Path $dir 'docs') | Out-Null
+    Set-Content -LiteralPath (Join-Path $dir 'docs/RISKS.md') -Value "  `n"
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'concept.risks' -in @($d.nextActions | ForEach-Object id)) 'an empty docs/RISKS.md leaves concept.risks open'
+    Set-Content -LiteralPath (Join-Path $dir 'docs/RISKS.md') -Value "| Risk | Likelihood | Impact | Retired by |`n|---|---|---|---|`n| Netcode never built | high | high | prototype week 2 |"
+    Set-Content -LiteralPath (Join-Path $dir 'docs/GDD.md') -Value "# Plan Fixture`n"
+    foreach ($gate in 'concept.scope', 'concept.decisions', 'concept.market', 'concept.name', 'concept.kill') { Invoke-PlanJson @('-Do', 'done', '-Id', $gate) | Out-Null }
+    $d = Invoke-PlanJson @()
+    $concept = @($d.phases) | Where-Object id -eq 'concept'
+    Assert-True ($d.ok -and $concept.complete -and $d.currentPhase.id -eq 'prototype') "with every other concept gate met, the open concept.budget does not hold the phase back: $(if ($d.ok) { $d.currentPhase.id } else { $d.error.message })"
+    $refused = Invoke-PlanJson @('-Do', 'done', '-Id', 'concept.risks')
+    Assert-True (-not $refused.ok -and $refused.error.code -eq 'auto-gate') 'plan -Do done refuses concept.risks (auto-gate)'
+    Remove-Item -LiteralPath (Join-Path $dir 'docs') -Recurse -Force
+    Set-Content -LiteralPath $planPath -Value $fresh -Encoding utf8
+
     # The prototype phase: concept dropped from this copy, so the prototype is the current phase.
     $plan = $fresh | ConvertFrom-Json -Depth 10
     $plan.phases = @($plan.phases | Where-Object id -eq 'prototype')
@@ -200,6 +224,32 @@ try {
     Set-Content -LiteralPath (Join-Path $dir 'test_paddle.gd') -Value "extends GutTest`n`nfunc test_paddle():`n`tassert_true(true)`n"
     $d = Invoke-PlanJson @()
     Assert-True ($d.ok -and 'slice.tests' -notin @($d.nextActions | ForEach-Object id)) 'slice.tests is done once a GUT test exists'
+
+    # beta.placeholders: open while nothing says what is left (no TECH-DEBT.md, no assets.json), while the Placeholders
+    # table of docs/TECH-DEBT.md has a row, or while an assets.json entry is "placeholder": true.
+    $plan = $fresh | ConvertFrom-Json -Depth 10
+    $plan.phases = @($plan.phases | Where-Object id -eq 'alpha-beta')
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+    Remove-Item -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Force
+    $placeholderOpen = { param($Doc) $Doc.ok -and 'beta.placeholders' -in @($Doc.nextActions | ForEach-Object id) }
+    $d = Invoke-PlanJson @()
+    $gate = @($d.nextActions) | Where-Object id -eq 'beta.placeholders'
+    Assert-True ((& $placeholderOpen $d) -and $gate.auto -and $gate.check -eq 'placeholders') 'beta.placeholders is automatic and open with neither docs/TECH-DEBT.md nor assets.json'
+    $debtText = (Get-Content -LiteralPath (Join-Path $templates 'TECH-DEBT.md') -Raw).Replace('{{GAME}}', 'Plan Fixture')
+    Set-Content -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Value $debtText
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and -not (& $placeholderOpen $d)) 'the template TECH-DEBT.md, whose Placeholders table is empty, meets beta.placeholders'
+    $withRow = $debtText.Replace("|---|---|---|---|`n| | | | |", "|---|---|---|---|`n| art/boss.png | the final boss sprite | me | M3 |").Replace("|---|---|---|---|`r`n| | | | |", "|---|---|---|---|`r`n| art/boss.png | the final boss sprite | me | M3 |")
+    Set-Content -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Value $withRow
+    $d = Invoke-PlanJson @()
+    Assert-True ($withRow -ne $debtText -and (& $placeholderOpen $d)) 'a row in the Placeholders table opens it'
+    Set-Content -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Value $debtText
+    Set-Content -LiteralPath (Join-Path $dir 'assets.json') -Value '{ "assets": [ { "path": "art/boss.png", "source": "own", "licence": "proprietary", "placeholder": true } ] }'
+    $d = Invoke-PlanJson @()
+    Assert-True (& $placeholderOpen $d) 'an assets.json entry marked "placeholder": true opens it'
+    Set-Content -LiteralPath (Join-Path $dir 'assets.json') -Value '{ "assets": [ { "path": "art/boss.png", "source": "own", "licence": "proprietary", "placeholder": false } ] }'
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and -not (& $placeholderOpen $d)) 'with "placeholder": false it is met again'
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }

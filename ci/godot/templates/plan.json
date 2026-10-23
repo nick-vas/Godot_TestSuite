@@ -33,6 +33,17 @@
           "check": "manual"
         },
         {
+          "id": "concept.risks",
+          "text": "Risk log written (docs/RISKS.md): the top five risks, each with likelihood, impact, and how and by when it is retired; every system you have never built is one, and the riskiest is prototyped first",
+          "check": "file:docs/RISKS.md"
+        },
+        {
+          "id": "concept.budget",
+          "text": "Optional, skip it for a hobby game: budget and runway in docs/BUDGET.md, costs and income by category, filled in by you and never guessed; the runway covers the plan's remaining weeks",
+          "check": "file:docs/BUDGET.md",
+          "optional": true
+        },
+        {
           "id": "concept.decisions",
           "text": "Decided up front, in docs/decisions/: multiplayer or not, saves, languages, accessibility, target platforms and input devices (bolted on late, these cost the most)",
           "check": "manual"
@@ -218,6 +229,11 @@
           "id": "beta.localization",
           "text": "Every shipped language played start to end by a native speaker who had not played the game (one language: done when it ships)",
           "check": "manual"
+        },
+        {
+          "id": "beta.placeholders",
+          "text": "No placeholders left: no assets.json entry marked \"placeholder\": true and no row in the Placeholders table of docs/TECH-DEBT.md",
+          "check": "placeholders"
         },
         {
           "id": "beta.tests",

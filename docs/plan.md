@@ -33,17 +33,24 @@ Three inputs, cross-referenced:
 
 | # | Phase | Weeks* | Question it answers | Automatic gates |
 |---|---|---|---|---|
-| 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists |
+| 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists; `docs/RISKS.md` written; `docs/BUDGET.md` (optional) |
 | 2 | Prototype | 4 | Is the core loop fun? | CI workflow wired; `docs/TRAILER.md` exists; `docs/DECISIONS.md` has the verdict |
 | 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; an export preset exists; `docs/TECH-DEBT.md` exists |
 | 4 | Production | 24 | Can I build the rest as playable milestones? | `docs/MILESTONES.md` exists |
-| 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | tests green |
+| 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | no placeholders left; tests green |
 | 6 | Release candidate and launch | 4 | Does a clean export run, and can players find it? | export preset |
 | 7 | Post-launch | 8 | What do players hit, and what next? | `docs/RETRO.md` exists |
 
 \*Defaults for about 10 hours a week; the slice gate re-sizes the rest from measured velocity. Edit `timeboxWeeks`, add or
 remove gates freely: `plan.json` is yours after `init`. A manual gate marked done too early opens again with
 `plan -Do reopen -Id <gate>`; an automatic gate opens by itself when the project stops meeting it.
+
+Automatic checks: `tests` (a test framework's runner is detected), `ci` (a workflow calls the kit's), `preset` (an export
+preset exists), `runner:<name>` (that runner is set up), `file:<path>` (a folder, or a file that is not empty: an empty
+`docs/RISKS.md` is not a risk log; the path is looked up from the repository root, then the Godot project) and
+`placeholders` (nothing is left as a placeholder: no `assets.json` entry has `"placeholder": true` and the Placeholders
+table of `docs/TECH-DEBT.md` has no row; with neither file, nothing says what is left, so it stays open). A gate with
+`"optional": true` (`concept.budget`) is listed while open but does not hold its phase back.
 
 ## Rules baked into the gates
 
@@ -155,18 +162,19 @@ manual-only on purpose: a scheduled prompt can start only skills Claude is allow
 
 ## Jam mode, risks, money and exit criteria
 
-`godot-game-plan` also covers what has no gate yet (planned gates are listed in [roadmap.md](roadmap.md)):
+`godot-game-plan` also covers what the gates only point to:
 - **Jam mode:** a jam of 2 to 9 days uses `ci/godot/templates/GDD-jam.md` and its day table instead of the seven
   phases. The first question is "browser build?": Godot 4.7 refuses to export C# to the Web
   ([mobile-web.md](mobile-web.md), measured: "Exporting to Web is currently not supported in Godot 4 when using
   C#/.NET"), so a browser jam is made in GDScript.
-- **A risk log** at the concept stage (`docs/RISKS.md`): the top five risks with likelihood, impact, and how and when each
-  is retired; a system the developer has never built is one.
-- **Budget and runway** as categories the user fills in (people, outsourcing, workspace, software, licences, events,
-  marketing, ratings, taxes; cash, payouts, funding), the business model, and the fairness rule (never sell an
-  advantage over other players).
-- **Sharper alpha and beta exit:** a placeholders table in `docs/TECH-DEBT.md`, bug classes A and B, a statement of
-  completion at alpha, and a release plan at beta. The marketing cadence and the release ladder are in `godot-store-page`.
+- **A risk log** at the concept stage (`docs/RISKS.md`, gate `concept.risks`): the top five risks with likelihood,
+  impact, and how and when each is retired; a system the developer has never built is one.
+- **Budget and runway** (`docs/BUDGET.md`, the optional gate `concept.budget`) as categories the user fills in (people,
+  outsourcing, workspace, software, licences, events, marketing, ratings, taxes; cash, payouts, funding), the business
+  model, and the fairness rule (never sell an advantage over other players).
+- **Sharper alpha and beta exit:** a placeholders table in `docs/TECH-DEBT.md` and `"placeholder": true` entries in
+  `assets.json`, both empty for `beta.placeholders`; bug classes A and B, a statement of completion at alpha, and a
+  release plan at beta. The marketing cadence and the release ladder are in `godot-store-page`.
 
 ## Not covered (yet)
 

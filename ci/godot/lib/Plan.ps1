@@ -1,7 +1,7 @@
 # `plan`: an A-to-Z plan for one developer. plan/plan.json holds phases, each with gates. A gate is either
-# checked automatically from the project ("check": "tests", "ci", "preset", "file:<path>", "runner:<name>") or marked done
-# by hand ("manual"). `plan` reports the current phase, what blocks it, and warns when a phase overruns
-# its timebox or too many tasks are in progress.
+# checked automatically from the project ("check": "tests", "ci", "preset", "file:<path>", "runner:<name>",
+# "placeholders") or marked done by hand ("manual"). A gate with "optional": true does not hold its phase back. `plan`
+# reports the current phase, what blocks it, and warns when a phase overruns its timebox or too many tasks are in progress.
 
 function Get-PlanPath($Info) {
     $root = Get-GitRoot $Info.ProjectDir
@@ -32,8 +32,8 @@ function Get-PlanProblems($Plan) {
         foreach ($gate in @($phase.gates)) {
             if ($gate -isnot [pscustomobject] -or -not $gate.PSObject.Properties['id']) { $problems.Add("a gate of phase '$($phase.id)' has no id"); continue }
             $check = $gate.PSObject.Properties['check'] ? "$($gate.check)" : 'manual'
-            if ($check -notmatch '^(manual|tests|preset|ci|runner:[a-z0-9]+|file:.+)$') {
-                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, file:<path>, runner:<name>)")
+            if ($check -notmatch '^(manual|tests|preset|ci|placeholders|runner:[a-z0-9]+|file:.+)$') {
+                $problems.Add("gate '$($gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, placeholders, file:<path>, runner:<name>)")
             }
         }
     }
@@ -64,12 +64,59 @@ function Test-PlanGate($Gate, $Info) {
             $files = @(Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -File -ErrorAction SilentlyContinue)
             return @($files | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(hyperdot|Godot_TestSuite)/\.github/workflows/godot\.yml' }).Count -gt 0
         }
+        # A folder, or a file with something in it: an empty docs/RISKS.md is not a risk log.
         '^file:(?<path>.+)$' {
             $path = $Matches.path
-            return (Test-Path -Path (Join-Path $root $path)) -or (Test-Path -Path (Join-Path $Info.ProjectDir $path))
+            foreach ($base in $root, $Info.ProjectDir) {
+                foreach ($item in @(Get-Item -Path (Join-Path $base $path) -Force -ErrorAction SilentlyContinue)) {
+                    if ($item -is [System.IO.DirectoryInfo]) { return $true }
+                    if ([System.IO.File]::ReadAllText($item.FullName) -match '\S') { return $true }
+                }
+            }
+            return $false
         }
-        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, file:<path>, runner:<name>)" 'invalid-plan' }
+        '^placeholders$' {
+            $found = Get-PlanPlaceholders $root $Info.ProjectDir
+            return $found.sources.Count -gt 0 -and $found.items.Count -eq 0
+        }
+        default { Stop-GodotCi "Gate '$($Gate.id)' has an unknown check '$check' (use manual, tests, preset, ci, placeholders, file:<path>, runner:<name>)" 'invalid-plan' }
     }
+}
+
+# What is still a placeholder: assets.json entries with "placeholder": true (in the Godot project), and the filled rows
+# of the Placeholders table in docs/TECH-DEBT.md (at the repository root or in the project). sources lists the files
+# that exist; with none, nothing says what is left, so the placeholders gate stays open.
+function Get-PlanPlaceholders([string]$Root, [string]$ProjectDir) {
+    $sources = [System.Collections.Generic.List[string]]::new()
+    $items = [System.Collections.Generic.List[string]]::new()
+    $manifest = Join-Path $ProjectDir 'assets.json'
+    if (Test-Path -LiteralPath $manifest -PathType Leaf) {
+        $sources.Add($manifest)
+        try {
+            $doc = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json -Depth 20
+            $entries = ($doc -is [pscustomobject] -and $doc.PSObject.Properties['assets']) ? @($doc.assets) : @()
+            foreach ($entry in $entries) {
+                if ($entry -is [pscustomobject] -and $entry.PSObject.Properties['placeholder'] -and $entry.placeholder -eq $true) {
+                    $items.Add("assets.json: $($entry.PSObject.Properties['path'] ? $entry.path : '(an entry with no path)')")
+                }
+            }
+        } catch { $items.Add("assets.json cannot be read: $($_.Exception.Message)") }
+    }
+    foreach ($base in @($Root, $ProjectDir | Select-Object -Unique)) {
+        $debt = Join-Path $base 'docs/TECH-DEBT.md'
+        if (-not (Test-Path -LiteralPath $debt -PathType Leaf)) { continue }
+        $sources.Add($debt)
+        $section = [regex]::Match((Get-Content -LiteralPath $debt -Raw), '(?ms)^##\s+Placeholders\s*$(?<body>.*?)(?=^##\s|\z)')
+        if (-not $section.Success) { continue }
+        $rows = @([regex]::Matches($section.Groups['body'].Value, '(?m)^\s*\|(?<cells>.*)\|\s*$') | ForEach-Object { $_.Groups['cells'].Value })
+        # The first row is the header, the second the |---| line.
+        foreach ($row in @($rows | Select-Object -Skip 2)) {
+            $first = ($row -split '\|')[0].Trim()
+            if ($first) { $items.Add("docs/TECH-DEBT.md: $first") }
+        }
+        break
+    }
+    return [ordered]@{ sources = @($sources); items = @($items) }
 }
 
 # Weekdays from $From (counted) up to $To (not counted); public holidays are not known, so they count as business days.
@@ -200,11 +247,12 @@ function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date)
             $auto = Test-PlanGate $gate $Info
             $manual = $gate.PSObject.Properties['done'] -and $gate.done -eq $true
             [ordered]@{ id = $gate.id; text = $gate.text; check = ($gate.PSObject.Properties['check'] ? $gate.check : 'manual')
-                done = ($null -ne $auto ? [bool]$auto : $manual) ; auto = ($null -ne $auto) }
+                done = ($null -ne $auto ? [bool]$auto : $manual) ; auto = ($null -ne $auto)
+                optional = [bool]($gate.PSObject.Properties['optional'] -and $gate.optional -eq $true) }
         })
         [ordered]@{ id = $phase.id; name = $phase.name; goal = $phase.goal; timeboxWeeks = $phase.timeboxWeeks
             startedAt = ($phase.PSObject.Properties['startedAt'] ? $phase.startedAt : $null)
-            gates = $gates; complete = (@($gates | Where-Object { -not $_.done }).Count -eq 0) }
+            gates = $gates; complete = (@($gates | Where-Object { -not $_.done -and -not $_.optional }).Count -eq 0) }
     })
     $current = $phases | Where-Object { -not $_.complete } | Select-Object -First 1
     $warnings = [System.Collections.Generic.List[string]]::new()
@@ -240,7 +288,7 @@ function Write-PlanMarkdown($Plan, $State, [string]$Path) {
     foreach ($phase in $State.phases) {
         $mark = $phase.complete ? 'done' : ($phase.id -eq $State.current.id ? 'current' : 'later')
         $md.Add(''); $md.Add("## $($phase.name) ($mark, $($phase.timeboxWeeks) weeks)"); $md.Add(''); $md.Add("_$($phase.goal)_"); $md.Add('')
-        foreach ($gate in $phase.gates) { $md.Add("- [$($gate.done ? 'x' : ' ')] $($gate.text)$($gate.auto ? ' _(auto)_' : '')") }
+        foreach ($gate in $phase.gates) { $md.Add("- [$($gate.done ? 'x' : ' ')] $($gate.text)$($gate.auto ? ' _(auto)_' : '')$($gate.optional ? ' _(optional)_' : '')") }
     }
     $tasks = @($Plan.tasks)
     if ($tasks.Count -gt 0) {
@@ -632,7 +680,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
     Set-JsonField currentPhase ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal
         timeboxWeeks = $state.current.timeboxWeeks; elapsedWeeks = ($state.current.Contains('elapsedWeeks') ? $state.current.elapsedWeeks : $null) } : $null)
     Set-JsonField nextActions @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object {
-        [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto; check = $_.check } }) : @())
+        [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto; check = $_.check; optional = $_.optional } }) : @())
     Set-JsonField phases @($state.phases | ForEach-Object {
         [ordered]@{ id = $_.id; name = $_.name; complete = $_.complete; gatesDone = @($_.gates | Where-Object done).Count; gatesTotal = $_.gates.Count } })
     Set-JsonField board $state.board
@@ -650,7 +698,7 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
     if ($state.current) {
         Write-Console ''; Write-Console "Now: $($state.current.name) - $($state.current.goal)"
         foreach ($gate in $state.current.gates | Where-Object { -not $_.done }) {
-            Write-Console "  [ ] $($gate.id): $($gate.text)$($gate.auto ? '  (auto)' : '')"
+            Write-Console "  [ ] $($gate.id): $($gate.text)$($gate.auto ? '  (auto)' : '')$($gate.optional ? '  (optional)' : '')"
         }
     } else { Write-Console 'Every phase is complete.' }
     if ($state.release) {

@@ -176,8 +176,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
   folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
   refreshed by `Invoke-Canary.ps1`.
-- **Plan gates for what is now prose:** `concept.risks` (`docs/RISKS.md`), an optional `concept.budget`, and
-  `beta.placeholders`. Each needs `plan.json`, `tests/Test-Plan.ps1` and `docs/json.md` if the output changes.
 - **`plan -Do init -Profile jam`:** a plan sized in days with the jam gates (`Plan.ps1`, `Test-Plan.ps1`).
 - **Placeholders in `assets.json`** (`"placeholder": true`, `"due"`, `"status": "needed"`), counted by `doctor` and
   `status`, so the TECH-DEBT table becomes checkable.
