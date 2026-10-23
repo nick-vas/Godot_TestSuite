@@ -15,6 +15,29 @@ function Write-Console {
 
 function Write-CiLog([string]$Message) { Write-Console "[hyperdot] $Message" }
 
+# HYPERDOT_COVERAGE names a folder: a run started with it set writes there, one line each the first time, the command,
+# every function of the kit it enters and the error code it stops with, so tests/Get-KitCoverage.ps1 can tell what the
+# self-tests exercise. A breakpoint on each function's name records the entry; nothing changes when it is not set.
+$script:CoverageFile = $null
+$script:CoverageSeen = $null
+function Start-KitCoverage([string]$Command) {
+    if (-not $env:HYPERDOT_COVERAGE) { return }
+    New-Item -ItemType Directory -Force -Path $env:HYPERDOT_COVERAGE | Out-Null
+    $script:CoverageFile = Join-Path $env:HYPERDOT_COVERAGE "$PID-$([guid]::NewGuid().ToString('N').Substring(0, 8)).txt"
+    $script:CoverageSeen = [System.Collections.Generic.HashSet[string]]::new()
+    Add-KitCoverage "command:$Command"
+    $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File) + @(Get-Item -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'hyperdot.ps1'))
+    $names = foreach ($source in $sources) {
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($source.FullName, [ref]$null, [ref]$null)
+        $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true) | ForEach-Object { $_.Name }
+    }
+    $names = @($names | Where-Object { $_ -notin 'Start-KitCoverage', 'Add-KitCoverage' } | Sort-Object -Unique)
+    if ($names.Count) { Set-PSBreakpoint -Command $names -Action { Add-KitCoverage "function:$($_.Command)" } | Out-Null }
+}
+function Add-KitCoverage([string]$Entry) {
+    if ($script:CoverageFile -and $script:CoverageSeen.Add($Entry)) { Add-Content -LiteralPath $script:CoverageFile -Value $Entry }
+}
+
 # Commands the kit suggests in its own output, written so they can be pasted as they are: the kit's real path, and
 # -Project when the project is not the current folder (the kit usually lives outside the game).
 $script:KitScript = $null
@@ -148,6 +171,7 @@ function Write-JsonResult {
 
 # Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
 function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
+    Add-KitCoverage "error:$Code"
     Write-Console "[hyperdot] ERROR: $Message" -ForegroundColor Red
     if ($script:RunLogPath -and $script:QuietMode) { Write-Console "[hyperdot] Full log: $script:RunLogPath" }
     Add-RunHistory $false $Code
