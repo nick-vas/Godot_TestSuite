@@ -47,6 +47,7 @@ function New-CiWorkflow([string]$ProjectDir) {
     New-Item -ItemType Directory -Force $workflows | Out-Null
     Set-Content -LiteralPath $file -Encoding utf8 -Value @"
 # Runs Hyperdot's checks on a GitHub Linux runner: https://github.com/nick-vas/hyperdot
+# @v1 follows the kit's releases; move to another tag or commit on purpose, in a commit of its own.
 name: Godot
 
 on:
@@ -64,7 +65,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write   # for the test summary comment on pull requests
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:$projectInput
       coverage: true
 "@
@@ -240,6 +241,14 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
     $claude = Join-Path $root 'CLAUDE.md'
     if (Test-Path -LiteralPath $claude) { Write-InitStep skipped 'CLAUDE.md exists (add "@AGENTS.md" to it)' }
     else { Set-Content -LiteralPath $claude -Value '@AGENTS.md' -Encoding utf8; Write-InitStep added 'CLAUDE.md (imports AGENTS.md)' }
+    # docs/kit-notes.md: one line each time the kit got in the way in this game, for /retro and the weekly review to read.
+    $notes = Join-Path $root 'docs/kit-notes.md'
+    if (Test-Path -LiteralPath $notes) { Write-InitStep skipped 'docs/kit-notes.md exists' }
+    else {
+        New-Item -ItemType Directory -Force (Split-Path $notes) | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../templates/kit-notes.md') -Destination $notes
+        Write-InitStep added 'docs/kit-notes.md (one line each time the kit gets in the way)'
+    }
     # With the plugin, skills, the verifier subagent and the Stop hook come from the kit itself and stay up to date;
     # copies would only duplicate them.
     if ($Plugin) { Add-PluginSettings $root $suiteRoot; return }

@@ -1,7 +1,8 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx` and `playtest`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` and `help`
+(`help [name]`: one line per command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 | Parameter | Default | |
 |---|---|---|
@@ -50,17 +51,19 @@
 | `-StopGraceSeconds` | `30` | `soak`: after the run, how long the server has to quit once sent SIGTERM (Kubernetes' default grace period; Docker's is 10 s, systemd's 90 s); reported under `soak.stop` |
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
+| `-Topic` | | `help`: the command, skill or subagent whose page to show; also the second word, `help shot` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
-| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board; `link -Column` the card's list, `link -Board` the plan's board |
+| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board (experimental); `link -Column` the card's list, `link -Board` the plan's board |
+| `-Handoff`, `-Checked`, `-Verdict` | | `status`: record one subagent handoff (the subagent's name, what it checked, its verdict) in `.godot/hyperdot-handoffs.jsonl` instead of reporting; the newest 200 are kept and `status` returns them as `handoffs[]` ([json.md](json.md)) |
 | `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
-| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the subagents (`godot-verifier`, `godot-architect`) |
+| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, `docs/kit-notes.md` (one line each time the kit gets in the way), the skills and the subagents (`godot-verifier`, `godot-architect`) |
 | `-Templates` | off | `setup`: also install the export templates (`export` installs them when it needs them) |
-| `-Plugin` | off | `init`: AGENTS.md and CLAUDE.md, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
+| `-Plugin` | off | `init`: AGENTS.md, CLAUDE.md and `docs/kit-notes.md`, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
 
 **Environment variables**, all optional:
 
@@ -72,8 +75,8 @@
 | `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off), and how long `setup` waits for another run installing the same Godot (then `install-busy`); not a whole number fails with `invalid-arguments` |
 | `HYPERDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
 | `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
-| `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run |
-| `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync`: the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
+| `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run. It checks only that the tests passed after the last edit, not the design |
+| `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync` (experimental): the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
 
 **Workflow inputs** (`godot.yml`), all optional:
 
@@ -117,7 +120,7 @@ preset's value, so the credentials stay out of `export_credentials.cfg`.
 jobs:
   godot:
     permissions: { contents: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with: { exports: all, release: true, environment: release }
     secrets: inherit
 ```
@@ -125,7 +128,7 @@ jobs:
 **Your own workflow:** the composite action runs one command with setup and caching, then uploads the
 results or the build.
 ```yaml
-      - uses: nick-vas/hyperdot/.github/actions/godot@main
+      - uses: nick-vas/hyperdot/.github/actions/godot@v1
         with:
           command: export        # test, build or export
           preset: Windows

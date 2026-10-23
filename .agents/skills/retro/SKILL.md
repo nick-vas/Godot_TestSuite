@@ -13,10 +13,15 @@ approval, and, for kit changes, a measured result. Never write a new skill from 
 ## 1. Gather evidence (read, do not summarise from memory)
 
 - The run history: `.godot/hyperdot-history.jsonl` in the project. Error codes and failed runners that recur.
+- The handoff log: `.godot/hyperdot-handoffs.jsonl` (or `handoffs` in `status -Json`), what the subagents were asked and
+  answered. A `FAIL` verdict followed by "done" with no passing handoff or test run after it, or the same check asked
+  again and again, is evidence.
 - This conversation: where the user corrected you, where you retried a command, where a fix was reverted.
 - Auto memory: `MEMORY.md` in this project's Claude Code memory folder, if it exists.
 - `git log --oneline -30` and reverted or amended work.
 - `docs/lessons.md` in the game, so nothing is recorded twice.
+- `docs/kit-notes.md` in the game: one line each time the kit got in the way. Each line without a pull request link is a
+  kit candidate (step 3), with the line itself as its evidence.
 - For a whole-project post-mortem: the people (or agents) who built it, over a playthrough recording or a `playthrough`
   log, not memory. Take each account separately before merging, and record disagreements instead of averaging them:
   "Sometimes those contradictions are because one person is wrong. But sometimes, everyone is correct." (Yusaku
@@ -59,5 +64,6 @@ otherwise print the branch and the compare URL). Never merge it.
 
 ## 6. Clean up
 
-Remove promoted lessons from auto memory, so they are not loaded twice. Report: lessons recorded, PRs opened with links,
+Remove promoted lessons from auto memory, so they are not loaded twice. Add each kit PR's link at the end of the
+`docs/kit-notes.md` lines it answers; delete lines the user chose to drop. Report: lessons recorded, PRs opened with links,
 candidates dropped and why.

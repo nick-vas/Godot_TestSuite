@@ -73,7 +73,9 @@ pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused pas
 
 Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
 
-**Trello sync** (`plan -Do sync -Board <id or short link>`, experimental) keeps the plan the source of truth and uses Trello as the place you drag things:
+**Trello sync** (`plan -Do sync -Board <id or short link>`) is **experimental**: it has met only a stand-in Trello so far
+(the live run waits, and the open bugs are under Trello in [roadmap.md](roadmap.md#trello)), and it uses API keys, not the
+Trello connector. It keeps the plan the source of truth and uses Trello as the place you drag things:
 - a task with no card gets one in the matching list;
 - a card you moved to another list moves its task (Trello wins on column only);
 - a task you moved in the plan (`plan -Do move`) moves its card. Each task records the list its card was in at the last
@@ -119,17 +121,22 @@ failing costs, content counts and length, open questions, changes) are for peopl
 pitch and the features.
 
 `status -Json` reads all of that, plus the plan, the latest runs, git activity and an inventory of the project, without
-judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging:
+judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging; start every session with it:
 1. the first time, it drafts the GDD from the code and confirms it with you section by section;
-2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`;
+2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`, with a short design and
+   architecture review: at most five problems with their evidence (features that serve no kind of fun, scope drift,
+   `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on);
 3. it adds a plan task (`plan -Do add -Feature F3`) for each feature that is not proven;
-4. through the Trello connector, it creates and moves cards. A card you moved since the last run keeps your column: each task
+4. through the Trello connector (experimental), it creates and moves cards. A card you moved since the last run keeps your column: each task
    records the list its card was in (`plan -Do link -Column`), so a card that is somewhere else was moved by you;
 5. it ends with the three best next tasks to pick from.
 
 Scope rule: before building anything the GDD does not contain, the agent asks whether to add it as a feature or drop it.
 
 The `weekly-review` skill writes `plan/reviews/<date>.md` (done, health, phase, risks) and proposes next week's tasks.
+It also reads `docs/kit-notes.md`, the line the agent appends each time the kit got in the way (`init -Agents` or
+`-Plugin` creates the file), and proposes up to three kit changes for you to approve; approved ones become kit pull
+requests through `/retro`, never on their own.
 Run it every Friday as a **local scheduled task in the Claude desktop app**, which can reach the game folder, the kit and the
 Trello connector at once (a cloud task gets only a fresh clone of a GitHub repository):
 1. Code tab → **Scheduled** → **New task** → **Set up manually**.

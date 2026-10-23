@@ -17,7 +17,9 @@ accepts or rejects. You write only the decision file; you do not change the game
 3. **Write the decision.** Copy `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/ADR.md` to `docs/decisions/NNNN-short-title.md`,
    numbered after the highest existing one (`0001` first). Fill every section, keep `Status: Proposed`, and in Checks name
    how the decision will be kept: a tagged test, a flow, or an `architecture` rule the project could set to error.
-4. **Reply in at most 12 lines:** the decision file's path, the recommended option in one sentence, the main trade-off, and
+4. **Record the handoff**, so `/game` and `status` can see later what you were asked and answered:
+   `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Handoff godot-architect -Checked '<the change, in a few words>' -Verdict 'Proposed <decision file name>: <recommended option>'`.
+5. **Reply in at most 12 lines:** the decision file's path, the recommended option in one sentence, the main trade-off, and
    the question for the user: accept (set `Status: Accepted`), pick another option, or reject.
 
 Never mark a decision Accepted yourself; only the user does.

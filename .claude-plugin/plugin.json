@@ -2,7 +2,7 @@
   "name": "hyperdot",
   "displayName": "Hyperdot",
   "version": "0.1.0",
-  "description": "Build, test, measure and plan Godot 4.7 games with an agent: skills, a verifier subagent and a Stop hook that keeps 'done' honest.",
+  "description": "Build, test, measure and plan Godot 4.7 games with an agent: skills, a verifier subagent and a Stop hook that checks the tests passed after the last edit (not a design check).",
   "author": {
     "name": "nick-vas"
   },

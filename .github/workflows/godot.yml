@@ -4,7 +4,7 @@
 #
 #   jobs:
 #     godot:
-#       uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+#       uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
 #
 # Permissions come from the calling job: contents: read is enough to test; add pull-requests: write for
 # the summary comment on pull requests, and contents: write for releases. See README.md.

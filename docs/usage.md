@@ -22,6 +22,10 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (nine in `ci/godo
 - `solution_directory` in `project.godot` when your `.sln` lives outside the project folder;
 - `.github/workflows/hyperdot.yml`.
 
+With `-Agents` or `-Plugin` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
+time the kit got in the way). Start every Claude Code session in the game with `/game`: it reads where the game stands and
+ends with the next tasks to pick from ([plan.md](plan.md#the-gdd-status-and-game)).
+
 ### 2. Run the tests locally, and check your setup
 
 ```powershell
@@ -54,12 +58,17 @@ jobs:
     permissions:
       contents: read
       pull-requests: write     # lets it comment; without this it just warns
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
 ```
 The workflow runs the same script, with the same detection, on `ubuntu-latest`, the cheapest runner. On
 pull requests it keeps a single comment up to date with the results table, failures, and coverage compared
 with the base branch. You don't need the submodule for CI; the workflow brings its own copy of the script,
 pinned to the `@ref` you use.
+
+`@v1` is what `init` writes. It is a moving tag on this repository that points at the release games should run, so a
+change on the kit's `main` reaches no game until a release moves the tag, and a game moves up (to another tag, or a commit)
+on purpose, in a commit of its own. The tag is created with the first release, 0.1.0; until then `@v1` does not resolve, so
+a game set up before it uses `@main` by hand. A workflow `init` wrote earlier keeps the ref it has.
 
 ### 4. A GDScript-only game with GUT
 
@@ -82,7 +91,7 @@ on:
 jobs:
   godot:
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:
       # Unit tests only on PRs; every framework once merged.
       runners: ${{ github.event_name == 'pull_request' && 'dotnet' || '' }}
@@ -98,7 +107,7 @@ jobs:
   release:
     permissions:
       contents: write          # to create the release
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:
       exports: Windows         # a preset name from export_presets.cfg, or "all"
       run-exports: true        # launch the .exe on a Windows runner and fail on errors
@@ -151,7 +160,7 @@ jobs:
       matrix:
         project: [games/arena, games/puzzle]
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:
       project: ${{ matrix.project }}
 ```

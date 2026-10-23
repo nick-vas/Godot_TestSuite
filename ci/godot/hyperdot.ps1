@@ -24,6 +24,8 @@
     ./ci/godot/hyperdot.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
+.EXAMPLE
+    ./ci/godot/hyperdot.ps1 help shot     # one line per command, skill and subagent; with a name, its page (docs/help.md)
 #>
 [CmdletBinding()]
 param(
@@ -37,9 +39,13 @@ param(
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
+    # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help')]
     [string]$Command = 'test',
+    # help: the command, skill or subagent to show the page of, e.g. help shot.
+    [Parameter(Position = 1)]
+    [string]$Topic,
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
     [string]$Project,
@@ -177,6 +183,11 @@ param(
     [string]$Feature,
     # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
     [string]$Card,
+    # status -Handoff <subagent> -Checked <what> -Verdict <answer>: record one subagent handoff in the project's handoff log
+    # (.godot/hyperdot-handoffs.jsonl, the newest 200 kept) instead of reporting; status reads the log back as handoffs[].
+    [string]$Handoff,
+    [string]$Checked,
+    [string]$Verdict,
     # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
@@ -186,7 +197,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -194,6 +205,14 @@ if ($Json) {
 $script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
+
+# help needs no project: it is answered before one is looked for.
+if ($Topic -and $Command -ne 'help') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help takes a name (help $Topic)" 'invalid-arguments' }
+if ($Command -eq 'help') {
+    Invoke-Help $Topic
+    Write-JsonResult
+    exit 0
+}
 
 $GameArgs = @(Split-GameArgs $GameArgs)
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
@@ -548,6 +567,10 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 }
 
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
+# Before any run log or history: flags that belong to another command.
+if (($Handoff -or $Checked -or $Verdict) -and ($Command -ne 'status' -or -not $Handoff)) {
+    Stop-GodotCi '-Handoff, -Checked and -Verdict go together, with status: status -Handoff <subagent> -Checked <what> -Verdict <answer>' 'invalid-arguments'
+}
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
 # bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
@@ -583,7 +606,7 @@ switch ($Command) {
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }
-    'status' { Invoke-Status $info }
+    'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }

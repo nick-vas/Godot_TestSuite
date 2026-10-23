@@ -24,7 +24,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -338,6 +338,11 @@ and `noticesFile`.
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
 
+**help** (no project needed): without a name, `entries[]` (`name`, `kind`: command, skill or subagent, `summary`: one
+line); with one (`help shot`, `help /game`), `entry` with `name`, `kind`, `summary`, `page` (the rest of its text in
+[help.md](help.md)), and for a skill or subagent `when` (its description), `start` (how it starts) and `file`. A name
+help does not know, or a name given to another command, fails with `invalid-arguments`.
+
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
 
 **plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`), `nextActions[]`
@@ -347,7 +352,14 @@ and `noticesFile`.
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `warnings`).
+`plan -Do add` also returns `task`; `plan -Do sync` (experimental) returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `warnings`).
+
+**status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
+reporting: one line in `.godot/hyperdot-handoffs.jsonl` (`time`, `subagent`, `checked`, `verdict`, `commit`; each text on
+one line, `checked` up to 500 characters, `verdict` up to 300), the newest 200 kept. It returns `handoff` (the line) and
+`handoffsKept`. A name that is not lowercase letters, digits and hyphens, a missing `-Checked` or `-Verdict`, or these flags
+on another command fail with `invalid-arguments`, before anything is written. `.godot/` is never committed (`init` puts it
+in `.gitignore`).
 
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
@@ -374,6 +386,9 @@ see [plan.md](plan.md#release-dates)).
 - `placeholders`: `count` and `pastDue` (entries of `assets.json` with `"placeholder": true`, and those whose `due` date
   has passed), `entries[]` (`path`, `due` (yyyy-MM-dd or `null`), `status` (`needed` when not set), `files` (asset files the
   entry covers), `pastDue`). A placeholder past due is also a warning.
+- `handoffs[]`: the 20 newest lines of the handoff log, `.godot/hyperdot-handoffs.jsonl`, newest first: `time`, `subagent`,
+  `checked` (what it was asked to check), `verdict` (its answer, such as `PASS`, `FAIL: ...` or `Proposed 0003`),
+  `commit` (short hash, `null` outside git). Empty without a log.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an

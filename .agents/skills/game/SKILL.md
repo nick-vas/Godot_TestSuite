@@ -17,7 +17,8 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Projec
 ```
 
 `features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `cardId` and
-`boardColumn`), `runs` (latest run per command), `git`, `inventory`, `warnings`. If `runs.test` is missing or older than
+`boardColumn`), `runs` (latest run per command), `git`, `inventory`, `handoffs` (what the `godot-verifier` and
+`godot-architect` subagents were last asked and answered, newest first), `warnings`. If `runs.test` is missing or older than
 `git.lastCommit`, run `test -Json -Quiet` first so the evidence is current.
 
 ## 2. The GDD (first run only)
@@ -44,9 +45,24 @@ Ask once whether to tag existing tests: a `GDD:F<n>` comment on each test that c
 | works | the code meets every "Done when" line, but no tagged test proves it | files, a passing smoke or flow run |
 | proven | tagged tests or flows cover every "Done when" line, and the latest test run passed | test names (`file:line`), run time |
 
+### Design and architecture review
+
+Tests passing is not the whole picture. Look for at most five problems, design first, each one line with its evidence;
+leave out anything without evidence, and fix nothing here (each finding becomes a task in step 4 or a question in step 6):
+
+- **Design:** a must or should feature with no `Fun:` line, or serving none of the game's main kinds of fun; tasks in
+  `doing` for `could` features while `must` features are missing; code for something the GDD does not have; a core loop
+  (the GDD's) that no tagged test or flow plays through.
+- **Architecture:** the `architecture` runner's `warnings` in the latest `test -Json` you ran (run
+  `test -Json -Quiet -Runners architecture` if there is none this session), most frequent rule first; an autoload in
+  `inventory.autoloads` that no file in `docs/decisions/` names; decisions still `Proposed`; a `todoCount` that keeps
+  growing; `handoffs` where the verifier's latest verdict for a check is a FAIL with nothing passing after it, or an
+  architect proposal nobody answered.
+
 Write `plan/STATUS.md` (replace it each run): the date and current phase with its open gates; a table Feature | Priority |
-Mark | Evidence | Next step; the `warnings` worth acting on; the `decisions` still `Proposed`, which wait for the user; and a
-"Board changes" section (step 5).
+Mark | Evidence | Next step; a "Review" section with the findings above (or "nothing found", with what you looked at);
+the `warnings` worth acting on; the `decisions` still `Proposed`, which wait for the user; and a "Board changes" section
+(step 5).
 
 ## 4. Plan tasks
 
@@ -79,7 +95,7 @@ step and say so; `plan -Do sync` (REST, with `TRELLO_KEY`/`TRELLO_TOKEN`; also e
 ## 6. What next
 
 End with one multiple-choice question: the three best next tasks, each with its reason in one line (must-haves first,
-then what unblocks the current phase's gates, then risks from `warnings`), and "Something else". When the user picks
+then what unblocks the current phase's gates, then risks from `warnings` and the review), and "Something else". When the user picks
 one, move it to `doing` in the plan and on the board, and start it with `godot-test-loop`.
 
 ## Scope rules
@@ -93,3 +109,11 @@ one, move it to `doing` in the plan and on the board, and start it with `godot-t
   with those that serve none of the game's main kinds of fun. Never propose cutting tests.
 - **Is it fun:** a new feature names the kind of fun it serves before it is built; if it serves none of the game's main
   kinds, say so when you ask whether to add it (`godot-game-design`).
+
+## Kit notes
+
+When the kit gets in the way during the session (a command or flag that is wrong or missing, a confusing error, a check
+that misses or misfires, a skill that sent you the wrong way, a step that took several tries), append one line to
+`docs/kit-notes.md` in the game, in the format at its top: `yyyy-mm-dd <command, skill or subagent>: <what got in the
+way> - <what would have helped>`. Create the file from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/kit-notes.md` if it is
+missing. Do not change the kit from the game's chat; `/retro` and the weekly review turn the notes into proposals.

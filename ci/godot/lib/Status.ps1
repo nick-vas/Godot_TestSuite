@@ -187,6 +187,46 @@ function Get-ProjectInventory($Info) {
     }
 }
 
+# The handoff log, .godot/hyperdot-handoffs.jsonl: one line each time a subagent (godot-verifier, godot-architect) hands
+# its verdict back, so /game, /retro and status can see what was asked and answered after the conversation is gone. The
+# newest $script:HandoffLimit lines are kept; .godot/ is never committed.
+$script:HandoffLimit = 200
+function Get-HandoffFile([string]$ProjectDir) { return Join-Path $ProjectDir '.godot/hyperdot-handoffs.jsonl' }
+
+# The log's entries, oldest first; damaged lines are skipped.
+function Read-Handoffs([string]$ProjectDir) {
+    $file = Get-HandoffFile $ProjectDir
+    if (-not (Test-Path -LiteralPath $file)) { return @() }
+    return @(foreach ($line in Get-Content -LiteralPath $file) {
+        if (-not $line.Trim()) { continue }
+        try { ConvertFrom-Json -InputObject $line } catch { Write-RunLog "[hyperdot] Skipped a damaged line in ${file}" }
+    })
+}
+
+# status -Handoff <subagent> -Checked <what> -Verdict <answer>: appends one line (time, subagent, checked, verdict, commit)
+# and keeps the newest $script:HandoffLimit. One line of text each; the subagent name as Claude Code names agents.
+function Add-Handoff([string]$ProjectDir, [string]$Subagent, [string]$Checked, [string]$Verdict) {
+    $clean = { param([string]$Text, [int]$Max) $one = ($Text -replace '\s+', ' ').Trim(); if ($one.Length -gt $Max) { $one.Substring(0, $Max) } else { $one } }
+    if ($Subagent -cnotmatch '^[a-z0-9][a-z0-9-]{0,63}$') {
+        Stop-GodotCi "-Handoff '$Subagent' is not a subagent name (lowercase letters, digits and hyphens, such as godot-verifier)" 'invalid-arguments'
+    }
+    $what = & $clean $Checked 500
+    $answer = & $clean $Verdict 300
+    if (-not $what -or -not $answer) { Stop-GodotCi 'status -Handoff needs -Checked (what was checked) and -Verdict (the answer, such as PASS or FAIL)' 'invalid-arguments' }
+    $entry = [ordered]@{
+        time = (Get-Date).ToUniversalTime().ToString('o'); subagent = $Subagent; checked = $what; verdict = $answer
+        commit = Get-HeadCommit $ProjectDir
+    }
+    $file = Get-HandoffFile $ProjectDir
+    $lines = @(if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file | Where-Object { $_.Trim() } })
+    $lines = @(@($lines) + @($entry | ConvertTo-Json -Compress) | Select-Object -Last $script:HandoffLimit)
+    New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+    [System.IO.File]::WriteAllLines($file, [string[]]$lines, [System.Text.UTF8Encoding]::new($false))
+    Set-JsonField handoff $entry
+    Set-JsonField handoffsKept $lines.Count
+    Write-CiLog "Handoff recorded in ${file}: $Subagent, $answer ($($lines.Count) kept)"
+}
+
 function Invoke-Status($Info) {
     $warnings = [System.Collections.Generic.List[string]]::new()
 
@@ -287,6 +327,9 @@ function Invoke-Status($Info) {
     foreach ($p in @($placeholderReport.entries | Where-Object { $_.pastDue })) { $warnings.Add("Placeholder $($p.path) was due on $($p.due) (assets.json): replace it, or agree a new date") }
     $git = Get-GitActivity $Info.ProjectDir
     $inventory = Get-ProjectInventory $Info
+    $allHandoffs = @(Read-Handoffs $Info.ProjectDir)
+    [array]::Reverse($allHandoffs)
+    $handoffs = @($allHandoffs | Select-Object -First 20)
 
     Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count } : $null)
     Set-JsonField features $features
@@ -303,6 +346,7 @@ function Invoke-Status($Info) {
     Set-JsonField git $git
     Set-JsonField inventory $inventory
     Set-JsonField placeholders $placeholders
+    Set-JsonField handoffs $handoffs
     Set-JsonField warnings @($warnings)
 
     if (-not $script:JsonMode) {
@@ -326,6 +370,7 @@ function Invoke-Status($Info) {
         Write-Console "Look: $(if ($look.styleGuide) { "style guide ($($look.resolutions -join ', '))" } else { 'no style guide (/look writes one)' }); $(if ($look.juiceRules) { "$($look.juiceRules) juice rule(s)" } else { 'no juice.json' })"
         if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }
         if ($placeholders.count) { Write-Console "Placeholders: $($placeholders.count) in assets.json ($($placeholders.pastDue) past due)" }
+        foreach ($h in $handoffs | Select-Object -First 3) { Write-Console "Handoff $(Format-RunTime $h.time): $($h.subagent) checked $($h.checked): $($h.verdict)" }
         Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }
     }

@@ -7,7 +7,7 @@
 <h3 align="center">A hyper interface for Godot: build, test, ship and plan games with an AI agent.</h3>
 
 <p align="center">
-  One PowerShell script, 50 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
+  One PowerShell script, 51 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
   Runs on your Windows machine and, as a GitHub workflow, on Linux runners.
 </p>
 
@@ -37,10 +37,10 @@ what to build next. Hyperdot supplies both.
 | | |
 |---|---|
 | **Verify** | One script detects the project, installs the right Godot, runs every test framework, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**. |
-| **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror. |
+| **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror (experimental). |
 | **Measure** | Frame-pacing benchmarks, real screenshots and loudness checks, so an agent judges performance, layout and sound, not just logic. |
-| **Teach** | `AGENTS.md` and 50 skills that make the agent work test first and prove it is done before it says so. |
-| **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. |
+| **Teach** | `AGENTS.md` and 51 skills that make the agent work test first and prove it is done before it says so. |
+| **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. The hook checks only that; it does not judge the design or the code. |
 | **Get better** | `/retro` turns a session's mistakes into kit changes, each measured with evals, with and without the plugin. |
 
 ```powershell
@@ -111,13 +111,16 @@ separate, headless tool.
    pwsh $kit init -Agents -Mcp godot-mcp -Project $game
    ```
    `init` adds a starter test, a GitHub workflow, `.gitignore` lines, test exclusions in the export presets, `AGENTS.md`,
-   `CLAUDE.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
+   `CLAUDE.md`, `docs/kit-notes.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
    and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
 2. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
    game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
    updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hyperdot@hyperdot`.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
-4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
+4. Open Claude Code in the game's folder and **start every session with `/game`**: it reads where the game stands (GDD,
+   plan, tests, git), writes `plan/STATUS.md` and ends with the three best next tasks to pick from. Then ask the agent to
+   work; it reads `AGENTS.md` and runs `test -Json` to check itself. `/kit` (or `hyperdot.ps1 help`) lists every command, skill and
+   subagent in one line each; `/kit <name>` shows one page ([docs/help.md](docs/help.md)).
 
 ## What it gives an agent
 
@@ -125,9 +128,10 @@ separate, headless tool.
 
 | Capability | Command | Result |
 |---|---|---|
+| **Find the right tool** | `help [name]`, `/kit [name]` | one line per command, skill and subagent, or the page of one |
 | **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
 | **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files, add-ons, store art |
-| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity |
+| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs, git activity and subagent handoffs; `/game` adds a short design and architecture review |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; `-McpDiagnostics` adds GDScript checks and the game console |
 
 ### Test and verify
@@ -141,7 +145,7 @@ separate, headless tool.
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed to smoke runs, `export -Run`, `bench` and `shot` |
-| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework) |
+| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework). It only checks that the tests passed after the last edit: it is not a design or code review |
 
 ### Check the game itself
 
@@ -177,13 +181,13 @@ separate, headless tool.
 | Capability | Command | Result |
 |---|---|---|
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
-| **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
+| **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror (experimental) |
 
 ### Improve the agent and the kit
 
 | Capability | Command | Result |
 |---|---|---|
-| **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
+| **Improve the kit** | `/retro`, `/kit-review`, `evals/`, `docs/kit-notes.md` | lessons with evidence, and the game's one-line notes each time the kit got in the way, become kit pull requests you approve, each measured with and without the plugin |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens, cost and time per task, as medians over repeated runs |
 
 `test` picks its runners from the project: `validate` and `architecture` always; `dotnet`, `godottest`, `gut`, `flows` and
@@ -195,7 +199,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 
 ## Skills
 
-50 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
+51 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
 
 - **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-editor-bridge`, `godot-debug-tools`
 - **Design and plan**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
@@ -203,7 +207,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 - **Look, sound and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`, `godot-performance`
 - **Online**: `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
 - **Ship**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
-- **Run by hand**: `game` (where the game stands, what next), `look` (style guide and screenshot critique), `retro`, `kit-review`, `weekly-review`
+- **Run by hand**: `game` (where the game stands, what next), `kit` (every command, skill and subagent, one line each), `look` (style guide and screenshot critique), `retro`, `kit-review`, `weekly-review`
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
 images stay out of the main conversation. The `godot-architect` subagent compares designs for a new system before code is
@@ -223,7 +227,8 @@ Seven phases, each with gates: concept, prototype, vertical slice, production, a
 
 A phase past its timebox warns you to cut scope, never testing. Tasks live in `plan/plan.json` and move through
 Backlog, Design, To Do, Doing, Verify and Done; `move` refuses to put a task in Doing past the work-in-progress limit.
-`plan -Do sync -Board <id>` mirrors tasks to a Trello board (needs `TRELLO_KEY` and `TRELLO_TOKEN`). Where the plan comes
+`plan -Do sync -Board <id>` mirrors tasks to a Trello board (experimental: tested against a stand-in only; needs `TRELLO_KEY`
+and `TRELLO_TOKEN`). Where the plan comes
 from, and the Trello rules: [docs/plan.md](docs/plan.md).
 
 ## GitHub
@@ -233,10 +238,12 @@ on: [push, pull_request]
 jobs:
   godot:
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
 ```
-Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. The first release, 0.1.0, will
-publish a release tag to pin instead of `@main`. In this repository, a weekly canary tries new Godot, test-framework and GUT
+Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. `@v1` is a
+moving tag that follows the kit's releases, so a kit change reaches a game only when a release moves the tag, and a game
+moves up on purpose. The tag is created with the first release, 0.1.0; until then use `@main`
+([docs/usage.md](docs/usage.md#3-the-same-tests-on-a-github-linux-runner-with-a-pr-comment)). In this repository, a weekly canary tries new Godot, test-framework and GUT
 releases on both examples and opens a pull request for those that pass. Free on public repositories; Linux runners are the
 cheapest on private ones. More: [docs/usage.md](docs/usage.md) and [docs/reference.md](docs/reference.md).
 

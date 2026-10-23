@@ -39,6 +39,31 @@
   (`ci/godot/templates/licences/MPL-2.0.txt`, SPDX 3.29.0), and the notice tells players where the source of those files
   is, as section 3.2(a) asks. An MPL entry whose `source` is not a URL fails (`source-offer-missing`); a modified one
   warns (`mpl-modified`) that the changes are MPL-2.0 too. `copyright` is optional for it.
+- **`help` and `/kit`.** `hyperdot.ps1 help` prints one line for each command, skill and subagent, and `help <name>`
+  the short page of one (with `-Json`: `entries[]` or `entry`); it needs no project. The `kit` skill (`/kit`, `/kit <name>`)
+  prints the same. The text has one source, `docs/help.md`; `tests/Test-Help.ps1` fails when a command, skill or subagent
+  has no entry there.
+- **`/game` reviews design and architecture.** Besides the feature marks, `plan/STATUS.md` gets a "Review" section: at
+  most five design and architecture problems with their evidence (features that serve no kind of fun, scope drift,
+  `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on).
+- **Handoff log.** `status -Handoff <subagent> -Checked <what> -Verdict <answer>` appends one line (time, subagent,
+  what was checked, verdict, commit) to `.godot/hyperdot-handoffs.jsonl`, keeping the newest 200; `status` returns the 20
+  newest as `handoffs[]`. Both subagents record their handoff before replying, and `/game` and `/retro` read the log.
+  `tests/Test-Handoffs.ps1` checks it.
+- **Kit notes.** `init -Agents` and `-Plugin` create `docs/kit-notes.md` in the game (template
+  `ci/godot/templates/kit-notes.md`): one line each time the kit gets in the way. The `game` skill and the game's
+  `AGENTS.md` say to append a line; `/retro` and `weekly-review` read it, and the weekly review proposes up to three kit
+  changes for the owner to approve.
+- **Start with `/game`.** The README's quick start, `docs/usage.md`, `docs/plan.md` and the game's `AGENTS.md` template
+  say to start every Claude Code session in a game with `/game`.
+- **`init` pins the kit's workflow at `@v1`** instead of `@main`, so a kit change reaches a game only when a release
+  moves the `v1` tag, and a game moves up on purpose. The docs' snippets use `@v1` too. The tag is created at the 0.1.0
+  release; a workflow `init` wrote earlier keeps its ref.
+- **Trello sync is marked experimental** wherever it is described (README, `docs/plan.md`, `docs/reference.md`,
+  `docs/json.md`, the skills): it has met only a stand-in Trello, and it uses API keys, not the Trello connector.
+- **The Stop hook says what it checks.** The README, `docs/reference.md`, the hook, the plugin's description and
+  `godot-verify-before-done` say plainly that it only checks that the tests passed after the last edit; it is not a design
+  or code review.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per
