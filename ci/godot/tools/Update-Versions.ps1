@@ -1,14 +1,18 @@
 #Requires -Version 7.2
 <#
 .SYNOPSIS
-    Compares the versions the kit pins (Godot, the test-framework packages, GUT) with the newest stable releases, and with
-    -Apply rewrites every pin so the kit, its examples, skills and docs move together.
+    Compares the versions the kit pins (Godot, the test-framework packages, GUT, and the aseprite-mcp commit and MCP SDK
+    that init -McpAseprite writes) with the newest stable releases, and with -Apply rewrites every pin so the kit, its
+    examples, skills and docs move together.
 
 .DESCRIPTION
     The examples' csproj files are the source of truth for what is pinned now. Newest versions come from NuGet (Godot.NET.Sdk
     gives the Godot version) and GitHub releases (godotengine/godot-builds must have the build; bitwes/Gut gives the GUT
-    release for that Godot minor). The weekly canary workflow tries each update against both examples and proposes the ones
-    that pass. -LatestFile replaces the lookups with a JSON file (name -> version), for tests and offline runs.
+    release for that Godot minor). aseprite-mcp has no releases: its pin is the newest commit on its default branch (git
+    ls-remote, no API), and the MCP SDK (the mcp package on PyPI) moves within its pinned major only, because SDK 2.x
+    renamed the FastMCP class the server imports (docs/mcp.md); a newer major is reported in notes. The weekly canary
+    workflow tries each update (aseprite-mcp's by starting the server through uvx) and proposes the ones that pass.
+    -LatestFile replaces the lookups with a JSON file (name -> version), for tests and offline runs.
 
 .EXAMPLE
     pwsh ci/godot/tools/Update-Versions.ps1 -Json                    # what is out of date
@@ -45,6 +49,13 @@ foreach ($file in $csprojs) {
 $minor = { param($v) ($v -split '\.')[0..1] -join '.' }
 $gutLine = [regex]::Match((Read-Text 'ci/godot/lib/Setup.ps1'), "'\^4\\\.(?<m>\d+)' \{ '(?<t>v[\d.]+)' \}")
 $current['gut'] = $gutLine.Groups['t'].Value
+# init -McpAseprite's pins (lib/Init.ps1): a git commit of aseprite-mcp and the MCP SDK it runs with.
+$initText = Read-Text 'ci/godot/lib/Init.ps1'
+$current['aseprite-mcp'] = [regex]::Match($initText, 'github\.com/diivi/aseprite-mcp@(?<c>[0-9a-f]{40})').Groups['c'].Value
+$current['mcp'] = [regex]::Match($initText, "'mcp\[cli\]==(?<v>[\d.]+)'").Groups['v'].Value
+foreach ($pin in 'aseprite-mcp', 'mcp') { if (-not $current[$pin]) { throw "Update-Versions: no $pin pin found in ci/godot/lib/Init.ps1; update the pattern in Update-Versions.ps1" } }
+# Pins that are not NuGet packages.
+$nonNuGet = 'godot', 'gut', 'aseprite-mcp', 'mcp'
 
 # --- What is newest ----------------------------------------------------------------------------------------------
 function Get-Json([string]$Url) {
@@ -68,6 +79,23 @@ function Get-GutFor([string]$GodotMinor) {
     if ($tags.Count -eq 0) { return $null }
     return @($tags | Sort-Object { [version]$_.TrimStart('v') })[-1]
 }
+# aseprite-mcp has no releases or tags: the newest commit on its default branch, read with git (no API, no token).
+function Get-AsepriteMcpHead {
+    $line = @(& git ls-remote https://github.com/diivi/aseprite-mcp HEAD 2>$null) | Select-Object -First 1
+    if ($LASTEXITCODE -or -not $line -or $line -notmatch '^(?<c>[0-9a-f]{40})\s') { throw "git ls-remote of diivi/aseprite-mcp failed ($LASTEXITCODE)" }
+    return $Matches.c
+}
+# The newest stable mcp release on PyPI within the pinned major; a newer major is a note, not an update.
+function Get-McpSdkLatest([string]$Current) {
+    $releases = (Get-Json 'https://pypi.org/pypi/mcp/json').releases
+    $stable = @($releases.PSObject.Properties | Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' -and @($_.Value | Where-Object { -not $_.yanked }).Count -gt 0 } |
+        ForEach-Object Name | Sort-Object { [version]$_ })
+    $major = [int]($Current -split '\.')[0]
+    $newer = @($stable | Where-Object { [int]($_ -split '\.')[0] -gt $major })
+    if ($newer) { $notes.Add("MCP SDK $($newer[-1]) is out; aseprite-mcp stays on $major.x until it imports SDK 2's renamed FastMCP (docs/mcp.md)") }
+    $same = @($stable | Where-Object { [int]($_ -split '\.')[0] -eq $major })
+    return $(if ($same) { $same[-1] } else { $Current })
+}
 
 $latest = [ordered]@{}
 # Lookups that failed; reported in the result rather than as warnings, which would land on stdout in a child process.
@@ -78,7 +106,9 @@ if ($LatestFile) {
 } else {
     $sdk = Get-NuGetLatest 'Godot.NET.Sdk'
     $latest['godot'] = if ($sdk -ne $current['godot'] -and (Test-GodotBuild $sdk)) { $sdk } else { $current['godot'] }
-    foreach ($name in @($current.Keys | Where-Object { $_ -notin 'godot', 'gut' })) { $latest[$name] = Get-NuGetLatest $name }
+    foreach ($name in @($current.Keys | Where-Object { $_ -notin $nonNuGet })) { $latest[$name] = Get-NuGetLatest $name }
+    $latest['aseprite-mcp'] = try { Get-AsepriteMcpHead } catch { $notes.Add("Could not read aseprite-mcp's newest commit: $($_.Exception.Message)"); $current['aseprite-mcp'] }
+    $latest['mcp'] = try { Get-McpSdkLatest $current['mcp'] } catch { $notes.Add("Could not read the MCP SDK's releases on PyPI: $($_.Exception.Message)"); $current['mcp'] }
     $gut = try { Get-GutFor (& $minor $latest['godot']) } catch { $notes.Add("Could not read GUT releases: $($_.Exception.Message)"); $null }
     $latest['gut'] = if ($gut) { $gut } else { $current['gut'] }
 }
@@ -158,6 +188,13 @@ if ($Apply) {
                 Update-Pin '.agents/skills/godot-test-loop/SKILL.md' 'GUT: {v} for' $u.current $u.latest
                 Update-Pin 'AGENTS.md' 'GUT {v}' $u.current $u.latest
                 Update-Pin 'docs/godot-pipelines.md' 'v9\.4\.0\u2013{v}' $u.current $u.latest
+            }
+            # init -McpAseprite's .mcp.json entry and the copy of it in docs/mcp.md.
+            'aseprite-mcp' {
+                foreach ($file in 'ci/godot/lib/Init.ps1', 'docs/mcp.md') { Update-Pin $file 'diivi/aseprite-mcp@{v}' $u.current $u.latest }
+            }
+            'mcp' {
+                foreach ($file in 'ci/godot/lib/Init.ps1', 'docs/mcp.md') { Update-Pin $file 'mcp\[cli\]=={v}' $u.current $u.latest }
             }
             default {
                 $id = [regex]::Escape($u.name)

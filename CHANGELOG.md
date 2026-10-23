@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **The canary tracks aseprite-mcp's pins.** `Update-Versions.ps1` reads the commit and MCP SDK that `init -McpAseprite`
+  writes (`lib/Init.ps1`) and proposes the server's newest commit (`git ls-remote`) and the newest `mcp` release on PyPI
+  within the pinned major (a newer major is a note: SDK 2.x renamed the `FastMCP` the server imports). `-Apply` rewrites
+  `lib/Init.ps1` and `docs/mcp.md`. `Invoke-Canary.ps1` tries them by starting the server through `uvx` and listing its
+  tools (`-Uvx`, a stand-in in `tests/Test-UpdatePins.ps1`), without the example projects, which these pins do not touch;
+  `canary.yml` installs uv.
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run

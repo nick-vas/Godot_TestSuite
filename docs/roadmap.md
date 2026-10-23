@@ -178,8 +178,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
   Godot, templates, PowerShell and .NET, refreshed by the canary. `init` writes `@v1`; the tag itself is
   created at the 0.1.0 release (step 7 above).
-- **Keeping aseprite-mcp's pins current.** `init` pins a commit and MCP SDK 1.30.0 (`docs/mcp.md`); the canary does not
-  track git pins.
 
 In the example game (the C# example):
 

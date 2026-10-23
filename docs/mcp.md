@@ -80,6 +80,12 @@ start; the locked 1.6.0 failed to import with current pydantic. With 1.30.0 it s
 reached a stand-in Aseprite (in a folder whose name has a space) as `--batch --script <file>.lua`. Its `.env` file is not read once
 installed this way, which is why `ASEPRITE_PATH` is set in `env`.
 
+The weekly canary keeps both pins current (`ci/godot/tools/Update-Versions.ps1`, `Invoke-Canary.ps1`): the commit follows
+the newest commit on the server's default branch (read with `git ls-remote`, as it has no releases), the SDK the newest
+`mcp` release on PyPI within its major, since 2.x renamed `FastMCP` (a newer major is reported, not proposed). Each new pin
+is tried by starting the server through `uvx` exactly as `.mcp.json` runs it and listing its tools; only pins that start
+it are proposed, in the canary's pull request, which rewrites `lib/Init.ps1` and the entry above.
+
 Two cautions. `run_lua_script` runs any Lua the agent writes, with your user's rights: keep the agent asking before it calls it.
 And Aseprite's `.aseprite` files are sources, not something Godot imports: keep them outside `res://` (or in a folder with a
 `.gdignore`), export PNGs or sprite sheets into the project, and give each an `assets.json` entry (`godot-asset-pipeline`).

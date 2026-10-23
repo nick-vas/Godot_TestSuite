@@ -2,7 +2,8 @@
 # Self-test of Update-Versions.ps1 -Apply against a pinned file that is missing: it must fail and name the file, not skip
 # it and leave the file's pin behind on every later update. Also: the C# fixtures' SDK pins move with Godot, a new Godot
 # minor's GUT release is never applied without that Godot, and Invoke-Canary.ps1 counts a failed rewrite as a failure
-# and tries the new minor with its GUT release as a pair. On copies of the repository's tracked files, with made-up
+# and tries the new minor with its GUT release as a pair. aseprite-mcp's commit and MCP SDK pins (lib/Init.ps1, docs/mcp.md)
+# move like the others, and the canary proposes them only after starting the server through uvx (a stand-in here). On copies of the repository's tracked files, with made-up
 # releases (-LatestFile) and no example projects for the canary, so no network and no Godot.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -132,11 +133,60 @@ try {
         if (($passingNames -join ',') -ne 'gdUnit4.api' -or ($failingNames -join ',') -ne 'godot,gut') { $failures += "GUT should fail with Godot, the package pass: $($c.text)" }
         if ((Get-Content -LiteralPath (Join-Path $canaryNoGodot 'ci/godot/lib/Setup.ps1') -Raw) -ne $setupBefore) { $failures += "Setup.ps1's GUT mapping should be left alone: $($c.text)" }
     }
+
+    # aseprite-mcp's pins: a new commit and a new MCP SDK rewrite init's .mcp.json entry and its copy in docs/mcp.md.
+    $initBefore = Get-Content -LiteralPath (Join-Path $root 'ci/godot/lib/Init.ps1') -Raw
+    $oldCommit = [regex]::Match($initBefore, 'diivi/aseprite-mcp@(?<c>[0-9a-f]{40})').Groups['c'].Value
+    $oldSdk = [regex]::Match($initBefore, "'mcp\[cli\]==(?<v>[\d.]+)'").Groups['v'].Value
+    $newCommit = 'b' * 40
+    $latestAse = Join-Path $temp 'latest-aseprite.json'
+    @{ 'aseprite-mcp' = $newCommit; mcp = '1.31.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestAse
+    $ase = New-RepoCopy 'aseprite'
+    $out = & pwsh -NoProfile -File $tool -Root $ase -LatestFile $latestAse -Apply -Json 2>&1
+    $r = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
+    if (-not $r -or $r.current.'aseprite-mcp' -ne $oldCommit -or $r.current.mcp -ne $oldSdk) { $failures += "the aseprite-mcp pins should be read from Init.ps1 ($oldCommit, $oldSdk): $($out -join ' ')" }
+    else {
+        foreach ($file in 'ci/godot/lib/Init.ps1', 'docs/mcp.md') {
+            $text = Get-Content -LiteralPath (Join-Path $ase $file) -Raw
+            if ($text -notmatch "diivi/aseprite-mcp@$newCommit" -or $text -notmatch 'mcp\[cli\]==1\.31\.0' -or $text -match $oldCommit) { $failures += "$file should carry the new aseprite-mcp commit and MCP SDK: $(@($r.changed) -join ', ')" }
+        }
+    }
+
+    # The canary starts the server through a stand-in uvx: the new commit with the pinned SDK starts, an SDK that renamed
+    # FastMCP does not, so the commit is proposed and the SDK fails with the server's own error.
+    $fakeUvx = Join-Path $temp 'fake-uvx.ps1'
+    Set-Content -LiteralPath $fakeUvx -Value @'
+$joined = $args -join ' '
+if ($joined -notmatch '^--from git\+https://github\.com/diivi/aseprite-mcp@[0-9a-f]{40} --with mcp\[cli\]==[\d.]+ python -c ') { 'unexpected arguments: ' + $joined; exit 2 }
+if ($joined -match 'mcp\[cli\]==1\.99\.0') { "ImportError: cannot import name 'FastMCP' from 'mcp.server.fastmcp'"; exit 1 }
+Write-Output '@@tools 123'
+'@
+    $latestBreak = Join-Path $temp 'latest-aseprite-break.json'
+    @{ 'aseprite-mcp' = $newCommit; mcp = '1.99.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestBreak
+    $canaryAse = New-RepoCopy 'canary-aseprite'
+    $errFile = Join-Path $temp 'canary-aseprite.err'
+    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryAse' -LatestFile '$latestBreak' -Projects @() -Uvx '$fakeUvx'" 2>$errFile
+    $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
+    $text = "exit ${LASTEXITCODE}: $($out -join ' ') $(Get-Content -LiteralPath $errFile -Raw)"
+    if (-not $report) { $failures += "the canary should report on the aseprite-mcp pins: $text" }
+    else {
+        $sdkFailing = @($report.failing | Where-Object name -eq 'mcp')
+        if ((@($report.passing | ForEach-Object name) -join ',') -ne 'aseprite-mcp' -or -not $sdkFailing -or $sdkFailing[0].problem -notmatch 'FastMCP') {
+            $failures += "the new commit should pass and the breaking SDK fail with the server's error: $text"
+        }
+        $init = Get-Content -LiteralPath (Join-Path $canaryAse 'ci/godot/lib/Init.ps1') -Raw
+        if ($init -notmatch "aseprite-mcp@$newCommit" -or $init -notmatch "mcp\[cli\]==$([regex]::Escape($oldSdk))'") { $failures += "only the commit should be left applied: $text" }
+    }
+    # No uvx at all: the pins are not proposed untried.
+    $canaryNoUvx = New-RepoCopy 'canary-no-uvx'
+    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryNoUvx' -LatestFile '$latestAse' -Projects @() -Uvx '$(Join-Path $temp 'no-such-uvx')'" 2>$null
+    $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
+    if (-not $report -or @($report.passing).Count -or @($report.failing | Where-Object { $_.problem -match 'was not found' }).Count -ne 2) { $failures += "without uvx both aseprite-mcp pins should fail, saying uvx is missing: $($out -join ' ')" }
 } finally {
     Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
 }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'Update-Versions -Apply rewrites every pinned file (the C# fixtures too), fails naming a pinned file that is missing, and keeps a new minor''s GUT release for that Godot; the canary fails a rewrite that fails, and pairs Godot with its GUT'
+Write-Host 'Update-Versions -Apply rewrites every pinned file (the C# fixtures too), fails naming a pinned file that is missing, and keeps a new minor''s GUT release for that Godot; the canary fails a rewrite that fails, and pairs Godot with its GUT; aseprite-mcp''s commit and MCP SDK move together with docs/mcp.md, and the canary starts the server before proposing them'
 # Some updates failed on purpose; GitHub's pwsh wrapper would exit with their code.
 exit 0
