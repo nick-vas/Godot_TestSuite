@@ -13,6 +13,10 @@ $fake = Join-Path $PSScriptRoot 'game-benchmark/fake-game-claude.ps1'
 $work = Join-Path ([IO.Path]::GetTempPath()) "game-benchmark-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 New-Item -ItemType Directory -Force $work | Out-Null
 $env:FAKE_CLAUDE_LOG = Join-Path $work 'calls.jsonl'
+# The runs' temporary folders go to a folder of this test's own, so other work on the machine cannot make them look left behind.
+$privateTemp = Join-Path $work 'tmp'
+New-Item -ItemType Directory -Force $privateTemp | Out-Null
+$env:TMPDIR = $privateTemp
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
@@ -46,7 +50,7 @@ try {
     Assert-True (@($calls.cwd | Sort-Object -Unique).Count -eq $calls.Count) 'each session has its own copy of the game'
     Assert-True (@($calls | Where-Object { $_.args -contains 'Bash' -and $_.args -contains 'Edit' -and $_.args -contains 'Write' }).Count -eq $calls.Count) 'game sessions may run commands and edit files'
     Assert-True (@($calls | Where-Object { $i = [Array]::IndexOf(@($_.args), '--disallowedTools'); $i -ge 0 -and @($_.args)[$i + 1] -eq 'NotebookEdit' }).Count -eq $calls.Count) 'what the spec does not allow stays refused'
-    Assert-True (@(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Directory -Filter 'hyperdot-game-*').Count -eq 0) 'the copies of the game are removed'
+    Assert-True (@(Get-ChildItem -LiteralPath $privateTemp -Directory -Filter 'hyperdot-game-*').Count -eq 0) 'the copies of the game are removed'
     $diff = Get-Content -LiteralPath (Join-Path $good.Folder 'responses/A-baseline-GAME-FIX-001-r1-a0.diff') -Raw
     Assert-True ($diff -match '(?m)^-.*combo / 6' -and $diff -match '(?m)^\+.*combo / 5') 'the diff the session made is kept'
     $newFile = Get-Content -LiteralPath (Join-Path $good.Folder 'responses/A-baseline-GAME-TEST-001-r1-a0.diff') -Raw
@@ -83,7 +87,9 @@ try {
     Assert-True ($min.Code -eq 0 -and ($min.Json.tasks -join ',') -eq 'toy.prototype.gdscript.fix-bug,toy.alpha.gdscript.fix-bug') "the min tier takes its cells and tasks a stage ($($min.Json.tasks -join ', '))"
     $mid = Invoke-Programme @('-Tier', 'mid', '-DryRun')
     Assert-True ($mid.Code -eq 0 -and @($mid.Json.tasks).Count -eq 4 -and $mid.Json.tasks -contains 'toy.prototype-to-alpha.gdscript.milestone') 'the mid tier adds every task and its milestone; genres not written yet are skipped'
-    Assert-True ([math]::Abs($mid.Json.estimateUsd - 0.016) -lt 1e-9 -and [math]::Abs($mid.Json.budgetUsd - 5 * 0.016 / 0.0528) -lt 1e-9) "the estimate comes from the cost model, the ceiling is the tier's shared by expected cost ($($mid.Json.estimateUsd), $($mid.Json.budgetUsd))"
+    # 2 runs x (3 tasks x 0.001 + a milestone 0.005 + the judged task's 3 judgings x 0.0001) = 0.0166 for Sonnet; the four
+    # configurations together 0.0552.
+    Assert-True ([math]::Abs($mid.Json.estimateUsd - 0.0166) -lt 1e-9 -and [math]::Abs($mid.Json.budgetUsd - 5 * 0.0166 / 0.0552) -lt 1e-9) "the estimate comes from the cost model, the ceiling is the tier's shared by expected cost ($($mid.Json.estimateUsd), $($mid.Json.budgetUsd))"
     $narrow = Invoke-Programme @('-Tier', 'mid', '-Stage', 'alpha', '-DryRun')
     Assert-True (($narrow.Json.tasks -join ',') -eq 'toy.alpha.gdscript.fix-bug') 'selectors narrow a tier'
     $wild = Invoke-Programme @('-Tier', 'mid', '-TaskId', '*.fix-bug', '-DryRun')
@@ -99,7 +105,7 @@ try {
     Assert-True ($staged.Json -and $staged.Json.meta.tier -eq 'mid' -and -not $staged.Json.meta.standard) 'a run with its repeats changed is not the standard programme'
     $milestoneDiff = if ($staged.Json) { Get-Content -LiteralPath (Join-Path $staged.Json.folder 'responses/A-baseline-toy.prototype-to-alpha.gdscript.milestone-r1-a0.diff') -Raw } else { '' }
     Assert-True ($milestoneDiff -match '(?m)^\+var best') 'a stage is built from the whole game: the prototype has no best score until the milestone adds it'
-    Assert-True (@(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Directory -Filter 'hyperdot-stages-*').Count -eq 0) 'the stage fixtures are removed'
+    Assert-True (@(Get-ChildItem -LiteralPath $privateTemp -Directory -Filter 'hyperdot-stages-*').Count -eq 0) 'the stage fixtures are removed'
 
     $badMilestone = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1', '-TaskId', '*.milestone') 'bad'
     $badRows = if ($badMilestone.Json) { @(Get-Content -LiteralPath (Join-Path $badMilestone.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
@@ -136,7 +142,7 @@ try {
     Assert-True ($stopped.Code -eq 1 -and $stoppedRows.Count -eq 2 -and @($stopped.Json.meta.notRun).Count -eq 2) "past the ceiling nothing new starts, and the run is incomplete ($($stoppedRows.Count) run, exit $($stopped.Code))"
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item Env:FAKE_GAME_MODE, Env:FAKE_CLAUDE_LOG, Env:FAKE_JUDGE_SCORE -ErrorAction SilentlyContinue
+    Remove-Item Env:FAKE_GAME_MODE, Env:FAKE_CLAUDE_LOG, Env:FAKE_JUDGE_SCORE, Env:TMPDIR -ErrorAction SilentlyContinue
 }
 if ($failures.Count) { Write-Host "$($failures.Count) check(s) failed" -ForegroundColor Red; exit 1 }
 Write-Host 'All game benchmark checks passed'
