@@ -3,7 +3,7 @@
 # docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
 # `bench` command, the trailer template asks what its gate says, and every gate id, template and hyperdot.ps1 flag that
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
-# cannot be kept, and `plan -Json` reports it. No Godot needed.
+# cannot be kept, and `plan -Json` reports it. `init` never overwrites an existing test/test_example.gd. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -190,6 +190,21 @@ try {
         (ConvertTo-UtcTime '2026-10-23T05:57:27.0000000Z') -eq [datetime]::new(2026, 10, 23, 5, 57, 27, [DateTimeKind]::Utc)) 'ConvertTo-UtcTime keeps a UTC DateTime and reads an ISO string as the same instant'
 } finally {
     Remove-Item -LiteralPath $culture -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# init sets up the project the plan's gates check: it adds a starter test, but never over a file the user already has
+# (here a test of that name that extends GUT's script by path, so it is not found as a GutTest).
+$starter = Join-Path ([IO.Path]::GetTempPath()) "plan-init-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $starter 'test') | Out-Null
+    Set-Content -LiteralPath (Join-Path $starter 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Starter""`n"
+    $mine = "extends ""res://addons/gut/test.gd""`n`nfunc test_mine():`n`tassert_true(true)`n"
+    Set-Content -LiteralPath (Join-Path $starter 'test/test_example.gd') -Value $mine -NoNewline
+    $d = pwsh -NoProfile -File $ci init -Json -Project $starter 2>$null | ConvertFrom-Json
+    Assert-True ((Get-Content -LiteralPath (Join-Path $starter 'test/test_example.gd') -Raw) -ceq $mine) 'init leaves an existing test/test_example.gd as it was'
+    Assert-True (@($d.steps | Where-Object { $_.status -eq 'skipped' -and $_.message -match 'test_example\.gd exists' }).Count -eq 1) "init says it skipped it: $(@($d.steps | ForEach-Object message) -join ' | ')"
+} finally {
+    Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }
