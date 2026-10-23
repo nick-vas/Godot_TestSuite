@@ -3,9 +3,11 @@
 # needs no account and no network. -Live runs the same steps against the real Trello API with TRELLO_KEY and TRELLO_TOKEN:
 # it creates a private board, syncs a plan to it, moves and archives cards the way a person would, and deletes the board
 # at the end (-KeepBoard leaves it for a look). Checks: cards are created in the right lists (a list named "Done" plus an emoji
-# matches done), a second sync changes nothing, a card moved on the board moves its task, an archived card is reported,
-# a short link works as -Board, a missing list, missing credentials and a rejected token fail with their codes, and the
-# token never appears in the kit's output or (mock) in a URL.
+# matches done), a second sync changes nothing, a card moved on the board moves its task, a task moved in the plan moves
+# its card, an archived card is reported, a short link works as -Board, a custom trello.lists mapping survives sync and
+# link, a failed call keeps the ids of the cards made before it (mock), a task in an unknown column is refused before any
+# call, a missing list (also on a board with none), missing credentials, a rejected token and an unreachable API fail
+# with their codes, and the token never appears in the kit's output or (mock) in a URL.
 param([switch]$Live, [switch]$KeepBoard)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -58,6 +60,7 @@ $mockServer = {
             } elseif ($request.HttpMethod -eq 'POST' -and $path -eq 'cards') {
                 $list = $State.lists[$body.idList]
                 if (-not $list) { $status = 400; $result = 'invalid value for idList' }
+                elseif ("$($body.name)".StartsWith('Rate limited')) { $status = 429; $result = 'API_TOO_MANY_CARDS_REQUESTS' }
                 else {
                     $card = @{ id = New-TrelloId; name = $body.name; desc = [string]$body.desc; idList = $list.id; idBoard = $list.idBoard; closed = $false }
                     $State.cards[$card.id] = $card; $result = $card
@@ -80,7 +83,7 @@ $mockServer = {
 # "Done" and a party popper, written as code so the file stays ASCII for Windows PowerShell's readers.
 $done = 'Done ' + [char]::ConvertFromUtf32(0x1F389)
 $saved = @{ key = $env:TRELLO_KEY; token = $env:TRELLO_TOKEN; url = $env:TRELLO_API_URL }
-$listener = $null; $job = $null; $board = $null
+$listener = $null; $job = $null; $board = $null; $emptyBoard = $null
 if ($Live) {
     if (-not $env:TRELLO_KEY -or -not $env:TRELLO_TOKEN) { throw 'Set TRELLO_KEY and TRELLO_TOKEN to run the live Trello test' }
     $base = 'https://api.trello.com/1'
@@ -161,6 +164,16 @@ try {
     $card = Invoke-Board GET "cards/$((Get-PlanTask 't5').cardId)?fields=name,idList"
     Assert-True ($card.name -eq 'Level select' -and $card.idList -eq $lists['Backlog']) 'the new card is "Level select" in Backlog'
 
+    # A task moved in the plan since the last sync moves its card; the board's earlier move above is not undone.
+    Invoke-PlanJson @('-Do', 'move', '-Id', 't5', '-Column', 'todo') | Out-Null
+    $d = Invoke-PlanJson @('-Do', 'sync')
+    Assert-True ($d.ok -and $d.sync.moved -eq 0 -and $d.sync.PSObject.Properties['cardsMoved'] -and $d.sync.cardsMoved -eq 1) "a task moved with plan -Do move moves its card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ((Get-PlanTask 't5').column -eq 'todo' -and (Get-PlanTask 't2').column -eq 'verify') 'the sync keeps the plan move (t5 in todo) and the board move (t2 in verify)'
+    $card = Invoke-Board GET "cards/$((Get-PlanTask 't5').cardId)?fields=name,idList"
+    Assert-True ($card.idList -eq $lists['To Do']) "t5's card follows it to 'To Do'"
+    $d = Invoke-PlanJson @('-Do', 'sync')
+    Assert-True ($d.ok -and $d.sync.moved -eq 0 -and $d.sync.PSObject.Properties['cardsMoved'] -and $d.sync.cardsMoved -eq 0 -and $d.sync.created -eq 0) 'the sync after that changes nothing'
+
     Invoke-Board PUT "cards/$((Get-PlanTask 't1').cardId)" @{ closed = $true } | Out-Null
     $d = Invoke-PlanJson @('-Do', 'sync')
     Assert-True ($d.ok -and @($d.sync.warnings | Where-Object { $_ -match '\bt1\b' }).Count -eq 1) "an archived card is reported, not recreated: $($d.sync.warnings -join ' | ')"
@@ -169,7 +182,50 @@ try {
     Invoke-Board PUT "lists/$($lists['Design'])" @{ name = 'Ideas' } | Out-Null
     $d = Invoke-PlanJson @('-Do', 'sync')
     Assert-True (-not $d.ok -and $d.error.code -eq 'trello-list-missing' -and $d.error.message -match "'design'") "a board without a Design list fails with trello-list-missing: $($d.error.message)"
+    # The same board with the list named in trello.lists: the mapping works and survives sync and link -Board.
+    $planPath = Join-Path $dir 'plan/plan.json'
+    $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+    $plan.trello | Add-Member -NotePropertyName lists -NotePropertyValue ([pscustomobject]@{ design = 'Ideas' }) -Force
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+    $d = Invoke-PlanJson @('-Do', 'sync')
+    Assert-True ($d.ok) "trello.lists maps design to the list 'Ideas': $(if (-not $d.ok) { $d.error.message })"
+    $d = Invoke-PlanJson @('-Do', 'sync')
+    Assert-True ($d.ok) "a second sync still uses the mapping: $(if (-not $d.ok) { $d.error.message })"
+    Invoke-PlanJson @('-Do', 'link', '-Board', $board.shortLink) | Out-Null
+    $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+    Assert-True ($plan.trello.board -eq $board.shortLink -and $plan.trello.lists.design -eq 'Ideas') 'sync and link -Board keep trello.lists'
+    $plan.trello.PSObject.Properties.Remove('lists')
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
     Invoke-Board PUT "lists/$($lists['Design'])" @{ name = 'Design' } | Out-Null
+
+    $emptyBoard = Invoke-Board POST 'boards' @{ name = "hyperdot sync test (no lists)"; defaultLists = $false; prefs_permissionLevel = 'private' }
+    $d = Invoke-PlanJson @('-Do', 'sync', '-Board', $emptyBoard.id)
+    Assert-True (-not $d.ok -and $d.error.code -eq 'trello-list-missing' -and $d.error.message -match 'no open lists') "a board with no lists fails with trello-list-missing: $($d.error.code) $($d.error.message)"
+    Assert-True ((Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json).trello.board -eq $board.shortLink) 'a failed sync with -Board keeps the saved board'
+
+    # A column no list maps to is refused before any call, so nothing is half done.
+    Invoke-PlanJson @('-Do', 'add', '-Title', 'Combo meter') | Out-Null
+    $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+    (@($plan.tasks) | Where-Object { $_.id -eq 't6' }).column = 'review'
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+    $d = Invoke-PlanJson @('-Do', 'sync')
+    Assert-True (-not $d.ok -and $d.error.code -eq 'invalid-plan' -and $d.error.message -match 't6') "a task in an unknown column fails with invalid-plan: $($d.error.code) $($d.error.message)"
+    Assert-True (-not (Get-PlanTask 't6').PSObject.Properties['cardId']) 'and gets no card'
+    Invoke-PlanJson @('-Do', 'move', '-Id', 't6', '-Column', 'backlog') | Out-Null
+
+    if (-not $Live) {
+        # A call that fails halfway (429 here) must not lose the ids of the cards made before it.
+        Invoke-PlanJson @('-Do', 'add', '-Title', 'Rate limited once') | Out-Null
+        $d = Invoke-PlanJson @('-Do', 'sync')
+        Assert-True (-not $d.ok -and $d.error.code -eq 'trello-error' -and $d.error.message -match '\(429\)') "a 429 fails with trello-error (429): $($d.error.code) $($d.error.message)"
+        Assert-True ([bool](Get-PlanTask 't6').PSObject.Properties['cardId']) 'the card made before the failure keeps its id in plan.json'
+        $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+        (@($plan.tasks) | Where-Object { $_.id -eq 't7' }).title = 'Credits screen'
+        $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+        $d = Invoke-PlanJson @('-Do', 'sync')
+        Assert-True ($d.ok -and $d.sync.created -eq 1) "the next sync creates only the missing card: $(if ($d.ok) { $d.sync | ConvertTo-Json -Compress } else { $d.error.message })"
+        Assert-True (@($state.cards.Values | Where-Object { $_.name -eq 'Combo meter' }).Count -eq 1) 'no card is duplicated'
+    }
 
     $env:TRELLO_TOKEN = $null
     $d = Invoke-PlanJson @('-Do', 'sync')
@@ -179,10 +235,20 @@ try {
     Assert-True (-not $d.ok -and $d.error.code -eq 'trello-error' -and $d.error.message -match '\(401\)') "a rejected token fails with trello-error (401): $($d.error.message)"
     $env:TRELLO_TOKEN = $token
 
+    # Nothing listening: the error has no response, which must still give trello-error, not unexpected-error.
+    $closed = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0); $closed.Start(); $closedPort = $closed.LocalEndpoint.Port; $closed.Stop()
+    $env:TRELLO_API_URL = "http://localhost:$closedPort/1"
+    $d = Invoke-PlanJson @('-Do', 'sync')
+    Assert-True (-not $d.ok -and $d.error.code -eq 'trello-error' -and $d.error.message -match 'no response') "an unreachable API fails with trello-error: $($d.error.code) $($d.error.message)"
+    $env:TRELLO_API_URL = $Live ? $null : $base
+
     Assert-True (@($outputs | Where-Object { $_.Contains($token) -or $_.Contains('f' * 64) }).Count -eq 0) 'no output of the kit contains a token'
     if (-not $Live) { Assert-True ($state.leaks -eq 0) 'the kit never puts credentials in a URL' }
 } finally {
     $env:TRELLO_TOKEN = $token
+    if ($emptyBoard) {
+        try { Invoke-Board DELETE "boards/$($emptyBoard.id)" | Out-Null } catch { Write-Host "WARNING: could not delete board $($emptyBoard.id): $_" -ForegroundColor Yellow }
+    }
     if ($board -and -not $KeepBoard) {
         try { Invoke-Board DELETE "boards/$($board.id)" | Out-Null } catch { Write-Host "WARNING: could not delete board $($board.id): $_" -ForegroundColor Yellow }
     }
