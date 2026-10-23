@@ -1,0 +1,156 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "game/bot.gd",
+    "scripts/generator.gd",
+    "test/unit/test_generator.gd",
+    "test/flows/settings.flow.json",
+    "test/flows/daily.flow.json",
+    "textsize.json",
+    "layout.json",
+    "sounds/sfx/pickup_coin-3.wav",
+    "sounds/sfx/pickup_coin-3.bfxr",
+    "sounds/sfx/powerup-3.wav",
+    "sounds/sfx/powerup-3.bfxr"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Version 2 is current; version 1 kept only a list of cleared level ids and had no settings, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\t# Version 1 did not keep moves: a cleared level is solved, its best unknown (0).\n\t\tvar cleared: Variant = raw.get(\"cleared\", [])\n\t\tif typeof(cleared) == TYPE_ARRAY:\n\t\t\tfor id: Variant in cleared:\n\t\t\t\tdata.solved[str(int(id))] = 0\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_cleared_levels():\n\t_write_raw('{\"version\": 1, \"cleared\": [1, 2, 3]}')\n\tvar data := SaveStore.new(PATH).read()\n\tfor id in [1, 2, 3]:\n\t\tassert_true(Progress.is_solved(data, id), \"level %d\" % id)\n\tassert_true(Progress.is_unlocked(data, 4))\n\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "level 7, at most 11 tiles wide and 9 high, with three sparks and some snow, that takes at least 9 moves to solve, its par being the fewest moves that solve it (data/levels.json holds the levels in Board's letters: # wall, . ice, : snow, * spark, S start, E exit)"
+      },
+      "hidden": [
+        "hidden/test_hidden_level7.gd",
+        {
+          "from": "hidden/level7.flow.json",
+          "to": "test/flows/level7.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/grid_view.gd (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_moves_label.text = tr(\"HUD_MOVES\") % [board.moves, par]\n",
+          "replace": ""
+        },
+        {
+          "file": "game/grid_view.gd",
+          "find": "func cell_center(cell: Vector2i) -> Vector2:\n",
+          "replace": "func _process(_delta: float) -> void:\n\tif board != null:\n\t\tget_node(\"../HUD/MovesLabel\").text = tr(\"HUD_MOVES\") % [board.moves, get_parent().par]\n\n\nfunc cell_center(cell: Vector2i) -> Vector2:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_moves_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the levels they had solved are locked again after the update. The previous version saved user://save.json as {\"version\": 1, \"cleared\": [<level ids>]}, with no moves and no settings"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after solving a level, the levels they had solved before it are locked again on the level select, and their best moves are gone"
+      },
+      "edits": [
+        {
+          "file": "scripts/progress.gd",
+          "find": "\tvar solved: Dictionary = save.solved\n",
+          "replace": "\tvar solved := {}\n"
+        },
+        {
+          "file": "scripts/progress.gd",
+          "find": "\tsolved[key] = moves\n\treturn true",
+          "replace": "\tsolved[key] = moves\n\tsave.solved = solved\n\treturn true"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_progress.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_progress.gd"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds a level select (a child of Main named LevelSelect, with a button Box/Grid/Level<N>Button per level, open once the level before it is solved, and Box/BackButton back to the menu) and choosing a level adds the game scene res://game/game.tscn as a child of Main named Game, with its level in the property level; pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; levels 4 to 6 in data/levels.json, each solvable in exactly its par; a data.json for the kit's data runner; and a save of the solved levels and their fewest moves by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary whose solved maps level ids, as text, to moves) in user://save.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/select.flow.json",
+        "to": "test/flows/select.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/test_hidden_six_levels.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

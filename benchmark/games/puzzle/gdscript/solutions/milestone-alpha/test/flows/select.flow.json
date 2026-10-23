@@ -1,0 +1,13 @@
+{
+  "name": "Back on the level select returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "LevelSelect", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "press": "LevelSelect/Box/BackButton" },
+    { "assert": { "node": "LevelSelect", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}

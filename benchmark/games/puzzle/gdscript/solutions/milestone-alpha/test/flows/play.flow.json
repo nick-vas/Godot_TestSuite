@@ -1,0 +1,24 @@
+{
+  "name": "The arrow keys solve level 1, and undo takes a move back",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "action": "move_right" },
+    { "wait": 20 },
+    { "assert": { "node": "HUD/MovesLabel", "prop": "text", "contains": "1" } },
+    { "action": "undo" },
+    { "assert": { "node": "HUD/MovesLabel", "prop": "text", "contains": "0" } },
+    { "action": "move_right" },
+    { "wait": 20 },
+    { "action": "move_down" },
+    { "wait": 20 },
+    { "action": "move_left" },
+    { "wait": 20 },
+    { "assert": { "node": ".", "prop": "state", "equals": "solved" } },
+    { "assert": { "node": "SolvedMenu", "prop": "visible", "equals": true } },
+    { "press": "SolvedMenu/Box/NextButton" },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "level", "equals": 2 } }
+  ]
+}

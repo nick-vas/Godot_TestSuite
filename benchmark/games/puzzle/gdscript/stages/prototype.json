@@ -1,0 +1,179 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/bot.gd",
+    "game/pause_menu.gd",
+    "game/solved_menu.gd",
+    "scripts/generator.gd",
+    "scripts/save_store.gd",
+    "scripts/progress.gd",
+    "scripts/launch_options.gd",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/unit/test_board_rules.gd",
+    "test/unit/test_hint.gd",
+    "test/unit/test_progress.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_generator.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/solver.gd",
+      "find": " The tests use it to prove every\n## level can be solved at its par; the game uses it to tell a stuck player, and the bot to play.\n",
+      "replace": " The tests use it to prove every\n## level can be solved at its par.\n"
+    },
+    {
+      "file": "scripts/solver.gd",
+      "find": "## The first move of a shortest solution from the board's current state; Vector2i.ZERO when there is none.\nfunc hint(board: Board) -> Vector2i:\n\tvar path := solve(board)\n\treturn path[0] if not path.is_empty() else Vector2i.ZERO\n\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after undoing a move that collected a spark, the spark stays collected, so the exit opens without it"
+      },
+      "edits": [
+        {
+          "file": "scripts/board.gd",
+          "find": "\"sparks\": sparks.duplicate(),",
+          "replace": "\"sparks\": sparks,"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_board.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_undo.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Board class (scripts/board.gd: the slide, sparks, the exit, the move count and undo)",
+        "file": "test/unit/test_board_rules.gd",
+        "rules": "a slide stops on the tile before a wall or the edge, snow stops the mote on the snow, every spark the mote passes is collected, the exit is plain ice until every spark is collected and then stops the mote and solves the level, a move that goes nowhere is not counted, and undo puts back the position, the sparks and the move count",
+        "code": "scripts/board.gd"
+      },
+      "unchanged": [
+        "scripts/board.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_board_rules.gd"
+      ],
+      "mutants": [
+        {
+          "name": "a slide stops one tile early",
+          "file": "scripts/board.gd",
+          "find": "while tile(at + direction) != WALL:",
+          "replace": "while tile(at + direction * 2) != WALL:"
+        },
+        {
+          "name": "snow does not stop the mote",
+          "file": "scripts/board.gd",
+          "find": "if tile(at) == SNOW:",
+          "replace": "if tile(at) == WALL:"
+        },
+        {
+          "name": "the exit opens with one spark left",
+          "file": "scripts/board.gd",
+          "find": "if at == exit and collected.size() == remaining.size():",
+          "replace": "if at == exit and collected.size() + 1 >= remaining.size():"
+        },
+        {
+          "name": "only a spark the mote stops on is collected",
+          "file": "scripts/board.gd",
+          "find": "if at in remaining and not at in collected:",
+          "replace": "if at in remaining and not at in collected and tile(at + direction) == WALL:"
+        },
+        {
+          "name": "a move that goes nowhere is counted",
+          "file": "scripts/board.gd",
+          "find": "if result.to == position:",
+          "replace": "if solved:"
+        },
+        {
+          "name": "undo keeps the move count",
+          "file": "scripts/board.gd",
+          "find": "moves = last.moves",
+          "replace": "moves = moves"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "a hint: Solver (scripts/solver.gd) gets hint(board: Board) -> Vector2i, the direction of the first move of a shortest solution from the board's current state, or Vector2i.ZERO when the exit cannot be reached from there or the level is solved"
+      },
+      "hidden": [
+        "hidden/test_hidden_hint.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "test/unit/test_board.gd",
+          "find": "var board := Board.from_rows([\"######\", \"#S...#\", \"######\"])",
+          "replace": "var board := Board.from_rows([\"#######\", \"#S....#\", \"#######\"])"
+        }
+      ],
+      "unchanged": [
+        "scripts/board.gd",
+        "scripts/solver.gd",
+        "scripts/levels.gd",
+        "game/game.gd",
+        "test/unit/test_board.gd",
+        "test/unit/test_solver.gd",
+        "test/unit/test_levels.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_a_slide_stops_before_the_wall",
+          "re:test_board\\.gd\\D{0,40}\\b8\\b",
+          "re:(?<!\\.)\\b4\\b(?!\\.\\d)",
+          "re:(?<!\\.)\\b5\\b(?!\\.\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

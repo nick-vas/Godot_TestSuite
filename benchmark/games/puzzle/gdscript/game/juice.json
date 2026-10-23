@@ -1,0 +1,27 @@
+{
+  "frames": 1500,
+  "args": [
+    "--autoplay",
+    "--seed=1",
+    "--no-save"
+  ],
+  "rules": [
+    {
+      "event": "spark_collected",
+      "feedback": [
+        "flash",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "level_solved",
+      "feedback": [
+        "flash",
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}

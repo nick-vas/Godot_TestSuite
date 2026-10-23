@@ -1,0 +1,209 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/grid_view.gd" id="2_grid"]
+[ext_resource type="Texture2D" path="res://art/mote.png" id="3_mote"]
+[ext_resource type="Script" path="res://game/pause_menu.gd" id="4_pause"]
+[ext_resource type="Script" path="res://game/solved_menu.gd" id="5_solved"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/blip_select-3.wav" id="6_slide"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="Grid" type="Node2D" parent="."]
+script = ExtResource("2_grid")
+
+[node name="Mote" type="Sprite2D" parent="Grid"]
+texture = ExtResource("3_mote")
+
+[node name="SfxSlide" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_slide")
+volume_db = -10.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="LevelLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 12.0
+offset_right = 560.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 28
+text = "Level 1"
+
+[node name="MovesLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 54.0
+offset_right = 560.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 22
+text = "Moves: 0 / par 3"
+
+[node name="StuckLabel" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -420.0
+offset_top = -40.0
+offset_right = 420.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.8, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+text = "No way to the exit from here: undo or restart"
+horizontal_alignment = 1
+
+[node name="UndoButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -580.0
+offset_top = 12.0
+offset_right = -420.0
+offset_bottom = 100.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Undo"
+
+[node name="RestartButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -410.0
+offset_top = 12.0
+offset_right = -250.0
+offset_bottom = 100.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Restart"
+
+[node name="PauseButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -240.0
+offset_top = 12.0
+offset_right = -140.0
+offset_bottom = 100.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Pause"
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+visible = false
+script = ExtResource("4_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Title" type="Label" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -190.0
+offset_right = 240.0
+offset_bottom = -130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="QuitButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 20.0
+offset_right = 180.0
+offset_bottom = 116.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Quit to menu"
+
+[node name="SolvedMenu" type="CanvasLayer" parent="."]
+layer = 5
+visible = false
+script = ExtResource("5_solved")
+
+[node name="Dim" type="ColorRect" parent="SolvedMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="Box" type="VBoxContainer" parent="SolvedMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -180.0
+offset_right = 260.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="SolvedMenu/Box"]
+theme_override_font_sizes/font_size = 44
+text = "Solved"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="MovesLabel" type="Label" parent="SolvedMenu/Box"]
+theme_override_font_sizes/font_size = 24
+text = "3 moves (par 3)"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NextButton" type="Button" parent="SolvedMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Next level"
+
+[node name="MenuButton" type="Button" parent="SolvedMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Back to menu"

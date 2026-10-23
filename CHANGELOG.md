@@ -69,6 +69,12 @@
   `lib/Init.ps1` and `docs/mcp.md`. `Invoke-Canary.ps1` tries them by starting the server through `uvx` and listing its
   tools (`-Uvx`, a stand-in in `tests/Test-UpdatePins.ps1`), without the example projects, which these pins do not touch;
   `canary.yml` installs uv.
+- **A third genre for the staged game programme: the puzzle Frostmote, in GDScript** (`benchmark/games/puzzle`). A mote
+  slides on ice until a wall, snow stops it, sparks open the exit: eight hand-made levels as JSON, checked by the `data`
+  runner and held to their pars by a solver test, a daily drift from a seeded generator, undo, and a line that says when
+  the exit can no longer be reached. Four stages with 17 tasks and 3 milestones, each with a reference solution and most
+  with a decoy; `tests/Test-GameProgramme.ps1 -Genre puzzle -Language gdscript` checks them all. Its `DESIGN.md` is the
+  contract the C# port follows.
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run
