@@ -38,22 +38,26 @@ The table of data kinds is in SKILL.md section 3.
   ints in the bits their range needs, floats quantised. `Net/BitPacker.cs` (`BitWriter`, `BitReader`, `BitPacking`)
   does this over a `byte[]`, since `StreamPeerBuffer` works in whole bytes; a quantised float comes back within half a
   step, and a reader that disagrees with its writer throws (past the end, or a byte or more left at `Finish()`).
-  `GhostReplicator` still charges a flat 4 bytes a value; a packed group is usually far smaller.
+  `GhostFormat` gives each of `GhostReplicator`'s state groups its own width: that ghost's creation takes 14 bytes with
+  the header, against 27 at 4 bytes a value, and a health change alone 8 against 12 (`ReplicationTests`). A value too
+  wide for its group throws before anything is marked sent.
 - **The receiver sets the rate.** Each client states the packets a second and bytes a packet it can receive ("these
   parameters are set by the remote host's Stream manager and represent the amount of data it's capable of receiving";
   10 packets of 200 bytes is about 2 KB/s), and may change them while connected; the server caps each client by its
   own uplink. Godot has no such negotiation: send the numbers in the auth exchange or a settings RPC, and use them as
-  the replicator's send interval and byte budget. The authors left open scaling each client's share with the number
-  of clients, and measuring the rate instead of setting it by hand.
+  the replicator's send interval and byte budget: the C# example's `LinkBudget` grants the request capped by the tick
+  rate and the uplink, and `ReplicationTests` checks that no packet and no second carries more than was asked. The
+  authors left open scaling each client's share with the number of clients, and measuring the rate instead of setting
+  it by hand.
 - **Static data by id.** Each vehicle sent the id of its definition (TRIBES' datablocks), loaded once at connection,
   not the definition itself (`godot-data`).
 
 Measured with `ReplicationTests` (80 objects, 4 groups each, 8 changes a tick, 30 packets a second of at most 400 bytes,
 20% loss and 120 ± 30 ms each way): the client ends with exactly the objects in its scope and their current values,
-never applies an older value over a newer one, and partial updates use 5% of the bytes full snapshots would; 151 lost
+never applies an older value over a newer one, and partial updates use 5% of the bytes full snapshots would; 152 lost
 values were not resent because newer ones were already sent. When 200 objects entered scope at once, the uncapped
-replicator sent the opponent nothing for 10 packets in a row; capped at 4, it missed at most 1, and all 200 objects
-still arrived within 12 packets (10 uncapped).
+replicator sent the opponent nothing for 9 packets in a row; capped at 4, it missed none, and all 200 objects
+still arrived within 11 packets (10 uncapped).
 
 Measured with `EventStreamTests` (60 objects appearing over 20 s, each one's spawn event posted the tick after it
 enters scope, a guaranteed hit every third tick and an unguaranteed footstep every tick, 400-byte packets with 100 left

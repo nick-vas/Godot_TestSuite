@@ -15,13 +15,18 @@ namespace Example.Core.Narrative;
 /// </code>
 /// <c>id</c> is the rule's name; <c>who</c> (absent: anyone), <c>criteria</c>, <c>then</c> (absent <c>who</c>: everyone
 /// in earshot), <c>remember</c> (<c>value</c> 1 by default; a number, true, false or a name) and <c>once</c> are optional.
-/// Every problem is reported at once, one per line; unknown columns fail unless named in <c>extraColumns</c>.
+/// A line may carry its translations, <c>{ "text": "Next wall.", "locales": { "fr": "Mur suivant." } }</c>, which the data
+/// runner checks against the table's <c>locales</c>; <c>Load</c> with a locale reads them. Every problem is reported at
+/// once, one per line; unknown columns fail unless named in <c>extraColumns</c>.
 /// </summary>
 public static class ResponseTable
 {
     static readonly HashSet<string> Columns = ["id", "who", "concept", "criteria", "lines", "then", "remember", "once"];
 
-    public static IReadOnlyList<Rule> Load(string json, Symbols symbols, IReadOnlyCollection<string>? extraColumns = null)
+    /// <param name="locale">A locale the table translates its lines into (<c>"locales": { "fr": "Salut" }</c> or
+    /// <c>{ "fr": { "text", "voice" } }</c> on a line object): its text and voice file replace the line's own, and a line
+    /// without it is a problem. Null reads the lines as written.</param>
+    public static IReadOnlyList<Rule> Load(string json, Symbols symbols, IReadOnlyCollection<string>? extraColumns = null, string? locale = null)
     {
         using var doc = JsonDocument.Parse(json);
         var rows = new List<(string? Key, JsonElement Row, int Index)>();
@@ -65,8 +70,16 @@ public static class ResponseTable
             var voices = new List<string?>();
             if (row.TryGetProperty("lines", out var linesElement))
             {
-                foreach (var line in Items(linesElement))
+                foreach (var written in Items(linesElement))
                 {
+                    var line = written;
+                    if (locale is not null)
+                    {
+                        if (written.ValueKind == JsonValueKind.Object && written.TryGetProperty("locales", out var locales) &&
+                            locales.ValueKind == JsonValueKind.Object && locales.TryGetProperty(locale, out var translated))
+                            line = translated;
+                        else { problems.Add($"line {lines.Count + 1} has no '{locale}' text"); lines.Add(""); voices.Add(null); continue; }
+                    }
                     if (line.ValueKind == JsonValueKind.String) { lines.Add(line.GetString()!); voices.Add(null); }
                     else if (line.ValueKind == JsonValueKind.Object && Text(line, "text") is { } text)
                     {

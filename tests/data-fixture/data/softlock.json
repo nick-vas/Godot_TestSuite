@@ -1,0 +1,14 @@
+[
+  { "id": "vault", "areas": ["Hall", "Closet", "Exit"], "goals": ["Exit"], "items": ["key"],
+    "pickups": [{ "area": "Hall", "item": "key" }],
+    "passages": [{ "from": "Hall", "to": "Closet", "name": "closet door", "uses": "key" },
+                 { "from": "Hall", "to": "Exit", "name": "exit door", "uses": "key" }] },
+  { "id": "chamber", "areas": ["Chamber", "Exit"], "goals": ["Exit"], "items": [{ "name": "box", "canBeLost": true, "start": 1 }],
+    "supplies": [{ "area": "Chamber", "item": "box", "name": "delivery tube" }],
+    "passages": [{ "from": "Chamber", "to": "Exit", "name": "door", "oneWay": true, "needs": "box" }] },
+  { "id": "typos", "areas": ["Hall", "Exit"], "goals": ["Exit"], "items": ["key", { "name": "ammo", "max": 3, "colour": "red" }],
+    "pickups": [{ "area": "Hal", "item": "key" }],
+    "passages": [{ "from": "Hall", "to": "Exit", "uses": "kye" }, { "from": "Hall", "to": "Exit", "uses": "key", "useCount": 2 },
+                 { "from": "Hall", "to": "Exit", "need": "key" }] },
+  { "id": "nowhere", "areas": ["Cell"] }
+]

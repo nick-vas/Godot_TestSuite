@@ -169,11 +169,10 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
 - **A `bench` sweep helper** for particle counts and quality tiers (the skill shows the manual way with `-GameArgs`):
   one run per value, one `bench.csv` row each, a table of p99 against the value.
-- **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
-  `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
-  lines (and voice files) in a responses table, checked for lines missing in a locale.
-- **A `placement` runner, or placement checks in C#.** `templates/placement_check.gd` is GDScript run from a GUT test; a
-  runner could read each limit from a script constant named in a `placement.json`.
+- **Placement checks in C#.** The `placement` runner reads its limits from GDScript constants only: Godot returns no
+  constants for a C# script (`get_script_constant_map()` on the C# example's `Main.cs`, 4.7.2 mono, was empty), so a C#
+  game writes the numbers in `placement.json`. Reading them from C# needs a parser or a small `[Tool]` node that
+  exposes them.
 - **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
   The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
 - **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
@@ -184,15 +183,9 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 In the example game (the C# example):
 
-- `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random`; `godot-game-ai` says to pass a seeded
-  `RandomNumberGenerator` or `DeterministicRandom`. Take `DeterministicRandom` (or an interface over it).
-- `GhostReplicator`: packed bits per group instead of 4 bytes a value, and a client-set `LinkBudget` checked in
-  `ReplicationTests` (never more than the client asked for).
-- A `DifficultyDirector` with slow, bounded steps and hysteresis, tested so it never flips every attempt.
-- A GDScript or gdUnit4 test in `examples/csharp/game` pinning the maths book's 3D yaw sign and cross-product area
-  (Example.Core's `System.Numerics` has other conventions).
-- Playtest telemetry in a real level: nothing raises `PlaytestTracker`'s events yet, and there is no file sink for
-  playtest builds and no GDScript tracker.
+- A GDScript `PlaytestTracker` for GDScript games: the C# example raises the playtest events from a real floor and writes
+  them with `PlaytestFileSink`, but a GDScript port (about 200 lines with its tests) was left out of that change as too
+  large for a template; GDScript games write the events from `templates/playtest-events.json` by hand meanwhile.
 - A Steam backend behind `IPlatformServices` (GodotSteam's add-on or Steamworks.NET.AnyCPU 2026.164.4 both load in 4.7.2).
 
 In the skills:

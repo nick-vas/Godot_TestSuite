@@ -99,9 +99,14 @@ every row without Godot and writes one JUnit case per table:
   in a CSV cell), `optional`, `acyclic` (on a `ref` to its own table: prerequisites that loop, as in a tech tree,
   `godot-algorithms`); `"extra": "allow"` on a table permits unlisted columns.
 - Across rows: `"totals"` on a table (what a zone's quests give must reach its next level: `godot-progression`) and
-  `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`).
-- Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4); `"type": "criteria"` checks the same
-  criteria grammar (`health<25;!seen_tank`) in any table, such as quest or unlock conditions.
+  `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`);
+  `"economy": { "currency": ..., "rate": ... }` on a table of flows per hour fails a currency with no sink
+  (`godot-progression`).
+- Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4), with `"locales"` for lines missing a
+  translation; `"type": "criteria"` checks the same criteria grammar (`health<25;!seen_tank`) in any table, such as quest
+  or unlock conditions.
+- Soft-locks: a table of `"kind": "softlock"`, levels as areas, passages, pickups, supplies and goals, searched like
+  `SoftLockCheck` in C# (`godot-playtest` section 6), so GDScript games get it too.
 - Run it alone: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.
@@ -126,9 +131,12 @@ in every level that uses the prop, a navmesh change drops the slopes, a code cha
 node of every level in each test run instead of by hand (Assassin's Creed Origins: 228 zip lines at two minutes each is
 a tester's full day; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/assassins-creed-origins-world-data.md`).
 
-Copy `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/placement_check.gd` into the game's test folder and call it from a GUT
-test (its header has the code; a C# game ports the rules). It loads each level, waits for navigation, checks nodes by
-group and fails once, one line per finding: scene, node path, position, rule, measured value and limit.
+Write a `placement.json` and the `placement` runner checks every level in each `test` run, no test to write:
+`{ "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH" } }`, each limit read from the GDScript
+constant it names (a C# game writes the number, or keeps a test). Or copy
+`${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/placement_check.gd` into the game's test folder and call it from a GUT test
+(its header has the code). It loads each level, waits for navigation, checks nodes by group and reports one line per
+finding: scene, node path, position, rule, measured value and limit.
 
 | Group | Rule | Passes when |
 |---|---|---|

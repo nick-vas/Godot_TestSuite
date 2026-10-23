@@ -91,7 +91,7 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Arrive slows inside a radius; Seek overshoots and orbits ("like a moth around a light bulb").
 - Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek. That guess
   is fine for a body that re-steers every frame, not for a projectile, which cannot (below).
-- Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass in a generator seeded from the run seed (`godot-procgen`), not `System.Random` (`godot-determinism`).
+- Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass in a generator seeded from the run seed (`godot-procgen`), not `System.Random` (`godot-determinism`): the C# example's `Wander`, `Aim.Scatter`, `PacingDirector` and `ResponseSystem` take a `DeterministicRandom`.
 - Summed behaviours can cancel out; put obstacle avoidance first (the first non-zero wins) when it must not lose.
 
 ### Aiming projectiles

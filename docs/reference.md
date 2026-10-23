@@ -17,7 +17,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Project` | detected | Folder with `project.godot` |
 | `-Solution` | nearest `.sln` or `.slnx` at or above the project (no higher than the git root, if there is one) that lists its `.csproj`, else the `.csproj` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
-| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
+| `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`, `placement`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
 | `-Coverage` | off | One merged coverage report |
@@ -349,12 +349,22 @@ Godot. Each table names its file (JSON: an array of objects or an object keyed b
 `type` (`string`, `int`, `number`, `bool`), `min`/`max`, `enum`, `pattern`, `ref` (another table whose ids the value must name),
 `list` (a JSON array, or `;` between values in a CSV cell) and `optional`. Columns that data.json does not list fail (`"extra": "allow"`
 to permit them), and so does a CSV table without a committed `.import` saying `importer="keep"`: Godot imports every `.csv` as a
-translation otherwise, and the exported game cannot read the file.
+translation otherwise, and the exported game cannot read the file. Tables can also add up per group (`totals`), name
+money flows that need a sink (`economy`), hold dialogue rules with their translations (`"kind": "responses"`,
+`locales`) or levels searched for soft-locks (`"kind": "softlock"`): [data.md](data.md).
 
 ```json
 { "tables": {
     "items":   { "file": "data/items.json", "id": "id", "fields": { "price": { "type": "int", "min": 0 }, "rarity": { "enum": ["common", "rare"] } } },
     "enemies": { "file": "data/enemies.csv", "id": "id", "fields": { "hp": { "type": "int", "min": 1 }, "drops": { "ref": "items", "list": true } } } } }
+```
+
+**`placement.json`** (optional, in the Godot project folder) turns on the `placement` runner: `templates/placement_check.gd`
+on every level under `levels` (folders or `.tscn` files), each property in `limits` set from the GDScript constant it names
+(`"res://player.gd:REACH"`) or to the value given. Rules, groups and exemptions: `godot-data` section 6.
+
+```json
+{ "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH", "zipline_max_angle": "res://zipline.gd:MAX_ANGLE_DEGREES" } }
 ```
 
 **`playtest.json`** (optional, in the Godot project folder) tells `playtest` how to draw each level's heat maps. Without it,

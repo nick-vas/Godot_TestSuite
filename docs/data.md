@@ -133,8 +133,12 @@ table has (with the near name), or sent to a speaker with no rule for it; a voic
 is drawn at random each time: one rule with all the lines says the same); and criteria that no facts can satisfy together
 (`health<10;health>20`, `weapon=axe;weapon=bow`, `!seen;seen=1`). A fact read in criteria that no rule remembers and the
 table's `facts` (those the game supplies: health, the event's facts) does not list is a warning, `fact-never-written`,
-with the near name (`gag_cooldow` for `gag_cooldown`). Lines are one language: translate them as keys through
-`godot-localization`, since the runner has no per-locale columns. `tests/data-fixture` has a broken table for each
+with the near name (`gag_cooldow` for `gag_cooldown`). Translations sit on each line, `{ "text": "Next wall.",
+"locales": { "fr": "Mur suivant." } }` or `{ "fr": { "text", "voice" } }`; with `"locales": ["fr", "de"]` on the table
+the runner fails a line without a locale's text (`'intercom_bye' line 1 has no 'de' text`), a locale the table does not
+list (with the near name), a locale's voice file that does not exist and, with `"voiced": true`, a locale without one.
+`ResponseTable.Load(json, symbols, locale: "fr")` reads a locale's lines and voices; the C# example's `barks.json` is in
+English and French. `tests/data-fixture` has a broken table for each
 check, `examples/csharp/game/data/barks.json` a green one that `ResponseTableTests` plays.
 
 `"type": "criteria"` checks the same grammar in any table (quest conditions, unlock rules). The grammar, one for both
@@ -154,6 +158,41 @@ blank     = { " " | "\t" }
 the interval up to the double just below n. Errors name the 1-based column in the whole text. Both parsers run the 37
 cases of `examples/csharp/tests/Example.Core.Tests/criteria-examples.json` (`ResponseTableTests` in C#,
 `tests/Test-Data.ps1` in PowerShell) and must give the same criteria and the same message for every error.
+
+### Soft-lock levels (`"kind": "softlock"`)
+
+Example.Core's `SoftLockCheck` (`examples/csharp/src/Example.Core/Level/SoftLock.cs`, `godot-playtest` section 6)
+searches every order of play for a state from which the goal can no longer be reached. A JSON table of
+`"kind": "softlock"` writes levels down as data, so the `data` runner runs the same search (`Invoke-SoftLockSearch` in
+`ci/godot/lib/Data.ps1`) for any game, GDScript included, and a C# game loads the file with `SoftLockTable.Load`
+(`examples/csharp/src/Example.Core/Level/SoftLockTable.cs`):
+
+```json
+{ "id": "vault", "areas": ["Hall", "Closet", "Exit"], "start": "Hall", "goals": ["Exit"],
+  "items": ["key", { "name": "box", "max": 1, "canBeLost": true, "start": 0 }],
+  "pickups": [{ "area": "Hall", "item": "key", "count": 1 }],
+  "supplies": [{ "area": "Hall", "item": "key", "upTo": 1, "name": "key rack" }],
+  "passages": [{ "from": "Hall", "to": "Closet", "name": "closet door", "oneWay": false, "needs": "box", "needsCount": 1,
+                 "uses": "key", "useCount": 1 }],
+  "everyItemCanBeLost": false, "maxStates": 100000 }
+```
+
+Only `areas` and `goals` are required; `start` defaults to the first area, a count to 1, an item's `max` to 1. Rules are
+added as pickups, then supplies, then passages, each in file order, and both searches try actions in that order, so a
+failure is the same text in both: `'vault' Soft-lock after 2 step(s): pick up key in Hall; use key on closet door, go Hall
+-> Closet. Stuck in Closet, holding nothing: 2 of 5 reachable states cannot reach the goal.` The runner also fails an
+area or item a rule names that the level does not list (with the near name), a count outside 1 to the item's max, an
+unknown key on an item or rule, and a level past `maxStates`. The ten levels of
+`examples/csharp/tests/Example.Core.Tests/softlock-examples.json` run in both (`SoftLockTests`, `tests/Test-Data.ps1`)
+and must give the same text, state counts included.
+
+### Currencies need a sink (`"economy"`)
+
+A table of money flows per hour, Example.Core's `EconomySim` rows (a currency, a rate, negative for a sink), names its
+two fields: `"economy": { "currency": "currency", "rate": "perHour" }`. The runner fails a currency with a source and no
+sink (`currency 'gems' has no sink: daily_gems, quest_gems pay it in and nothing takes it out, so it only piles up`),
+as `EconomySim.WithoutSink` does in code; when the currency field is a `ref`, every currency of that table needs a sink
+even with no flow at all. Simulating the balance over 10, 100 and 1,000 hours stays `EconomySim`'s (`godot-progression`).
 
 ## Placed objects in levels
 

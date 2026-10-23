@@ -106,6 +106,41 @@
   phases sized in days (`timeboxDays`, for a 7-day jam) with the gates of `GDD-jam.md`'s day table (`jam.platform`
   first: "browser build?"). `plan -Json` gives `timeboxDays` and `elapsedDays` beside the weeks, PLAN.md sizes jam
   phases in days, and a jam phase over its timebox warns in days.
+- **The `placement` runner** (`lib/Placement.ps1`, `tools/placement.gd`): `templates/placement_check.gd` on every level a
+  `placement.json` names, each limit read from the GDScript constant it names, with no test to write. One case per
+  scene with its findings; the summary per group, exemptions and wayfinding in `placement/placement.txt`. Selected when
+  `placement.json` exists. `tests/Test-Placement.ps1` runs it on the fixture after the GUT path, and with a missing
+  constant and a limit of the wrong type.
+- **The `data` runner checks soft-locks, sinks and translations.**
+  - A table of `"kind": "softlock"` holds levels as areas, passages, pickups, supplies and goals, and the runner searches
+    each the way Example.Core's `SoftLockCheck` does, with the same counterexample text, so GDScript games get it too;
+    `SoftLockTable.Load` reads the same file in C#. The ten levels of `softlock-examples.json` run in both.
+  - `"economy": { "currency", "rate" }` on a table of money flows fails a currency with a source and no sink, and, when
+    the currency is a `ref`, one no flow moves (`EconomySim.WithoutSink` checked it in code only).
+  - `"locales"` on a responses table fails a line missing a locale's text or voice file, or naming a locale the table
+    does not list; `ResponseTable.Load(..., locale: "fr")` reads them, and the C# example's barks are in French too.
+  - An unknown `kind` now lists both kinds.
+- **Playtest telemetry from a real level in the C# example.** `Main` raises `PlaytestTracker`'s events from each floor
+  (deaths with the floor as checkpoint, the upgrade taken as the item found, a floor's time as finished, failed or quit),
+  `Diagnostics` adds `PlaytestEvents` to its schema, and a playtest build (the custom feature `playtest`, or
+  `--playtest`) writes its batches with the new `PlaytestFileSink`, one `<session>.jsonl` line a batch, every 30 s and
+  on quit, for `hyperdot.ps1 playtest`. `DiagnosticsTest` plays a floor and checks the file gets the events only after
+  consent.
+- **The maths conventions pinned in the C# example** (`game/test/gdunit4/MathConventionsTest.cs`): on Godot's types, a
+  positive yaw turns `Vector3.Forward` to the left, `Right x Up` is +Z and the book's cross product has area 26.94; and
+  where Example.Core's `System.Numerics` differs (no forward axis, matrices composed left first). `godot-math` points to it.
+- **`DifficultyDirector` in the C# example** (`Ai/DifficultyDirector.cs`): dynamic difficulty from a window of attempts,
+  with a dead band, one bounded step at a time and the window emptied after each change, so two changes are always a
+  window apart. In 600 simulated attempts it changed 20 times where moving on every result changed 500 times and
+  reversed 311. `godot-progression` points to it.
+- **The C# example's replicator packs bits and keeps to the client's rate.** `GhostFormat` gives each state group of
+  `GhostReplicator` its own width (a ghost's creation: 14 bytes against 27 at 4 bytes a value) and `GhostReceiver`
+  reads the packed payload; a value too wide for its group throws before anything is marked sent. `LinkBudget` holds
+  the packets a second and bytes a packet the client asked for, capped by the tick rate and the server's uplink;
+  `ReplicationTests` checks that no packet and no second carries more than was asked, through two changes of rate.
+- **The C# example draws from `DeterministicRandom` everywhere a run must repeat.** `Steering.Wander` and
+  `Aim.Scatter` take it by `ref`, `PacingDirector` and `ResponseSystem` take one at construction (the director exposes
+  `RandomState` for saves), as `godot-game-ai` asks; `DeterministicRandom.NextDouble` replaces `EconomySim`'s private copy.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

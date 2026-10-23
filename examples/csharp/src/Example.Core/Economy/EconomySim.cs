@@ -54,7 +54,7 @@ public sealed class EconomySim
 
         for (int hour = 0; hour < hours; hour++)
         {
-            var amounts = _flows.Select(f => f.PerHour * (1 + f.Spread * (2 * NextDouble(ref rng) - 1))).ToList();   // one draw per flow, every hour
+            var amounts = _flows.Select(f => f.PerHour * (1 + f.Spread * (2 * rng.NextDouble() - 1))).ToList();   // one draw per flow, every hour
             for (int i = 0; i < _flows.Count; i++) if (amounts[i] > 0) balance[_flows[i].Currency] += amounts[i];
             var shortThisHour = new HashSet<string>();
             for (int i = 0; i < _flows.Count; i++)
@@ -70,6 +70,4 @@ public sealed class EconomySim
         }
         return Currencies.ToDictionary(c => c, c => new CurrencyRun(c, history[c], (balance[c] - initial[c]) / hours, shortHours[c]));
     }
-
-    static double NextDouble(ref DeterministicRandom rng) => (rng.NextULong() >> 11) * (1.0 / (1UL << 53));
 }

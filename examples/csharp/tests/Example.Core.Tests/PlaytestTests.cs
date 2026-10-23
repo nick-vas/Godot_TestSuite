@@ -215,4 +215,34 @@ public sealed class PlaytestTests
         }
         return null;
     }
+
+    // A playtest build flushes to files: one JSON batch a line, in a file named after the session, appended at each flush.
+    [Fact]
+    public async Task APlaytestBuildWritesEachBatchAsALineOfItsSessionsFile()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "playtest-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var sink = new PlaytestFileSink(folder, _client.SessionId);
+            _tracker.StartLevel("hub");
+            _tracker.Move(1, 1);
+            _tracker.Died(3);
+            Assert.Equal(1, await _client.FlushAsync(sink));
+            _now = 42;
+            _tracker.EndLevel(LevelResult.Finished);
+            Assert.Equal(1, await _client.FlushAsync(sink));
+            Assert.Equal(0, await _client.FlushAsync(sink));   // nothing left: nothing written
+
+            Assert.Equal(Path.Combine(folder, _client.SessionId + ".jsonl"), sink.File);
+            var lines = File.ReadAllLines(sink.File);
+            Assert.Equal(2, lines.Length);
+            var batches = lines.Select(l => JsonNode.Parse(l)!).ToList();
+            Assert.All(batches, b => Assert.Equal(_client.SessionId, b["session"]!.GetValue<string>()));
+            Assert.Equal(new[] { PlaytestEvents.Death, PlaytestEvents.LevelTime },
+                batches.Select(b => b["events"]![0]!["event"]!.GetValue<string>()));
+            Assert.Equal(42, batches[1]["events"]![0]!["fields"]!["seconds"]!.GetValue<double>());
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+        Assert.Throws<ArgumentException>(() => new PlaytestFileSink(folder, "../escape"));
+    }
 }

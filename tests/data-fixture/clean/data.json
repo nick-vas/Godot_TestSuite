@@ -8,6 +8,10 @@
       "fields": { "kind": { "enum": ["puzzle", "action"] }, "purpose": { "enum": ["teach", "reinforce", "moment", "breather"] },
                   "mechanics": { "ref": "mechanics", "list": true },
                   "solution": { "type": "string", "pattern": "^(?!.*[.!?]\\s+\\S)\\s*\\S.*$" } } },
-    "talk": { "file": "data/talk.json", "kind": "responses", "facts": ["gold"], "voiced": false }
+    "talk": { "file": "data/talk.json", "kind": "responses", "facts": ["gold"], "voiced": false },
+    "greet": { "file": "data/greet.json", "kind": "responses", "locales": ["fr", "de"] },
+    "levels": { "file": "data/softlock.json", "kind": "softlock" },
+    "flows": { "file": "data/flows.json", "id": "id", "fields": { "currency": { "type": "string" }, "perHour": { "type": "number" } },
+               "economy": { "currency": "currency", "rate": "perHour" } }
   }
 }

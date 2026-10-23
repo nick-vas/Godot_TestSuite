@@ -168,10 +168,12 @@ function Get-ProjectInfo {
         if (Test-Path -LiteralPath (Join-Path $projectDir 'textsize.json')) { $selected += 'textsize' }
         # Screens are laid out on phones, a tablet and an ultrawide monitor when layout.json asks for it.
         if (Test-Path -LiteralPath (Join-Path $projectDir 'layout.json')) { $selected += 'layout' }
+        # Objects placed in levels are checked against the gameplay code's limits when placement.json names them.
+        if (Test-Path -LiteralPath (Join-Path $projectDir 'placement.json')) { $selected += 'placement' }
     } elseif ($selected -contains 'none') {
         $selected = @()
     }
-    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout'
+    $valid = 'validate', 'architecture', 'dotnet', 'gdunit4', 'godottest', 'gut', 'flows', 'smoke', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout', 'placement'
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) {
         $hints = @(foreach ($u in $unknown) { $near = Get-ClosestName $u $valid; if ($near) { "'$u' is probably '$near'" } })

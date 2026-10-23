@@ -1,0 +1,4 @@
+[
+  { "id": "greet", "concept": "Greet",
+    "lines": [{ "text": "Welcome.", "locales": { "fr": "Bienvenue.", "de": { "text": "Willkommen.", "voice": "voice/hello.ogg" } } }] }
+]

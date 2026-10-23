@@ -1,3 +1,4 @@
+using Example.Core.Determinism;
 using Example.Core.Ai;
 using Xunit;
 
@@ -44,7 +45,7 @@ public sealed class PacingDirectorTests
     [Fact]
     public void ThePhasesFollowTheTalksTimings()
     {
-        var d = new PacingDirector(seed: 1);
+        var d = new PacingDirector(new DeterministicRandom(1));
         Assert.Equal(PacingPhase.BuildUp, d.Phase);
         d.Tick(1, 0.5f, engaged: true, travelled: 0);
         Assert.True(d.MaySpawnMobs);
@@ -77,7 +78,7 @@ public sealed class PacingDirectorTests
     [Fact]
     public void RelaxEndsEarlyWhenTheTeamMovesOnFarEnough()
     {
-        var d = new PacingDirector(seed: 2, new PacingOptions { RelaxDistance = 50 });
+        var d = new PacingDirector(new DeterministicRandom(2), new PacingOptions { RelaxDistance = 50 });
         d.Tick(1, 0.9f, true, 0);
         while (d.Phase == PacingPhase.SustainPeak) d.Tick(1, 0.9f, true, 0);
         d.Tick(1, 0.1f, false, 0);
@@ -93,12 +94,13 @@ public sealed class PacingDirectorTests
     {
         static List<PacingPhase> Run(int seed)
         {
-            var d = new PacingDirector(seed);
+            var d = new PacingDirector(new DeterministicRandom((ulong)seed));
             var phases = new List<PacingPhase>();
             for (var t = 0; t < 600; t++) { d.Tick(1, t % 90 < 20 ? 0.9f : 0.1f, false, 0); phases.Add(d.Phase); }
             return phases;
         }
         Assert.Equal(Run(7), Run(7));
+        Assert.NotEqual(Run(7), Run(8));   // the seed decides how long each Sustain Peak and Relax lasts
     }
 
     [Fact]
@@ -107,7 +109,7 @@ public sealed class PacingDirectorTests
         // A crude simulation: while mobs may spawn, the team keeps getting hurt; otherwise nothing happens. Over ten
         // minutes the director must produce repeated peaks, each followed by a quiet stretch of at least 30 s.
         var team = new[] { new Intensity(), new Intensity(), new Intensity(), new Intensity() };
-        var d = new PacingDirector(seed: 3);
+        var d = new PacingDirector(new DeterministicRandom(3));
         var rng = new Random(3);
         int peaks = 0, quiet = 0, longestQuiet = 0, quietRun = 0;
         var last = d.Phase;

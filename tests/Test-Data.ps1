@@ -14,7 +14,7 @@ foreach ($case in Get-DataCases $fixture) {
 }
 $expect = @{
     'data.json'     = @("table 'quests': data/quests.json does not exist",
-                        "table 'quotes': kind 'barks' is unknown (the one kind is responses)",
+                        "table 'quotes': kind 'barks' is unknown (the kinds are responses and softlock)",
                         "table 'recipes' field 'requires' refers to table 'itemz', which data.json does not list; did you mean 'items'?",
                         "table 'recipes' field 'requires' is acyclic, which needs a ref to its own table ('recipes')",
                         "table 'quests' field 'reward' refers to table 'loot', which data.json does not list")
@@ -51,6 +51,23 @@ $expect = @{
                         "'bad_columns' remember 'mood' value is neither a number, true, false nor a name: 'very grumpy'")
     # A voiced table needs a file for every line; a follow-up and a fact may come from another responses table.
     'table radio'   = @("'radio_check' line 1 has no voice file")
+    # Soft-lock levels as data (Example.Core's SoftLockCheck, searched the same way): the counterexample, then names and
+    # counts that do not fit, with the near name, and a level without goals.
+    'table levels_lock' = @("'vault' Soft-lock after 2 step(s): pick up key in Hall; use key on closet door, go Hall -> Closet. Stuck in Closet, holding nothing: 2 of 5 reachable states cannot reach the goal.",
+                            "'typos' item 'ammo' has 'colour' (an item has name, max, canBeLost and start)",
+                            "'typos' pickup 1 names area 'Hal', which areas do not list; did you mean 'Hall'?",
+                            "'typos' passage 1 uses names item 'kye', which items do not list; did you mean 'key'?",
+                            "'typos' passage 2 useCount: item key: 2 is outside 1 to its max 1",
+                            "'typos' passage 3 has 'need' (it has from, to, name, oneWay, needs, needsCount, uses, useCount); did you mean 'needs'?",
+                            "'nowhere' has no goals")
+    # Every currency has a sink (EconomySim's WithoutSink): one with only sources, and one in the currencies table no flow moves.
+    'table flows'   = @("currency 'gems' has no sink: daily_gems, quest_gems pay it in and nothing takes it out, so it only piles up",
+                        "currency 'tokens' has no sink (and no source): no row of flows moves it")
+    # Per-locale lines: a missing text, a locale the table does not list, and voice files missing or not there.
+    'table intercom' = @("'intercom_hello' line 1 'de' voice voice/de/hallo.ogg does not exist",
+                          "'intercom_bye' line 1 has locale 'fre', which the table's locales do not list; did you mean 'fr'?",
+                          "'intercom_bye' line 1 has no 'fr' voice file",
+                          "'intercom_bye' line 1 has no 'de' text")
 }
 foreach ($name in $expect.Keys) {
     $got = if ($cases.ContainsKey($name)) { "$($cases[$name])" -split "`n" } else { @() }
@@ -91,6 +108,28 @@ if (@("$($cases['table radio'])" -split "`n").Count -ne 1) { $failures += "radio
 $wantWarnings = @("fact 'gag_cooldow' is read by 'gag', but no rule remembers it and the table's facts do not list it; did you mean 'gag_cooldown'?")
 if (($warned['table barks'] -join ' | ') -ne ($wantWarnings -join ' | ')) { $failures += "barks should warn only: $($wantWarnings -join ' | ')`n  got: $($warned['table barks'] -join ' | ')" }
 if (@($warned['table radio']).Count) { $failures += "radio reads seen_witch, which barks remembers: $($warned['table radio'] -join ' | ')" }
+if (@("$($cases['table levels_lock'])" -split "`n").Count -ne 7) { $failures += "levels_lock should report seven problems (the chamber's delivery tube makes it safe): $($cases['table levels_lock'])" }
+if (@("$($cases['table flows'])" -split "`n").Count -ne 2) { $failures += "flows should report two problems (gold has repairs as its sink): $($cases['table flows'])" }
+if (@("$($cases['table intercom'])" -split "`n").Count -ne 4) { $failures += "intercom should report four problems: $($cases['table intercom'])" }
+$localeShape = Test-DataValue @{ text = 'Hm.'; locales = @{ fr = 42 } } @{ type = 'line' } $false
+if ($localeShape -ne "'fr' is neither text nor { text, voice }") { $failures += "a locale that is neither text nor { text, voice } should fail: '$localeShape'" }
+$economyConfig = @(Test-DataEconomy 'flows' @{ id = 'id'; fields = @{ currency = @{}; rate = @{} }; economy = @{ currency = 'currency'; rate = 'perHur' } } @{ flows = @() } @{})
+if (($economyConfig -join '') -ne "economy names perHur, which the table does not list") { $failures += "an economy naming an unlisted field should say so: $($economyConfig -join ' | ')" }
+
+# One soft-lock search: the levels Example.Core's SoftLockTests also loads with SoftLockTable and runs with SoftLockCheck.
+$softlockFile = Join-Path $root 'examples/csharp/tests/Example.Core.Tests/softlock-examples.json'
+$softlocks = @(Get-Content -LiteralPath $softlockFile -Raw | ConvertFrom-Json -AsHashtable)
+if ($softlocks.Count -lt 8) { $failures += "softlock-examples.json has $($softlocks.Count) cases" }
+foreach ($example in $softlocks) {
+    $level = $example['level']
+    $read = Read-SoftLockLevel $level
+    if ($read.Problems.Count) { $failures += "soft-lock level '$($level['id'])' does not read: $($read.Problems -join ' | ')"; continue }
+    $max = if ($level.Contains('maxStates')) { [int]$level['maxStates'] } else { 100000 }
+    $every = $level.Contains('everyItemCanBeLost') -and $level['everyItemCanBeLost'] -eq $true
+    $got = try { (Invoke-SoftLockSearch $read.Level $max $every).Text } catch { "error: $($_.Exception.Message)" }
+    $want = if ($example.Contains('error')) { "error: $($example['error'])" } else { $example['result'] }
+    if ($got -cne $want) { $failures += "soft-lock level '$($level['id'])': C# says '$want', the data runner '$got'" }
+}
 
 # One criteria grammar: the cases Example.Core's ResponseTableTests also runs against CriteriaSyntax.Parse in C#.
 $examplesFile = Join-Path $root 'examples/csharp/tests/Example.Core.Tests/criteria-examples.json'
@@ -133,11 +172,13 @@ $clean = @($cleanCases | Where-Object { $_.Failure })
 if ($clean) { $failures += "the clean project reported: $(($clean | ForEach-Object { "$($_.Name): $($_.Failure)" }) -join ' | ')" }
 $cleanWarnings = @(foreach ($case in $cleanCases) { if ($case.Contains('Warnings')) { foreach ($w in $case['Warnings']) { $w['message'] } } })
 if ($cleanWarnings) { $failures += "the clean project warned: $($cleanWarnings -join ' | ')" }
-if (-not ($cleanCases | Where-Object { $_.Name -eq 'table talk' })) { $failures += 'the clean project has no responses table checked' }
+foreach ($table in 'talk', 'greet', 'levels', 'flows') {
+    if (-not ($cleanCases | Where-Object { $_.Name -eq "table $table" })) { $failures += "the clean project's table $table was not checked" }
+}
 # The C# example's own dialogue table (loaded by ResponseTable in its C# tests) is green too.
 $breakout = @(Get-DataCases (Join-Path $root 'examples/csharp/game') | Where-Object { $_.Failure -or ($_.Contains('Warnings') -and @($_['Warnings']).Count) })
 if ($breakout) { $failures += "examples/csharp/game/data.json reported: $(($breakout | ForEach-Object { "$($_.Name): $($_.Failure) $(if ($_.Contains('Warnings')) { @($_['Warnings'] | ForEach-Object { $_['message'] }) -join ' | ' })" }) -join ' | ')" }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'data reports duplicates, missing and unknown fields, types, ranges, enums and broken references (with the near name when there is one), prerequisite cycles, puzzle levels without one solution sentence or a purpose, dialogue rules (criteria syntax as in C#, follow-ups, voice files, ties, contradictions, facts never written), and nothing on a clean project'
+Write-Host 'data reports duplicates, missing and unknown fields, types, ranges, enums and broken references (with the near name when there is one), prerequisite cycles, puzzle levels without one solution sentence or a purpose, dialogue rules (criteria syntax as in C#, follow-ups, voice files, ties, contradictions, facts never written, lines missing in a locale), soft-lock levels with the same counterexample as C#, currencies without a sink, and nothing on a clean project'
 exit 0

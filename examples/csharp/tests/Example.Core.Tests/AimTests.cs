@@ -1,3 +1,4 @@
+using Example.Core.Determinism;
 using System.Numerics;
 using Example.Core.Ai;
 using Xunit;
@@ -252,12 +253,12 @@ public sealed class AimTests(ITestOutputHelper output)
         Vector3 forward = Vector3.Normalize(new Vector3(1, 0, 0.3f));
         (float MinPitch, float MaxPitch, float MaxYaw, float Upward) Spread(float? tilt, int seed)
         {
-            var random = new Random(seed);
+            var random = new DeterministicRandom((ulong)seed);
             float minPitch = 90, maxPitch = -90, maxYaw = 0;
             int upward = 0;
             for (int i = 0; i < 10000; i++)
             {
-                Vector3 d = Aim.Scatter(forward, Vector3.UnitY, random, tilt: tilt);
+                Vector3 d = Aim.Scatter(forward, Vector3.UnitY, ref random, tilt: tilt);
                 float pitch = MathF.Asin(d.Y) * 180 / MathF.PI;
                 float yaw = MathF.Abs(MathF.Atan2(Vector3.Cross(forward, d with { Y = 0 }).Y, Vector3.Dot(forward, d with { Y = 0 }))) * 180 / MathF.PI;
                 minPitch = Math.Min(minPitch, pitch); maxPitch = Math.Max(maxPitch, pitch); maxYaw = Math.Max(maxYaw, yaw);
@@ -276,7 +277,8 @@ public sealed class AimTests(ITestOutputHelper output)
         Assert.InRange(tilted.MaxPitch, 1.4f, 1.501f);
         Assert.InRange(tilted.Upward, 0.72f, 0.78f);
 
-        Assert.Equal(Aim.Scatter(forward, Vector3.UnitY, new Random(4)), Aim.Scatter(forward, Vector3.UnitY, new Random(4)));
+        DeterministicRandom one = new(4), two = new(4);
+        Assert.Equal(Aim.Scatter(forward, Vector3.UnitY, ref one), Aim.Scatter(forward, Vector3.UnitY, ref two));
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Example.Core.Determinism;
 using Example.Core.Narrative;
 using Xunit;
 
@@ -59,8 +60,8 @@ public sealed class ResponseRulesTests
         var seen = new HashSet<string>();
         for (var seed = 0; seed < 60; seed++)
         {
-            var first = new ResponseSystem(rules, s, seed).Find(new Speaker("x"), "Greet", null, 0)!;
-            var again = new ResponseSystem(rules, s, seed).Find(new Speaker("x"), "Greet", null, 0)!;
+            var first = new ResponseSystem(rules, s, new DeterministicRandom((ulong)seed)).Find(new Speaker("x"), "Greet", null, 0)!;
+            var again = new ResponseSystem(rules, s, new DeterministicRandom((ulong)seed)).Find(new Speaker("x"), "Greet", null, 0)!;
             Assert.Equal(first.Line, again.Line);
             seen.Add(first.Line);
         }

@@ -110,13 +110,18 @@ The `juice` runner has one case named `run` (Godot's exit and engine errors) and
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
 missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
-case `table <name>` per table, each listing up to 50 problems, one per line. A fact that a `"kind": "responses"` table's
+case `table <name>` per table, each listing up to 50 problems, one per line (for a `"kind": "softlock"` table, a level's
+soft-lock is one line with the steps into it; for a table with `"economy"`, each currency without a sink). A fact that a `"kind": "responses"` table's
 criteria read but no rule remembers and its `facts` do not list is a warning (`fact-never-written`, `file` the table's
 file, `line` null) in `runnerResults[].warnings`; it does not fail the run.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,
 subtitles under the subtitle minimum and, when integer scaling cuts the game off, that; a case `run` when Godot fails or
 finds no visible text. Text under the recommended size is a warning (`text-below-recommended`), subtitles under theirs
 another (`subtitle-below-recommended`), in `runnerResults[].warnings`; its log is `textsize.log`.
+The `placement` runner has one case per level scene that `placement.json` names, failed with its findings, one per line
+(`<scene> <node path> (<x>, <y>, <z>) <rule>: <measured> (limit <limit>)`), and a case `run` when Godot fails or a
+limit names a script or constant that does not exist; the summary (counts per group with the change since the last
+run, exemptions, wayfinding) is `placement/placement.txt` in the results folder.
 The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
 (`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
 `unsafe-area`, `small-target`, and `small-control` when `layout.json` sets `minControlDp`: a TouchScreenButton or a Control

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Example.Core.Determinism;
 
 namespace Example.Core.Ai;
 
@@ -57,9 +58,9 @@ public static class Steering
 
     /// <summary>
     /// A point on a circle ahead of the agent, nudged a little each step: smooth wandering, not jitter. Pass the same
-    /// angle back each step, and a seeded Random so runs repeat.
+    /// angle back each step, and the run's seeded generator (by ref, so its state moves on) so runs repeat.
     /// </summary>
-    public static Vector2 Wander(SteeringAgent a, ref float angle, Random random, float distance = 60, float radius = 30, float jitter = 0.5f)
+    public static Vector2 Wander(SteeringAgent a, ref float angle, ref DeterministicRandom random, float distance = 60, float radius = 30, float jitter = 0.5f)
     {
         angle += (float)(random.NextDouble() * 2 - 1) * jitter;
         Vector2 heading = a.Velocity.LengthSquared() > 1e-6f ? Vector2.Normalize(a.Velocity) : Vector2.UnitX;

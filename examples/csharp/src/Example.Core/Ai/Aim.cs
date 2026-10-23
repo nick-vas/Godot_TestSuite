@@ -1,4 +1,5 @@
 using System.Numerics;
+using Example.Core.Determinism;
 
 namespace Example.Core.Ai;
 
@@ -137,7 +138,7 @@ public static class Aim
     /// pitchDeg] (the talk's default: 2 and 2). With a <paramref name="tilt"/> in 0..1 the vertical range is halved and
     /// slid: 0.5 centred, 1 only upward, 0 only downward; the talk's 0.75 sends most misses over low cover.
     /// </summary>
-    public static Vector3 Scatter(Vector3 direction, Vector3 up, Random random, float yawDeg = 2, float pitchDeg = 2, float? tilt = null)
+    public static Vector3 Scatter(Vector3 direction, Vector3 up, ref DeterministicRandom random, float yawDeg = 2, float pitchDeg = 2, float? tilt = null)
     {
         float yaw = (float)(random.NextDouble() * 2 - 1) * yawDeg;
         float low = -pitchDeg, high = pitchDeg;
