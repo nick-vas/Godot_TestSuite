@@ -271,6 +271,8 @@ jobs:
     with:
       project: examples/csharp/game
       runners: gdunit4,gut
+      # The csharp job posts the PR comment; this job has no pull-requests: write and would only warn trying to edit it.
+      pr-comment: false
 
   # init on a bare game (no tests, no CI), then doctor and a full test run of what it generated.
   init:

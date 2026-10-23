@@ -365,7 +365,8 @@
   - Architecture rules: `untrusted-load` (a Godot resource loaded from `user://` runs any script embedded in it) and
     `culture-parse` (number parsing without an invariant culture reads "0.5" as 5 on a German system).
   - `doctor` warns when `config/version` is not numbers and dots, and when a Windows preset does not write the game's
-    version and icon into the exe (the C# example's now does).- Game AI, multiplayer, crash reports and telemetry:
+    version and icon into the exe (the C# example's now does).
+- Game AI, multiplayer, crash reports and telemetry:
   - Skills: `godot-game-ai` (choosing a decision structure, behaviour trees that interrupt, utility with momentum,
     GOAP, steering, Godot 4.7 navigation readiness), `godot-multiplayer` (choosing a model, prediction, reconciliation,
     interpolation, lag compensation, rollback, Godot 4.7 specifics) and `godot-telemetry` (consent, no free text,

@@ -17,7 +17,7 @@ description: Use when a Godot 4.x project works in the editor but fails or misbe
 | GUT parse errors after upgrading Godot | `addons/gut` from the previous Godot minor | The kit stamps and reinstalls its own copy; if you committed GUT yourself, update it |
 | Tests pass locally, CI uses another Godot | `Godot.NET.Sdk/x.y.z` in the csproj decides the version | Pin it; `detect -Json` shows `godotVersion` |
 | Wrong Godot binary mixes steps | `GODOT_BIN` from a previous step | Unset it or let the kit install; installed builds are marked `HYPERDOT_INSTALLED=1` |
-| `-Results .` deletes work | `-Results` is wiped each run | The kit refuses the project folder, cwd or parents (`unsafe-results-dir`) |
+| `-Results .` deletes work | `-Results` is wiped each run | The kit refuses the project folder, cwd, their parents, and a folder inside the project it did not make (`unsafe-results-dir`) |
 | Zero tests "passes" | A runner that finds nothing is misconfigured | The kit fails it; wire the framework instead |
 | Windows build zip not executable on Linux | Zip lost the exec bit | The release tool re-adds it for ELF binaries |
 | A debug scene path works in the editor but the exported build ignores it | Release exports ignore scene paths on the command line | Make debug entry points user flags after `--` (`OS.GetCmdlineUserArgs()`); pass them with `-GameArgs` (`godot-automation-hooks`) |
