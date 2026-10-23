@@ -46,7 +46,7 @@ transcript (Whisper: names and numbers can be wrong; doubtful spellings are flag
   https://www.youtube.com/watch?v=cKfz2nEgaX8
 - Taken: the three causes of flaky tests (`godot-test-loop` Rules); the client sends its feature-toggle set and the
   server refuses a mismatch (`godot-multiplayer` section 4); commit-stage time crept back within months once nobody
-  watched it, cited on the "Test duration in `status`" to-do in `docs/roadmap.md`.
+  watched it, the reason `status` now reports the test suite's duration against its last runs.
 - Not taken: flaky-test quarantine (a separate PR changes `test`'s run history for it), backing out a breaking change
   within about 10 minutes, coverage-based test selection, trunk and toggles as process (about 40,000 tests, 90% unit).
 

@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Docs cleanup for 1.0. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
+  display), the `-Project` form throughout, 50 skills grouped by area, every page in `docs/` linked, what each command
+  writes into a project, and a refreshed status (exports run, eval results). `docs/roadmap.md` keeps only what is open
+  (44 KB to 24 KB): the 1.0 plan, what was decided, the open Trello work (the live run waits for the repository's
+  secrets) and three to-do groups. `docs/strategies.md` is retired into the roadmap's decisions. AGENTS.md lists the
+  self-tests once, in a table; `docs/reference.md` documents `-Templates` and the environment variables.
 - `tests/Test-TrelloSync.ps1` tests `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an
   emoji), a second sync that changes nothing, a card moved on the board, an archived card, a short link as `-Board`, a
   missing list, missing and rejected credentials, and no token in the output or a URL. It runs against a stand-in Trello
