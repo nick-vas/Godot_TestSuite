@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **The `placement` runner** (`lib/Placement.ps1`, `tools/placement.gd`): `templates/placement_check.gd` on every level a
+  `placement.json` names, each limit read from the GDScript constant it names, with no test to write. One case per
+  scene with its findings; the summary per group, exemptions and wayfinding in `placement/placement.txt`. Selected when
+  `placement.json` exists. `tests/Test-Placement.ps1` runs it on the fixture after the GUT path, and with a missing
+  constant and a limit of the wrong type.
 - **The `data` runner checks soft-locks, sinks and translations.**
   - A table of `"kind": "softlock"` holds levels as areas, passages, pickups, supplies and goals, and the runner searches
     each the way Example.Core's `SoftLockCheck` does, with the same counterexample text, so GDScript games get it too;

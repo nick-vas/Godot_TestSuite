@@ -6,8 +6,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 ## Layout
 
 - `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette.
-- `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, Placement.
+- `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `placement.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
 - `tests/` self-tests, most with a deliberately broken fixture (`tests/<name>-fixture`); the table under "Self-tests" says what each covers and needs.
 - `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `AGENTS.md`, `GDD.md`, `GDD-jam.md` for jams, `ADR.md`, `STYLE.md`, `TECH-DEBT.md`, `TRAILER.md`, and `placement_check.gd`, a test a game copies to check where levels place things), `ci/godot/templates/playtest-events.json` (the playtest telemetry schema `playtest` reads and games copy), `ci/godot/templates/licences/` (SPDX texts `credits` ships for MIT, ISC, BSD, Apache-2.0, OFL-1.1 and Zlib), and `genres-uw.json` (University of Washington, CC BY-NC-SA 4.0 with permission) and `genres.json` (Wikidata, CC0), the genre vocabularies.
@@ -75,7 +75,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Layout.ps1` | the `layout` runner (`layout-fixture`) | Godot |
 | `Test-Flows.ps1` | the `flows` runner's rotation steps (`resize`, `hold`, `release`) and errors (`flows-fixture`) | Godot |
 | `Test-Playthrough.ps1` | the `playthrough` runner (`playthrough-fixture`) | Godot; `-NoGodot` for the log part |
-| `Test-Placement.ps1` | `templates/placement_check.gd` (`placement-fixture`) | Godot |
+| `Test-Placement.ps1` | `templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner | Godot |
 | `Test-StaleTres.ps1` | `validate`'s stale `.tres` keys (`tres-fixture`) | Godot |
 | `Test-Flaky.ps1` | `test -Retry` and `quarantine.json` (`flaky-fixture`, GUT) | Godot; `-NoGodot` for the synthetic part |
 | `Test-ErrorKeys.ps1` | error keys and `status`'s `recurringErrors` (`errorkeys-fixture`) | Godot, git; `-NoGodot` for the synthetic part |

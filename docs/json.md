@@ -112,6 +112,10 @@ The `textsize` runner has one case per resolution (`1280x800`), listing text who
 subtitles under the subtitle minimum and, when integer scaling cuts the game off, that; a case `run` when Godot fails or
 finds no visible text. Text under the recommended size is a warning (`text-below-recommended`), subtitles under theirs
 another (`subtitle-below-recommended`), in `runnerResults[].warnings`; its log is `textsize.log`.
+The `placement` runner has one case per level scene that `placement.json` names, failed with its findings, one per line
+(`<scene> <node path> (<x>, <y>, <z>) <rule>: <measured> (limit <limit>)`), and a case `run` when Godot fails or a
+limit names a script or constant that does not exist; the summary (counts per group with the change since the last
+run, exemptions, wayfinding) is `placement/placement.txt` in the results folder.
 The `layout` runner has a passing case per profile that is clean, and one failing case per profile, scene and node
 (`phone_portrait res://ui/menu.tscn TopBar/Pause`) whose message lists each problem as `kind: detail` (`off-screen`,
 `unsafe-area`, `small-target`, and `small-control` when `layout.json` sets `minControlDp`: a TouchScreenButton or a Control

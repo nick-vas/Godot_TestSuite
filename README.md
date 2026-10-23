@@ -147,10 +147,11 @@ separate, headless tool.
 
 | Capability | Command | Result |
 |---|---|---|
-| **Check game data** | `data` runner, `data.json` | ids, types, ranges and references in the game's JSON and CSV tables |
+| **Check game data** | `data` runner, `data.json` | ids, types, ranges and references in the game's JSON and CSV tables; soft-locks in levels written as data, currencies without a sink, lines missing a translation |
 | **Check translations** | `l10n` runner | duplicate, untranslated, missing and too long keys, translation remaps, missing glyphs |
 | **Read on small screens** | `textsize` runner, `textsize.json` | text and subtitle sizes at 1280x800 (Steam Deck) and other resolutions |
 | **Fit every screen** | `layout` runner, `layout.json` | phones, a tablet and an ultrawide: controls off screen, under a notch or too small to touch fail |
+| **Check placed objects** | `placement` runner, `placement.json` | every level's AI points, torches, zip lines and landmarks against limits read from the gameplay code's constants |
 | **Feel the game** | `juice` runner, `juice.json` | every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
 | **Finish the game** | `playthrough` runner, `playthrough.json` | the game's bot plays at fixed game time and must log every milestone, the ending last |
 

@@ -131,9 +131,12 @@ in every level that uses the prop, a navmesh change drops the slopes, a code cha
 node of every level in each test run instead of by hand (Assassin's Creed Origins: 228 zip lines at two minutes each is
 a tester's full day; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/assassins-creed-origins-world-data.md`).
 
-Copy `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/placement_check.gd` into the game's test folder and call it from a GUT
-test (its header has the code; a C# game ports the rules). It loads each level, waits for navigation, checks nodes by
-group and fails once, one line per finding: scene, node path, position, rule, measured value and limit.
+Write a `placement.json` and the `placement` runner checks every level in each `test` run, no test to write:
+`{ "levels": ["res://levels"], "limits": { "reach": "res://player.gd:REACH" } }`, each limit read from the GDScript
+constant it names (a C# game writes the number, or keeps a test). Or copy
+`${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/placement_check.gd` into the game's test folder and call it from a GUT test
+(its header has the code). It loads each level, waits for navigation, checks nodes by group and reports one line per
+finding: scene, node path, position, rule, measured value and limit.
 
 | Group | Rule | Passes when |
 |---|---|---|

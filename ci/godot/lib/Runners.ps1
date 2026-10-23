@@ -17,6 +17,8 @@
 #   data       data tables against data.json: ids, fields, types, ranges, references (lib/Data.ps1); no Godot needed
 #   textsize   text sizes in real pixels on a small screen such as the Steam Deck's (lib/TextSize.ps1, textsize.json)
 #   layout     screens on phones, a tablet and an ultrawide: off screen, notch, touch target size (lib/Layout.ps1, layout.json)
+#   placement  where levels put AI points, interactables, zip lines and landmarks, against limits read from the game's
+#              script constants (lib/Placement.ps1, placement.json, templates/placement_check.gd)
 #
 # -Filter means: dotnet/gdunit4 `dotnet test --filter`; godottest suite name; gut test name.
 
@@ -225,6 +227,9 @@ function Invoke-TestRunner {
         }
         'textsize' {
             $code = Invoke-TextSizeRunner $Info $ResultsDir
+        }
+        'placement' {
+            $code = Invoke-PlacementRunner $Info $ResultsDir
         }
         'smoke' {
             $log = Join-Path $ResultsDir 'smoke.log'

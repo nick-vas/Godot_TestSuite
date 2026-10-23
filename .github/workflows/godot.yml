@@ -22,7 +22,7 @@ on:
         type: string
         default: ""
       runners:
-        description: "Comma list of runners (validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, l10n, data, juice, playthrough, textsize, layout); none to only build (default - detected)"
+        description: "Comma list of runners (validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, l10n, data, juice, playthrough, textsize, layout, placement); none to only build (default - detected)"
         type: string
         default: ""
       filter:
@@ -135,7 +135,7 @@ on:
         type: string
         default: ""
       runners:
-        description: "Comma list of runners (validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, l10n, data, juice, playthrough, textsize, layout); none to only build (default - detected)"
+        description: "Comma list of runners (validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, l10n, data, juice, playthrough, textsize, layout, placement); none to only build (default - detected)"
         type: string
         default: ""
       filter:

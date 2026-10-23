@@ -204,8 +204,10 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off**, only if it can be
   kept quiet: warn when a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess` and the game sets no
   `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way.
-- **A `placement` runner, or placement checks in C#.** `templates/placement_check.gd` is GDScript run from a GUT test; a
-  runner could read each limit from a script constant named in a `placement.json`.
+- **Placement checks in C#.** The `placement` runner reads its limits from GDScript constants only: Godot returns no
+  constants for a C# script (`get_script_constant_map()` on the C# example's `Main.cs`, 4.7.2 mono, was empty), so a C#
+  game writes the numbers in `placement.json`. Reading them from C# needs a parser or a small `[Tool]` node that
+  exposes them.
 - **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
   The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
 - **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
