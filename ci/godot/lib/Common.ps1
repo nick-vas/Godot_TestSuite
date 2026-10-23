@@ -26,6 +26,15 @@ function Start-KitCoverage([string]$Command) {
     $script:CoverageFile = Join-Path $env:HYPERDOT_COVERAGE "$PID-$([guid]::NewGuid().ToString('N').Substring(0, 8)).txt"
     $script:CoverageSeen = [System.Collections.Generic.HashSet[string]]::new()
     Add-KitCoverage "command:$Command"
+    # The self-test that started this run (the nearest tests/Test-*.ps1 among the parent processes) and the CI job, so
+    # tests/Get-CoverageMap.ps1 can say which test reaches what.
+    $process = Get-Process -Id $PID
+    for ($depth = 0; $process -and $depth -lt 8; $depth++) {
+        $line = try { $process.CommandLine } catch { $null }
+        if ($line -match '(?<t>Test-[\w-]+)\.ps1') { Add-KitCoverage "test:$($Matches.t)"; break }
+        $process = try { $process.Parent } catch { $null }
+    }
+    if ($env:GITHUB_JOB) { Add-KitCoverage "job:$env:GITHUB_JOB" }
     $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File) + @(Get-Item -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'hyperdot.ps1'))
     $names = foreach ($source in $sources) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($source.FullName, [ref]$null, [ref]$null)
@@ -620,4 +629,58 @@ function Get-ClosestName([string]$Typed, [string[]]$Candidates) {
         if ($bestDistance -eq 0) { break }
     }
     return $best
+}
+
+# The sets of values hyperdot.ps1's parameters take, read from its param block: parameter name -> its values. The sets are
+# [ArgumentCompletions] (tab completion, which PowerShell does not enforce while it binds), so a wrong value reaches the
+# script, where Assert-KitArguments answers it; the help, the skill and context checks and the coverage report read the
+# same attributes, so each set is written once.
+function Get-KitParameterSets($ParamBlock) {
+    $sets = [ordered]@{}
+    foreach ($p in $ParamBlock.Parameters) {
+        $attribute = @($p.Attributes | Where-Object { $_.TypeName.Name -in 'ArgumentCompletions', 'ValidateSet' })
+        if ($attribute.Count) { $sets[$p.Name.VariablePath.UserPath] = @($attribute[0].PositionalArguments | ForEach-Object { "$($_.Value)" }) }
+    }
+    return $sets
+}
+
+# The flag a parameter is written as: its alias when it has one (-Profile binds to $PlanProfile), else its name.
+function Get-KitFlagName($Parameter) {
+    $alias = @($Parameter.Attributes | Where-Object { $_.TypeName.Name -eq 'Alias' } | ForEach-Object { $_.PositionalArguments } | ForEach-Object { $_.Value })
+    if ($alias.Count) { return $alias[0] }
+    return $Parameter.Name.VariablePath.UserPath
+}
+
+# What PowerShell would have refused before the script started, refused here with invalid-arguments so -Json still gives
+# one document: a flag hyperdot.ps1 does not have, a word too many, a command or a value outside its set. (A flag left
+# without its value, or a value of the wrong type such as -Retry abc, still fails in PowerShell's binding.)
+function Assert-KitArguments($ParamBlock, [hashtable]$Bound) {
+    $flags = @{}   # variable name -> the flag as written
+    foreach ($p in $ParamBlock.Parameters) { if ($p.Name.VariablePath.UserPath -ne 'UnboundArguments') { $flags[$p.Name.VariablePath.UserPath] = Get-KitFlagName $p } }
+    $names = @($flags.Values | Sort-Object)
+    if ($Bound.ContainsKey('UnboundArguments')) {
+        $words = @($Bound['UnboundArguments'] | ForEach-Object { "$_" })
+        $flag = @($words | Where-Object { $_ -match '^-[A-Za-z]' })
+        if ($flag.Count) {
+            $name = $flag[0].TrimStart('-').TrimEnd(':')
+            $closest = Get-ClosestName $name.ToLowerInvariant() @($names | ForEach-Object { $_.ToLowerInvariant() })
+            $suggestion = if ($closest) { " (did you mean -$(@($names | Where-Object { $_ -eq $closest })[0])?)" } else { '' }
+            Stop-GodotCi "-$name is not a parameter of hyperdot.ps1$suggestion; docs/reference.md lists them all" 'invalid-arguments'
+        }
+        $gameFlag = @($words | Where-Object { $_.StartsWith('--') })
+        if ($gameFlag.Count) {
+            Stop-GodotCi "'$($gameFlag[0])' belongs to no parameter: the game's own flags go to -GameArgs as one list, e.g. -GameArgs '--seed=3','$($gameFlag[0])'" 'invalid-arguments'
+        }
+        Stop-GodotCi "'$($words -join ' ')' belongs to no parameter: name the parameter it is for (e.g. -Project <folder>) and quote a value with spaces" 'invalid-arguments'
+    }
+    $sets = Get-KitParameterSets $ParamBlock
+    foreach ($name in $sets.Keys) {
+        if (-not $Bound.ContainsKey($name)) { continue }
+        $value = "$($Bound[$name])"
+        if ($value -in $sets[$name]) { continue }
+        $closest = if ($value -match "[A-Za-z]") { Get-ClosestName $value.ToLowerInvariant() $sets[$name] } else { $null }
+        $suggestion = if ($closest) { " (did you mean ${closest}?)" } else { '' }
+        if ($name -eq 'Command') { Stop-GodotCi "'$value' is not a command of hyperdot.ps1$suggestion; the commands: $($sets[$name] -join ', ')" 'invalid-arguments' }
+        Stop-GodotCi "-$($flags[$name]) $value is not one of: $($sets[$name] -join ', ')$suggestion" 'invalid-arguments'
+    }
 }

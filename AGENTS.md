@@ -119,6 +119,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
+| `Test-CoverageMap.ps1` | `docs/coverage.md` has a row for every command, error code, lib file, tool, skill, subagent and workflow job; `-Check` catches missing, stale and wrong rows; records are credited to the test they name | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
@@ -126,7 +127,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-ReviewPairs.ps1` | `Invoke-SideBySide.ps1 -ReviewOut` (blind pairs and their key) and `Get-JudgeAgreement.ps1` (made-up runs and verdicts) | - |
 | `Test-GameBenchmark.ps1` | the game programme (`benchmark/game-benchmark.json`): a copy of the game per session, grading by the kit's tests, hidden tests and mutants (`game-benchmark`, a stand-in CLI doing each task well and badly) | Godot |
 | `Test-GameProgramme.ps1` | every task of a staged game programme, without a model: the untouched game fails its grading, the task's reference solution passes, its decoy fails (`-SpecPath` for another programme; the self-test runs it on `game-benchmark/programme`) | Godot |
-| `Test-ErrorCodes.ps1` | every documented error code no other self-test raises, raised and checked in the JSON | Godot, display, ffmpeg; `-NoGodot` for plan, init, detect, doctor and audio |
+| `Test-ErrorCodes.ps1` | every documented error code no other self-test raises, raised and checked in the JSON; `invalid-arguments` for an unknown command or flag, a value outside its set and a word too many | Godot, display, ffmpeg; `-NoGodot` for plan, init, detect, doctor, audio and the arguments |
 | `Test-Detect.ps1` | the solution `detect` picks, in and out of git, past unrelated and empty solutions and scenes | - |
 | `Test-InstallAddon.ps1` | replacing GUT in a path with brackets (a stand-in git) | - |
 | `Test-StopGate.ps1` | the Stop hook: only a full passing run counts; deletions, commits, non-ASCII names, data files | git |
@@ -134,6 +135,10 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 
 `tests/Get-KitCoverage.ps1 -From <folder>` reports what the self-tests reach when run with `HYPERDOT_COVERAGE` set to that
 folder; the `coverage` job of `self-test.yml` collects every job's records and fails below its floors.
+`tests/Get-CoverageMap.ps1` writes `docs/coverage.md`: the tests behind each command, error code, lib file, tool, skill,
+subagent and workflow job, and the gaps (`-From <folder>` first refreshes `tests/coverage-records.json` from such records;
+a kit run names the `Test-*.ps1` that started it). Run it after adding any of those; its `-Check`, run by
+`Test-CoverageMap.ps1`, fails on a missing or stale row.
 
 ## Targets
 

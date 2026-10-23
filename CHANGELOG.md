@@ -6,6 +6,21 @@
   `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`
   scores the judge against those verdicts and against itself (80% and 90%, from `benchmark/PLAN.md`). Self-test:
   `tests/Test-ReviewPairs.ps1`.
+- **A coverage map** ([docs/coverage.md](docs/coverage.md), made by `tests/Get-CoverageMap.ps1`): every command,
+  documented error code, lib file, tool, skill, subagent and workflow job, with the self-tests and `self-test.yml` steps
+  behind it and a list of gaps. It joins what the tests say (commands run, codes checked, files named) with what their kit
+  runs reached: a run recorded under `HYPERDOT_COVERAGE` now names the `Test-*.ps1` that started it, and
+  `tests/coverage-records.json` keeps each test's commands, codes and functions. `tests/Test-CoverageMap.ps1` (in the
+  `lint` job) fails when something has no row; the `coverage` job adds the map from that run's records to its artifact.
+  New cases for the gaps it showed: `import-failed` (a `project.godot` Godot cannot parse) and `no-browser` in
+  `tests/Test-ErrorCodes.ps1`, `audio-clipping` in `tests/Test-Audio.ps1 -Mix` (`audio-fixture/loud.tscn`).
+- **Argument mistakes come back as JSON.** An unknown command, a value outside a parameter's set (`-Do`, `-Mcp`,
+  `-Profile`, `-Retry` above 5), an unknown flag or a word that belongs to no parameter used to be refused by PowerShell
+  before the script started, with nothing on stdout under `-Json`. They now give `invalid-arguments` with the parameter,
+  the value, what it takes and the nearest name (`-Projct` → `-Project`). The sets stay in the param block, as
+  `[ArgumentCompletions]` (tab completion, not enforced while binding), checked by `Assert-KitArguments`; `help`, the
+  skill and context checks and the coverage report read the same attributes. A flag without its value and a value of the
+  wrong type (`-Retry abc`) are still PowerShell's. Self-test: `tests/Test-ErrorCodes.ps1 -NoGodot`.
 - **The staged programme's first pilot** (min tier, 32 sessions, $1.89; `benchmark/PLAN.md`): five of the eight arcade
   GDScript tasks were solved by every configuration, Haiku's fix-playthrough sessions ran out of time (the template now
   allows 1800 s), the plugin used about twice the tokens again, and `cost-model.json` now holds the measured costs. The

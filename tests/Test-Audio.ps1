@@ -114,6 +114,9 @@ if ($Mix) {
     elseif (-not (Test-Path $d.audio.mix.file) -or $d.audio.mix.seconds -lt 5.9) { $failures += "mix recording: $($d.audio.mix | ConvertTo-Json -Compress)" }
     $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-TargetLufs', '-12', '-Results', (Join-Path $game 'mix-loud'))
     if ($d.ok -or $d.error.code -ne 'audio-off-target') { $failures += "a -12 LUFS target should fail as off-target: $($d | ConvertTo-Json -Depth 4 -Compress)" }
+    # sfx/hit.wav peaks at about -0.5 dBFS, over the -1 dBTP limit.
+    $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-Scene', 'res://loud.tscn', '-Results', (Join-Path $game 'mix-clip'))
+    if ($d.ok -or $d.error.code -ne 'audio-clipping') { $failures += "a mix peaking over -1 dBTP should fail as clipping: $($d | ConvertTo-Json -Depth 4 -Compress)" }
     $d = Invoke-Kit @('audio', '-Mix', '-Seconds', '2', '-Scene', 'res://silent.tscn', '-Results', (Join-Path $game 'mix-silent'))
     if ($d.ok -or $d.error.code -ne 'audio-silent') { $failures += "a silent scene should fail as silent: $($d | ConvertTo-Json -Depth 4 -Compress)" }
 }

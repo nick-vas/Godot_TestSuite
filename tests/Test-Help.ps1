@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Self-test of `help` and its one source, docs/help.md: every command in hyperdot.ps1's ValidateSet, every skill in
+# Self-test of `help` and its one source, docs/help.md: every command in hyperdot.ps1's -Command set, every skill in
 # .agents/skills and every subagent in agents/ has an entry there with a one-line summary, and no entry names one that
 # does not exist; the kit calls its pages quote bind. Then `help` itself, from a folder with no project: the list, a
 # command's, a skill's and a subagent's page, an unknown name and a name given to another command. No Godot needed.

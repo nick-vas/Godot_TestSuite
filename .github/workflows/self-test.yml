@@ -45,6 +45,9 @@ jobs:
       - name: Every link and quoted path in the docs and skills leads somewhere
         shell: pwsh
         run: ./tests/Test-DocLinks.ps1
+      - name: Every command, error code, lib file, tool, skill, subagent and workflow job has a row in docs/coverage.md
+        shell: pwsh
+        run: ./tests/Test-CoverageMap.ps1
       - name: doctor reports LFS pointers, committed keys, Windows-reserved names, case twins and res:// paths in the wrong case
         shell: pwsh
         run: ./tests/Test-RepoHygiene.ps1
@@ -810,8 +813,15 @@ jobs:
           $report | Out-String | Tee-Object -Variable text | Write-Host
           "``````text`n$text`n``````" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code
+      # The coverage map from this run's records: which self-test reached what (each record names its test).
+      - name: Coverage map
+        if: always()
+        shell: pwsh
+        run: ./tests/Get-CoverageMap.ps1 -From "$env:RUNNER_TEMP/coverage" -Output "$env:RUNNER_TEMP/coverage.md"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: kit-coverage
-          path: ${{ runner.temp }}/coverage.json
+          path: |
+            ${{ runner.temp }}/coverage.json
+            ${{ runner.temp }}/coverage.md
