@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # Self-test of shot -MaxChangedPercent on a copy of tests/colorvision-fixture: the same scene again passes, the scene with one
-# swatch repainted fails with shot-changed, and -MaxChangedPercent without -Baseline is refused. Needs Godot (GODOT_BIN, or the
-# kit installs it) and a display (Xvfb :99, DISPLAY=:99).
+# swatch repainted fails with shot-changed, -MaxChangedPercent without -Baseline is refused, and scenes that share a name in
+# different folders get a picture each. Needs Godot (GODOT_BIN, or the kit installs it) and a display (Xvfb :99, DISPLAY=:99).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -31,6 +31,16 @@ $loose = Invoke-KitShot @('-Output', (Join-Path $temp 'loose'), '-Baseline', $be
 if (-not $loose.ok) { $failures += "100% allowed should pass: $($loose.error.code)" }
 $alone = Invoke-KitShot @('-Output', (Join-Path $temp 'alone'), '-MaxChangedPercent', '1')
 if ($alone.ok -or $alone.error.code -ne 'invalid-arguments') { $failures += "-MaxChangedPercent without -Baseline should be refused: $($alone.error.code)" }
+# Two scenes with the same name in different folders get a picture each, not one written over the other.
+foreach ($folder in 'a', 'b') {
+    New-Item -ItemType Directory -Force (Join-Path $project $folder) | Out-Null
+    Copy-Item -LiteralPath $scene -Destination (Join-Path $project "$folder/swatches.tscn")
+}
+$twinErr = Join-Path $temp 'twins.stderr.txt'
+$twinJson = & pwsh -NoProfile -File $kit shot -Project $project -Scene 'res://swatches.tscn,res://a/swatches.tscn,res://b/swatches.tscn' -Resolution 640x360 -Frames 5 -Output (Join-Path $temp 'twins') -Json 2>$twinErr
+$twins = $twinJson | Out-String | ConvertFrom-Json
+$twinFiles = @(@($twins.shots) | ForEach-Object { Split-Path -Leaf $_.file })
+if (-not $twins.ok -or ($twinFiles -join ',') -ne 'swatches.png,a_swatches.png,b_swatches.png') { $failures += "scenes with the same name should get their own pictures: $($twinFiles -join ', ')" }
 Remove-Item -Recurse -Force $temp
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
 Write-Host "shot -MaxChangedPercent passes an unchanged scene, fails a repainted one with shot-changed ($(@($changed.shots)[0].compare.changedPercent)% changed), and needs -Baseline"

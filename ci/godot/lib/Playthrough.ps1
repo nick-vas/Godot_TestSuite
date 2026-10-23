@@ -14,6 +14,10 @@ function Get-PlaythroughConfig([string]$ProjectDir) {
     if (-not $config -or -not $config.Contains('expect') -or @($config['expect'] | Where-Object { "$_".Trim() }).Count -eq 0) {
         Stop-GodotCi 'playthrough.json needs "expect": the log lines the bot must reach, the ending last, for example ["[Run] ending reached"]' 'invalid-arguments'
     }
+    # Godot's --quit-after 0 means never quit: the run would hang until the time limit.
+    if ($config.Contains('frames') -and ("$($config['frames'])" -notmatch '^\d+$' -or [long]$config['frames'] -le 0)) {
+        Stop-GodotCi "playthrough.json ""frames"" must be a whole number above 0, not $($config['frames'] | ConvertTo-Json -Compress)" 'invalid-arguments'
+    }
     return $config
 }
 

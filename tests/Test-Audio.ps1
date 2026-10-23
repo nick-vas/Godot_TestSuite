@@ -95,6 +95,12 @@ foreach ($marked in $true, $false) {
     if ($measured.Count -eq 0 -or ($measured -match 'audio-results')) { $failures += "the results folder's mix.wav was measured (.gdignore $marked): $($measured -join ', ')" }
 }
 
+# Under a decimal-comma culture loudness.csv still writes -24.1, not "-24,1", which another culture's tools would misread.
+$deResults = Join-Path $game 'audio-de'
+$null = & pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$ci' audio -Json -Project '$game' -Results '$deResults'" 2>$null
+$deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'loudness.csv') | Where-Object file -eq 'res://voice/line1.wav')
+if ($deRow.Count -ne 1 -or $deRow[0].integratedLufs -notmatch '^-\d+\.\d+$') { $failures += "loudness.csv under de-DE should write -24.1, got '$(if ($deRow.Count) { $deRow[0].integratedLufs })'" }
+
 # Doctor: sound files, a bus layout without Ambience and UI buses.
 $d = Invoke-Kit @('doctor')
 $messages = @($d.checks | ForEach-Object message)

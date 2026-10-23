@@ -15,6 +15,10 @@ function Get-JuiceConfig([string]$ProjectDir) {
     foreach ($rule in $config.rules) {
         if (-not $rule.Contains('event') -or -not $rule.Contains('feedback')) { Stop-GodotCi 'Each juice.json rule needs "event" and "feedback"' 'invalid-arguments' }
     }
+    # Godot's --quit-after 0 means never quit: the run would hang until the time limit.
+    if ($config.Contains('frames') -and ("$($config.frames)" -notmatch '^\d+$' -or [long]$config.frames -le 0)) {
+        Stop-GodotCi "juice.json ""frames"" must be a whole number above 0, not $($config.frames | ConvertTo-Json -Compress)" 'invalid-arguments'
+    }
     return $config
 }
 

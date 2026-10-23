@@ -137,6 +137,15 @@ $noise = Measure-ShotPalette $speckledFile $palette 3 ''
 Assert-True ($noise.offPalettePercent -eq 0 -and $noise.scatteredPercent -gt 0.2) "single scattered pixels are not counted as off the palette (off $($noise.offPalettePercent)%, scattered $($noise.scatteredPercent)%)"
 Assert-True (@($noise.colours | Where-Object { $_.counted }).Count -eq 0) 'none of the scattered colours is counted'
 
+# Two saturated reds 1.7 apart (CIEDE2000) but several tolerance-sized CIELAB cells apart in b: 700 pixels of each on black,
+# 0.07% apiece, under the 0.1% minimum alone, are one colour and count together (0.14%).
+$reds = [GodotCi.PngImage]::new(1000, 1000)
+$reds.FillRect(0, 0, 1000, 1000, 0x000000)
+$reds.FillRect(0, 0, 700, 1, 0xFF0000)
+$reds.FillRect(0, 1, 700, 1, 0xFF0011)
+$redsResult = [GodotCi.PaletteCheck]::Analyze($reds, [int[]]@(0x000000, 0xFFFFFF), 3.0, 0.1, 5, '')
+Assert-True ($redsResult.OffPalettePercent -eq 0.14 -and $redsResult.OffPaletteColourCount -eq 1) "two near reds far apart in CIELAB make one counted colour of 0.14% (got $($redsResult.OffPalettePercent)%, $($redsResult.OffPaletteColourCount) counted)"
+
 # --- shot -MaxOffPalettePercent on the colour-vision fixture's four swatches on grey ------------------------------------
 if (-not $NoGodot) {
     $project = Join-Path $temp 'game'

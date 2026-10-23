@@ -12,6 +12,22 @@ function Get-FreeUdpPort {
     try { return ([System.Net.IPEndPoint]$socket.Client.LocalEndPoint).Port } finally { $socket.Dispose() }
 }
 
+# The "[soak] metric <name> <value>" lines of a process's log: the values as numbers (the last one of each name), and the
+# lines whose value is not one. The value is the whole next word, read in the invariant culture, so Godot's 1e-07 is a
+# number, and 1.2.3 (or inf, nan) is reported rather than cut short or thrown on.
+function ConvertFrom-SoakMetrics([string[]]$Lines) {
+    $metrics = [ordered]@{}
+    $unparsed = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $Lines) {
+        if ($line -notmatch '^\[soak\] metric (?<n>\S+) (?<v>\S+)') { continue }
+        $value = 0.0
+        $ok = [double]::TryParse($Matches.v, [System.Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value)
+        if ($ok -and [double]::IsFinite($value)) { $metrics[$Matches.n] = $value }
+        else { $unparsed.Add($line) }
+    }
+    return [pscustomobject]@{ Metrics = $metrics; Unparsed = $unparsed.ToArray() }
+}
+
 # A loopback-only junk flood for measuring how an ENet server holds up when packets crowd its socket buffer. It sends
 # small UDP datagrams to 127.0.0.1 on the server's own port (never any other host) at about -JunkPps a second for the
 # run, in a child process so the pacing does not steal the sampler's thread. The child writes how many it sent to a file.
@@ -155,10 +171,9 @@ function Invoke-Soak {
     $report = @(); $problems = @(); $errors = @(); $errorDetails = @()
     foreach ($p in $procs) {
         $lines = if (Test-Path -LiteralPath $p.Log) { @(Get-Content -LiteralPath $p.Log) } else { @() }
-        $metrics = [ordered]@{}
-        foreach ($line in $lines) {
-            if ($line -match '^\[soak\] metric (?<n>\S+) (?<v>-?[\d.]+)') { $metrics[$Matches.n] = [double]::Parse($Matches.v, [cultureinfo]::InvariantCulture) }
-        }
+        $parsed = ConvertFrom-SoakMetrics $lines
+        $metrics = $parsed.Metrics
+        foreach ($bad in $parsed.Unparsed) { Write-CiLog "$($p.Name): not a number, so not in metrics: $bad" }
         $fails = @($lines | Where-Object { $_ -match '^\[soak\] fail ' } | ForEach-Object { $_ -replace '^\[soak\] fail ', '' })
         $ready = @($lines | Where-Object { $_ -eq '[soak] ready' }).Count -gt 0
         $samples = @($p.Samples)
@@ -172,6 +187,7 @@ function Invoke-Soak {
             }
             cpuPercent = if ($samples.Count -ge 2 -and $samples[-1].T -gt $samples[0].T) { [Math]::Round(100 * ($samples[-1].Cpu - $samples[0].Cpu) / ($samples[-1].T - $samples[0].T), 1) } else { $null }
             metrics = $metrics
+            unparsedMetrics = $parsed.Unparsed
             fails = $fails
             log = $p.Log
         }

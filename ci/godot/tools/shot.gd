@@ -66,6 +66,8 @@ func _initialize() -> void:
 		elif not kinds.has(kind.strip_edges()):
 			kinds.append(kind.strip_edges())
 
+	var names := _shot_names(scenes)
+
 	# The project's own locale first, then each --shot-locales entry ("pseudo" is pseudolocalization).
 	var passes := PackedStringArray([""])
 	passes.append_array(str(_options.get("locales", "")).split(",", false))
@@ -87,7 +89,7 @@ func _initialize() -> void:
 			if image == null or image.is_empty():
 				print("@@shot error %s: the viewport returned no image" % scene_path)
 			else:
-				var file := dir.path_join(scene_path.get_file().get_basename() + ("." + pass_name if pass_name != "" else "") + ".png")
+				var file := dir.path_join(str(names[scene_path]) + ("." + pass_name if pass_name != "" else "") + ".png")
 				var err := image.save_png(file)
 				if err == OK:
 					print("@@shot ok %s|%s|%d|%d|%s" % [scene_path, file, image.get_width(), image.get_height(), pass_name])
@@ -103,6 +105,35 @@ func _initialize() -> void:
 			await process_frame
 	_set_pass("", own_locale)
 	quit(0)
+
+
+# The file name of each scene's picture: the scene's own name (main.tscn gives main), or, when two scenes share it
+# (res://a/main.tscn and res://b/main.tscn), its path in the project with the folders joined by "_" (a_main, b_main), so
+# neither picture overwrites the other.
+func _shot_names(scenes: PackedStringArray) -> Dictionary:
+	var by_stem := {}
+	for scene_path in scenes:
+		var stem := scene_path.get_file().get_basename()
+		if not by_stem.has(stem):
+			by_stem[stem] = []
+		if not by_stem[stem].has(scene_path):
+			by_stem[stem].append(scene_path)
+	var names := {}
+	var taken := {}
+	for scene_path in scenes:
+		if names.has(scene_path):
+			continue
+		var name := scene_path.get_file().get_basename()
+		if by_stem[name].size() > 1:
+			name = scene_path.trim_prefix("res://").get_basename().replace("/", "_").replace(":", "_")
+		var unique := name
+		var n := 2
+		while taken.has(unique):
+			unique = "%s_%d" % [name, n]
+			n += 1
+		taken[unique] = true
+		names[scene_path] = unique
+	return names
 
 
 # Compares a fresh screenshot with its baseline at quarter resolution (fast in GDScript, and enough to see what moved) and saves

@@ -87,9 +87,12 @@ func _initialize() -> void:
 	var p50 := _percentile(sorted, 0.50)
 	var hitch_ms := maxf(2.0 * p50, 8.33)
 	var hitches := []
+	var hitch_count := 0
 	for i in times.size():
-		if times[i] > hitch_ms and hitches.size() < MAX_HITCHES:
-			hitches.append({"t": snappedf(stamps[i], 0.001), "ms": snappedf(times[i], 0.01), "pos": _place(places[i], kinds[i])})
+		if times[i] > hitch_ms:
+			hitch_count += 1
+			if hitches.size() < MAX_HITCHES:
+				hitches.append({"t": snappedf(stamps[i], 0.001), "ms": snappedf(times[i], 0.01), "pos": _place(places[i], kinds[i])})
 	var kind := _main_kind(kinds)
 	var cell := float(_options.get("cell", "0"))
 	if cell <= 0.0:
@@ -123,6 +126,7 @@ func _initialize() -> void:
 		"over33ms": _count_over(sorted, 33.0),
 		"hitchThresholdMs": snappedf(hitch_ms, 0.01),
 		"hitches": hitches,
+		"hitchCount": hitch_count,
 		"camera": {3: "3d", 2: "2d"}.get(kind, "none"),
 		"hotspotCell": cell,
 		"hotspots": _hotspots(times, places, kinds, kind, cell),

@@ -498,23 +498,48 @@ public static class PaletteCheck
         var clusterOf = new Dictionary<int, int>();
         var grid = new Dictionary<long, List<int>>();
         long unclustered = 0;
+        // How far in CIELAB a colour within the tolerance can be. Lightness: CIEDE2000 is at least |dL| / SL, and SL is
+        // at most 1.75. a and b: the chroma and hue terms are at least 0.134 (1 - sin 60 degrees, the most the rotation
+        // term takes off) of the sum of their squares, so the a'b' distance is at most 2.75 x tolerance x SC, where SC
+        // = 1 + 0.045 x the mean C' grows with the other colour's chroma too (at most this one's C' plus half the
+        // distance, and C' is at most 1.5 x the chroma); the a'b' distance is never less than the ab distance. A
+        // saturated colour's reach spans many cells, so when the cells outnumber the clusters, every cluster is tried.
+        double reachL = 1.75 * tolerance;
         foreach (int k in off)
         {
-            long cx = (long)Math.Floor(labs[k].L / tolerance), cy = (long)Math.Floor(labs[k].A / tolerance), cz = (long)Math.Floor(labs[k].B / tolerance);
+            Lab lab = labs[k];
+            long cx = (long)Math.Floor(lab.L / tolerance), cy = (long)Math.Floor(lab.A / tolerance), cz = (long)Math.Floor(lab.B / tolerance);
+            double chroma = Math.Sqrt(lab.A * lab.A + lab.B * lab.B);
+            double shrink = 1 - 0.062 * tolerance;
+            double reachAb = shrink > 0.05 ? 2.75 * tolerance * (1 + 0.0675 * chroma) / shrink : double.MaxValue;
             int found = -1; double foundDe = double.MaxValue;
-            for (long dx = -1; dx <= 1; dx++)
-                for (long dy = -1; dy <= 1; dy++)
-                    for (long dz = -1; dz <= 1; dz++)
-                    {
-                        List<int> cell;
-                        if (!grid.TryGetValue(CellKey(cx + dx, cy + dy, cz + dz), out cell)) continue;
-                        foreach (int c in cell)
+            System.Action<int> consider = c =>
+            {
+                Lab s = labs[seeds[c]];
+                if (Math.Abs(lab.L - s.L) > reachL) return;
+                double da = lab.A - s.A, db = lab.B - s.B;
+                if (da * da + db * db > reachAb * reachAb) return;
+                double d = ColorMath.DeltaE2000(lab, s);
+                if (d <= tolerance && (d < foundDe || (d == foundDe && c < found))) { found = c; foundDe = d; }
+            };
+            double l0 = Math.Floor((lab.L - reachL) / tolerance), l1 = Math.Floor((lab.L + reachL) / tolerance);
+            double a0 = Math.Floor((lab.A - reachAb) / tolerance), a1 = Math.Floor((lab.A + reachAb) / tolerance);
+            double b0 = Math.Floor((lab.B - reachAb) / tolerance), b1 = Math.Floor((lab.B + reachAb) / tolerance);
+            if ((l1 - l0 + 1) * (a1 - a0 + 1) * (b1 - b0 + 1) > seeds.Count)
+            {
+                for (int c = 0; c < seeds.Count; c++) consider(c);
+            }
+            else
+            {
+                for (long x = (long)l0; x <= l1; x++)
+                    for (long y = (long)a0; y <= a1; y++)
+                        for (long z = (long)b0; z <= b1; z++)
                         {
-                            if (Math.Abs(labs[k].L - labs[seeds[c]].L) > 1.75 * tolerance) continue;
-                            double d = ColorMath.DeltaE2000(labs[k], labs[seeds[c]]);
-                            if (d <= tolerance && (d < foundDe || (d == foundDe && c < found))) { found = c; foundDe = d; }
+                            List<int> cell;
+                            if (!grid.TryGetValue(CellKey(x, y, z), out cell)) continue;
+                            foreach (int c in cell) consider(c);
                         }
-                    }
+            }
             if (found < 0 && cnt[k] < seedFloor) { unclustered += cnt[k]; continue; }
             if (found < 0)
             {
