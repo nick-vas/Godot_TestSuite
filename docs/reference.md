@@ -6,7 +6,7 @@
 | Parameter | Default | |
 |---|---|---|
 | `-Project` | detected | Folder with `project.godot` |
-| `-Solution` | nearest `.sln` | What `dotnet build` / `dotnet test` run on |
+| `-Solution` | nearest `.sln` or `.slnx` at or above the project (no higher than the git root, if there is one) that lists its `.csproj`, else the `.csproj` | What `dotnet build` / `dotnet test` run on |
 | `-GodotVersion` | from csproj, else `4.7.2` | e.g. `4.7.2`, `4.8-rc1` |
 | `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |

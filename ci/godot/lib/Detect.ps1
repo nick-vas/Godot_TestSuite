@@ -8,21 +8,34 @@ function Find-GodotProject {
 }
 
 # The nearest .sln at or above a C# project that includes the game's .csproj (an unrelated solution
-# higher up in a monorepo is skipped), else the .csproj itself. GDScript projects have none.
+# higher up in a monorepo is skipped), else the .csproj itself. GDScript projects have none. The search
+# stops at the git root; outside a repository it goes on to the top of the drive, since only a solution
+# that lists this very .csproj counts.
 function Find-Solution([string]$ProjectDir) {
     $csproj = Get-ChildItem -LiteralPath $ProjectDir -File -Filter '*.csproj' | Sort-Object Name | Select-Object -First 1
     if (-not $csproj) { return '' }
     $stop = Get-GitRoot $ProjectDir
     $dir = Get-Item -LiteralPath $ProjectDir
     while ($dir) {
-        $sln = Get-ChildItem -LiteralPath $dir.FullName -File |
-            Where-Object { $_.Extension -in '.sln', '.slnx' -and (Get-Content -LiteralPath $_.FullName -Raw).Contains($csproj.Name) } |
+        $sln = @(Get-ChildItem -LiteralPath $dir.FullName -File -ErrorAction SilentlyContinue) |
+            Where-Object { $_.Extension -in '.sln', '.slnx' -and (Test-SolutionListsProject $_ $csproj) } |
             Sort-Object Name | Select-Object -First 1
         if ($sln) { return $sln.FullName }
-        if (-not $stop -or ($dir.FullName -replace '\\', '/') -eq ($stop -replace '\\', '/')) { break }
+        if ($stop -and ($dir.FullName -replace '\\', '/') -eq ($stop -replace '\\', '/')) { break }
         $dir = $dir.Parent
     }
     return $csproj.FullName
+}
+
+# Whether a .sln or .slnx lists this .csproj by its path, not just by a name that ends the same
+# (tools\OtherGame\OtherGame.csproj is not game/Game.csproj). An empty or unreadable solution lists nothing.
+function Test-SolutionListsProject([System.IO.FileInfo]$Solution, [System.IO.FileInfo]$Csproj) {
+    try { $text = [IO.File]::ReadAllText($Solution.FullName) } catch { return $false }
+    foreach ($match in [regex]::Matches($text, '"(?<path>[^"]+\.csproj)"')) {
+        $path = [IO.Path]::GetFullPath((Join-Path $Solution.DirectoryName ($match.Groups['path'].Value -replace '\\', '/')))
+        if ([string]::Equals($path, $Csproj.FullName, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
 }
 
 function Get-GodotVersionFromProject([string]$ProjectDir) {
@@ -48,7 +61,7 @@ function Find-GoDotTestScene([string]$ProjectDir) {
     if (-not $script) { return '' }
     $res = ConvertTo-ResPath $ProjectDir $script.FullName
     $scene = Find-ProjectFiles -Root $ProjectDir -Filter '*.tscn' |
-        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw).Contains("path=""$res""") } | Select-Object -First 1
+        Where-Object { [IO.File]::ReadAllText($_.FullName).Contains("path=""$res""") } | Select-Object -First 1
     if ($scene) { return ConvertTo-ResPath $ProjectDir $scene.FullName }
     return ''
 }
