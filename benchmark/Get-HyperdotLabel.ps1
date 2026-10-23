@@ -345,11 +345,11 @@ function Get-ModelName([string]$Model) {
     return $Model
 }
 
-# A shields.io badge for a sheet: "Hyperdot <version> · <model> | <class>" in the class's colour. Shields reads '-' as a
+# A shields.io badge for a sheet: "Hyperdot <version> - <model> | <class>" (a middle dot between) in the class's colour. Shields reads '-' as a
 # separator, so a literal one is doubled.
 function Get-BadgeUrl($Sheet) {
     $escape = { param($t) [uri]::EscapeDataString(($t -replace '-', '--' -replace '_', '__')) }
-    $label = "Hyperdot $($Sheet.version) · $(Get-ModelName $Sheet.model)$(if ($Sheet.plugin) { ' + plugin' })"
+    $label = "Hyperdot $($Sheet.version) $([char]0x00B7) $(Get-ModelName $Sheet.model)$(if ($Sheet.plugin) { ' + plugin' })"
     $message = if ($Sheet.class) { "efficiency $($Sheet.class)" } else { 'efficiency: no class' }
     return "https://img.shields.io/badge/$(& $escape $label)-$(& $escape $message)-$((Get-ClassColor $Sheet.class $scale.classes).TrimStart('#'))"
 }

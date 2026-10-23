@@ -11,17 +11,17 @@ on:
 permissions:
   contents: read
 
-# Every kit run in these jobs records the functions it entered and the error code it stopped with; the coverage job
-# at the end adds them up (tests/Get-KitCoverage.ps1). Jobs that call the reusable workflow do not inherit this.
-env:
-  HYPERDOT_COVERAGE: ${{ github.workspace }}/../hyperdot-coverage
-
 jobs:
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |
@@ -239,7 +239,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-lint
-          path: ${{ env.HYPERDOT_COVERAGE }}
+          path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
 
@@ -280,6 +280,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       - shell: pwsh
         run: |
           $game = Join-Path $env:RUNNER_TEMP 'bare-game'
@@ -403,7 +408,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-init
-          path: ${{ env.HYPERDOT_COVERAGE }}
+          path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
 
@@ -412,6 +417,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       - name: Virtual display
         run: |
           if ! command -v Xvfb >/dev/null; then sudo apt-get update -q && sudo apt-get install -y -q xvfb; fi
@@ -527,7 +537,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-measure
-          path: ${{ env.HYPERDOT_COVERAGE }}
+          path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
 
@@ -537,6 +547,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       - name: Playwright's Chromium and Firefox
         run: npx --yes playwright@1.56.1 install --with-deps chromium firefox
       - name: export -Run starts web builds, serves threads builds isolated and catches script errors
@@ -560,7 +575,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-web
-          path: ${{ env.HYPERDOT_COVERAGE }}
+          path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
 
@@ -569,6 +584,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       - uses: ./.github/actions/godot
         with:
           command: build
@@ -579,7 +599,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-action
-          path: ${{ env.HYPERDOT_COVERAGE }}
+          path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
 
@@ -589,6 +609,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       - name: GDScript example
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 test -Project examples/gdscript
@@ -656,7 +681,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-local-windows
-          path: ${{ env.HYPERDOT_COVERAGE }}
+          path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
 
@@ -669,7 +694,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           path: ${{ runner.temp }}/coverage

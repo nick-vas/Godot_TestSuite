@@ -21,7 +21,7 @@ function Get-DetectedRunners([string]$ProjectDir) {
             $kitScript = Join-Path $PSScriptRoot '../ci/godot/hyperdot.ps1'
             $result = & (Get-Process -Id $PID).Path -NoProfile -File $kitScript detect -Json -Project $ProjectDir 2>$null | ConvertFrom-Json
             if ($result -and $result.ok) { $script:Detected.Runners = @($result.runners) }
-        } catch { }
+        } catch { Write-Verbose "detect failed, so no runners are known: $($_.Exception.Message)" }
     }
     return $script:Detected.Runners
 }
