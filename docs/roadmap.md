@@ -157,25 +157,27 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 - **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
   shows them. A small C# `[Tool]` node that draws each report for the open scene.
-- **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
-  folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
-  refreshed by `Invoke-Canary.ps1`.
+- **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
+  repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
+  that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
+  `archived` in; checking the folder inside each release zip needs a run where `github.com/<repo>/releases/download` is
+  reachable.
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
-- **A `bench` sweep helper** for particle counts and quality tiers (the skill shows the manual way with `-GameArgs`):
-  one run per value, one `bench.csv` row each, a table of p99 against the value.
 - **Placement checks in C#.** The `placement` runner reads its limits from GDScript constants only: Godot returns no
   constants for a C# script (`get_script_constant_map()` on the C# example's `Main.cs`, 4.7.2 mono, was empty), so a C#
   game writes the numbers in `placement.json`. Reading them from C# needs a parser or a small `[Tool]` node that
   exposes them.
 - **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
   The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
-- **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
-  Godot, templates, PowerShell and .NET, refreshed by the canary. `init` writes `@v1`; the tag itself is
-  created at the 0.1.0 release (step 7 above).
-- **Keeping aseprite-mcp's pins current.** `init` pins a commit and MCP SDK 1.30.0 (`docs/mcp.md`); the canary does not
-  track git pins.
+- **CI:** the GitLab template (`ci/gitlab/hyperdot.gitlab-ci.yml`) has never run on GitLab: no GitLab project or runner
+  was reachable from the sandbox that wrote it. Run it once on a GitLab project (a copy of `examples/gdscript` and of
+  `examples/csharp`) and fix what breaks. A container image with Godot and its templates already in it was not built: the
+  .NET 8 SDK image GitLab jobs use already has PowerShell 7, git and .NET, Godot is a cached download, and an image with
+  the .NET build's templates would weigh about 2.1 GB more (1.9 GB of templates and 222 MB of Godot unpacked, 4.7.2) and need a
+  registry and a canary job to keep it current.
+  `init` writes `@v1`; the tag itself is created at the 0.1.0 release (step 7 above).
 
 In the example game (the C# example):
 

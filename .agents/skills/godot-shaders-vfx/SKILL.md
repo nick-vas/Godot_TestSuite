@@ -142,8 +142,8 @@ void fragment() {
   it pops out at the screen edge; too big, and it is never culled.
 - Change `AmountRatio`, not `Amount`, at run time (`Amount` restarts the system). `Preprocess` warms a loop up but runs the
   simulation many times at start; keep it short.
-- Cost: sweep 100, 1000 and 10000 particles with `bench` (`-GameArgs '--particles=1000'` read by a test scene), and sweep
-  particle *size*, since overdraw usually dominates.
+- Cost: sweep 100, 1000 and 10000 particles with `bench -Sweep particles=100,1000,10000` (a test scene reads
+  `--particles=<n>`; `sweep.rows[]` gives p99 per value), and sweep particle *size*, since overdraw usually dominates.
 
 ## 5. Post-processing and quality tiers
 
@@ -174,7 +174,7 @@ Switching on an unsupported effect only prints a warning; check `RenderingServer
 Keep tonemapping and glow the same in every tier: they are the look, not a cost. Apply a tier in one function that sets the
 `Viewport`, the `Environment` and the sun (`RenderingServer.DirectionalShadowAtlasSetSize`,
 `DirectionalSoftShadowFilterSetQuality`, `EnvironmentSetSsaoQuality`), and let `--quality=low` select it so `bench` can
-compare tiers: `bench -GameArgs '--quality=low'`, then `high`.
+compare tiers in one run: `bench -Sweep quality=low,medium,high`.
 
 ## 6. Shaders from GodotShaders.com and elsewhere
 

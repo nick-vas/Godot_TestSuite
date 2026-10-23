@@ -165,6 +165,9 @@ jobs:
       - name: Version updates rewrite every pin, fail on a missing one and keep the skills valid
         shell: pwsh
         run: ./tests/Test-UpdatePins.ps1
+      - name: The GitLab CI template parses, uses GitLab's keywords and reports the files the kit writes
+        shell: pwsh
+        run: ./tests/Test-GitLabTemplate.ps1
       - name: The PR comment finds its summary past the first 100 comments
         shell: pwsh
         run: ./tests/Test-PrComment.ps1
@@ -443,6 +446,9 @@ jobs:
       - name: bench names the slow place (hotspots by camera position)
         shell: pwsh
         run: ./tests/Test-BenchHotspots.ps1
+      - name: bench -Sweep runs once per value and marks the values over the budget
+        shell: pwsh
+        run: ./tests/Test-BenchSweep.ps1
       - name: shot
         shell: pwsh
         run: |

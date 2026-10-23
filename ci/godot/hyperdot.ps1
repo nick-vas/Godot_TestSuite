@@ -15,6 +15,8 @@
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 bench -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -BudgetMs 16.7
 .EXAMPLE
+    ./ci/godot/hyperdot.ps1 bench -Sweep particles=1000,5000,20000 -BudgetMs 16.7   # one run per value: p99 against the value
+.EXAMPLE
     ./ci/godot/hyperdot.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
@@ -111,6 +113,9 @@ param(
     [double]$HotspotCell = 0,
     # bench: a name for this run in bench.csv, e.g. 'vsync-off 1080p'.
     [string]$Label = '',
+    # bench: one run per value, the game getting --<name>=<value> after -GameArgs, e.g. -Sweep particles=100,1000,10000; one
+    # bench.csv row each (labelled "<-Label> particles=100") and a table of p99 against the value (sweep in -Json).
+    [string[]]$Sweep,
     # bench, shot: window size, e.g. 1920x1080.
     [string]$Resolution,
     # shot: a folder of earlier screenshots; each new one is compared with its namesake there (percent changed, side-by-side image).
@@ -383,6 +388,9 @@ function Invoke-Tests {
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
+    # The same results as JUnit only, in one folder, for CI systems such as GitLab (ci/gitlab/hyperdot.gitlab-ci.yml).
+    $junitDir = Export-JUnitReports $resultsDir @($runs | ForEach-Object Runner)
+    if ($junitDir) { Set-JsonField junitDir $junitDir }
     # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
     $scope = Get-TestScope $info.Runners $Filter
     $failing = Get-FailureIds $runs
@@ -607,6 +615,9 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+# bench -Sweep, checked before Godot is set up.
+if ($Sweep -and $Command -ne 'bench') { Stop-GodotCi "-Sweep is for bench (one run per value), not $Command" 'invalid-arguments' }
+$benchSweep = if ($Sweep) { ConvertFrom-BenchSweep $Sweep } else { $null }
 # deck runs everything at the Deck's own 1280x800.
 if ($Command -eq 'deck' -and $Resolution -and $Resolution -ne '1280x800') {
     Stop-GodotCi "deck runs at the Steam Deck's 1280x800; leave out -Resolution $Resolution (bench and shot take other sizes)" 'invalid-arguments'
@@ -645,6 +656,12 @@ switch ($Command) {
     'export' { Invoke-Setup -WithTemplates; Invoke-Build; Invoke-Export }
     'bench' {
         Invoke-Setup; Invoke-Build
+        if ($benchSweep) {
+            Invoke-BenchSweep -Info $info -Sweep $benchSweep -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
+                -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
+                -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation
+            break
+        }
         Invoke-Bench -Info $info -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
             -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
             -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation

@@ -209,6 +209,14 @@ function Get-AddonProblems([string]$ProjectDir, [string]$ProjectGodot, $Presets,
         }
     }
 
+    # Add-ons with a known status (archived, a Godot range that excludes this one, a prototype), from addons-status.json.
+    foreach ($problem in @(Get-KnownAddonProblems $ProjectDir $GodotVersion)) {
+        # One line per add-on: a check above (the Godot Jolt setting) may already name its folder and the same fix.
+        $folders = @($problem.Folders)
+        if (@($problems | Where-Object { $text = "$($_.Message) $($_.Fix)"; @($folders | Where-Object { $text.Contains($_) }).Count -gt 0 }).Count -gt 0) { continue }
+        & $add WARN $problem.Message $problem.Fix
+    }
+
     # Debug Draw 3D ships a library that draws nothing in release builds unless the forced_dd3d feature picks the real one.
     if (Test-Path -LiteralPath (Join-Path $ProjectDir 'addons/debug_draw_3d')) {
         foreach ($preset in @($Presets)) {
@@ -218,4 +226,49 @@ function Get-AddonProblems([string]$ProjectDir, [string]$ProjectGodot, $Presets,
         }
     }
     return $problems.ToArray()
+}
+
+
+$script:AddonStatusFile = Join-Path $PSScriptRoot '../addons-status.json'
+
+# Add-ons whose state is known to rule them out (ci/godot/addons-status.json, refreshed by the canary): one found by its
+# folder under addons/ (any letter case), or by a .gdextension elsewhere with its file name and entry_symbol (a renamed
+# folder). An entry with godotMax applies when the project's Godot is above it (or unknown); one without, always.
+# Returns { Id, Message, Fix, Folders } objects, one per add-on found.
+function Get-KnownAddonProblems([string]$ProjectDir, [string]$GodotVersion = '', [string]$StatusFile = $script:AddonStatusFile) {
+    if (-not (Test-Path -LiteralPath $StatusFile)) { return }
+    $entries = @((Get-Content -LiteralPath $StatusFile -Raw | ConvertFrom-Json).addons)
+    $addonsDir = Join-Path $ProjectDir 'addons'
+    $installed = @{}
+    if (Test-Path -LiteralPath $addonsDir) {
+        foreach ($dir in @(Get-ChildItem -LiteralPath $addonsDir -Directory -ErrorAction SilentlyContinue)) { $installed["addons/$($dir.Name)".ToLowerInvariant()] = "res://addons/$($dir.Name)" }
+    }
+    $extensions = @(Get-ChildItem -LiteralPath $ProjectDir -Recurse -File -Filter '*.gdextension' -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/]\.godot[\\/]' })
+    $engine = [regex]::Match($GodotVersion, '^\d+\.\d+(\.\d+)?')
+    foreach ($entry in $entries) {
+        $where = @(foreach ($folder in @($entry.folders)) { if ($installed.ContainsKey($folder.ToLowerInvariant())) { $installed[$folder.ToLowerInvariant()] } })
+        if (-not $where) {
+            $where = @(foreach ($file in $extensions) {
+                if ($file.Name -ne $entry.gdextension) { continue }
+                $configuration = (Read-GdextensionFile $file.FullName).Configuration
+                if ($configuration.ContainsKey('entry_symbol') -and $configuration['entry_symbol'] -eq $entry.entrySymbol) { ConvertTo-ResPath $ProjectDir $file.FullName }
+            })
+        }
+        if (-not $where) { continue }
+        $limit = ''
+        if ($entry.godotMax) {
+            if ($engine.Success -and [version](ConvertTo-FullVersion $engine.Value) -le [version](ConvertTo-FullVersion $entry.godotMax -Upper)) { continue }
+            $limit = " It supports Godot up to $($entry.godotMax)$(if ($engine.Success) { ", and the project uses $GodotVersion" })."
+        }
+        $state = switch ($entry.status) {
+            'archived' { 'no longer maintained' } 'superseded' { 'superseded by the engine' } 'unsupported' { 'not made for this Godot' } 'prototype' { 'a prototype, not a dependency' } default { $entry.status }
+        }
+        [pscustomobject]@{
+            Id = $entry.id
+            Message = "$($where[0]) is $($entry.name) ($($entry.repo)), $($state): $($entry.why).$limit"
+            Fix = $entry.fix
+            Folders = @(@($entry.folders) + @($where))
+        }
+    }
 }

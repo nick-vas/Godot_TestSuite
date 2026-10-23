@@ -76,9 +76,11 @@ TRELLO_TOKEN) is experimental. More: docs/plan.md.
 Measure a scene's frame pacing: 1% and 0.1% lows, p99 and max frame time, hitches and the slowest places.
 
     hyperdot.ps1 bench -Json -Quiet [-Scene res://levels/Boss.tscn] [-Seconds 30] [-BudgetMs 16.7] [-Headless]
+    hyperdot.ps1 bench -Json -Quiet -Sweep particles=100,1000,10000 [-BudgetMs 16.7]
 
 Needs a display unless -Headless (CPU only). Fails with bench-over-budget when p99 is above -BudgetMs. Rows go to
-bench-results/bench.csv under -Label.
+bench-results/bench.csv under -Label. -Sweep runs once per value with --<name>=<value> and returns p99 against the
+value (sweep.rows); a value over a budget is marked, not failed.
 
 ### shot
 Save real screenshots of scenes at a resolution, and compare them with earlier ones.

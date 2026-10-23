@@ -32,6 +32,32 @@
   `godot-playtest` and `docs/telemetry.md` point to it (the latter also had the sink's folder wrong). `doctor` now counts
   `PlaytestTracker` in the code as collecting player data, so a game using it without a privacy policy is warned; the
   GDScript example has one (`store/privacy-policy.md`).
+- **GitLab CI template** (`ci/gitlab/hyperdot.gitlab-ci.yml`, untested on GitLab): `hyperdot-test` and `hyperdot-export`
+  jobs, the GitHub action's steps and inputs as `HYPERDOT_*` variables (`ci/gitlab/Invoke-Hyperdot.ps1`), in the .NET 8
+  SDK image, with Godot, NuGet and templates cached inside the checkout. Test results reach merge requests through
+  `artifacts:reports:junit` and coverage through `coverage_report` (Cobertura). For it, `test` now also writes every
+  runner's results as JUnit into `<results>/junit/` (`dotnet`'s and `gdunit4`'s TRX converted; `junitDir` in `-Json`).
+  `tests/Test-GitLabTemplate.ps1` parses the template, holds it to GitLab's keywords and matches its report paths against
+  what the kit writes. Docs: `docs/usage.md`, "GitLab CI".
+- **`bench -Sweep <name>=<v1,v2,...>`:** one bench per value, the game getting `--<name>=<value>` after `-GameArgs`, one
+  `bench.csv` row each (labelled `<-Label> <name>=<value>`) and a table of p99, p50, fps, draw calls and load time against the
+  value in the log and in `-Json` (`sweep`). A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked
+  (`withinLimits`, `lastWithinLimits`), not a failure; a run that cannot be measured fails the sweep with the new code
+  `bench-sweep-failed` after every value ran. `godot-performance` and `godot-shaders-vfx` use it for particle counts and
+  quality tiers. Self-test: `tests/Test-BenchSweep.ps1` (`tests/bench-fixture/sweep.tscn`, headless).
+- **Known-status list for add-ons** (`ci/godot/addons-status.json`): `doctor` warns about Godot Jolt on Godot 4.7,
+  godot-steam-audio (archived), Godot-PerfBullets (Godot 4.1 and 4.2) and py4godot (a prototype), found by their folder
+  in any letter case or, renamed, by their `.gdextension` file name and `entry_symbol`. Each name was confirmed from the
+  add-on's repository (docs/addons.md says which files). `ci/godot/tools/Update-AddonStatus.ps1` refreshes each entry's
+  newest commit and archived state; the canary runs it, puts what moved in its pull request and opens an issue for what
+  needs a person. Tests: `tests/Test-Addons.ps1` (detection, the refresh on made-up repositories),
+  `tests/Test-UpdatePins.ps1` (the canary).
+- **The canary tracks aseprite-mcp's pins.** `Update-Versions.ps1` reads the commit and MCP SDK that `init -McpAseprite`
+  writes (`lib/Init.ps1`) and proposes the server's newest commit (`git ls-remote`) and the newest `mcp` release on PyPI
+  within the pinned major (a newer major is a note: SDK 2.x renamed the `FastMCP` the server imports). `-Apply` rewrites
+  `lib/Init.ps1` and `docs/mcp.md`. `Invoke-Canary.ps1` tries them by starting the server through `uvx` and listing its
+  tools (`-Uvx`, a stand-in in `tests/Test-UpdatePins.ps1`), without the example projects, which these pins do not touch;
+  `canary.yml` installs uv.
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run

@@ -45,7 +45,7 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
@@ -54,6 +54,7 @@ Branch on `error.code`; `message` can change.
 | `bench-over-draw-calls` | `bench -MaxDrawCalls <n>`: the scene averaged more than n draw calls a frame (when `-BudgetMs` is also crossed, that code wins; the message names both) | `bench.drawCalls` |
 | `bench-over-load-time` | `bench -MaxLoadMs <n>`: the scene took more than n ms from `load()` to its first frame drawn (after `bench-over-budget` and `bench-over-draw-calls`) | `bench.loadMs`, `bench.loadBreakdownMs` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
+| `bench-sweep-failed` | `bench -Sweep`: the run for one or more values could not be measured (its own code: `bench-failed`, `engine-errors`, `gpu-validation-errors`...); every value still ran, and a value over a limit is not a failure | `sweep.rows[]` (`ok`, `code`, `message`) |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
 | `deck-failed` | `deck`: one or more of its parts (`textsize`, `layout`, `shot`, `bench`) failed; every part still ran | `deck.parts[]` (each part's own `code`) |
 | `gpu-validation-errors` | `bench`, `shot` or `export -Run` with `-GpuValidation`: the graphics API's validation layer reported errors (Vulkan VUIDs such as `VUID-vkCmdDispatch-format-07753`); checked before the engine error check, which then leaves those lines out | `gpuValidation` (`exports[].gpuValidation` for `export`) |
@@ -96,7 +97,9 @@ codes; the Steamworks, trailer, tag and privacy checks are described in [steam.m
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
 under it), `line`, `key` (the error key, see the run history below).
 
-**test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
+**test**: `resultsDir`, `junitDir` (every runner's results as JUnit, `<results>/junit/<runner>-<file>.junit.xml`: JUnit
+copied, TRX converted, failed `-Retry` attempts left out; for CI systems such as GitLab; absent when no runner wrote a
+report), `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
 
 ```json
 { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1, "skipped": 0,
@@ -272,6 +275,15 @@ frame); the files were imported by the build step, so this is a load from `.godo
 and `percent`; the frames add up to `frames`. A run capped by V-Sync jitters around its refresh interval, so at 60 Hz
 some frames land just over 16.67: read the histogram of an `-Uncapped` run for headroom. The same object is written to
 `bench-results/bench.json`, and a row is appended to `bench-results/bench.csv`.
+
+**sweep** (`bench -Sweep <name>=<v1,v2,...>`, in place of `bench`): `name`, `values[]`, `budgetMs`, `maxDrawCalls`,
+`maxLoadMs`, and `rows[]`, one per value in the order given, each run with `--<name>=<value>` after `-GameArgs`: `value`,
+`label` (`-Label` and `<name>=<value>`, as in `bench.csv`), `ok` (the run was measured), `withinLimits` (and under
+`-BudgetMs`, `-MaxDrawCalls` and `-MaxLoadMs`), `code` and `message` (the run's own stop, e.g. `bench-over-budget`; `null`
+when it passed), `p50Ms`, `p99Ms`, `maxMs`, `fpsAvg`, `low1`, `drawCallsAvg`, `loadMs` (`null` for a run with no result) and
+`result` (the run's `bench.<name>-<value>.json`, beside its `.log`). `withinLimits[]` lists the values that passed every
+limit, and `lastWithinLimits` is the last value, in order, before the first that did not (`null` when the first did not).
+A value over a limit does not fail the sweep; a run that could not be measured does (`bench-sweep-failed`).
 
 **deck**: `deck` with `resolution` (`1280x800`), `budgetMs` (`-BudgetMs`, 33.3 by default), `ok`, and `parts[]`, one per
 part in the order run: `part` (`textsize`, `layout`, `shot`, `bench`), `ok`, `code` (`null` when it passed; `tests-failed`
