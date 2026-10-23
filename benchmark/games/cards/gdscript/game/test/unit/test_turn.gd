@@ -71,6 +71,7 @@ func test_end_passes_the_turn_to_the_other_keeper():
 func test_a_light_put_out_ends_the_duel():
 	duel.advance()
 	duel.keepers[0].row[1] = _wisp("lantern_heron")
+	duel.keepers[1].row[0] = _wisp("bog_warden")
 	duel.keepers[1].light = 4
 	duel.end_main()
 	duel.advance()

@@ -22,12 +22,12 @@ func _main_with(hand: Array[String], kindling: int) -> void:
 
 
 func test_a_card_costing_more_than_the_kindling_left_cannot_be_played():
-	_main_with(["reed_hound", "fen_stalker"], 4)
+	_main_with(["reed_hound", "bog_warden"], 4)
 	assert_true(duel.play(0, 0))
 	assert_eq(duel.keepers[0].kindling, 2)
-	assert_false(duel.can_play(0, 0), "4 to pay with 2 left")
+	assert_false(duel.can_play(0, 0), "3 to pay with 2 left")
 	assert_false(duel.play(0, 0))
-	assert_eq(duel.keepers[0].hand, ["fen_stalker"] as Array[String])
+	assert_eq(duel.keepers[0].hand, ["bog_warden"] as Array[String])
 
 
 func test_kindling_is_the_turn_number_up_to_six():
