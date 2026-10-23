@@ -1,0 +1,67 @@
+keys,en
+MENU_TITLE,Lanternfen
+MENU_START,Play
+MENU_CONTINUE,Continue
+MENU_SETTINGS,Settings
+MENU_CREDITS,Credits
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+SELECT_TITLE,Choose a rival
+SELECT_RIVAL,%d. %s
+SELECT_WINS,Wins: %d
+SELECT_BACK,Back
+RIVAL_1,Tallow the Novice
+RIVAL_2,Old Reedwife
+RIVAL_3,Brother Murk
+HUD_LIGHT,Light: %d
+HUD_KINDLING,Kindling: %d / %d
+HUD_TURN,Turn %d: %s (%s)
+HUD_YOU,you
+HUD_END_TURN,End turn
+HUD_PAUSE,Pause
+PHASE_DRAW,Draw
+PHASE_MAIN,Main
+PHASE_CLASH,Clash
+PHASE_END,End
+PHASE_OVER,Over
+CARD_COST,Cost %d
+CARD_EMBER_MOTE,Ember Mote
+CARD_REED_HOUND,Reed Hound
+CARD_GLOW_IMP,Glow Imp
+CARD_BOG_WARDEN,Bog Warden
+CARD_FEN_STALKER,Fen Stalker
+CARD_LANTERN_HERON,Lantern Heron
+CARD_FLARE,Flare
+CARD_MENDING_OIL,Mending Oil
+CARD_MARSH_INSIGHT,Marsh Insight
+CARD_DOUSE,Douse
+CARD_REKINDLE,Rekindle
+EFFECT_BOLT,Burn %d
+EFFECT_MEND,Mend %d
+EFFECT_DRAW,Draw %d
+EFFECT_DOUSE,Douse %d
+EFFECT_REKINDLE,Return %d wisp
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+RESULT_WON,Victory
+RESULT_LOST,Defeat
+RESULT_WON_MESSAGE,The rival's light is out.
+RESULT_LOST_MESSAGE,Your light is out.
+RESULT_NEXT,Next rival
+RESULT_FINISH,Finish
+RESULT_REMATCH,Rematch
+RESULT_MENU,Back to menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English
+VICTORY_TITLE,The fen is yours
+VICTORY_MESSAGE,Every rival is beaten: %d wins in all.
+VICTORY_MENU,Back to menu
+CREDITS_TITLE,Credits
+CREDITS_BACK,Back
+CREDITS_ENGINE,Engine
+CREDITS_THIRD_PARTY,Third-party assets
+CREDITS_THANKS,Thanks

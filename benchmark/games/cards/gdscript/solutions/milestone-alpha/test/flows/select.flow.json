@@ -1,0 +1,13 @@
+{
+  "name": "Back on the rival select returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "RivalSelect", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "press": "RivalSelect/Box/BackButton" },
+    { "assert": { "node": "RivalSelect", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}

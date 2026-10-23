@@ -1,0 +1,35 @@
+{
+  "tables": {
+    "cards": {
+      "file": "data/cards.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string", "pattern": "^CARD_[A-Z_]+$" },
+        "kind": { "type": "string", "enum": ["wisp", "rite"] },
+        "cost": { "type": "int", "min": 0, "max": 6 },
+        "power": { "type": "int", "min": 0, "max": 9, "optional": true },
+        "guard": { "type": "int", "min": 1, "max": 9, "optional": true },
+        "effect": { "type": "string", "enum": ["bolt", "mend", "draw", "douse", "rekindle"], "optional": true },
+        "amount": { "type": "int", "min": 1, "max": 6, "optional": true }
+      }
+    },
+    "decks": {
+      "file": "data/decks.json",
+      "id": "id",
+      "fields": {
+        "cards": { "ref": "cards", "list": true }
+      }
+    },
+    "rivals": {
+      "file": "data/rivals.json",
+      "id": "id",
+      "fields": {
+        "name": { "type": "string", "pattern": "^RIVAL_[0-9]+$" },
+        "deck": { "ref": "decks" },
+        "light": { "type": "int", "min": 10, "max": 30 },
+        "aggression": { "type": "number", "min": 0.1, "max": 2 },
+        "caution": { "type": "number", "min": 0.1, "max": 2 }
+      }
+    }
+  }
+}

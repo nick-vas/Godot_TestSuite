@@ -1,0 +1,13 @@
+{
+  "name": "A duel against rival 4 starts with its name",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_rival", "args": [4] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "rival", "equals": 4 } },
+    { "assert": { "node": "HUD/RivalLabel", "prop": "text", "equals": "The Heron Knight" } },
+    { "assert": { "node": "HUD/RivalLight", "prop": "text", "equals": "Light: 21" } }
+  ]
+}
