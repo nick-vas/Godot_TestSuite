@@ -26,6 +26,7 @@
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 help shot     # one line per command, skill and subagent; with a name, its page (docs/help.md)
+    ./ci/godot/hyperdot.ps1 deck -Scene res://levels/Boss.tscn   # text size, layout, a screenshot and a 30 fps budget at 1280x800
 #>
 [CmdletBinding()]
 param(
@@ -40,8 +41,9 @@ param(
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
     # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
+    # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help', 'deck')]
     [string]$Command = 'test',
     # help: the command, skill or subagent to show the page of, e.g. help shot.
     [Parameter(Position = 1)]
@@ -92,7 +94,17 @@ param(
     [double]$Seconds = 10,
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
+    # deck: the Deck budget, 33.3 (30 fps) unless given.
     [double]$BudgetMs = 0,
+    # bench: fail when the scene averages more draw calls a frame than this (bench-over-draw-calls). 0: no limit.
+    [double]$MaxDrawCalls = 0,
+    # bench: fail when the scene takes longer than this many milliseconds to load, from load() to its first frame drawn
+    # (bench-over-load-time). 0: no limit.
+    [double]$MaxLoadMs = 0,
+    # bench, shot, export -Run: turn on the graphics API's validation layers (Vulkan) and fail on their errors
+    # (gpu-validation-errors); a run that could not be validated (OpenGL, headless, no layer installed) fails with
+    # no-gpu-validation. export -Run then launches the build with a window instead of headless.
+    [switch]$GpuValidation,
     # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
     # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D. playtest: the heat maps' cell (0: playtest.json's, else
     # 2 m in 3D, 64 px in 2D).
@@ -197,7 +209,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize', 'Help', 'Deck') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -519,8 +531,11 @@ function Invoke-ExportPresets {
         }
         $exports += $entry
         Set-JsonField exports $exports
-        if ($Run -and $preset.Platform -eq 'Web') { Test-WebExport $name $preset $dir }
-        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file }
+        if ($Run -and $preset.Platform -eq 'Web') {
+            if ($GpuValidation) { Write-CiLog "-GpuValidation: the browser renders '$name' with WebGL, which has no validation layers; not validated" }
+            Test-WebExport $name $preset $dir
+        }
+        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file $entry }
     }
 }
 
@@ -550,19 +565,26 @@ function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
 }
 
 # Launches the exported game headless, as a player would get it, and fails on any engine error. This catches
-# what the editor hides: missing assets, code trimmed from the build, test-only dependencies.
-function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
+# what the editor hides: missing assets, code trimmed from the build, test-only dependencies. With -GpuValidation it runs
+# with a window instead, since a headless run draws nothing, and its validation is reported in the export's entry.
+function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File, $Entry) {
     if (-not (Test-CanRunPlatform $Platform)) {
         Write-CiLog "Can't launch the '$Name' build ($Platform) on this machine; skipped. Run export -Run on a matching OS."
         return
     }
     if (-not $IsWindows) { Invoke-Checked chmod @('+x', $File) }
-    Start-LogGroup "Run exported '$Name' ($Frames frames)"
+    $launch = if ($GpuValidation) {
+        Assert-Display 'export -Run -GpuValidation'
+        @('--audio-driver', 'Dummy') + @(Get-GpuValidationArgs -On) + @('--quit-after', "$Frames")
+    } else { @('--headless', '--quit-after', "$Frames") }
+    Start-LogGroup "Run exported '$Name' ($Frames frames$(if ($GpuValidation) { ', GPU validation' }))"
     $log = [System.IO.Path]::GetTempFileName()
-    $code = Invoke-Logged $File (@('--headless', '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })) $log
+    $code = Invoke-Logged $File (@($launch) + $(if ($GameArgs) { @('--') + $GameArgs })) $log
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "The exported '$Name' build exited with $code" 'export-failed' }
-    Assert-GodotLogClean $log "The exported '$Name' build"
+    $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
+    if ($validation) { $Entry['gpuValidation'] = $validation.Report; Assert-GpuValidation $validation.Report "The exported '$Name' build" }
+    Assert-GodotLogClean $log "The exported '$Name' build" -Expected $(if ($validation) { $validation.Lines } else { @() })
     Write-CiLog "Exported '$Name' build ran $Frames frames without errors"
 }
 
@@ -579,23 +601,27 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+# deck runs everything at the Deck's own 1280x800.
+if ($Command -eq 'deck' -and $Resolution -and $Resolution -ne '1280x800') {
+    Stop-GodotCi "deck runs at the Steam Deck's 1280x800; leave out -Resolution $Resolution (bench and shot take other sizes)" 'invalid-arguments'
+}
 # A bench of no time measures no frames, and audio -Mix would pass Godot --quit-after 0, which never quits.
-if (($Command -eq 'bench' -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
+if (($Command -in @('bench', 'deck') -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
     Stop-GodotCi "-Seconds must be above 0 for $Command, not $Seconds" 'invalid-arguments'
 }
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
 # credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
-$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results' }
+$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results' }
 $commandResultsDir = [System.IO.Path]::GetFullPath($(
         if ($Command -eq 'shot') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' } }
         elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
         else { $Results }))
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck') {
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
 # Screenshots, recordings and measurements run from the game's folder land inside it.
-if ($Command -in 'bench', 'shot', 'audio', 'soak') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
+if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
@@ -614,12 +640,18 @@ switch ($Command) {
     'bench' {
         Invoke-Setup; Invoke-Build
         Invoke-Bench -Info $info -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
-            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir
+            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
+            -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation
     }
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation
+    }
+    'deck' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Deck -Info $info -Scene $Scene -Seconds $Seconds -Warmup $Warmup -Frames $Frames -BudgetMs $BudgetMs -MaxDrawCalls $MaxDrawCalls `
+            -MaxLoadMs $MaxLoadMs -GameArgs $GameArgs -Locale $Locale -Pseudo:$Pseudo -GpuValidation:$GpuValidation -ResultsDir $commandResultsDir
     }
     'soak' {
         Invoke-Setup; Invoke-Build

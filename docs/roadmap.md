@@ -69,7 +69,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
 | 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
-| 15 | Checking for the Steam Deck takes four commands | One Deck check: `textsize`, `layout`, `shot` at 1280x800 and `bench` with a Deck budget, one verdict |
 
 ### Trello
 
@@ -176,12 +175,11 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema
   version, minimum spec, open technical questions answered by ADRs; kept by `godot-architect`.
-- **`-GpuValidation`** for `shot`, `bench` and `export -Run`: pass `--gpu-validation` (and `--gpu-abort`,
-  `--accurate-breadcrumbs`), fail on validation errors with a new code. Needs a Vulkan-capable runner (a GitHub GPU
-  runner, or Mesa's lavapipe; neither checked).
-- **`bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram**, each with a new failure
-  code. `Measure.ps1` already has `drawCalls.avg`. Also a sweep helper for particle counts and quality tiers (the skill
-  shows the manual way with `-GameArgs`).
+- **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
+  (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
+  the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
+- **A `bench` sweep helper** for particle counts and quality tiers (the skill shows the manual way with `-GameArgs`):
+  one run per value, one `bench.csv` row each, a table of p99 against the value.
 - **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
   `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
   lines (and voice files) in a responses table, checked for lines missing in a locale.

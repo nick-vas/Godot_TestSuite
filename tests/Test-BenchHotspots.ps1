@@ -2,6 +2,8 @@
 # Self-test of bench's "where is it slow" on tests/bench-fixture: a camera flies along +X at a constant speed, and every
 # frame is 25 ms slower while it is between x = 40 and 60 (400 and 600 px in the 2D scene). bench must put that place
 # first in "hotspots", keep the place after it fast, give each hitch a position, and report no hotspots without a camera.
+# Also the load time, draw calls and frame-time histogram, on heavy.tscn (a 300 ms _ready, 24 boxes with a material each):
+# -MaxLoadMs and -MaxDrawCalls fail it with their own codes, and a run over both names both.
 # Needs Godot (GODOT_BIN, or the kit installs it) and a display: on Linux start `Xvfb :99 &` and set DISPLAY=:99 (not
 # xvfb-run, which merges stderr into stdout and breaks -Json).
 Set-StrictMode -Version 3.0
@@ -17,6 +19,12 @@ $env:LP_NUM_THREADS = '0'
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
+}
+# The whole -Json document, passing or not.
+function Invoke-BenchDoc([string[]]$Arguments) {
+    $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
+    return $(if ($out) { $out | ConvertFrom-Json } else { $null })
 }
 function Invoke-Bench([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
@@ -75,6 +83,27 @@ $deResults = Join-Path ([IO.Path]::GetTempPath()) "bench-de-$([guid]::NewGuid().
 $null = pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
 $deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'bench.csv'))
 Assert-True ($deRow.Count -eq 1 -and $deRow[0].fpsAvg -match '^\d+\.\d+$' -and $deRow[0].p99Ms -match '^\d+(\.\d+)?$') "bench.csv under de-DE writes numbers with a point: fpsAvg '$(if ($deRow.Count) { $deRow[0].fpsAvg })', p99Ms '$(if ($deRow.Count) { $deRow[0].p99Ms })'"
+
+# Load time, draw calls and the histogram. The scene's _ready sleeps 300 ms; 24 boxes with their own materials are 24 draw
+# calls in the Compatibility renderer.
+$heavy = @('-Scene', 'res://heavy.tscn', '-Warmup', '0', '-Seconds', '1')
+$d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '100', '-MaxLoadMs', '10000'))
+Assert-True ($d -and $d.ok) "limits the scene stays under pass: $(if ($d -and -not $d.ok) { $d.error.code })"
+$b = $d.bench
+Assert-True ($b.loadMs -ge 300 -and $b.loadBreakdownMs.firstFrame + $b.loadBreakdownMs.instantiate + $b.loadBreakdownMs.resource -le $b.loadMs + 0.5) "loadMs includes the 300 ms _ready, and its parts add up to it: $($b.loadMs) ms ($($b.loadBreakdownMs | ConvertTo-Json -Compress))"
+Assert-True ($b.drawCalls.avg -ge 24) "24 boxes are at least 24 draw calls a frame: $($b.drawCalls.avg)"
+$buckets = @($b.frameHistogram)
+$sum = ($buckets | Measure-Object frames -Sum).Sum
+Assert-True ($buckets.Count -eq 5 -and $sum -eq $b.frames -and $buckets[0].toMs -eq 8.33 -and $buckets[3].toMs -eq 50 -and $null -eq $buckets[4].toMs) "the histogram has the five buckets and holds every frame: $sum of $($b.frames)"
+Assert-True ($b.maxDrawCalls -eq 100 -and $b.maxLoadMs -eq 10000) "the limits are in the result: $($b.maxDrawCalls), $($b.maxLoadMs)"
+$d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '10'))
+Assert-True ($d -and $d.error.code -eq 'bench-over-draw-calls' -and $d.bench.drawCalls.avg -gt 10) "-MaxDrawCalls 10 fails with bench-over-draw-calls: $(if ($d) { $d.error.code })"
+$d = Invoke-BenchDoc ($heavy + @('-MaxLoadMs', '100'))
+Assert-True ($d -and $d.error.code -eq 'bench-over-load-time' -and $d.error.message -match 'MaxLoadMs 100') "-MaxLoadMs 100 fails with bench-over-load-time: $(if ($d) { $d.error.code })"
+$d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '10', '-MaxLoadMs', '100'))
+Assert-True ($d -and $d.error.code -eq 'bench-over-draw-calls' -and $d.error.message -match 'draw calls' -and $d.error.message -match 'to load') "over both: the first code, both in the message: $(if ($d) { $d.error.message })"
+$d = Invoke-BenchDoc ($heavy + @('-MaxDrawCalls', '-1'))
+Assert-True ($d -and $d.error.code -eq 'invalid-arguments') "a negative -MaxDrawCalls is refused: $(if ($d) { $d.error.code })"
 
 if ($failures.Count) { throw "$($failures.Count) bench hotspot check(s) failed" }
 Write-Host 'bench hotspots self-test passed'

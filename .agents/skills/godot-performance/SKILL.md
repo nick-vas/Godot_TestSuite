@@ -17,11 +17,13 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 bench -Json -Quiet -Scene res:/
 ```
 
 `bench` records the wall-clock time of every frame after a warm-up and returns `fps.low1`/`fps.low01` (1% and 0.1% lows),
-`frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a timestamped `hitches[]` log, the slowest places (`hotspots`), draw calls,
-and every custom monitor's delta.
+`frameMs.p50`/`p99`/`max`, frames over 20 and 33 ms, a `frameHistogram` (shares of frames at 120, 60, 30 and 20 fps or
+slower), a timestamped `hitches[]` log, the slowest places (`hotspots`), draw calls, the scene's load time (`loadMs`, from
+`load()` to its first frame) and every custom monitor's delta.
 Each run appends a labelled row to `bench-results/bench.csv`, so runs stay comparable. Several benchmark runs are a good job
 for the `godot-verifier` subagent, which returns the numbers without the logs. `-BudgetMs` fails the run
-(`bench-over-budget`) when p99 is above the budget.
+(`bench-over-budget`) when p99 is above the budget; `-MaxDrawCalls` (`bench-over-draw-calls`, the average a frame) and
+`-MaxLoadMs` (`bench-over-load-time`) hold the other two budgets.
 
 - **Benchmark the worst case**, not the menu: the heaviest scene with the most on screen. Give the game a flag for it
   (`--stress`: a boss that never dies, every effect on) and pass it with `-GameArgs` (`godot-automation-hooks`).
@@ -141,8 +143,8 @@ in both; `<RuntimeHostConfigurationOption Include="System.GC.Server" Value="true
   ```
 - **Engine (C++) time**: Tracy, Perfetto and Instruments need a custom engine build (`scons profiler=tracy
   profiler_path=...`); official 4.7.2 builds include Perfetto for Android only, and no desktop debug symbols.
-- `--benchmark` and `--benchmark-file` time startup and shutdown only (editor builds), not frames: use them for load-time
-  regressions. `--debug-stringnames` prints every `StringName` allocated, which finds per-frame ones from C#.
+- `--benchmark` and `--benchmark-file` time startup and shutdown only (editor builds), not frames; `bench`'s `loadMs` and
+  `-MaxLoadMs` hold one scene's load time. `--debug-stringnames` prints every `StringName` allocated, which finds per-frame ones from C#.
 
 ## First-use hitches are pipeline compiles
 

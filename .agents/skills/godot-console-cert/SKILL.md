@@ -78,6 +78,18 @@ other SteamOS devices. Measured on Godot 4.7.2; sources: `${CLAUDE_PLUGIN_ROOT}/
   game Unsupported (`godot-anti-cheat`).
 - **Performance:** 30 frames a second at 800p in the default settings (`bench -Resolution 1280x800`).
 
+**One command for the Deck's checks.** `deck` runs, at 1280x800, the `textsize` runner, the `layout` runner on the
+`steam_deck` profile (anything off screen), `shot` and `bench` with a budget of 33.3 ms (30 fps) unless `-BudgetMs`
+says otherwise, and gives one verdict: `deck-failed`, with each part's own code in `deck.parts`. `-Scene` names the
+screens for all four (bench measures the first); `-Pseudo` and `-Locale` add shot's text checks.
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 deck -Json -Quiet -Scene res://ui/menu.tscn,res://levels/Boss.tscn -GameArgs '--stress'
+```
+
+`bench` runs on this machine at the Deck's resolution: it is the Deck's frame budget, not a Deck's speed. Confirm the
+frame rate on a Deck before the review.
+
 **Text size: measure it.** A UI built for 1920x1080 is scaled by 0.667 on a Deck. Godot's default font size 16 becomes
 **10.67 px, with capitals 7.89 px tall**; size 12 becomes 8 px. Valve does not say whether "9 px" is the font size or the
 letters' height, so aim for 18 or more at a 1080p base (capitals about 9 px) and 24 for the recommended 12.
@@ -132,7 +144,7 @@ roaming) need the dev kit and SDK.
 - [ ] damaged, truncated, old-version and missing saves (`godot-saves` tests)
 - [ ] text sizes at 1280×800 and 1080p checked on screenshots (`shot`); text cut off in long languages (`shot -Pseudo`, `godot-localization`)
 - [ ] no other platform's names or button pictures in the build's strings and images
-- [ ] Steam Deck: `textsize` passes at 1280x800 on every screen and screenshots there read well; the whole game playable
+- [ ] Steam Deck: `deck` passes on every screen (`textsize`, `layout`, `shot` and `bench` at 1280x800) and the screenshots read well; the whole game playable
       with the Deck's controls only, glyphs matching, text entry by controller; 30 fps at 1280x800 in the default
       settings in the heaviest scene; the Linux export runs (`export -Run` on Linux), no launcher, no hardware warning;
       sleep and resume mid-game: nothing lost, the game paused, the network re-checked

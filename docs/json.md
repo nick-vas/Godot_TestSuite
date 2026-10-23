@@ -24,10 +24,10 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help`, `deck` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
-| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -51,8 +51,13 @@ Branch on `error.code`; `message` can change.
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
+| `bench-over-draw-calls` | `bench -MaxDrawCalls <n>`: the scene averaged more than n draw calls a frame (when `-BudgetMs` is also crossed, that code wins; the message names both) | `bench.drawCalls` |
+| `bench-over-load-time` | `bench -MaxLoadMs <n>`: the scene took more than n ms from `load()` to its first frame drawn (after `bench-over-budget` and `bench-over-draw-calls`) | `bench.loadMs`, `bench.loadBreakdownMs` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
+| `deck-failed` | `deck`: one or more of its parts (`textsize`, `layout`, `shot`, `bench`) failed; every part still ran | `deck.parts[]` (each part's own `code`) |
+| `gpu-validation-errors` | `bench`, `shot` or `export -Run` with `-GpuValidation`: the graphics API's validation layer reported errors (Vulkan VUIDs such as `VUID-vkCmdDispatch-format-07753`); checked before the engine error check, which then leaves those lines out | `gpuValidation` (`exports[].gpuValidation` for `export`) |
+| `no-gpu-validation` | `-GpuValidation`, but nothing was validated: the project renders with OpenGL (the Compatibility renderer), the run was headless, or Vulkan's validation layer is not installed (Linux: `vulkan-validationlayers`; Windows, macOS: the Vulkan SDK) | `gpuValidation.driver`, `gpuValidation.layerLoaded` |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
 | `soak-unclean-stop` | `soak -RequireCleanStop`: the server did not quit with 0 within `-StopGraceSeconds` of SIGTERM | `soak.stop` |
@@ -198,7 +203,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak` and `credits` run also appends one line to `.godot/hyperdot-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` and `deck` run also appends one line to `.godot/hyperdot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
@@ -216,7 +221,8 @@ groups the history by key (`recurringErrors`), after Activision's error buckets 
 The plugin's Stop hook and the `retro` skill read it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`, `size` (below), `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
-folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
+folder's download size), and with `-Run -GpuValidation`, for a build launched on this machine, `gpuValidation` (see below; the
+build then runs with a window instead of headless, and a Web build, drawn with WebGL, is not validated); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
 release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
 and `androidVersionCode` (major\*1,000,000 + minor\*1,000 + patch, `1002003`, set as `version/code` of the Android presets
@@ -252,8 +258,33 @@ cell, aligned to the origin, in metres or pixels, `-HotspotCell`, default 10 in 
 when `camera` is `none`), `drawCalls` (`avg`, `max`), `primitives` (`avg`, `max`: triangles, lines and points drawn per
 frame), `gpuMs` (`avg`, `max`: GPU time per frame; 0 when nothing is drawn), `textureMemoryMB` and `videoMemoryMB` (at the end), `objects` and `staticMemoryMB` (`start`, `end`), `customMonitors`
 (each custom monitor the game registered: `start`, `end`, `delta`), `display` (`headless` means CPU timings only), `renderer`,
-`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
-row is appended to `bench-results/bench.csv`.
+`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`, `maxDrawCalls` and `maxLoadMs` (0 when not set). `loadMs` is
+the time from `load()` of the scene to its first frame drawn, and `loadBreakdownMs` splits it into `resource` (reading the
+scene and what it loads), `instantiate` and `firstFrame` (adding it to the tree, which runs `_ready`, and drawing that
+frame); the files were imported by the build step, so this is a load from `.godot/imported`, not from an exported `.pck`.
+`frameHistogram[]` puts every measured frame in one of five fixed buckets, `fromMs` (exclusive) to `toMs` (inclusive):
+0 to 8.33 (120 fps or better), to 16.67 (60), to 33.33 (30), to 50 (20), and over 50 (`toMs` `null`), each with `frames`
+and `percent`; the frames add up to `frames`. A run capped by V-Sync jitters around its refresh interval, so at 60 Hz
+some frames land just over 16.67: read the histogram of an `-Uncapped` run for headroom. The same object is written to
+`bench-results/bench.json`, and a row is appended to `bench-results/bench.csv`.
+
+**deck**: `deck` with `resolution` (`1280x800`), `budgetMs` (`-BudgetMs`, 33.3 by default), `ok`, and `parts[]`, one per
+part in the order run: `part` (`textsize`, `layout`, `shot`, `bench`), `ok`, `code` (`null` when it passed; `tests-failed`
+for a runner with failing cases, else the code the part stopped with, such as `bench-over-budget`, `shot-text` or
+`no-display`) and `message`. The runner parts add `total`, `failed`, `failures[]` (`name`, `message`: the runner's
+JUnit cases, such as `textsize.1280x800` and `layout.steam_deck res://ui/menu.tscn Quit`) and `warnings[]` (`rule`,
+`file`, `message`); `shot` adds `folder`, `bench` `p99Ms` and `fpsAvg`. The parts' own fields sit beside it as their
+commands write them: `shots[]` and `palette` from `shot`, `bench` from `bench`, `engineErrors[]` and, with
+`-GpuValidation`, `gpuValidation` from the last part that set them.
+
+**gpuValidation** (`bench`, `shot` and, per export, `exports[].gpuValidation`, with `-GpuValidation`): `driver` (`vulkan`,
+`opengl3`, `d3d12`, `metal`, or `null` when nothing was drawn), `layerLoaded` (Vulkan: whether the loader loaded
+`VK_LAYER_KHRONOS_validation`; `null` for other drivers, whose logs do not say), `errorCount`, `warningCount` and
+`errors[]` (the first 20: `id`, the VUID or message number, or `null`; `message`, up to 600 characters). Messages matching
+`HYPERDOT_IGNORE_ERRORS` are left out. The runs get Godot's `--gpu-validation` and `--accurate-breadcrumbs` (a barrier
+between the GPU markers, so a device loss names the command that caused it); not `--gpu-abort`, which would stop at the
+first error, and which release builds ignore. Validation makes rendering much slower: `bench` numbers from such a run
+are not frame times to keep.
 
 **shot**: `shots[]` with `scene`, `file` (absolute path of the PNG, `<name>.png` after the scene, or after its path, `a_main.png`,
 when two scenes share a name), `width`, `height`, `locale` (`null` for the project's own,

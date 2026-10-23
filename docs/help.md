@@ -125,6 +125,13 @@ Read a folder of playtest telemetry: per-level counts and medians, and PNG heat 
 
 No Godot needed. The event schema is ci/godot/templates/playtest-events.json.
 
+### deck
+The Steam Deck check in one run at 1280x800: text size, layout, a screenshot and bench with a 30 fps budget, one verdict.
+
+    hyperdot.ps1 deck -Json [-Scene res://levels/Boss.tscn] [-BudgetMs 33.3] [-MaxDrawCalls 2000] [-MaxLoadMs 3000]
+
+Every part runs even when one fails; the run fails with deck-failed, and deck.parts gives each part's own code. Needs
+a display. bench measures this machine at the Deck's resolution, not a Deck's speed.
 ### help
 List every command, skill and subagent in one line each, or show the page of one.
 

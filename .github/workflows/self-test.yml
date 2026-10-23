@@ -465,6 +465,9 @@ jobs:
       - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
         shell: pwsh
         run: ./tests/Test-Layout.ps1
+      - name: deck runs text size, layout, a screenshot and bench at 1280x800 and gives one verdict
+        shell: pwsh
+        run: ./tests/Test-Deck.ps1
       - name: UI flows rotate the window with an action held, and name every bad resize, hold and release
         shell: pwsh
         run: ./tests/Test-Flows.ps1
@@ -622,7 +625,8 @@ jobs:
         run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
       # Playwright's own --with-deps installs the browsers' system packages from Ubuntu's mirror, which took 11 of this
       # job's 15 minutes at 35 kB/s; the apt action keeps them in the Actions cache. The browsers come from Playwright's
-      # CDN in seconds. xvfb and the Mesa drivers are for the Firefox step below.
+      # CDN in seconds. xvfb and the Mesa drivers are for the Firefox step below; lavapipe (mesa-vulkan-drivers, a software
+      # Vulkan) and the Khronos validation layer are for the GPU validation step.
       - name: The system packages Playwright's browsers need
         id: browser-packages
         shell: pwsh
@@ -630,7 +634,7 @@ jobs:
           $plan = npx --yes playwright@1.56.1 install-deps --dry-run chromium firefox 2>&1 | Out-String
           $match = [regex]::Match($plan, 'apt-get install -y --no-install-recommends (?<p>[^"\r\n]+)')
           if (-not $match.Success) { throw "Could not read Playwright's package list: $plan" }
-          "packages=$($match.Groups['p'].Value.Trim()) xvfb libgl1-mesa-dri" >> $env:GITHUB_OUTPUT
+          "packages=$($match.Groups['p'].Value.Trim()) xvfb libgl1-mesa-dri mesa-vulkan-drivers vulkan-validationlayers" >> $env:GITHUB_OUTPUT
       - uses: ./.github/actions/apt
         with:
           packages: ${{ steps.browser-packages.outputs.packages }}
@@ -653,6 +657,15 @@ jobs:
       - name: export -Json breaks the build size down by folder and kind of file, from the pack in or next to the executable
         shell: pwsh
         run: ./tests/Test-BuildSize.ps1
+      # Here because the export templates are already installed; Vulkan is Mesa's lavapipe under Xvfb.
+      - name: -GpuValidation catches a Vulkan misuse in bench, shot and export -Run, and refuses runs it cannot validate
+        shell: pwsh
+        env:
+          DISPLAY: ':98'
+        run: |
+          Start-Process Xvfb -ArgumentList ':98', '-screen', '0', '1280x800x24'
+          Start-Sleep -Seconds 2
+          ./tests/Test-GpuValidation.ps1
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7

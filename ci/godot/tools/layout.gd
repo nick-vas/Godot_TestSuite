@@ -20,6 +20,9 @@ const BUILTIN := {
 	"tablet": {"size": Vector2i(2048, 1536), "dpi": 264.0, "touch": true, "insets": [0, 48, 0, 40]},
 	# A 34-inch ultrawide monitor: about 110 dpi, a mouse, no insets.
 	"ultrawide": {"size": Vector2i(3440, 1440), "dpi": 110.0, "touch": false, "insets": [0, 0, 0, 0]},
+	# The Steam Deck: 1280x800 on a 7-inch screen, about 216 dpi (the OLED model's 7.4 inches, about 204). It has a
+	# touchscreen, but games are played with its controls and trackpads, so targets are judged as pointer targets.
+	"steam_deck": {"size": Vector2i(1280, 800), "dpi": 216.0, "touch": false, "insets": [0, 0, 0, 0]},
 }
 
 var _opt := {}
