@@ -101,14 +101,22 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello; `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
 | `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
 | `Test-GameVersion.ps1` | `export -GameVersion auto`, Android version codes, download names (temporary git repositories) | git |
-| `Test-UpdatePins.ps1` | `Update-Versions.ps1` failing on a missing pinned file (copies of the repository) | - |
-| `Test-PrComment.ps1` | the PR comment's paging (a stand-in GitHub API on 127.0.0.1) | - |
+| `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor; the canary's exit checks and pairing (copies of the repository) | - |
+| `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
 | `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification and rescaling (`label-fixture`, made-up runs) | - |
+| `Test-ErrorCodes.ps1` | every documented error code no other self-test raises, raised and checked in the JSON | Godot, display, ffmpeg; `-NoGodot` for plan, init, detect, doctor and audio |
+| `Test-Detect.ps1` | the solution `detect` picks, in and out of git, past unrelated and empty solutions and scenes | - |
+| `Test-InstallAddon.ps1` | replacing GUT in a path with brackets (a stand-in git) | - |
+| `Test-StopGate.ps1` | the Stop hook: only a full passing run counts; deletions, commits, non-ASCII names, data files | git |
+| `Test-ResultsDir.ps1` | `test` refusing a `-Results` folder inside the project it did not make | Godot; `-NoGodot` for the refusals |
+
+`tests/Get-KitCoverage.ps1 -From <folder>` reports what the self-tests reach when run with `HYPERDOT_COVERAGE` set to that
+folder; the `coverage` job of `self-test.yml` collects every job's records and fails below its floors.
 
 ## Targets
 

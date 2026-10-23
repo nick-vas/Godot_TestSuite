@@ -150,7 +150,7 @@ separate, headless tool.
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
 | **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last passing `test` run |
+| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework) |
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens, cost and time per task, as medians over repeated runs |
 

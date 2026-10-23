@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# Every kit run in these jobs records the functions it entered and the error code it stopped with; the coverage job
+# at the end adds them up (tests/Get-KitCoverage.ps1). Jobs that call the reusable workflow do not inherit this.
+env:
+  HYPERDOT_COVERAGE: ${{ github.workspace }}/../hyperdot-coverage
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -154,6 +159,18 @@ jobs:
       - name: The PR comment finds its summary past the first 100 comments
         shell: pwsh
         run: ./tests/Test-PrComment.ps1
+      - name: detect finds the solution that lists the project, in and out of git
+        shell: pwsh
+        run: ./tests/Test-Detect.ps1
+      - name: Replacing an add-on works in paths with brackets
+        shell: pwsh
+        run: ./tests/Test-InstallAddon.ps1
+      - name: The Stop hook blocks on changes no full passing test run has seen
+        shell: pwsh
+        run: ./tests/Test-StopGate.ps1
+      - name: The label's index, classes, minimum, verification and rescaling
+        shell: pwsh
+        run: ./tests/Test-HyperdotLabel.ps1
       - name: Version updates rewrite every pin and keep the skills valid
         shell: pwsh
         run: |
@@ -217,6 +234,15 @@ jobs:
 
   # No inputs at all: detects the shallowest project (examples/gdscript), installs GUT, runs validate,
   # gut and smoke.
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lint
+          path: ${{ env.HYPERDOT_COVERAGE }}
+          if-no-files-found: ignore
+          retention-days: 14
+
   zero-config:
     permissions:
       contents: read
@@ -307,6 +333,9 @@ jobs:
       - name: Error keys group a run's Godot errors across runs, and status lists the recurring ones
         shell: pwsh
         run: ./tests/Test-ErrorKeys.ps1
+      - name: test refuses a -Results folder inside the project that the kit did not make
+        shell: pwsh
+        run: ./tests/Test-ResultsDir.ps1
       - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
         shell: pwsh
         run: |
@@ -367,6 +396,15 @@ jobs:
 
   # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
   # prove the commands work, not how fast anything is.
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-init
+          path: ${{ env.HYPERDOT_COVERAGE }}
+          if-no-files-found: ignore
+          retention-days: 14
+
   measure:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -478,6 +516,18 @@ jobs:
           $d = pwsh -NoProfile -File $ci test -Json -Project $game -Runners smoke -Results "$game/r2" 2>$null | ConvertFrom-Json
           if ($d.ok -or $d.error.code -ne 'tests-failed') { throw "without the flag the smoke run should fail: $($d | ConvertTo-Json -Depth 6)" }
           exit 0   # the last run failed on purpose; see the bench step
+      - name: Every documented error code no other test raises is raised and reported
+        shell: pwsh
+        run: ./tests/Test-ErrorCodes.ps1
+
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-measure
+          path: ${{ env.HYPERDOT_COVERAGE }}
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
   web:
@@ -503,6 +553,15 @@ jobs:
           ./tests/Test-Web.ps1 -Browser firefox
 
   # The composite action inside a custom workflow.
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-web
+          path: ${{ env.HYPERDOT_COVERAGE }}
+          if-no-files-found: ignore
+          retention-days: 14
+
   action:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -512,6 +571,15 @@ jobs:
         with:
           command: build
           project: examples/csharp/game
+
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-action
+          path: ${{ env.HYPERDOT_COVERAGE }}
+          if-no-files-found: ignore
+          retention-days: 14
 
   # The script on Windows, as on a developer machine: no workflow, no action.
   local-windows:
@@ -581,3 +649,39 @@ jobs:
       - name: Export the Windows build and launch it
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 export -Project examples/csharp/game -Preset Windows -Run
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-local-windows
+          path: ${{ env.HYPERDOT_COVERAGE }}
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
+  # floors fails the run, so coverage cannot fall unnoticed.
+  coverage:
+    needs: [lint, init, measure, web, action, local-windows]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: coverage-*
+          path: ${{ runner.temp }}/coverage
+      - name: Coverage of the kit by the self-tests
+        shell: pwsh
+        run: |
+          ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -Json > "$env:RUNNER_TEMP/coverage.json"
+          $report = ./tests/Get-KitCoverage.ps1 -From "$env:RUNNER_TEMP/coverage" -MinFunctions 85 -MinErrorCodes 80 -MinCommands 100 6>&1
+          $code = $LASTEXITCODE
+          $report | Out-String | Tee-Object -Variable text | Write-Host
+          "``````text`n$text`n``````" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit $code
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: kit-coverage
+          path: ${{ runner.temp }}/coverage.json
