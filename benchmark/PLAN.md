@@ -222,7 +222,7 @@ The workflow does this with `useradd` and file modes; the field test does the sa
 | 3 | Grading layers 2-4; pinned judge; rubrics; the blind review page; calibration. **Done**: layer 3 (`judge` on a task, in the runner), layer 4 (`Invoke-SideBySide.ps1`), the quality factor in the label tool. **Since**: the review page (`benchmark/review-page.html`, fed by `Invoke-SideBySide.ps1 -ReviewOut` with the first pilot's 15 pairs) and `Get-JudgeAgreement.ps1`. **Left**: the owner's verdicts on the page, then the judge run on the same pairs and the agreement | the label tool reads judged and human results; the self-test fakes a judge |
 | 4 | Milestone runs | prototype to alpha graded by the alpha gate, in both languages |
 | 5 | Isolation as separate users | a test session cannot read a hidden test |
-| 6 | Genres 2-10, written in parallel by agents, one genre each, reviewed against the first. **Platformer** (Glowmoss Ridge, `games/platformer/DESIGN.md`): GDScript done; **left**: its C# port, from the design's language-neutral contract | each passes its stage checks in both languages |
+| 6 | Genres 2-10, written in parallel by agents, one genre each, reviewed against the first. **Platformer** (Glowmoss Ridge, `games/platformer/DESIGN.md`): GDScript done; **left**: its C# port, from the design's language-neutral contract. **Card game** (Lanternfen, `games/cards/DESIGN.md`): GDScript done; **left**: its C# port, from the same kind of contract | each passes its stage checks in both languages |
 | 7 | Introduce the new scale on the mid tier; labels for the current version | class A empty at introduction, tolerances from the bootstrap |
 | 8 | Field test mode | you run it on a game of yours and paste the summary |
 
