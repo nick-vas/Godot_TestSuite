@@ -232,8 +232,7 @@ In the skills:
 - An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play), from
   Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
 
-- Light and shadow limits on phones in `godot-mobile-web`: Compatibility's (8 per object, 32 renderable) were checked; the
-  Mobile renderer's per-object limit was not found in 4.7.2's settings.
+
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
   a copy of the C# example on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
 - Untold lesson 30 (commissioning a composer) in `godot-audio`, and Lars Liden's "Artificial Stupidity" cited in

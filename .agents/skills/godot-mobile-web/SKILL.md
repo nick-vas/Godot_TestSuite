@@ -134,6 +134,10 @@ steps, `godot-ui-flows`), and check text at the smallest aspect ratio in each or
   (`godot-saves`). Desktops, Steam Deck and consoles send nothing before a suspend: save often there instead
   (`godot-console-cert`). Pause the game there and resume on `NotificationApplicationResumed`.
 - `OS.GetMemoryInfo()` gives physical, free and available memory for telemetry. Godot has no memory budget API.
+- **Lights per mesh.** Mobile lights each mesh instance with at most 8 OmniLights and 8 SpotLights, a limit fixed in its
+  shader, not a setting; Compatibility's are `rendering/limits/opengl/max_lights_per_object` (8) and
+  `max_renderable_lights` (32). Lights past the limit silently skip that mesh: split large floors so nearby lights stay
+  under it, and bake the rest (`LightmapGI`).
 
 ## 5. Android export
 
