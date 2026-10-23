@@ -190,6 +190,10 @@ reads it when the project has such files, and warns about:
 - GPL-family licences
 - licences it does not recognise
 - commissioned work with no `agreement`, with `rights` other than `assigned` or `licensed`, or licensed with no `uses`
+- add-ons with a licence file (`addons/<name>/LICENSE*`) whose code no entry covers; the fix is the entry to add, with
+  `licence` read from the text, `copyright` from its first `Copyright` line and `licenceFile` pointing at it (GUT, gdUnit4
+  and the git plugin, which are not exported, are left out)
+- placeholders still to replace (below); one past its `due` date is a `FAIL`
 
 It also reports how many files need a credit (attribution licences such as `CC-BY-4.0` and `MIT`):
 
@@ -213,6 +217,17 @@ The `path` patterns work like this:
 
 The `licence` field takes an SPDX identifier, or `LicenseRef-<name>` for custom terms such as the Sonniss bundles.
 
+Placeholders (stand-in art, sound or text that the real asset replaces before release; the Placeholders table of
+`templates/TECH-DEBT.md`) are entries with `"placeholder": true`, and optionally `due` (yyyy-MM-dd, when the real one is
+due) and `status`: `needed` (nobody is making it yet, the default) or `in-progress`. They need `source` and `licence` like
+any entry, since a stand-in ships if nobody replaces it. `doctor` warns with the list, and fails for any past its `due`
+date, as it does for an ended quarantine: the date was the team's own; replace the asset or agree a new date. `status`
+counts them (`placeholders` in its JSON).
+
+```json
+{ "path": "art/boss/**", "source": "own", "licence": "own", "placeholder": true, "due": "2026-12-01", "status": "in-progress" }
+```
+
 `"source": "commissioned"` marks work made for the game by anyone else: a contractor, a freelancer, a co-founder. Under US
 copyright the maker owns it unless a signed agreement says otherwise, so besides `licence` (`proprietary` when assigned,
 `LicenseRef-<name>` for a licence's own terms) such an entry has:
@@ -231,8 +246,9 @@ unless its `licence` asks for one. The rules: `godot-legal` section 4 and [gdc/c
 from the engine, and the .NET runtime's notices for a C# game). It fails (`credits-invalid`) when an entry lacks what its
 licence asks for. Optional fields help: `title`, `copyright` (the original copyright line), `modified` (what you changed),
 `licenceFile` and `noticeFile` (paths of the upstream licence and NOTICE files). Licence texts for MIT, ISC, BSD-2-Clause,
-BSD-3-Clause, Apache-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
-`THIRD-PARTY-NOTICES.txt` next to each executable. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
+BSD-3-Clause, Apache-2.0, MPL-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
+`THIRD-PARTY-NOTICES.txt` next to each executable. An `MPL-2.0` entry (gdext and other Rust bindings) needs `source` to be
+the URL of its source code, which the notice gives players (MPL-2.0 section 3.2(a)); `copyright` is optional for it. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
 
 **`store/steam/`** (optional, in the Godot project folder, with an empty `store/.gdignore` so Godot does not ship it) holds
 the Steam store art. `doctor` checks the current sizes (`header_capsule` 920x430, `small_capsule` 462x174, `main_capsule`

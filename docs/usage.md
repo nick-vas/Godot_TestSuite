@@ -33,7 +33,9 @@ Get-Help ci/godot/hyperdot.ps1 -Detailed
 `doctor` catches the mistakes that break CI or ship broken builds. Examples: no `solution_directory`
 (exports would silently drop your C# code), test packages or test folders going into release builds, GUT
 files that won't run, a GDExtension with no library for a build a preset exports (picked as Godot picks it,
-[docs/addons.md](addons.md)), and a missing .NET SDK. Godot is downloaded once to `~/.hyperdot`.
+[docs/addons.md](addons.md)), and a missing .NET SDK. Godot is downloaded once to `~/.hyperdot`. Among its warnings:
+copies of one asset file, `OccluderInstance3D` nodes with occlusion culling off, and bodies moved per physics tick with
+physics interpolation off ([docs/profiling-and-builds.md](profiling-and-builds.md#kit-changes)).
 
 It also reads the instructions every agent session loads: `AGENTS.md`, `CLAUDE.md` and `CLAUDE.local.md` at the
 repository root (and in the project folder), with the files they import (`@path`, up to four hops, as Claude Code

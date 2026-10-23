@@ -173,19 +173,12 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 - **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
   shows them. A small C# `[Tool]` node that draws each report for the open scene.
-- **An add-on's code without an `assets.json` entry.** `credits` writes notices only for what `assets.json` lists. WARN
-  in `doctor` for `addons/<name>/LICENSE*` with no entry covering `addons/<name>/**`; fill `copyright` from the licence's
-  first `Copyright` line.
-- **MPL-2.0 in `credits`.** gdext (Rust) is MPL-2.0, which `Credits.ps1` has no rule for: read the licence's notice
-  rules, add the policy row and the SPDX text.
 - **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
   folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
   refreshed by `Invoke-Canary.ps1`.
 - **Plan gates for what is now prose:** `concept.risks` (`docs/RISKS.md`), an optional `concept.budget`, and
   `beta.placeholders`. Each needs `plan.json`, `tests/Test-Plan.ps1` and `docs/json.md` if the output changes.
 - **`plan -Do init -Profile jam`:** a plan sized in days with the jam gates (`Plan.ps1`, `Test-Plan.ps1`).
-- **Placeholders in `assets.json`** (`"placeholder": true`, `"due"`, `"status": "needed"`), counted by `doctor` and
-  `status`, so the TECH-DEBT table becomes checkable.
 - **First-session steps as stubs.** `status` reads only the GDD's pitch and features; the first-session steps could
   become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema
@@ -196,11 +189,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **`bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram**, each with a new failure
   code. `Measure.ps1` already has `drawCalls.avg`. Also a sweep helper for particle counts and quality tiers (the skill
   shows the manual way with `-GameArgs`).
-- **`doctor`: duplicate files under `res://`, occluders with occlusion culling off, and a build size breakdown on
-  `export -Json`**, each with a fixture.
-- **A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off**, only if it can be
-  kept quiet: warn when a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess` and the game sets no
-  `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way.
 - **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
   `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
   lines (and voice files) in a responses table, checked for lines missing in a locale.

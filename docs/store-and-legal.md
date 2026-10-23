@@ -80,6 +80,10 @@ Each uses only the rules above; where the sources give no number, the check repo
   only what one export compiles in. `ci/godot/tools/notices.gd` dumps it for `credits`.
 - A Godot 4.7.2 C# Linux export (the C# example, 189 files in its data folder) contains no .NET licence or notices file. The
   runtime pack in the NuGet cache has `THIRD-PARTY-NOTICES.TXT`; `credits` appends it for C# games.
+- MPL-2.0, read in SPDX's 3.29.0 text (`ci/godot/templates/licences/MPL-2.0.txt`): shipping MPL files in executable form
+  means making their source available and telling recipients how to get it (3.2(a)); the source's notices stay (3.4); the
+  rest of the game keeps its own licence (3.3), and changes to the MPL files themselves are MPL-2.0. So `credits` writes the
+  licence text and the source URL into the notices, and fails (`source-offer-missing`) when `source` is not a URL.
 - `doctor`'s store art and press kit checks on generated PNG and JPEG files of right and wrong sizes, the trailer check
   on videos ffmpeg makes during the test (H.264 and AAC at 1920x1080 and 30 fps pass; MPEG-4 and MP2 at 2560x1440,
   25 fps and 22.05 kHz are named on each count), the tag and privacy checks (`tests/Test-Store.ps1`), the release

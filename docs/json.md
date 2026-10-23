@@ -215,7 +215,7 @@ groups the history by key (`recurringErrors`), after Activision's error buckets 
 ([gdc/call-of-duty-error-keys.md](gdc/call-of-duty-error-keys.md)).
 The plugin's Stop hook and the `retro` skill read it.
 
-**export**: `exports[]`: `preset`, `platform`, `file`, `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
+**export**: `exports[]`: `preset`, `platform`, `file`, `size` (below), `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
 release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
@@ -233,6 +233,16 @@ that tag, or in all without one) and `commit` (short hash), and the version is, 
 After a tag the numbers are its major.minor.patch (missing ones 0, a fourth one replaced) and the commit count; the
 Android version code leaves the count out, so builds between two tags share one: tag each build you upload to a store.
 
+`exports[].size`, what makes the build big: `bytes` and `files` of the preset's output folder, `items[]` (each file or
+folder at its top, a folder summed, such as a C# game's `data_*` folder: `name`, `bytes`, `files`; the 15 largest) and
+`pack`, the Godot pack in the folder (a `.pck`, one embedded at the end of the executable, or one inside a `.zip` such as
+a macOS `.app`), or `null` when there is none it can read (an Android export, whose files sit in the APK's assets): `file`
+(as found, `game.x86_64 (embedded)` for an embedded one), `format` (4 for Godot 4.7.2), `engine`, `encrypted` (an
+encrypted directory: nothing more is read), `files`, `bytes`, `byFolder[]` (`folder`: the first folder of each file's
+source, `(root)` for files at the top; `bytes`, `files`) and `byType[]` (`type`: the source's extension, `(engine)` for
+`project.binary` and the rest of `.godot/`; `bytes`, `files`), each the 15 largest. Imported and exported files count as
+their sources, through their `.import` and `.remap` files: a texture's `.ctex` counts as `.png` in its folder, a compiled
+`.gdc` as `.gd`.
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
 `max`), `over20ms`, `over33ms`, `hitches[]` (the first 50; `t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
 `null` without one; a hitch is a frame longer than twice the median and over 8.33 ms), `hitchCount` (all of them), `hitchThresholdMs`, `camera` (`3d`, `2d` or
@@ -318,9 +328,10 @@ exited). Written to `soak-results/soak.json`. Fails as `soak-failed` (a process 
 courtesy), `notices` (licence and notice blocks in `THIRD-PARTY-NOTICES.txt`), `folder` (where the files went), `files[]`
 (`CREDITS.md`, `credits.json`, `THIRD-PARTY-NOTICES.txt`), `errors[]` and `warnings[]` (`code`, `path`, `message`).
 Error codes: `credit-author-missing`, `credit-source-not-url`, `copyright-missing`, `licence-text-missing`,
-`licence-file-missing`, `notice-file-missing`, `noderivs-modified`, `licence-blocked`, `licence-unknown`,
+`licence-file-missing`, `notice-file-missing`, `noderivs-modified`, `licence-blocked`, `licence-unknown`, `source-offer-missing`
+(an `MPL-2.0` entry whose `source` is not a URL: players must be told where its source is),
 `dotnet-notices-missing` (a path given that does not exist). Warning codes: `credit-title-missing`, `apache-notice-unchecked`,
-`apache-modified`, `ofl-modified`, `licence-custom`, `licence-proprietary`, `engine-notices-missing`,
+`apache-modified`, `ofl-modified`, `mpl-modified` (changed MPL files are MPL-2.0 too), `licence-custom`, `licence-proprietary`, `engine-notices-missing`,
 `dotnet-notices-missing` (a C# project with no .NET runtime pack in the NuGet cache). `credits.json` has `schema`
 (`game-credits/1`), `game`, `sections[]` (`id`, `heading`: a translation key, `entries[]`: `text`, `licence`, `source`)
 and `noticesFile`.
@@ -360,9 +371,12 @@ see [plan.md](plan.md#release-dates)).
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
+- `placeholders`: `count` and `pastDue` (entries of `assets.json` with `"placeholder": true`, and those whose `due` date
+  has passed), `entries[]` (`path`, `due` (yyyy-MM-dd or `null`), `status` (`needed` when not set), `files` (asset files the
+  entry covers), `pastDue`). A placeholder past due is also a warning.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
   unknown kind of fun, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
-  quarantines and a latest failure whose error predates the current commit.
+  quarantines, placeholders past their due date and a latest failure whose error predates the current commit.

@@ -16,6 +16,29 @@
   as 8-bit indices in two 32-bit words (`sc_omni_lights(8)`). Compatibility's two settings sit beside it.
 - **Commissioning a composer in `godot-audio`** (`commissioning.md`, from Untold History lesson 30): send something
   playable, say why it has to be them, hand over the adaptive plan and settle the rights.
+- **Build size breakdown** on `export -Json` (`exports[].size`, `ci/godot/lib/BuildSize.ps1`): the output folder item by
+  item, and Godot's pack (a `.pck`, one embedded in the executable, or one in a `.zip`) by top-level folder and by kind of
+  source file, with imported textures and sounds and compiled scripts counted as their sources. The log names the largest
+  folders. `tests/Test-BuildSize.ps1` reads a synthetic pack three ways and a real Linux export, separate and embedded.
+- **Three `doctor` warnings**, each with a case both ways in `tests/doctor-fixture` (`tests/Test-DoctorFixture.ps1`):
+  - asset files with the same content (size, then SHA-256), outside `addons/` and `.godot/`;
+  - `OccluderInstance3D` nodes while `rendering/occlusion_culling/use_occlusion_culling` is off, so they cull nothing;
+  - a `CharacterBody` or `RigidBody` script that moves the body in `_physics_process` / `_PhysicsProcess` while
+    `physics/common/physics_interpolation` is off, unless the frame rate is capped at the tick rate (`application/run/max_fps`
+    or `Engine.max_fps` / `Engine.MaxFps`).
+- **Add-on licences without an `assets.json` entry** (`doctor`): an `addons/<name>/LICENSE*` whose add-on code no entry
+  covers is a warning, since `credits` then writes no notice for code that ships. The fix is the entry, with the licence
+  read from the text, `copyright` from its first `Copyright` line and `licenceFile`. GUT, gdUnit4 and the git plugin are
+  left out.
+- **Placeholders in `assets.json`**: `"placeholder": true`, with an optional `"due"` (yyyy-MM-dd) and `"status"` (`needed`
+  or `in-progress`). `doctor` warns with the list and fails for one past its due date, as for an ended quarantine;
+  `status` counts them (`placeholders`: `count`, `pastDue`, `entries[]`) and warns about those past due. The TECH-DEBT
+  template points at the field.
+- `doctor` reports MPL-2.0 entries (file-level copyleft) as INFO instead of an unrecognised licence.
+- **MPL-2.0 in `credits`** (gdext and other Rust bindings): the licence text ships with the kit
+  (`ci/godot/templates/licences/MPL-2.0.txt`, SPDX 3.29.0), and the notice tells players where the source of those files
+  is, as section 3.2(a) asks. An MPL entry whose `source` is not a URL fails (`source-offer-missing`); a modified one
+  warns (`mpl-modified`) that the changes are MPL-2.0 too. `copyright` is optional for it.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

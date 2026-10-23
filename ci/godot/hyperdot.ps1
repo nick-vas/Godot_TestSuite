@@ -186,7 +186,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'BuildSize') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -485,9 +485,14 @@ function Invoke-ExportPresets {
         # The licence notices the game must ship (credits command), next to the executable.
         $notices = Join-Path $info.ProjectDir 'THIRD-PARTY-NOTICES.txt'
         if (Test-Path -LiteralPath $notices) { Copy-Item -LiteralPath $notices -Destination $dir -Force }
-        Write-CiLog ("Exported {0:N0} MB to {1}" -f ((Get-ChildItem -LiteralPath $dir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), $dir)
+        # What makes the build big: the folder item by item, and the pack by folder and by kind of source file.
+        $size = Get-ExportSizeBreakdown $dir
+        Write-CiLog ("Exported {0:N1} MB to {1}" -f ($size.bytes / 1MB), $dir)
+        if ($size.pack -and -not $size.pack.encrypted) {
+            Write-CiLog "  $($size.pack.file): $(@($size.pack.byFolder | Select-Object -First 5 | ForEach-Object { '{0} {1:N1} MB' -f $_.folder, ($_.bytes / 1MB) }) -join ', ')"
+        }
 
-        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file }
+        $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file; size = $size }
         if ($run.Retries) { $entry.retried = $run.Retries }
         if ($preset.Platform -eq 'Web') {
             $entry.web = Get-WebBuildSize $dir
