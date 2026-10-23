@@ -1,0 +1,156 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "playthrough.json",
+    "juice.json",
+    "game/Bot.cs",
+    "scripts/LevelGenerator.cs",
+    "test/GeneratorTest.cs",
+    "test/flows/settings.flow.json",
+    "test/flows/daily.flow.json",
+    "textsize.json",
+    "layout.json",
+    "sounds/sfx/pickup_coin-3.wav",
+    "sounds/sfx/pickup_coin-3.bfxr",
+    "sounds/sfx/powerup-3.wav",
+    "sounds/sfx/powerup-3.bfxr"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// Version 2 is current; version 1 kept only a list of cleared level ids and had no settings, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = Number(raw[\"version\"], 1);\n        if (version == 1)\n        {\n            // Version 1 did not keep moves: a cleared level is solved, its best unknown (0).\n            if (raw[\"cleared\"] is JsonArray cleared)\n            {\n                foreach (JsonNode? id in cleared)\n                    data.Solved[Number(id, 0).ToString(CultureInfo.InvariantCulture)] = 0;\n            }\n            return data;\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_1_save_keeps_its_cleared_levels()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 1, \"cleared\": [1, 2, 3]}\"\"\");\n        SaveData data = new SaveStore(_path).Read();\n        foreach (int id in new[] { 1, 2, 3 })\n            AssertThat(Progress.IsSolved(data, id)).OverrideFailureMessage($\"level {id}\").IsTrue();\n        AssertThat(Progress.IsUnlocked(data, 4)).IsTrue();\n    }\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "level 7, at most 11 tiles wide and 9 high, with three sparks and some snow, that takes at least 9 moves to solve, its par being the fewest moves that solve it (data/levels.json holds the levels in Board's letters: # wall, . ice, : snow, * spark, S start, E exit)"
+      },
+      "hidden": [
+        "hidden/HiddenLevel7Test.cs",
+        {
+          "from": "hidden/level7.flow.json",
+          "to": "test/flows/level7.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with an error in game/GridView.cs (per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        _movesLabel.Text = TextFormat.Fill(Tr(\"HUD_MOVES\"), Board.Moves, par);\n",
+          "replace": ""
+        },
+        {
+          "file": "game/GridView.cs",
+          "find": "    public static Vector2 CellCenter(Vector2I cell)",
+          "replace": "    public override void _Process(double delta)\n    {\n        if (_board != null)\n            GetNode<Label>(\"../HUD/MovesLabel\").Text = TextFormat.Fill(Tr(\"HUD_MOVES\"), _board.Moves, GetParent<Game>().par);\n    }\n\n    public static Vector2 CellCenter(Vector2I cell)"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenMovesLabelTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "the levels they had solved are locked again after the update. The previous version saved user://save.json as {\"version\": 1, \"cleared\": [<level ids>]}, with no moves and no settings"
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after solving a level, the levels they had solved before it are locked again on the level select, and their best moves are gone"
+      },
+      "edits": [
+        {
+          "file": "scripts/Progress.cs",
+          "find": "        Dictionary<string, int> solved = save.Solved;\n",
+          "replace": "        var solved = new Dictionary<string, int>();\n"
+        },
+        {
+          "file": "scripts/Progress.cs",
+          "find": "        solved[key] = moves;\n        return true;",
+          "replace": "        solved[key] = moves;\n        save.Solved = solved;\n        return true;"
+        }
+      ],
+      "unchanged": [
+        "test/ProgressTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenProgressTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds a level select (a child of Main named LevelSelect, with a button Box/Grid/Level<N>Button per level, open once the level before it is solved, and Box/BackButton back to the menu) and choosing a level adds the game scene res://game/game.tscn as a child of Main named Game, with its level in the property level; pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; levels 4 to 6 in data/levels.json, each solvable in exactly its par; a data.json for the kit's data runner; and a save of the solved levels and their fewest moves by a SaveStore class (scripts/SaveStore.cs: new SaveStore(path) on a file path, Read() returning a SaveData whose Solved is a Dictionary<string, int> from level ids, as text, to moves, and Write(data) returning true once written) in user://save.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/select.flow.json",
+        "to": "test/flows/select.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/HiddenSixLevelsTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

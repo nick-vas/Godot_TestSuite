@@ -1,0 +1,13 @@
+{
+  "name": "Level 7 can be started and played",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_level", "args": [7] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "level", "equals": 7 } },
+    { "assert": { "node": ".", "prop": "state", "equals": "playing" } },
+    { "assert": { "node": "HUD/LevelLabel", "prop": "text", "contains": "7" } }
+  ]
+}

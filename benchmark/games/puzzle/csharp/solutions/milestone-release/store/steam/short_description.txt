@@ -1,0 +1,1 @@
+Frostmote is a sliding puzzle on ice: steer a mote of frost that only stops at walls and snow, gather every spark to open the exit, and solve eight hand-made levels and a new generated drift every day.
