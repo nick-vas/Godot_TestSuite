@@ -169,6 +169,11 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 ### Kit features not built
 
+- **A GitHub Pages site.** A project page with what Hyperdot is, the quick start, the label (tool, game-making and
+  tested classes, with the SVG labels and information sheets from `docs/label/`), the benchmark results and the docs.
+  It would be built from the repository's Markdown by a workflow, so it never drifts from them. The scope and look are
+  still to agree with the owner.
+
 - **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
   shows them. A small C# `[Tool]` node that draws each report for the open scene.
 - **An add-on's code without an `assets.json` entry.** `credits` writes notices only for what `assets.json` lists. WARN
