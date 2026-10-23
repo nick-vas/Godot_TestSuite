@@ -18,11 +18,26 @@ public class ControlsTest
     static InputEventJoypadButton Pad(JoyButton button, bool pressed = true, int device = 0) =>
         new() { ButtonIndex = button, Pressed = pressed, Device = device };
 
+    // The player's saved bindings: user:// is the same folder when a developer plays the game, so they are set aside before
+    // each test (a test must start from the defaults) and put back after it, not deleted by ResetToDefaults.
+    const string SetAside = ".before-test";
+    static string SavedBindings => ProjectSettings.GlobalizePath(InputBindings.SavePath);
+
+    [BeforeTest]
+    public void SetThePlayersBindingsAside()
+    {
+        // A copy already set aside is the player's, left by a run that stopped early; what is in its place is a test's.
+        if (System.IO.File.Exists(SavedBindings + SetAside)) System.IO.File.Delete(SavedBindings);
+        else if (System.IO.File.Exists(SavedBindings)) System.IO.File.Move(SavedBindings, SavedBindings + SetAside);
+        InputBindings.ResetToDefaults();
+    }
+
     [AfterTest]
     public void RestoreDefaults()
     {
         foreach (var action in new[] { "move_left", "move_right" }) Input.ActionRelease(action);
         InputBindings.ResetToDefaults();
+        if (System.IO.File.Exists(SavedBindings + SetAside)) System.IO.File.Move(SavedBindings + SetAside, SavedBindings);
     }
 
     [TestCase]

@@ -41,7 +41,9 @@ instead of 1.0: see [Versions](#versions).
    settings when the rename pull request merges (the code already calls the new name).
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
-   (costs money: confirm first) and `bench` on the C# example.
+   (costs money: confirm first) and `bench` on the C# example. Done for the token benchmark, with the Hyperdot label
+   ([label.md](label.md)): an adversarial review of every area (66 findings, fixed with regression tests), a grader
+   that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
 6. **Retro** over all of the above.
 7. **Release 0.1.0**: changelog, version, tag `v0.1.0` (the workflow snippet and `init` pin it instead of `@main`), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
@@ -138,6 +140,28 @@ Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
 
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
+
+### From the label and the adversarial review (2026-10-23)
+
+- **Sonnet over its word limits.** All but one of Sonnet's failed benchmark answers are 10 to 30% over the limit their
+  prompt states, which puts it in class F where Haiku is D. Whether a line in `AGENTS.md` ("keep to a stated length")
+  changes that is a question for the next benchmark run, not a reason to change the grader.
+- **The plugin on Hyperdot's own code.** Loading it adds tokens to every session and helps none of the benchmark's
+  tasks (its skills are about games). A game-side standard programme, built from `evals/`, would rate what the plugin
+  is for; the label measures only work on this repository.
+- **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
+  surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
+- **Binding errors as JSON.** A bad value for a `ValidateSet` or `ValidateRange` parameter, or an unknown command, prints
+  nothing on stdout (documented in `docs/json.md`). Moving those checks into the script body would return
+  `invalid-arguments`, but `Test-Skills.ps1`, `lib/Context.ps1` and `tests/Get-KitCoverage.ps1` read the sets from the
+  parameter block.
+- **gdUnit4 skipping two tests on Windows, sometimes.** Self-test run 39930228730 (local-windows, the C# example with
+  `-Coverage`): "gdUnit4 found 28 tests but ran 26", so the kit's guard failed the run, as it should; the next run on the
+  same kit code ran all 28. The log does not say which two, and a "CLR: Assert failure ... after the .NET runtime thread
+  state has been destroyed" follows. Needs a Windows machine: run the suite in a loop and keep the TRX files.
+- **Two runs downloading Godot at once** share the `.part` file and may race (found by reading the code, not reproduced).
+- **Coverage of the jobs that call the reusable workflow** (`zero-config`, `csharp`, `explicit-runners`): their kit runs
+  do not see `HYPERDOT_COVERAGE`. Passing it through `godot.yml` as an input would count them too.
 
 ### Kit features not built
 
