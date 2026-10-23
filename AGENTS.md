@@ -119,6 +119,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
+| `Test-CoverageMap.ps1` | `docs/coverage.md` has a row for every command, error code, lib file, tool, skill, subagent and workflow job; `-Check` catches missing, stale and wrong rows; records are credited to the test they name | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
@@ -133,6 +134,10 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 
 `tests/Get-KitCoverage.ps1 -From <folder>` reports what the self-tests reach when run with `HYPERDOT_COVERAGE` set to that
 folder; the `coverage` job of `self-test.yml` collects every job's records and fails below its floors.
+`tests/Get-CoverageMap.ps1` writes `docs/coverage.md`: the tests behind each command, error code, lib file, tool, skill,
+subagent and workflow job, and the gaps (`-From <folder>` first refreshes `tests/coverage-records.json` from such records;
+a kit run names the `Test-*.ps1` that started it). Run it after adding any of those; its `-Check`, run by
+`Test-CoverageMap.ps1`, fails on a missing or stale row.
 
 ## Targets
 

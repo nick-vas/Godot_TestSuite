@@ -26,6 +26,15 @@ function Start-KitCoverage([string]$Command) {
     $script:CoverageFile = Join-Path $env:HYPERDOT_COVERAGE "$PID-$([guid]::NewGuid().ToString('N').Substring(0, 8)).txt"
     $script:CoverageSeen = [System.Collections.Generic.HashSet[string]]::new()
     Add-KitCoverage "command:$Command"
+    # The self-test that started this run (the nearest tests/Test-*.ps1 among the parent processes) and the CI job, so
+    # tests/Get-CoverageMap.ps1 can say which test reaches what.
+    $process = Get-Process -Id $PID
+    for ($depth = 0; $process -and $depth -lt 8; $depth++) {
+        $line = try { $process.CommandLine } catch { $null }
+        if ($line -match '(?<t>Test-[\w-]+)\.ps1') { Add-KitCoverage "test:$($Matches.t)"; break }
+        $process = try { $process.Parent } catch { $null }
+    }
+    if ($env:GITHUB_JOB) { Add-KitCoverage "job:$env:GITHUB_JOB" }
     $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File) + @(Get-Item -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'hyperdot.ps1'))
     $names = foreach ($source in $sources) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($source.FullName, [ref]$null, [ref]$null)
