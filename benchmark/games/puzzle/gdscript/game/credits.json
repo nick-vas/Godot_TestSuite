@@ -1,0 +1,28 @@
+{
+  "schema": "game-credits/1",
+  "game": "Frostmote",
+  "sections": [
+    {
+      "id": "attribution",
+      "heading": "CREDITS_THIRD_PARTY",
+      "entries": []
+    },
+    {
+      "id": "thanks",
+      "heading": "CREDITS_THANKS",
+      "entries": []
+    },
+    {
+      "id": "engine",
+      "heading": "CREDITS_ENGINE",
+      "entries": [
+        {
+          "text": "Made with Godot Engine",
+          "licence": "MIT",
+          "source": "https://godotengine.org/license"
+        }
+      ]
+    }
+  ],
+  "noticesFile": "THIRD-PARTY-NOTICES.txt"
+}

@@ -1,0 +1,42 @@
+keys,en,fr,de
+MENU_TITLE,Frostmote,Frostmote,Frostmote
+MENU_START,Play,Jouer,Spielen
+MENU_DAILY,Daily drift,Glissade du jour,Tagesrutsche
+MENU_SETTINGS,Settings,Réglages,Einstellungen
+MENU_CREDITS,Credits,Crédits,Mitwirkende
+MENU_QUIT,Quit,Quitter,Beenden
+MENU_VERSION,Version %s,Version %s,Version %s
+SELECT_TITLE,Choose a level,Choisir un niveau,Level wählen
+SELECT_LEVEL,Level %d,Niveau %d,Level %d
+SELECT_BEST,Best: %d,Record : %d,Bestwert: %d
+SELECT_BACK,Back,Retour,Zurück
+HUD_LEVEL,Level %d,Niveau %d,Level %d
+HUD_DAILY,Daily drift %d,Glissade du jour %d,Tagesrutsche %d
+HUD_MOVES,Moves: %d / par %d,Coups : %d / par %d,Züge: %d / Par %d
+HUD_STUCK,No way to the exit from here: undo or restart,Plus de chemin vers la sortie : annulez ou recommencez,Von hier gibt es keinen Weg zum Ausgang: zurücknehmen oder neu starten
+HUD_UNDO,Undo,Annuler,Zurück
+HUD_RESTART,Restart,Recommencer,Neustart
+HUD_PAUSE,Pause,Pause,Pause
+PAUSE_TITLE,Paused,En pause,Pausiert
+PAUSE_RESUME,Resume,Reprendre,Weiter
+PAUSE_QUIT,Quit to menu,Retour au menu,Zum Menü
+SOLVED_TITLE,Solved!,Résolu !,Gelöst!
+SOLVED_MOVES,%d moves (par %d),%d coups (par %d),%d Züge (Par %d)
+SOLVED_NEXT,Next level,Niveau suivant,Nächstes Level
+SOLVED_FINISH,Finish,Terminer,Abschließen
+SOLVED_MENU,Back to menu,Retour au menu,Zum Menü
+SETTINGS_TITLE,Settings,Réglages,Einstellungen
+SETTINGS_VOLUME,Volume,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Langue,Sprache
+SETTINGS_BACK,Back,Retour,Zurück
+LANG_EN,English,English,English
+LANG_FR,Français,Français,Français
+LANG_DE,Deutsch,Deutsch,Deutsch
+VICTORY_TITLE,Every drift is clear,Toutes les glissades sont faites,Alle Rutschen geschafft
+VICTORY_MESSAGE,All eight levels are solved in %d moves.,Les huit niveaux sont résolus en %d coups.,Alle acht Level sind in %d Zügen gelöst.
+VICTORY_MENU,Back to menu,Retour au menu,Zum Menü
+CREDITS_TITLE,Credits,Crédits,Mitwirkende
+CREDITS_BACK,Back,Retour,Zurück
+CREDITS_ENGINE,Engine,Moteur,Engine
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces,Fremde Inhalte
+CREDITS_THANKS,Thanks,Remerciements,Dank
