@@ -1,6 +1,8 @@
 namespace Example.Diagnostics;
 
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Example.Core.Telemetry;
 using Godot;
 
@@ -12,7 +14,8 @@ using Godot;
 /// </summary>
 public partial class Diagnostics : Node
 {
-    public static readonly TelemetrySchema Schema = new(
+    public static readonly TelemetrySchema Schema = new(new[]
+    {
         new EventDefinition("crash", 1, Purpose.Diagnostics, new Dictionary<string, FieldKind>
         {
             ["kind"] = new FieldKind.Label("exception", "engine", "unclean_exit"),
@@ -24,7 +27,10 @@ public partial class Diagnostics : Node
             ["score"] = new FieldKind.Integer(0, int.MaxValue),
         }),
         // One per run, on victory or death: the floor reached and when each upgrade was first taken (BalanceReport).
-        RunSummary.Event);
+        RunSummary.Event,
+    }
+    // Playtest builds: where players stall, die and what they find, per floor (godot-playtest). Analytics, so only with consent.
+    .Concat(PlaytestEvents.Definitions(Main.PlaytestLevels)).ToArray());
 
     /// <summary>The fingerprint of a session that did not quit cleanly: nothing to group by but the fact itself.</summary>
     public const string UncleanExitFingerprint = "0000000000000000";
@@ -33,6 +39,16 @@ public partial class Diagnostics : Node
     ErrorCapture? _capture;
 
     public TelemetryClient Client { get; private set; } = null!;
+
+    /// <summary>
+    /// A playtest build (an export preset with the custom feature <c>playtest</c>, or <c>-- --playtest</c> on the command
+    /// line) writes its batches to <c>user://playtests/&lt;session&gt;.jsonl</c> every 30 s and on quit, for
+    /// <c>hyperdot.ps1 playtest</c>. Null otherwise; a test may set its own.
+    /// </summary>
+    public PlaytestFileSink? PlaytestSink { get; set; }
+
+    public static bool IsPlaytestBuild => OS.HasFeature("playtest") || OS.GetCmdlineUserArgs().Contains("--playtest");
+
     /// <summary>
     /// Install the logger for the whole process. Only the game's own entry point should: a scene a test instantiates is
     /// not the game, and on Godot 4.7.2 mono a process that ever registered a C# Logger hung at exit under coverlet.
@@ -49,6 +65,13 @@ public partial class Diagnostics : Node
         _capture = new ErrorCapture(Client);
         if (CaptureEngineErrors) OS.AddLogger(_capture);
         if (Client.ConsentFor(Purpose.Diagnostics) == Consent.Granted) BeginSession();
+        if (IsPlaytestBuild)
+        {
+            PlaytestSink = new PlaytestFileSink(ProjectSettings.GlobalizePath("user://playtests"), Client.SessionId);
+            var timer = new Timer { WaitTime = 30, Autostart = true };
+            timer.Timeout += () => _ = FlushPlaytestAsync();
+            AddChild(timer);
+        }
     }
 
     /// <summary>From the settings menu. Refusing (or withdrawing) also deletes what was held, and stops the marker.</summary>
@@ -56,6 +79,16 @@ public partial class Diagnostics : Node
     {
         Client.SetConsent(Purpose.Diagnostics, granted ? Consent.Granted : Consent.Refused);
         if (granted) BeginSession(); else _marker?.End();
+    }
+
+    /// <summary>Writes what consent allowed to <see cref="PlaytestSink"/>; 0 when there is none.</summary>
+    public Task<int> FlushPlaytestAsync() => PlaytestSink is { } sink ? Client.FlushAsync(sink) : Task.FromResult(0);
+
+    /// <summary>The same, waiting for it: on quit. A small local file write, on a pool thread, since blocking the main thread
+    /// on an await that resumes on it would never return.</summary>
+    public void FlushPlaytestNow()
+    {
+        if (PlaytestSink != null && Client != null) Task.Run(() => FlushPlaytestAsync()).GetAwaiter().GetResult();
     }
 
     void BeginSession()
@@ -70,6 +103,8 @@ public partial class Diagnostics : Node
         if (what == NotificationWMCloseRequest || what == NotificationPredelete)
         {
             _marker?.End();
+            // Main ends the floor as quit first (it gets the notification before its children); a small local file write.
+            FlushPlaytestNow();
             Client?.Persist();
         }
         // A node deleted while the game quits (queued for deletion, then flushed at shutdown) never gets _ExitTree. A

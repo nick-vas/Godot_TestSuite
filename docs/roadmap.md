@@ -219,8 +219,9 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 In the example game (the C# example):
 
-- Playtest telemetry in a real level: nothing raises `PlaytestTracker`'s events yet, and there is no file sink for
-  playtest builds and no GDScript tracker.
+- A GDScript `PlaytestTracker` for GDScript games: the C# example raises the playtest events from a real floor and writes
+  them with `PlaytestFileSink`, but a GDScript port (about 200 lines with its tests) was left out of that change as too
+  large for a template; GDScript games write the events from `templates/playtest-events.json` by hand meanwhile.
 - A Steam backend behind `IPlatformServices` (GodotSteam's add-on or Steamworks.NET.AnyCPU 2026.164.4 both load in 4.7.2).
 
 In the skills:

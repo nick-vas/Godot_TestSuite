@@ -5,6 +5,7 @@ using Example.Core.Telemetry;
 using Example.Diagnostics;
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Minimal self-playing breakout. The paddle tracks the ball so a headless smoke run
@@ -35,6 +36,14 @@ public partial class Main : Node2D
     public InputDevices Devices { get; } = new();
     public Haptics Haptics { get; } = new();
     public Diagnostics Diagnostics { get; private set; } = null!;
+    /// <summary>Raises the playtest events (godot-playtest) from the paddle and the run; recorded only with analytics consent.</summary>
+    public PlaytestTracker Playtest { get; private set; } = null!;
+
+    /// <summary>Playtest level ids: one per floor, floors past 9 together (coarse labels, as telemetry asks).</summary>
+    public static readonly string[] PlaytestLevels = [.. Enumerable.Range(1, 9).Select(PlaytestLevel), "floor_10_plus"];
+    public static string PlaytestLevel(int floor) => floor < 10 ? $"floor_{floor}" : "floor_10_plus";
+
+    private double _playSeconds;   // game time: the tracker's clock stops while the game is paused
 
     private float PaddleWidth => PaddleBaseWidth + _run.PaddleWidthBonus;
     private Rect2 PaddleRect => new(_paddleX - PaddleWidth / 2, Arena.Y - 32, PaddleWidth, 12);
@@ -48,6 +57,9 @@ public partial class Main : Node2D
         // Errors are captured for the running game, not for copies of this scene that tests create.
         Diagnostics = new Diagnostics { CaptureEngineErrors = GetTree().CurrentScene == this };
         AddChild(Diagnostics);
+        // One screen and no exploring: the whole arena is one cell, so only bricks count as progress, and a stall is two
+        // minutes without breaking one.
+        Playtest = new PlaytestTracker(Diagnostics.Client, () => _playSeconds, new PlaytestOptions { CellSize = Arena.X + 1 });
         BuildFloor();
         ResetBall();
     }
@@ -55,6 +67,7 @@ public partial class Main : Node2D
     public override void _PhysicsProcess(double delta)
     {
         if (_run.IsOver) return;
+        _playSeconds += delta;
 
         float steer = Input.GetAxis(MoveLeft, MoveRight);
         _paddleX = steer != 0
@@ -78,13 +91,17 @@ public partial class Main : Node2D
             _bricks.RemoveAt(i);
             _ballDir.Y = -_ballDir.Y;
             _run.BreakBrick(10 * _run.Floor);
+            Playtest.Progress();
             Haptics.Play(HapticPatterns.BrickHit, Devices.LastJoypad);
             break;
         }
 
         if (_bricks.Count == 0)
         {
-            _run.ClearFloor((Upgrade)(_run.Floor % 4));
+            var upgrade = (Upgrade)(_run.Floor % 4);
+            Playtest.ItemFound((int)upgrade);
+            Playtest.EndLevel(LevelResult.Finished);
+            _run.ClearFloor(upgrade);
             GD.Print($"Floor {_run.Floor} reached, score {_run.Score}");
             OnFloorReached();
             Haptics.Play(HapticPatterns.FloorCleared, Devices.LastJoypad);
@@ -93,13 +110,28 @@ public partial class Main : Node2D
 
         if (_ball.Y > Arena.Y)
         {
+            Playtest.Died(checkpoint: _run.Floor);
             _run.LoseBall();
             Haptics.Play(HapticPatterns.BallLost, Devices.LastJoypad);
-            if (_run.IsOver) OnRunEnded();
+            if (_run.IsOver) { Playtest.EndLevel(LevelResult.Failed); OnRunEnded(); }
             ResetBall();
         }
 
+        Playtest.Move(_paddleX, PaddleRect.Position.Y);
         QueueRedraw();
+    }
+
+    // The floor being played ends as quit, then a playtest build writes it out: on the window's close request (Main gets
+    // it before Diagnostics, its child, flushes) and when the scene leaves the tree (children leave first, so flush here).
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMCloseRequest) Playtest?.EndLevel(LevelResult.Quit);
+    }
+
+    public override void _ExitTree()
+    {
+        Playtest?.EndLevel(LevelResult.Quit);
+        Diagnostics?.FlushPlaytestNow();
     }
 
     public override void _Draw()
@@ -119,6 +151,7 @@ public partial class Main : Node2D
 
     private void BuildFloor()
     {
+        Playtest.StartLevel(PlaytestLevel(_run.Floor));
         _bricks.Clear();
         int rows = 2 + _run.Floor;
         for (int row = 0; row < rows; row++)

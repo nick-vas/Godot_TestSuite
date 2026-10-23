@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **Playtest telemetry from a real level in the C# example.** `Main` raises `PlaytestTracker`'s events from each floor
+  (deaths with the floor as checkpoint, the upgrade taken as the item found, a floor's time as finished, failed or quit),
+  `Diagnostics` adds `PlaytestEvents` to its schema, and a playtest build (the custom feature `playtest`, or
+  `--playtest`) writes its batches with the new `PlaytestFileSink`, one `<session>.jsonl` line a batch, every 30 s and
+  on quit, for `hyperdot.ps1 playtest`. `DiagnosticsTest` plays a floor and checks the file gets the events only after
+  consent.
 - **The maths conventions pinned in the C# example** (`game/test/gdunit4/MathConventionsTest.cs`): on Godot's types, a
   positive yaw turns `Vector3.Forward` to the left, `Right x Up` is +Z and the book's cross product has area 26.94; and
   where Example.Core's `System.Numerics` differs (no forward axis, matrices composed left first). `godot-math` points to it.

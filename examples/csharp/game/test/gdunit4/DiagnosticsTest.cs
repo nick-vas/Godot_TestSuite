@@ -2,6 +2,7 @@ namespace Example.Tests;
 
 using System;
 using System.Text.Json.Nodes;
+using System.Linq;
 using System.Threading.Tasks;
 using Example.Core.Telemetry;
 using Example.Diagnostics;
@@ -103,5 +104,50 @@ public class DiagnosticsTest
         var queued = JsonNode.Parse(((Main)second.Scene()).Diagnostics.Client.Export())!["queued"]!.AsArray();
         AssertThat(queued.Count).IsEqual(1);
         AssertThat(queued[0]!["fields"]!["kind"]!.GetValue<string>()).IsEqual("unclean_exit");
+    }
+
+    // The playtest events from a real floor: the paddle held away loses balls (death, with the floor as checkpoint), and
+    // a playtest build's file gets them only once analytics consent is given; quitting ends the floor as quit.
+    [TestCase]
+    public async Task Playtest_events_from_a_floor_reach_the_session_file_only_with_consent()
+    {
+        var folder = ProjectSettings.GlobalizePath("user://playtests-test");
+        string file;
+        using (ISceneRunner runner = ISceneRunner.Load("res://Main.tscn"))
+        {
+            var main = (Main)runner.Scene();
+            var diagnostics = main.Diagnostics;
+            diagnostics.PlaytestSink = new PlaytestFileSink(folder, diagnostics.Client.SessionId);
+            file = diagnostics.PlaytestSink.File;
+            await runner.SimulateFrames(1);
+            AssertThat(main.Playtest.Level).IsEqual("floor_1");
+
+            Input.ActionPress("move_left");
+            try
+            {
+                for (int i = 0; i < 1200 && main.Run.Lives == 3; i++) await runner.SimulateFrames(1);
+                AssertThat(main.Run.Lives).IsEqual(2);
+                AssertThat(await diagnostics.FlushPlaytestAsync()).IsEqual(0);   // no consent: nothing recorded
+                AssertThat(System.IO.File.Exists(file)).IsFalse();
+
+                diagnostics.Client.SetConsent(Purpose.Analytics, Consent.Granted);
+                for (int i = 0; i < 1200 && main.Run.Lives == 2; i++) await runner.SimulateFrames(1);
+                AssertThat(main.Run.Lives).IsEqual(1);
+            }
+            finally { Input.ActionRelease("move_left"); }
+            AssertThat(await diagnostics.FlushPlaytestAsync()).IsEqual(1);
+        }
+        try
+        {
+            var events = System.IO.File.ReadAllLines(file)
+                .SelectMany(line => JsonNode.Parse(line)!["events"]!.AsArray())
+                .Select(e => (Name: e!["event"]!.GetValue<string>(), Fields: e["fields"]!)).ToList();
+            AssertThat(events.Select(e => e.Name).ToArray()).ContainsExactly("death", "level_time");
+            AssertThat(events[0].Fields["level"]!.GetValue<string>()).IsEqual("floor_1");
+            AssertThat(events[0].Fields["checkpoint"]!.GetValue<int>()).IsEqual(1);
+            AssertThat(events[0].Fields["y"]!.GetValue<double>()).IsEqual(448.0);   // the paddle's top
+            AssertThat(events[1].Fields["result"]!.GetValue<string>()).IsEqual("quit");   // the scene left the tree: written then
+        }
+        finally { System.IO.Directory.Delete(folder, recursive: true); }
     }
 }

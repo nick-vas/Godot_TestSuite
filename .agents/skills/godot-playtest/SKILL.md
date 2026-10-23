@@ -74,9 +74,11 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
   `PlaytestEvents.Definitions(levels)` added to the game's `TelemetrySchema`, with `PlaytestTracker` raising the events
   from the player's position each frame and calls such as `Progress()`, `ItemFound(id)`, `Died(checkpoint)`,
   `PuzzleSolved(id)` and `EndLevel(result)` (`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Telemetry/Playtest.cs`,
-  tested with a fake clock). Do not write a parallel event system.
-- Playtest builds write each batch to a file; collect the testers' files in one folder, then
-  `hyperdot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
+  tested with a fake clock; the C# example's `game/Main.cs` raises them from a real floor). Do not write a parallel
+  event system.
+- Playtest builds write each batch to a file (`PlaytestFileSink`, one `<session>.jsonl` a tester, flushed every 30 s and
+  on quit by the example's `Diagnostics` when the export preset has the custom feature `playtest`); collect the testers'
+  files in one folder, then `hyperdot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
   session, the share who found each item, and a PNG heat map per event type (`playtest.json` lays one over a level
   screenshot from `shot`). Open the maps, put the table in `docs/playtests/<date>.md`, and compare one build's folder with
   the next. Sessions from different builds go in different folders.
