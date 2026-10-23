@@ -85,6 +85,8 @@ function Get-ClaudeArguments($Spec, $ProfileSpec, [string]$SessionId, [int]$Step
 
 function Get-StepPrompts($ProfileSpec, $TaskSpec) {
     $text = "Task: $($TaskSpec.title)`n`n$($TaskSpec.prompt.Trim())"
+    # The word limit the answer is checked against is stated in the prompt, so a long answer fails the task, not a secret rule.
+    if ($TaskSpec.Contains('expected') -and $TaskSpec.expected.Contains('maxWords')) { $text += " Answer in at most $($TaskSpec.expected.maxWords) words." }
     if ($ProfileSpec.Contains('listContext') -and $ProfileSpec.listContext -and $TaskSpec.Contains('context')) {
         $text += "`n`nContext (paths in this repository):`n" + ((@($TaskSpec.context) | ForEach-Object { "- $_" }) -join "`n")
     }

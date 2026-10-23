@@ -59,6 +59,10 @@ try {
     Assert-True ($resumed.Count -gt 0 -and @($resumed | Where-Object { $_.args[[Array]::IndexOf($_.args, '--resume') + 1] -notin $started }).Count -eq 0) 'the second step resumes the first step''s session'
     Assert-True (@($calls | Where-Object { $_.args -contains '--append-system-prompt' -and $_.prompt -notmatch 'GARBAGE' -and $_.prompt -notmatch 'Context \(paths' }).Count -eq 0) 'the scoped profile lists the task''s files'
     Assert-True (@($calls | Where-Object { $_.args -notcontains '--append-system-prompt' -and $_.args -notcontains '--resume' -and $_.prompt -match 'Context \(paths' -and $_.prompt -notmatch 'Plan first' }).Count -eq 0) 'the plain profile does not'
+    $firstSteps = @($calls | Where-Object { $_.args -notcontains '--resume' -and $_.prompt -match 'Task: ' })
+    $good = @($firstSteps | Where-Object { $_.prompt -match 'ANSWER-GOOD' })
+    Assert-True ($good.Count -gt 0 -and @($good | Where-Object { $_.prompt -notmatch 'ANSWER-GOOD please Answer in at most 20 words\.' }).Count -eq 0) 'a task''s word limit is stated in its prompt'
+    Assert-True (@($firstSteps | Where-Object { $_.prompt -match 'Say something' -and $_.prompt -match 'Answer in at most' }).Count -eq 0) 'a task without a word limit gets none'
 
     $summary = $run.Json
     $p1 = @($summary.profiles | Where-Object profile -eq 'P1-plain')[0]

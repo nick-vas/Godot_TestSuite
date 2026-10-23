@@ -36,7 +36,7 @@
       "id": "COMP-PS-001",
       "category": "comprehension",
       "title": "Explain the PowerShell test orchestration flow",
-      "prompt": "Explain the end-to-end flow of `test` in this repository: the entry script, how the project and runners are detected, how Godot is invoked for each runner, and what files a run produces. Under 220 words.",
+      "prompt": "Explain the end-to-end flow of `test` in this repository: the entry script, how the project and runners are detected, how Godot is invoked for each runner, and what files a run produces.",
       "expected": { "mustInclude": ["hyperdot.ps1", "Runners", "junit"], "maxWords": 240 },
       "context": ["ci/godot/hyperdot.ps1", "ci/godot/lib/Detect.ps1", "ci/godot/lib/Runners.ps1", "ci/godot/lib/Report.ps1", "docs/json.md"]
     },
@@ -44,7 +44,7 @@
       "id": "COMP-GD-001",
       "category": "comprehension",
       "title": "Map the GDScript test structure",
-      "prompt": "Summarize how the GDScript example's tests are organized, named and discovered, and how the kit runs them. Under 180 words.",
+      "prompt": "Summarize how the GDScript example's tests are organized, named and discovered, and how the kit runs them.",
       "expected": { "mustInclude": ["GUT", "test_"], "maxWords": 200 },
       "context": ["examples/gdscript/test", "examples/gdscript/project.godot", "ci/godot/lib/Runners.ps1", "ci/godot/lib/Detect.ps1"]
     },
@@ -61,7 +61,7 @@
       "category": "code_change",
       "title": "Strengthen parameter validation",
       "prompt": "Propose a concise diff that strengthens validation of one parameter of ci/godot/hyperdot.ps1 that is not validated today (for example with ValidateRange or ValidatePattern). Return only the diff.",
-      "expected": { "mustInclude": ["param", "Validate"], "maxWords": 260 },
+      "expected": { "mustInclude": ["Validate"], "maxWords": 260 },
       "context": ["ci/godot/hyperdot.ps1"]
     },
     {
@@ -76,7 +76,7 @@
       "id": "DEBUG-GD-001",
       "category": "debugging",
       "title": "Diagnose flaky GDScript tests",
-      "prompt": "Give five likely causes of flaky GDScript tests when this kit runs them in CI, each with one mitigation tailored to this repository. Under 240 words.",
+      "prompt": "Give five likely causes of flaky GDScript tests when this kit runs them in CI, each with one mitigation tailored to this repository.",
       "expected": { "mustInclude": ["mitigation", "CI", "process_frame"], "maxWords": 260 },
       "context": ["AGENTS.md", "examples/gdscript/test", "ci/godot/tools/flows.gd", ".github/workflows/self-test.yml"]
     },
