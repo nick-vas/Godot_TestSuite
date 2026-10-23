@@ -189,8 +189,6 @@ In the skills:
 
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
   a copy of the C# example on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
-- Lars Liden's "Artificial Stupidity" cited in `godot-game-ai`; the skill is at its size limit, so it needs a cut or a
-  side file first.
 - Smaller design prompts not yet placed: saving as a difficulty lever, pressure against stalling, sinks players want,
   fixed costs pegged to a share of wealth, hidden charges on limited-use items (`godot-progression`); a camera cost
   checklist (`concept.decisions`); a five-Ws premise and the player's verbs in bold in the story summary; a turn written
@@ -242,6 +240,9 @@ Pasting a source, allowing a host or answering a question is enough for each.
 - Bohemia's wiki (`community.bistudio.com`): a Cloudflare challenge. Optional: "DayZ:Central Economy Configuration" and
   "Arma Reforger:Multiplayer Scripting".
 - The full Iassenev interview on A-Life (AIGameDev, archived): web.archive.org rate-limited this server.
+- Lars Lidén's "Artificial Stupidity: The Art of Intentional Mistakes" (*AI Game Programming Wisdom 2*): the author's copy
+  (`lars.liden.cc`) has a self-signed certificate and web.archive.org reset the connection, so `godot-game-ai/mistakes.md`
+  rests on two papers that cite it and quotes nothing from the chapter. Pasting it would let the other points be checked.
 - FMOD: the Skill Tree course (needs a sign-in) and the licence and credit terms (a JavaScript-only page).
 - Sonniss's bundle licence (`License.pdf`) and Freesound's FAQ: both returned 403.
 - Epic and GOG cloud-save conflicts (404 and 500); PlayStation and Nintendo save rules, TRC and Lotcheck (under NDA).

@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **Intentional mistakes in `godot-game-ai`** (`mistakes.md`, a side file: the skill is at its size limit): Lars Lidén's
+  "Artificial Stupidity" (*AI Game Programming Wisdom 2*) as rules with a test each: move before firing, miss the first
+  time, be visible, poor aim on purpose, a few attackers at a time, tell the player, ease off at the end, openings on
+  purpose. The chapter could not be read here, so only the two points the citing papers quote are marked verified;
+  `docs/roadmap.md` asks for the text.
 - **`templates/ARCHITECTURE.md`**, the shape of a game's code on one page: autoloads (each with its decision), the scene
   tree, signals that cross scenes, authored versus runtime data, the save schema version with its migrations, the
   minimum spec and the open technical questions an ADR answers. The `godot-architect` subagent creates it from the code
