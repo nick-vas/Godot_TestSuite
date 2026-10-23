@@ -1,7 +1,8 @@
 #Requires -Version 7.2
 # Self-test of the playthrough runner. Without Godot (always): milestones in order pass, a missing one fails and the later
-# ones are reported as not checked, order matters, and an empty "expect" is refused. With Godot (unless -NoGodot): the
-# fixture's bot reaches the ending and passes; with --stuck it stays in level 1 and fails, which smoke would not notice.
+# ones are reported as not checked, order matters, and an empty "expect" and "frames": 0 are refused. With Godot (unless
+# -NoGodot): the fixture's bot reaches the ending and passes; with --stuck it stays in level 1 and fails, which smoke would
+# not notice.
 param([switch]$NoGodot)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
@@ -28,6 +29,10 @@ New-Item -ItemType Directory $temp | Out-Null
 Set-Content -LiteralPath (Join-Path $temp 'playthrough.json') '{ "expect": [] }'
 $refused = & pwsh -NoProfile -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Playthrough.ps1'; try { Get-PlaythroughConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
 if ($refused -notmatch 'needs "expect"') { $failures += "an empty expect list should be refused: $refused" }
+# "frames": 0 would be Godot's --quit-after 0, which never quits.
+Set-Content -LiteralPath (Join-Path $temp 'playthrough.json') '{ "frames": 0, "expect": ["[Run] ending reached"] }'
+$refused = & pwsh -NoProfile -Command ". '$root/ci/godot/lib/Common.ps1'; . '$root/ci/godot/lib/Playthrough.ps1'; try { Get-PlaythroughConfig '$temp' | Out-Null; 'accepted' } catch { `$_.Exception.Message }" 2>&1 | Out-String
+if ($refused -notmatch '"frames" must be a whole number above 0') { $failures += "frames 0 should be refused: $refused" }
 Remove-Item -Recurse -Force $temp
 
 if (-not $NoGodot) {
