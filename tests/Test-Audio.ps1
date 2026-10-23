@@ -63,6 +63,17 @@ else {
     if (-not $d.audio.PSObject.Properties['onsetMaxMs'] -or $d.audio.onsetMaxMs -ne 20) { $failures += 'audio.onsetMaxMs should be 20' }
 }
 
+# Without -Results the results go to audio-results, and the run log with them (it once went to test-results).
+$work = "$game-cwd"
+New-Item -ItemType Directory -Force $work | Out-Null
+Push-Location $work
+try { $d = Invoke-Kit @('audio') } finally { Pop-Location }
+$expectedLog = Join-Path $work 'audio-results/godot-ci.log'
+if (-not $d.ok) { $failures += "audio without -Results failed: $($d.error.message)" }
+elseif ($d.log -ne $expectedLog -or -not (Test-Path -LiteralPath $expectedLog) -or (Test-Path -LiteralPath (Join-Path $work 'test-results'))) {
+    $failures += "the run log should be $expectedLog, next to audio's results, and test-results should not be made; log is $($d.log)"
+}
+
 # A game that wants a slower attack raises the bound.
 $d = Invoke-Kit @('audio', '-MaxOnsetMs', '200', '-Results', (Join-Path $game 'audio-slow'))
 $slow = if ($d -and $d.PSObject.Properties['audio']) { $d.audio }
@@ -87,11 +98,11 @@ if ($Mix) {
     if ($d.ok -or $d.error.code -ne 'audio-silent') { $failures += "a silent scene should fail as silent: $($d | ConvertTo-Json -Depth 4 -Compress)" }
 }
 
-Remove-Item -Recurse -Force $game
+Remove-Item -Recurse -Force $game, $work
 if ($failures) {
     foreach ($failure in $failures) { Write-Host "FAIL $failure" }
     exit 1
 }
-Write-Host "audio: categories, clipping, loudness outliers and late onsets reported; doctor names the missing buses$(if ($Mix) { '; the mix is recorded, measured and judged' })"
+Write-Host "audio: categories, clipping, loudness outliers and late onsets reported; the run log sits with the results; doctor names the missing buses$(if ($Mix) { '; the mix is recorded, measured and judged' })"
 # The last kit run failed on purpose; GitHub's pwsh wrapper would exit with its code.
 exit 0

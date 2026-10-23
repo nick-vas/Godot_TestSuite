@@ -159,7 +159,8 @@ param(
     [switch]$Agents,
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
-    # plan: init (create plan/plan.json), status (default), done (mark a manual gate done: -Id).
+    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), add (a task: -Title),
+    # move (a task to -Column: -Id), sync (with a Trello -Board), link (a task to a GDD -Feature or a Trello -Card: -Id).
     [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync', 'link')]
     [string]$Do = 'status',
     # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move: the task id.
@@ -178,7 +179,7 @@ param(
     [string]$Card,
     # Print one JSON document on stdout (schema godot-ci/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
-    # Keep tool output (Godot, dotnet) off the console; it still goes to <Results>/godot-ci.log. Pair it with -Json
+    # Keep tool output (Godot, dotnet) off the console; it still goes to godot-ci.log in the results folder. Pair it with -Json
     # so an agent reads the verdict, with failure messages, files and lines, instead of the whole log.
     [switch]$Quiet
 )
@@ -329,7 +330,7 @@ function Invoke-Tests {
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunnerWithRetry -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) -Retry $Retry -Quarantine $quarantine.Entries `
-            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'playthrough', 'l10n', 'data') -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
+            -Filter $Filter -Coverage ($collect -and $runner -notin 'gut', 'smoke', 'validate', 'flows', 'architecture', 'juice', 'playthrough', 'l10n', 'data', 'textsize', 'layout') -Frames $Frames -GameArgs $GameArgs -FixedFps $FixedFps
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
@@ -454,7 +455,7 @@ function Invoke-ExportPresets {
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
-        if (-not $preset.ExportPath) { Stop-GodotCi "Preset '$name' has no export_path" }
+        if (-not $preset.ExportPath) { Stop-GodotCi "Preset '$name' has no export_path" 'export-failed' }
         $dir = Join-Path ([System.IO.Path]::GetFullPath($Output)) (ConvertTo-SafeName $name)
         New-Item -ItemType Directory -Force $dir | Out-Null
         $file = Join-Path $dir (Split-Path $preset.ExportPath -Leaf)
@@ -469,7 +470,7 @@ function Invoke-ExportPresets {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
             Stop-GodotCi "Export '$name' exited with $code$(if ($run.Retries) { " after $($run.Retries) retries of a crash" })" 'export-failed'
         }
-        if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" }
+        if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" 'export-failed' }
         Assert-GodotLogClean $log "Export '$name'"
         # A C# export that could not build its code still exits 0 (Godot 4.7.2 with no .sln: "completed with
         # warnings"), and the game ships without its C#. On desktop the code sits in data_<Name>_<platform>_<arch>/.
@@ -532,7 +533,7 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
     $log = [System.IO.Path]::GetTempFileName()
     $code = Invoke-Logged $File (@('--headless', '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })) $log
     Stop-LogGroup
-    if ($code -ne 0) { Stop-GodotCi "The exported '$Name' build exited with $code" }
+    if ($code -ne 0) { Stop-GodotCi "The exported '$Name' build exited with $code" 'export-failed' }
     Assert-GodotLogClean $log "The exported '$Name' build"
     Write-CiLog "Exported '$Name' build ran $Frames frames without errors"
 }
@@ -540,8 +541,21 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
+# bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
+# refuse several scenes rather than quietly measure the first.
+$scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
+    Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
+}
+# Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
+# credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
+$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results' }
+$commandResultsDir = [System.IO.Path]::GetFullPath($(
+        if ($Command -eq 'shot') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' } }
+        elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
+        else { $Results }))
 if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits') {
-    Start-RunLog (Join-Path ([System.IO.Path]::GetFullPath($Results)) 'godot-ci.log')
+    Start-RunLog (Join-Path $commandResultsDir 'godot-ci.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
@@ -561,19 +575,18 @@ switch ($Command) {
     'export' { Invoke-Setup -WithTemplates; Invoke-Build; Invoke-Export }
     'bench' {
         Invoke-Setup; Invoke-Build
-        Invoke-Bench -Info $info -Scene @($Scene)[0] -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
-            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell `
-            -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'bench-results' })))
+        Invoke-Bench -Info $info -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
+            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir
     }
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $(if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' })
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir
     }
     'soak' {
         Invoke-Setup; Invoke-Build
         Invoke-Soak -Info $info -Clients $Clients -Seconds $Seconds -Warmup $Warmup -GameArgs $GameArgs -MaxGrowthMbPerHour $MaxGrowthMbPerHour -JunkPps $JunkPps `
-            -StopGraceSeconds $StopGraceSeconds -RequireCleanStop:$RequireCleanStop -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'soak-results' })))
+            -StopGraceSeconds $StopGraceSeconds -RequireCleanStop:$RequireCleanStop -ResultsDir $commandResultsDir
     }
     'sfx' {
         Invoke-Sfx -Info $info -Sound $Sound -Count $Count -Seed $Seed -Vary $Vary -Amount $Amount -PeakDb $PeakDb `
@@ -590,8 +603,7 @@ switch ($Command) {
     'audio' {
         if ($Mix) { Invoke-Setup; Invoke-Build }
         Invoke-Audio -Info $info -TargetLufs $TargetLufs -MaxOnsetMs $MaxOnsetMs -Mix:$Mix -Seconds $(if ($PSBoundParameters.ContainsKey('Seconds')) { $Seconds } else { 60 }) `
-            -Scene @($Scene)[0] -GameArgs $GameArgs `
-            -ResultsDir ([System.IO.Path]::GetFullPath($(if ($PSBoundParameters.ContainsKey('Results')) { $Results } else { 'audio-results' })))
+            -Scene ($scenes -join ',') -GameArgs $GameArgs -ResultsDir $commandResultsDir
     }
 }
 Add-RunHistory $true ''

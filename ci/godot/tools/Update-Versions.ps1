@@ -115,7 +115,8 @@ $packageFiles = @($csprojs) + @('ci/godot/lib/Init.ps1', '.agents/skills/godot-t
 $changed = [System.Collections.Generic.HashSet[string]]::new()
 function Update-Pin([string]$File, [string]$Pattern, [string]$Old, [string]$New) {
     $path = Join-Path $Root $File
-    if (-not (Test-Path -LiteralPath $path)) { return }
+    # A pinned file that moved or was deleted would otherwise stop getting updates without a word.
+    if (-not (Test-Path -LiteralPath $path)) { throw "Update-Pin: $File is pinned (pattern $Pattern) but does not exist; update the pin list in Update-Versions.ps1" }
     $text = Get-Content -LiteralPath $path -Raw
     $regex = $Pattern.Replace('{v}', [regex]::Escape($Old))
     $updated = [regex]::Replace($text, $regex, { param($m) $m.Value.Replace($Old, $New) })
