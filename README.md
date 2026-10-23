@@ -7,7 +7,7 @@
 <h3 align="center">A hyper interface for Godot: build, test, ship and plan games with an AI agent.</h3>
 
 <p align="center">
-  One PowerShell script, 50 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
+  One PowerShell script, 51 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
   Runs on your Windows machine and, as a GitHub workflow, on Linux runners.
 </p>
 
@@ -39,7 +39,7 @@ what to build next. Hyperdot supplies both.
 | **Verify** | One script detects the project, installs the right Godot, runs every test framework, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**. |
 | **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror (experimental). |
 | **Measure** | Frame-pacing benchmarks, real screenshots and loudness checks, so an agent judges performance, layout and sound, not just logic. |
-| **Teach** | `AGENTS.md` and 50 skills that make the agent work test first and prove it is done before it says so. |
+| **Teach** | `AGENTS.md` and 51 skills that make the agent work test first and prove it is done before it says so. |
 | **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. The hook checks only that; it does not judge the design or the code. |
 | **Get better** | `/retro` turns a session's mistakes into kit changes, each measured with evals, with and without the plugin. |
 
@@ -119,7 +119,8 @@ separate, headless tool.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
 4. Open Claude Code in the game's folder and **start every session with `/game`**: it reads where the game stands (GDD,
    plan, tests, git), writes `plan/STATUS.md` and ends with the three best next tasks to pick from. Then ask the agent to
-   work; it reads `AGENTS.md` and runs `test -Json` to check itself.
+   work; it reads `AGENTS.md` and runs `test -Json` to check itself. `/kit` (or `hyperdot.ps1 help`) lists every command, skill and
+   subagent in one line each; `/kit <name>` shows one page ([docs/help.md](docs/help.md)).
 
 ## What it gives an agent
 
@@ -127,6 +128,7 @@ separate, headless tool.
 
 | Capability | Command | Result |
 |---|---|---|
+| **Find the right tool** | `help [name]`, `/kit [name]` | one line per command, skill and subagent, or the page of one |
 | **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
 | **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files, add-ons, store art |
 | **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs, git activity and subagent handoffs; `/game` adds a short design and architecture review |
@@ -197,7 +199,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 
 ## Skills
 
-50 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
+51 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
 
 - **Test and verify**: `godot-test-loop`, `godot-verify-before-done`, `godot-ui-flows`, `godot-diagnose`, `godot-pitfalls`, `godot-automation-hooks`, `godot-editor-bridge`, `godot-debug-tools`
 - **Design and plan**: `godot-game-plan`, `godot-game-design`, `godot-playtest`, `godot-progression`, `godot-narrative`
@@ -205,7 +207,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 - **Look, sound and feel**: `godot-juice`, `godot-camera`, `godot-animation`, `godot-shaders-vfx`, `godot-asset-pipeline`, `godot-audio`, `godot-ui-accessibility`, `godot-localization`, `godot-performance`
 - **Online**: `godot-multiplayer`, `godot-servers`, `godot-anti-cheat`, `godot-telemetry`, `godot-modding`
 - **Ship**: `godot-export-release`, `godot-release-readiness`, `godot-mobile-web`, `godot-steam`, `godot-store-page`, `godot-legal`, `godot-console-cert`
-- **Run by hand**: `game` (where the game stands, what next), `look` (style guide and screenshot critique), `retro`, `kit-review`, `weekly-review`
+- **Run by hand**: `game` (where the game stands, what next), `kit` (every command, skill and subagent, one line each), `look` (style guide and screenshot critique), `retro`, `kit-review`, `weekly-review`
 
 The `godot-verifier` subagent runs screenshots, benchmarks and export launches and returns a short verdict, so their logs and
 images stay out of the main conversation. The `godot-architect` subagent compares designs for a new system before code is

@@ -24,7 +24,7 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `help` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
 | `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
@@ -325,6 +325,11 @@ Error codes: `credit-author-missing`, `credit-source-not-url`, `copyright-missin
 and `noticesFile`.
 
 **init**: `steps[]`: `status` (added/updated/skipped), `message`.
+
+**help** (no project needed): without a name, `entries[]` (`name`, `kind`: command, skill or subagent, `summary`: one
+line); with one (`help shot`, `help /game`), `entry` with `name`, `kind`, `summary`, `page` (the rest of its text in
+[help.md](help.md)), and for a skill or subagent `when` (its description), `start` (how it starts) and `file`. A name
+help does not know, or a name given to another command, fails with `invalid-arguments`.
 
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
 

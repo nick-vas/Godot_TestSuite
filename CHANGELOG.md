@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **`help` and `/kit`.** `hyperdot.ps1 help` prints one line for each command, skill and subagent, and `help <name>`
+  the short page of one (with `-Json`: `entries[]` or `entry`); it needs no project. The `kit` skill (`/kit`, `/kit <name>`)
+  prints the same. The text has one source, `docs/help.md`; `tests/Test-Help.ps1` fails when a command, skill or subagent
+  has no entry there.
 - **`/game` reviews design and architecture.** Besides the feature marks, `plan/STATUS.md` gets a "Review" section: at
   most five design and architecture problems with their evidence (features that serve no kind of fun, scope drift,
   `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on).

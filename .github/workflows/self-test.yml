@@ -51,6 +51,9 @@ jobs:
       - name: doctor reports agent instructions that name kit flags or files that do not exist; the kit's own calls bind
         shell: pwsh
         run: ./tests/Test-Context.ps1
+      - name: help and /kit have an entry for every command, skill and subagent
+        shell: pwsh
+        run: ./tests/Test-Help.ps1
       - name: Architecture rules catch their fixtures and stay quiet on clean code
         shell: pwsh
         run: ./tests/Test-ArchitectureFixtures.ps1

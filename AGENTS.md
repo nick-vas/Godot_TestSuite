@@ -5,8 +5,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Layout
 
-- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette.
+- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest help`, all with `-Json`.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, Help.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
 - `tests/` self-tests, most with a deliberately broken fixture (`tests/<name>-fixture`); the table under "Self-tests" says what each covers and needs.
@@ -22,7 +22,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   the sessions must not be able to recognise the test.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
-- `docs/` per-topic documentation; `docs/json.md` is the output contract.
+- `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`
+  (a new command, skill or subagent needs an entry there).
 
 ## Working here
 
@@ -99,6 +100,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Web.ps1` | Web `export -Run` (`web-fixture`) | Godot's templates, Node.js, a Playwright browser |
 | `Test-Addons.ps1` | `doctor`'s add-on and GDExtension checks (a project made in a temporary folder) | - |
 | `Test-RepoHygiene.ps1` | `doctor`'s repository checks (a broken project made in a temporary folder, since reserved names or case twins committed here would break Windows checkouts) | - |
+| `Test-Help.ps1` | `help` and `docs/help.md`: an entry for every command, skill and subagent, none for what does not exist, quoted calls that bind | - |
 | `Test-Context.ps1` | `doctor`'s check of agent instructions; holds the template, skills and docs to the kit's real flags | - |
 | `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test and pinning its workflow at `@v1`, `init -Plugin` writing `docs/kit-notes.md`, a plan `plan` and `status` cannot read | - |
 | `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello (local moves, custom lists, a failure halfway, an unreachable API, an empty board); `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |

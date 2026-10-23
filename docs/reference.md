@@ -1,7 +1,8 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx` and `playtest`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` and `help`
+(`help [name]`: one line per command, skill and subagent, or the page of one, from [help.md](help.md)).
 
 | Parameter | Default | |
 |---|---|---|
@@ -50,6 +51,7 @@
 | `-StopGraceSeconds` | `30` | `soak`: after the run, how long the server has to quit once sent SIGTERM (Kubernetes' default grace period; Docker's is 10 s, systemd's 90 s); reported under `soak.stop` |
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
+| `-Topic` | | `help`: the command, skill or subagent whose page to show; also the second word, `help shot` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |

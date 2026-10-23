@@ -24,6 +24,8 @@
     ./ci/godot/hyperdot.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
+.EXAMPLE
+    ./ci/godot/hyperdot.ps1 help shot     # one line per command, skill and subagent; with a name, its page (docs/help.md)
 #>
 [CmdletBinding()]
 param(
@@ -37,9 +39,13 @@ param(
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
+    # help: one line for each command, skill and subagent, or the page of one (help <name>); no project needed.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'help')]
     [string]$Command = 'test',
+    # help: the command, skill or subagent to show the page of, e.g. help shot.
+    [Parameter(Position = 1)]
+    [string]$Topic,
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
     [string]$Project,
@@ -191,7 +197,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'Help') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -199,6 +205,14 @@ if ($Json) {
 $script:QuietMode = [bool]$Quiet
 # Any unexpected terminating error still ends with a structured result.
 trap { Stop-GodotCi $_.Exception.Message 'unexpected-error' }
+
+# help needs no project: it is answered before one is looked for.
+if ($Topic -and $Command -ne 'help') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help takes a name (help $Topic)" 'invalid-arguments' }
+if ($Command -eq 'help') {
+    Invoke-Help $Topic
+    Write-JsonResult
+    exit 0
+}
 
 $GameArgs = @(Split-GameArgs $GameArgs)
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners
