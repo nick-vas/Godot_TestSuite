@@ -97,6 +97,9 @@ jobs:
       - name: The plan's vertical-slice gates (tech debt automatic, frame budget manual), the gates the skill names, and the release timeline
         shell: pwsh
         run: ./tests/Test-Plan.ps1
+      - name: plan -Do sync against a stand-in Trello (cards, moves, archived cards, list names, credentials kept out of output)
+        shell: pwsh
+        run: ./tests/Test-TrelloSync.ps1
       - name: doctor's GDExtension, Steam package and Steamworks file checks (rich presence, achievements, build scripts), and Steam detection
         shell: pwsh
         run: ./tests/Test-Steam.ps1

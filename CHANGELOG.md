@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `tests/Test-TrelloSync.ps1` tests `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an
+  emoji), a second sync that changes nothing, a card moved on the board, an archived card, a short link as `-Board`, a
+  missing list, missing and rejected credentials, and no token in the output or a URL. It runs against a stand-in Trello
+  in the self-test, and with `-Live` against the real API (the manual Trello sync workflow, with the `TRELLO_KEY` and
+  `TRELLO_TOKEN` repository secrets). The credentials message and `docs/plan.md` point to trello.com/power-ups/admin,
+  which replaced the old app-key page.
 - `plan` works on PCs with a day-first date format (Greek, and most of Europe): every plan command after `init` failed
   with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
   through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps

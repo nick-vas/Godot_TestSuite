@@ -1,0 +1,40 @@
+# Runs tests/Test-TrelloSync.ps1 -Live: plan -Do sync against the real Trello API, on a private board it creates and
+# deletes. Needs the repository secrets TRELLO_KEY and TRELLO_TOKEN (the API key and a token from
+# https://trello.com/power-ups/admin). Runs by hand, and on a push that changes the sync code; without the secrets a push
+# skips it with a notice. The self-test runs the same steps against a stand-in Trello on every change.
+name: Trello sync
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ci/godot/lib/Plan.ps1
+      - tests/Test-TrelloSync.ps1
+      - .github/workflows/trello-sync.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trello-sync
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
+      TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: plan -Do sync against live Trello
+        shell: pwsh
+        run: |
+          if (-not $env:TRELLO_KEY -or -not $env:TRELLO_TOKEN) {
+            $message = 'Add the TRELLO_KEY and TRELLO_TOKEN repository secrets to run the live Trello test'
+            if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { throw $message }
+            Write-Host "::notice::$message"; exit 0
+          }
+          if ($env:TRELLO_KEY -notmatch '^[0-9a-f]{32}$') { Write-Host "::warning::TRELLO_KEY is $($env:TRELLO_KEY.Length) characters; a Trello API key is 32 hex characters" }
+          ./tests/Test-TrelloSync.ps1 -Live
