@@ -27,6 +27,11 @@ approval, and, for kit changes, a measured result. Never write a new skill from 
   "Sometimes those contradictions are because one person is wrong. But sometimes, everyone is correct." (Yusaku
   Yamamoto, *Untold History*).
 
+- **The team's shape and its recurring jobs.** Who did what this time (the user, agents, subagents, scheduled jobs), and
+  the jobs that come back every week or release: the build, playtests, the store page, the board, backups, answering
+  players. Ask the user: "What recurring job has no owner?" A job nobody owns is a lesson with its evidence (the last
+  time it was done, from git or the history). Note the answer in `docs/lessons.md`, the job and who now owns it.
+
 ## 2. Write each lesson as one line with its evidence
 
 `<what to do differently> - evidence: <log line, error code with count, or the user's words>`. Drop anything without

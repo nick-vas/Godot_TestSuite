@@ -189,10 +189,6 @@ In the skills:
 
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
   a copy of the C# example on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
-- Smaller design prompts not yet placed: saving as a difficulty lever, pressure against stalling, sinks players want,
-  fixed costs pegged to a share of wealth, hidden charges on limited-use items (`godot-progression`); a camera cost
-  checklist (`concept.decisions`); a five-Ws premise and the player's verbs in bold in the story summary; a turn written
-  as named phases with a test per transition; a team-shape note and the retro question "what recurring job has no owner?".
 - A flow test that the credits screen is reachable from the main menu stays game-specific; the skill tells games to add one.
 
 ### Not run or measured here (hardware, platforms, runners)

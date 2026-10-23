@@ -52,6 +52,15 @@ per-decision generator (`godot-procgen`).
 | [Object Pool](https://gameprogrammingpatterns.com/object-pool.html) | none | many short-lived objects (bullets, particles, damage numbers) and creating them hitches | creating them does not show in `bench` |
 | [Spatial Partition](https://gameprogrammingpatterns.com/spatial-partition.html) | the physics broadphase; `Area2D`/`Area3D`; space-state queries | many non-physics proximity queries per frame: a uniform grid | physics queries answer it |
 
+## Turns as named phases
+
+A turn-based game (cards, tactics, board games, a battle menu) writes its turn as named phases in a plain class: an
+enum such as `Draw, Main, Combat, End` and one method that moves to the next, rather than booleans scattered over nodes.
+Each transition is a rule (Combat only after Main; End discards and passes play; a phase with nothing to do is skipped),
+and each gets a test: start in one phase, act, assert the next phase and what it changed. Log every transition
+(`[Turn] 3 Main -> Combat`), so a replay or a bug report shows where a turn went wrong, and let nodes animate a phase
+change, never decide one.
+
 ## Godot-specific consequences
 
 - **Observer:** C# events and lambdas on an autoload outlive the node that subscribed: unsubscribe in `_ExitTree`

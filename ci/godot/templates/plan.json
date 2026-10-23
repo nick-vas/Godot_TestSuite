@@ -45,7 +45,7 @@
         },
         {
           "id": "concept.decisions",
-          "text": "Decided up front, in docs/decisions/: multiplayer or not, saves, languages, accessibility, target platforms and input devices (bolted on late, these cost the most)",
+          "text": "Decided up front, in docs/decisions/: multiplayer or not, saves, languages, accessibility, target platforms and input devices, and the camera, with its cost checklist (godot-camera) (bolted on late, these cost the most)",
           "check": "manual"
         },
         {

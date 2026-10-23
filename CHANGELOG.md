@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **Design prompts placed.** `godot-progression` section 6: saving as a difficulty lever, pressure against stalling,
+  sinks players want, fixed costs as a share of wealth, and charges on limited-use items shown, each ending in a number
+  a test holds. A camera cost checklist in `godot-camera`, asked for by the `concept.decisions` gate. A premise in five
+  Ws and a story summary with the player's verbs in bold (`godot-narrative`, and an optional Story section in the GDD
+  template). A turn written as named phases with a test per transition (`godot-patterns`). The retro asks who owns each
+  recurring job ("What recurring job has no owner?").
 - **Intentional mistakes in `godot-game-ai`** (`mistakes.md`, a side file: the skill is at its size limit): Lars Lidén's
   "Artificial Stupidity" (*AI Game Programming Wisdom 2*) as rules with a test each: move before firing, miss the first
   time, be visible, poor aim on purpose, a few attackers at a time, tell the player, ease off at the end, openings on

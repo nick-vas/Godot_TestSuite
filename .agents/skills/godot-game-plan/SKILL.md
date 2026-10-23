@@ -53,7 +53,7 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 What 20 postmortems say went wrong most (`${CLAUDE_PLUGIN_ROOT}/docs/studio-lessons.md`): testing too thin or too late (9), scope
 creep (8), effort underestimated (8), no vertical slice (7), platform surprises (7). What went right most: outside playtests early
 and often (9), pillars with cuts to protect them (9), custom tools (6). Hence the gates `concept.decisions` (multiplayer, saves,
-localisation and accessibility decided up front, not bolted on), `prototype.variants`, `production.playthrough` (a bot reaches
+localisation, accessibility and the camera decided up front, not bolted on), `prototype.variants`, `production.playthrough` (a bot reaches
 the ending on every CI run) and `launch.archive` (ship exactly the build that was tested, with its source tagged). Keep the
 first estimate of each phase, and report how far the actual time has slipped from it.
 
