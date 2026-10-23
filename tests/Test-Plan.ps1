@@ -3,7 +3,8 @@
 # docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
 # `bench` command, the trailer template asks what its gate says, and every gate id, template and hyperdot.ps1 flag that
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
-# cannot be kept, and `plan -Json` reports it. `init` never overwrites an existing test/test_example.gd. No Godot needed.
+# cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
+# count test frameworks only (not data tables or flows). `init` never overwrites an existing test/test_example.gd. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -173,6 +174,17 @@ try {
     $d = Invoke-PlanJson @()
     Assert-True ($d.ok -and $d.release.daysLeft -eq 5 -and $d.release.dateLocked -eq $true -and $d.release.deadlines.steamFee) "plan -Json reports the release: $($d.release | ConvertTo-Json -Compress)"
     Assert-True (@($d.warnings | Where-Object { $_ -match 'release\.steamFeePaid is not set' }).Count -eq 1) "plan warns that the app fee is not recorded five days before release: $($d.warnings -join ' | ')"
+
+    # The tests gate and doctor's test check count test frameworks only: data tables and flows are checks, not tests.
+    Set-Content -LiteralPath (Join-Path $dir 'data.json') -Value '{}'
+    Set-Content -LiteralPath (Join-Path $dir 'start.flow.json') -Value '{ "steps": [] }'
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'slice.tests' -in @($d.nextActions | ForEach-Object id)) 'slice.tests stays open with only the data and flows runners'
+    $doctor = pwsh -NoProfile -File $ci doctor -Json -Project $dir 2>$null | ConvertFrom-Json
+    Assert-True (@($doctor.checks | Where-Object { $_.status -eq 'WARN' -and $_.message -match '^No tests found' }).Count -eq 1) "doctor warns that there are no tests: $(@($doctor.checks | Where-Object { $_.message -match 'test' } | ForEach-Object message) -join ' | ')"
+    Set-Content -LiteralPath (Join-Path $dir 'test_paddle.gd') -Value "extends GutTest`n`nfunc test_paddle():`n`tassert_true(true)`n"
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'slice.tests' -notin @($d.nextActions | ForEach-Object id)) 'slice.tests is done once a GUT test exists'
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }

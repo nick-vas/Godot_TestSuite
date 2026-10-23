@@ -391,7 +391,7 @@ function Invoke-Doctor($Info) {
     }
 
     # --- Tests ------------------------------------------------------------------------------------
-    $testRunners = @($Info.Runners | Where-Object { $_ -notin 'validate', 'architecture', 'smoke' })
+    $testRunners = @($Info.Runners | Where-Object { $_ -in $script:TestFrameworkRunners })
     if ($testRunners.Count -eq 0) {
         Add-Check WARN 'No tests found; only the load check and smoke run will happen' "Run: $(Format-KitCommand 'init') (adds a starter test)"
     } else {

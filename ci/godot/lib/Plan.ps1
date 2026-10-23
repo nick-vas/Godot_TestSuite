@@ -18,13 +18,16 @@ function Save-Plan($Plan, [string]$Path) {
     $Plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Path -Encoding utf8
 }
 
+# The runners of test frameworks. The others (validate, smoke, data, flows, l10n, ...) check the project, not its tests.
+$script:TestFrameworkRunners = 'dotnet', 'gdunit4', 'godottest', 'gut'
+
 # True/false for gates the project can answer by itself; $null for manual gates.
 function Test-PlanGate($Gate, $Info) {
     $check = $Gate.PSObject.Properties['check'] ? "$($Gate.check)" : 'manual'
     $root = Split-Path (Split-Path (Get-PlanPath $Info))
     switch -Regex ($check) {
         '^manual$' { return $null }
-        '^tests$' { return @($Info.Runners | Where-Object { $_ -notin 'validate', 'architecture', 'smoke' }).Count -gt 0 }
+        '^tests$' { return @($Info.Runners | Where-Object { $_ -in $script:TestFrameworkRunners }).Count -gt 0 }
         '^preset$' { return $Info.Presets.Count -gt 0 }
         # The runner is set up for the project (detected or listed), so every CI run enforces it.
         '^runner:(?<runner>[a-z0-9]+)$' { return @($Info.Runners) -contains $Matches.runner }
