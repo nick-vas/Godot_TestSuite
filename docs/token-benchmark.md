@@ -39,11 +39,19 @@ CLI's raw JSON. `-Json` prints `summary.json` on stdout.
   `Read`, `Grep`, `Glob`).
 - `profiles[]`: `id`, `description`, and any of `appendSystemPrompt`, `listContext` (add the task's `context` paths to
   the prompt), `maxTurns`, `effort`, and `steps` (prompts sent one after another in the same session, by resuming it).
-- `tasks[]`: `id`, `category`, `title`, `prompt`, `context` (paths in this repository), and `expected`: `mustInclude`
-  (each must appear, ignoring case), `forbid` (looked for in the answer's code blocks when it has any, so a note such as
-  "no `Write-Output`" does not fail it), `maxWords` (stated in the prompt as "Answer in at most N words.", so the limit
-  the answer is checked against is never a secret). A task passes when the session ends without an error and the answer
-  meets `expected`.
+- `tasks[]`: `id`, `category`, `title`, `prompt`, `context` (paths in this repository), and `expected`:
+  - `mustInclude`: each must appear as a whole word, ignoring case ("CI" is not found in "specific"). An edge that is a
+    letter or digit must not touch another, so `test_` still finds `test_score`. A term starting with `re:` is a regular
+    expression.
+  - `mustAdd`: as `mustInclude`, but on a line a diff adds (`+`), not on an unchanged context line.
+  - `forbid`: a command that counts where a statement starts (a line, or after `|`, `;`, `{`, `(`, `=`, `&`), in code
+    blocks or not. A note such as "no `Write-Output`" does not fail the answer, and a decoy code block cannot hide a
+    use written outside it.
+  - `maxWords`: stated in the prompt as "Answer in at most N words.", so the limit is never a secret. A word holds a
+    letter or a digit; table pipes, list dashes and `**` do not count.
+
+  A task passes when the session ends without an error and the answer meets `expected`. The runner refuses a spec
+  whose required term already appears in that task's own prompt or title, since echoing the question would pass it.
 
 The tasks name real files and expect answers grounded in them (`HYPERDOT_TIMEOUT`, `process_frame`, `Stop-GodotCi`), so
 a vague answer fails instead of passing on generic words.
@@ -58,7 +66,14 @@ a vague answer fails instead of passing on generic words.
 - `--setting-sources project`: the same instructions on every machine;
 - a fresh `--session-id` (and `--no-session-persistence` for one-step profiles); the variables that tie a process to a
   parent Claude Code session are removed, so a benchmark run from inside a session does not attach to it;
-- `--max-budget-usd` per session and a time limit, after which the session is stopped and, up to `retries`, run again.
+- `--max-budget-usd` per session and a time limit. Only a session that produced no answer is run again, up to
+  `retries`: one stopped at the time limit, one whose output is not JSON, or an API error. One that ran out of turns or
+  budget is a result: it is kept, with its tokens, and fails. A run in which a session still has no answer after its
+  retries exits 1.
+- **in a copy of the repository without the benchmark**: the tracked and untracked files, minus `benchmark/`, this page,
+  `docs/label*` and their tests, deleted after the run. The spec holds every expected answer, and the results folder
+  held earlier answers. `-WorkDir` runs the sessions elsewhere, as they are, with no copy;
+- profiles in an order that rotates with each repetition, so no profile always meets a cold prompt cache.
 
 ## Reading the numbers
 
@@ -68,21 +83,54 @@ a vague answer fails instead of passing on generic words.
   alone would have recorded 1,947 tokens, about 87 times too few.
 - **Cost** is Claude Code's own `total_cost_usd`, which prices each kind of token correctly. The spec has no price table.
 - **Model** is what the CLI reports it ran (`modelUsage`), not what was asked for; an alias resolves to the current model.
+- **A session stopped at the time limit reported no spend.** Medians leave it out and the summary's "Unknown" column
+  counts it. The label counts its peers' highest spend instead.
 - **Medians and 90th percentiles over `repeat` runs**: the same prompt can take 7 turns once and 12 the next. Compare
   profiles on medians from at least three runs; one run each shows only that the pipeline works.
 - `successesPerDollar` and `successesPer1kTokens` combine the two: a profile that saves tokens by failing does not win.
 - **Turns**: `--max-turns 6` did not stop a session that reported 10 turns (Claude Code 2.1.306), so the turn limit is not
   a hard cap; the time limit and `--max-budget-usd` are.
 
-## First run (one repetition, not a comparison)
+## Reference runs (October 2026)
 
-Claude Code 2.1.306, `claude-haiku-5-5`, task COMP-PS-001, October 2026. Every answer passed.
+Hyperdot 0.1.0 at commit `e4ccc2e`, Claude Code 2.1.309, three runs of every task. These are GitHub Actions runs
+39930259189 to 39930286282: 216 sessions, $5.95 by Claude Code's figure, run on a subscription. They set the label's scale
+([label.md](label.md)). The table is graded by the current grader, from the saved answers.
 
-| Profile | Tokens | Output | Turns | Cost |
-|---|---:|---:|---:|---:|
-| A-baseline | 168,562 | 1,939 | 7 | $0.0125 |
-| B-scoped | 122,176 | 2,625 | 10 | $0.0112 |
-| C-iterative (plan, then answer) | 134,612 | 1,785 | 7 (1 + 6) | $0.0122 |
+| Model | Profile | AEI | Pass | Tokens per solved task | Cost per solved task | Class |
+|---|---|---:|---:|---:|---:|---|
+| Haiku 5.5 | A-baseline | 74.2 | 95.8% | 86,041 | $0.0042 | D |
+| Haiku 5.5 | B-scoped | 94.5 | 87.5% | 82,355 | $0.0062 | |
+| Haiku 5.5 | C-iterative | 120.1 | 100% | 106,040 | $0.0084 | |
+| Haiku 5.5 + plugin | A-baseline | 107.5 | 79.2% | 113,548 | $0.0058 | G |
+| Sonnet 5.5 | A-baseline | 92.8 | 54.2% | 84,763 | $0.0607 | F |
+| Sonnet 5.5 | B-scoped | 124.1 | 45.8% | 100,536 | $0.0847 | |
+| Sonnet 5.5 | C-iterative | 167.8 | 66.7% | 133,253 | $0.1713 | |
+| Sonnet 5.5 + plugin | A-baseline | 100.4 | 62.5% | 85,563 | $0.0633 | F |
+
+What they show:
+
+- **Sonnet fails on length, not on content.** All but one of its failed answers, across every profile, are over the
+  word limit their prompt states, by 10 to 30%. Haiku keeps to the limit and passes 96% under profile A, at about a
+  fifteenth of the cost per solved task.
+- **The plugin costs here and helps nothing.** Its 50 skills are about making games, and these tasks are about
+  Hyperdot's own code. Loading it adds tokens to every session: the index rises from 74.2 to 107.5 for Haiku and from
+  92.8 to 100.4 for Sonnet. Haiku's pass rate also falls, from 96% to 79%. `evals/` is where the plugin is meant to
+  help: game tasks.
+- **Scoping and planning do not pay on these tasks.** B (listed files, a turn limit) and C (plan, then answer) both
+  cost more per solved task than A for both models. C's second step resends the whole session, and B's sessions that
+  ran out of turns still spent their tokens.
+- **Reading every failure found three grader faults**, fixed before the scale was set:
+  - CI-PS-001 required the word "scope", which good answers did not use;
+  - CODE-PS-001 required `param(`, though the repository writes 259 functions with inline parameters and 21 with
+    `param` blocks;
+  - markup was counted as words.
+
+  The adversarial review had already found the faults that let wrong answers pass: substring matches, terms echoed
+  from the prompt, a readable spec.
+
+Earlier runs (Sonnet on 2026-10-23 07:45 and 08:11, Haiku at 08:23, Sonnet with the plugin at 08:50) used a grader
+and sessions that could read the spec. They are superseded by the runs above.
 
 ## Differences from the blueprint it started from
 

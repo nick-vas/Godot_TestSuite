@@ -327,7 +327,7 @@ $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)
             coverage = $coverageBlock
             runs = @($config.sessions | ForEach-Object { $_.runId } | Sort-Object -Unique)
             cli = @($config.sessions | ForEach-Object { $_.cli } | Where-Object { $_ } | Sort-Object -Unique)
-            notes = @($Note)
+            notes = @($Note | Where-Object { $_ })
         }
     })
 if ($sheets.Count -eq 0) { throw "No sessions under the standard profile $standardProfile" }
@@ -339,8 +339,23 @@ $rescaleDue = (100.0 * $top / $sheets.Count -ge $scale.rescale.topClassPercent) 
 
 function Get-ClassColor([string]$Class, $Classes) { if (-not $Class) { return '#9e9e9e' }; return ($Classes | Where-Object { $_.class -eq $Class }).color }
 
+# "claude-sonnet-5-5" -> "Sonnet 5.5": how the label and the badge name a model.
+function Get-ModelName([string]$Model) {
+    if ($Model -match '^claude-([a-z]+)-(\d+)-(\d+)') { return "$($Matches[1].Substring(0, 1).ToUpper())$($Matches[1].Substring(1)) $($Matches[2]).$($Matches[3])" }
+    return $Model
+}
+
+# A shields.io badge for a sheet: "Hyperdot <version> · <model> | <class>" in the class's colour. Shields reads '-' as a
+# separator, so a literal one is doubled.
+function Get-BadgeUrl($Sheet) {
+    $escape = { param($t) [uri]::EscapeDataString(($t -replace '-', '--' -replace '_', '__')) }
+    $label = "Hyperdot $($Sheet.version) · $(Get-ModelName $Sheet.model)$(if ($Sheet.plugin) { ' + plugin' })"
+    $message = if ($Sheet.class) { "efficiency $($Sheet.class)" } else { 'efficiency: no class' }
+    return "https://img.shields.io/badge/$(& $escape $label)-$(& $escape $message)-$((Get-ClassColor $Sheet.class $scale.classes).TrimStart('#'))"
+}
+
 function New-LabelSvg($Sheet) {
-    $w = 400; $h = 640
+    $w = 400; $h = 560
     $classes = $scale.classes
     $svg = [System.Text.StringBuilder]::new()
     $add = { param($s) [void]$svg.AppendLine($s) }
@@ -353,7 +368,7 @@ function New-LabelSvg($Sheet) {
     & $add "<text x=`"$($w - 20)`" y=`"45`" font-size=`"12`" fill=`"#ffffff`" text-anchor=`"end`">scale $(& $esc $scale.scale)</text>"
     & $add "<text x=`"20`" y=`"84`" font-size=`"15`" font-weight=`"bold`" fill=`"#1d1d1b`">$(& $esc $Sheet.supplier)</text>"
     & $add "<text x=`"$($w - 20)`" y=`"84`" font-size=`"15`" font-weight=`"bold`" fill=`"#1d1d1b`" text-anchor=`"end`">$(& $esc "$($Sheet.product) $($Sheet.version)")</text>"
-    & $add "<text x=`"$($w - 20)`" y=`"102`" font-size=`"12`" fill=`"#444444`" text-anchor=`"end`">$(& $esc $Sheet.model)$(if ($Sheet.plugin) { ' + plugin' } else { '' })</text>"
+    & $add "<text x=`"$($w - 20)`" y=`"102`" font-size=`"12`" fill=`"#444444`" text-anchor=`"end`">$(& $esc (Get-ModelName $Sheet.model))$(if ($Sheet.plugin) { ' + plugin' } else { '' })</text>"
     $y0 = 118; $row = 38
     for ($i = 0; $i -lt $classes.Count; $i++) {
         $c = $classes[$i]; $y = $y0 + $i * $row; $barW = 90 + $i * 26
@@ -443,7 +458,11 @@ function New-SheetMarkdown($Sheet) {
     return ($lines -join "`n") + "`n"
 }
 
+foreach ($s in $sheets) { $s['modelName'] = Get-ModelName $s.model; $s['badge'] = Get-BadgeUrl $s }
 $output = [ordered]@{ scale = $scale.scale; rescaleReviewDue = $rescaleDue; labels = $sheets }
+if ($coverageBlock) {
+    $output.testedBadge = "https://img.shields.io/badge/tested-class%20$($coverageBlock.class)-$((Get-ClassColor $coverageBlock.class $scale.coverage.classes).TrimStart('#'))"
+}
 if ($OutDir) {
     New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
     foreach ($s in $sheets) {

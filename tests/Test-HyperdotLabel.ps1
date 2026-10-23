@@ -75,6 +75,7 @@ try {
     Assert-True ($byModel['m-long'].successPercent -eq 83.3) 'the word limit is graded again too'
     Assert-True ($g.coverage.class -eq 'D' -and $g.coverage.index -eq 83.3) 'the coverage class averages functions, error codes and commands (83.3, D)'
     Assert-True (-not $rated.Json.rescaleReviewDue) 'no rescale review while the top classes are empty'
+    Assert-True ($g.badge -eq 'https://img.shields.io/badge/Hyperdot%209.9.9%20%C2%B7%20m--good-efficiency%20C-bed630' -and $rated.Json.testedBadge -match '/tested-class%20D-fff200$') 'a shields badge per configuration and one for the tested class, in the class colours'
 
     $svgPath = Join-Path $out 'hyperdot-9.9.9-m-good.svg'
     Assert-True ((Test-Path -LiteralPath (Join-Path $out 'hyperdot-9.9.9-m-good.json')) -and (Test-Path -LiteralPath (Join-Path $out 'hyperdot-9.9.9-m-good.md'))) 'writes the information sheet as JSON and Markdown'
