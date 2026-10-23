@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **The Stop hook says what it checks.** The README, `docs/reference.md`, the hook, the plugin's description and
+  `godot-verify-before-done` say plainly that it only checks that the tests passed after the last edit; it is not a design
+  or code review.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

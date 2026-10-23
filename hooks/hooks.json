@@ -1,5 +1,5 @@
 {
-  "description": "Keeps 'done' honest: Claude cannot end a turn while Godot code changed since the last passing test run.",
+  "description": "Keeps 'done' honest: Claude cannot end a turn while Godot code changed since the last passing test run. It checks only that the tests passed after the last edit; it is not a design or code review.",
   "hooks": {
     "Stop": [
       {

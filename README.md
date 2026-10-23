@@ -40,7 +40,7 @@ what to build next. Hyperdot supplies both.
 | **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror. |
 | **Measure** | Frame-pacing benchmarks, real screenshots and loudness checks, so an agent judges performance, layout and sound, not just logic. |
 | **Teach** | `AGENTS.md` and 50 skills that make the agent work test first and prove it is done before it says so. |
-| **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. |
+| **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. The hook checks only that; it does not judge the design or the code. |
 | **Get better** | `/retro` turns a session's mistakes into kit changes, each measured with evals, with and without the plugin. |
 
 ```powershell
@@ -141,7 +141,7 @@ separate, headless tool.
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed to smoke runs, `export -Run`, `bench` and `shot` |
-| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework) |
+| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework). It only checks that the tests passed after the last edit: it is not a design or code review |
 
 ### Check the game itself
 

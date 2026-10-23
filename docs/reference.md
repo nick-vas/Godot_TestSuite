@@ -72,7 +72,7 @@
 | `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
 | `HYPERDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
 | `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
-| `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run |
+| `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run. It checks only that the tests passed after the last edit, not the design |
 | `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync`: the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
 
 **Workflow inputs** (`godot.yml`), all optional:

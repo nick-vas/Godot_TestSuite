@@ -4,6 +4,8 @@
 # reports. Each set of changes is blocked once: if Claude stops again without a new test run, it is let through, because
 # it was told and must now explain why the tests were not run (no Godot on this machine, for example). That keeps the
 # gate from looping. Set HYPERDOT_STOP_GATE=off to disable it.
+# It checks only that the tests passed after the last edit. It is not a design or code review: a change that passes its
+# tests but is badly structured or off scope gets through (that is the godot-architect subagent's and /game's job).
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 
