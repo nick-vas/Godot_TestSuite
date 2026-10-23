@@ -1,6 +1,6 @@
 ---
 name: godot-ui-flows
-description: Use when a Godot change affects menus, HUD, scene flow or player input and needs a test that plays the real scene.
+description: Use when a Godot change affects menus, HUD, scene flow, tutorials or player input.
 ---
 
 # UI flows

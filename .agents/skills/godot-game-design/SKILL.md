@@ -1,6 +1,6 @@
 ---
 name: godot-game-design
-description: Use when deciding what a game or feature should be, whether it is fun, what to cut, when drafting or reviewing a GDD, a pitch, pillars or a core loop, or when a level's layout loses players.
+description: Use when deciding what a game or feature should be, whether it is fun or what to cut, when drafting or reviewing a GDD, pitch, pillars or core loop, or when players get lost in a level.
 ---
 
 # Game design: naming the fun

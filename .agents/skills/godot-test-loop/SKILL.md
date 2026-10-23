@@ -99,6 +99,8 @@ Full contract: `docs/json.md`. Logs are on stderr; never parse them when the JSO
   a known engine message only, never for your own errors.
 - Never skip, delete or loosen a test to get green. Fix the code or ask.
 - New bug -> first a regression test that fails, then the fix.
+- Objects placed in levels (AI points, interactables, zip lines, landmarks) are checked in every run, not by hand:
+  `godot-data` section 6.
 - Let the code's own checks do the testing (Kevin Dill, Kythera AI, GDC): validators and `push_error`/`push_warning` in
   the game catch what tests at the interface cannot see. An unexpected one fails the test (GUT 9.7.1 fails on
   `push_error` by default; the suite fails on `ERROR:`); an expected one is counted exactly: feed a bad data file and

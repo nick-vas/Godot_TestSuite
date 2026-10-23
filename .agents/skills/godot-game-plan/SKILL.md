@@ -1,6 +1,6 @@
 ---
 name: godot-game-plan
-description: Use when starting a Godot game or a game jam entry, choosing what to work on next, or asked about scope, milestones, risks, budget, business model, roadmap or release readiness.
+description: Use when starting a Godot game or a game jam entry, or when asked about its phases and gates, scope, milestones, risks, budget or business model.
 ---
 
 # A-to-Z game plan (solo developer)

@@ -1,6 +1,6 @@
 ---
 name: godot-data
-description: Use when a Godot game defines items, enemies, levels, spells, dialogue or balance numbers as data, when choosing between custom Resources and JSON or CSV tables, when designers tune values in a spreadsheet, when objects placed in level scenes (AI points, interactables, zip lines) must keep obeying gameplay rules, or when game data loads wrong, changes by itself or is missing from an exported build.
+description: Use when a Godot game keeps items, enemies, levels, dialogue or balance numbers as data (Resources, JSON or CSV tables, spreadsheets), or when that data loads wrong, changes by itself or is missing from an export.
 ---
 
 # Data-driven design in Godot 4 (C#)

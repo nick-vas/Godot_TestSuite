@@ -1,6 +1,6 @@
 ---
 name: godot-algorithms
-description: Use when a Godot game needs paths for many agents at once, fleeing, connected regions or reachability, union-find, prerequisites that must not loop, a draw or turn order sorted every frame, "did you mean" suggestions, or when about to copy an algorithm from a public repository or textbook.
+description: Use when a Godot game needs paths for many agents at once, fleeing, connected regions, prerequisites that must not loop, a stable per-frame sort, "did you mean" suggestions or an exact puzzle solver, or when about to copy an algorithm from a public repository or textbook.
 ---
 
 # Algorithms for games (Godot 4.7, C#)

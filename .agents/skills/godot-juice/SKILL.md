@@ -1,6 +1,6 @@
 ---
 name: godot-juice
-description: Use when a Godot game feels flat or unresponsive, when adding feedback to hits, jumps, pickups or deaths, or when checking that every action gets feedback in time.
+description: Use when a Godot game feels flat or actions do not seem to land, when adding feedback to hits, jumps, pickups or deaths, or when checking that every action gets feedback in time.
 ---
 
 # Juice: feedback a player can feel, checked by a bot

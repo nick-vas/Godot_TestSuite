@@ -1,6 +1,6 @@
 ---
 name: godot-anti-cheat
-description: Use when a Godot game has online play, leaderboards, an economy, ranked modes or anything players could cheat in, when deciding whether to add anti-cheat software, or when cheaters, speed hacks or impossible scores appear.
+description: Use when players could cheat a Godot game's leaderboards, economy, ranked or competitive modes, when deciding on anti-cheat software, when player IPs must stay hidden, or when cheaters, speed hacks or impossible scores appear.
 ---
 
 # Anti-cheat basics for Godot games (C#)
@@ -70,11 +70,8 @@ leaks they stay vulnerable (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/denial-of-service-mi
 
 - **Do not expose player IPs.** ENet peer-to-peer and listen servers hand every player's address to the others; a direct
   connection does the same. Share an address only when both sides have agreed to connect, never just because one side
-  wants to. On Steam, relay the traffic so peers are identified by Steam ID, not address: GodotSteam's
-  `SteamMultiplayerPeer` connects by Steam ID (`create_client(steam_id, ...)`) after `Steam.initRelayNetworkAccess()`;
-  with Steamworks.NET, `SteamNetworkingSockets.ConnectP2P`/`CreateListenSocketP2P` with a `SteamNetworkingIdentity`
-  (`SetSteamID64`), and set ICE to `k_nSteamNetworkingConfig_P2P_Transport_ICE_Enable_Disable` to share no IP with the
-  peer. Keep peer addresses out of rich presence, spectator data and debug overlays (`godot-steam`).
+  wants to. On Steam, relay the traffic so peers are identified by Steam ID, not address (the calls: `godot-steam`
+  section 6). Keep peer addresses out of rich presence, spectator data and debug overlays.
 - **Let unauthenticated peers reach nothing.** Set `SceneMultiplayer.AuthCallback` and a short `AuthTimeout` (default 3 s):
   a peer that does not complete `SendAuth`/`CompleteAuth` in time is dropped before it can send gameplay RPCs. An empty
   callback accepts everyone (section 2).
@@ -83,10 +80,8 @@ leaks they stay vulnerable (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/denial-of-service-mi
   incentive to attack it (a derived rule, not from the talk).
 - **A ban must cost something.** In free-to-play, detect attackers from match-failure analytics and require a barrier to
   re-enter ranked play (e.g. a number of games played); otherwise a new account walks straight back in.
-- Measured here: flooding a Godot 4.7.2 ENet server's port on loopback with junk UDP (`soak -JunkPps`) has no effect up
-  to ~10,000 packets a second, then collapses by ~50,000 (input loss ~38-57%, round trips into the seconds, dropped
-  clients). Well-written transports cope to ~250,000; Godot's single-threaded ENet poll sits well below that.
-  Nothing in Godot runs before ENet: filtering, join tokens and per-address limits are in `godot-servers`.
+- Flooding the server itself (what Godot's ENet survives, filtering, per-address limits, join tokens):
+  `godot-servers` sections 3 and 4.
 
 ## 7. Evidence and bans
 

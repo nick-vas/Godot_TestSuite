@@ -1,6 +1,6 @@
 ---
 name: godot-automation-hooks
-description: Use when a Godot game needs to be played, measured, screenshotted or balanced without a person at the controls, or when a run must be reproducible.
+description: Use when a Godot game needs command-line flags, a bot that plays it, a recorded solution replayed in CI, or balance and A/B results from many runs, so it can be played and measured without a person.
 ---
 
 # Automation hooks: flags, seeds, bots, logs

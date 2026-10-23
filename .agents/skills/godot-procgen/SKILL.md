@@ -1,6 +1,6 @@
 ---
 name: godot-procgen
-description: Use when a Godot game generates levels, maps, dungeons, loot, names or text, or when a generated run must be reproducible from its seed for tests, bug reports and balancing.
+description: Use when a Godot game generates levels, maps, dungeons, loot, names or text, or needs seeds that give each generator its own stream.
 ---
 
 # Procedural generation that can be tested

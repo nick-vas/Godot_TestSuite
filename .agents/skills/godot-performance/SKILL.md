@@ -175,7 +175,6 @@ A one-frame spike the first time something appears (first enemy hit, first popup
   most 256 px; audio as mono QOA around 32 kHz.
 - Shadow map 2048 with low soft-shadow quality is enough for a tilted top-down camera.
 - Content that rarely changes (a board drawn on the floor): a `SubViewport` with `UpdateMode.Once`, re-triggered only on change.
-- Turn fog off on additive particle materials (fog darkens them).
 - Scale CPU work from frame time, not only resolution: Shadow of War pushed character LODs out when rendering neared
   30 ms of a 33 ms frame, and paused streaming high mips if frames still dropped. Past about 90% of the budget for
   several frames, raise `Viewport.MeshLodThreshold` or pull in `VisibilityRangeEnd`; restore below a lower mark, held

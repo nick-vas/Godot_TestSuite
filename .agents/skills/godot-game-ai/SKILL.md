@@ -1,6 +1,6 @@
 ---
 name: godot-game-ai
-description: Use when a Godot game has enemies, companions, crowds or opponents that decide or move on their own, when choosing between a state machine, behaviour tree, utility AI or a planner, when enemies must notice the player (sight, hearing, stealth), when adding navigation or steering, or when an AI dithers, gets stuck, stands still or is hard to test.
+description: Use when a Godot game has enemies, companions or opponents that decide, perceive or move on their own (state machines, behaviour trees, utility AI, planners, steering, navigation), or when an AI dithers, gets stuck or is hard to test.
 ---
 
 # Game AI in Godot 4 (C#)

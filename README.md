@@ -112,7 +112,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-verify-before-done` | about to say something is done, fixed or passing |
 | `godot-ui-flows` | a change affects menus, HUD, scene flow or input |
 | `godot-editor-bridge` | using an editor MCP server alongside this kit |
-| `godot-diagnose` | starting work or when something fails mysteriously: detect, doctor, validate |
+| `godot-diagnose` | a build, import, export or test fails and the cause is unclear: detect, doctor, validate |
 | `godot-performance` | stutter, hitches, frame drops, or a milestone where frame rate matters; profiling C# with dotnet-trace, GC settings measured |
 | `godot-automation-hooks` | the game must be played, measured or balanced without a person; runs must be reproducible |
 | `godot-ui-accessibility` | menus and HUD must look right at every resolution and work with a gamepad alone, a screen reader, low vision or motion sensitivity (WCAG 2.2, read for games) |
@@ -151,7 +151,7 @@ Frameworks: **GUT**, **gdUnit4Net**, **GoDotTest**, xUnit/NUnit/MSTest via `dotn
 | `godot-export-release` | exporting, smoke-launching, tagged releases, versions, signing, Steam, itch.io, Epic and GOG uploads |
 | `godot-debug-tools` | cheats, consoles, overlays, debug drawing and logging that never reach the shipped build |
 | `godot-addons` | choosing and installing add-ons and GDExtensions, calling them from C#, an add-on missing from an export |
-| `godot-game-plan` | deciding what to build next, scope, milestones, launch readiness |
+| `godot-game-plan` | starting a game or jam entry; phases and gates, scope, milestones, risks |
 | `retro` (manual) | end of a session: turn what went wrong into lessons and kit pull requests |
 | `kit-review` (manual) | monthly: which parts of the kit cost the most or help the least |
 | `game` (manual) | where the game stands and what to do next; drafts the GDD the first time, keeps Trello in step |

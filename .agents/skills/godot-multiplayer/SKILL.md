@@ -1,6 +1,6 @@
 ---
 name: godot-multiplayer
-description: Use when a Godot game is played online or over a network, when adding a dedicated server, client prediction, interpolation, lag compensation, rollback or lockstep, or when movement feels laggy, players rubber-band, hits do not register, or clients drift apart.
+description: Use when a Godot game is played over a network: choosing a netcode model, prediction, interpolation or lag compensation, or when movement feels laggy, players rubber-band or hits do not register.
 ---
 
 # Networked games in Godot 4 (C#)
