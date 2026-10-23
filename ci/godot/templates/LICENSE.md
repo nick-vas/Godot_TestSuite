@@ -9,7 +9,7 @@ the repository's NOTICE file.
 ```
 MIT No Attribution
 
-Copyright 2026 nick-vas
+Copyright 2026 Nikolaos-Nikiforos Vasilikiotis
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the "Software"), to deal in the Software
