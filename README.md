@@ -136,7 +136,7 @@ separate, headless tool.
 | **Feel the game** | `juice` runner, `juice.json` | every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
 | **Finish the game** | `playthrough` runner, `playthrough.json` | the game's bot plays at fixed game time and must log every milestone, the ending last |
 | **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
-| **Ship** | `export -Preset X -Run` | exported, launched and zipped; Web presets open in real browsers (`-Browser chromium,firefox`) |
+| **Ship** | `export -Preset X -Run` | exported and launched; Web presets open in real browsers (`-Browser chromium,firefox`). The workflow's `release` input zips the exports into a GitHub Release |
 | **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
 | **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, a hitch log, draw calls, GC |
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames; with a baseline, the share changed and a diff image; `-Locale` for translations |
