@@ -37,6 +37,8 @@ Assert-True ((Format-Names $flaky) -eq '(runner)' -and $flaky[0].Message -match 
 $flaky = @(Get-FlakyTests @((New-Run 'gut' @('a')), (New-Run 'gut' @('a')), (New-Run 'gut' @())))
 Assert-True ((Format-Names $flaky) -eq 'a' -and $flaky[0].FailedAttempt -eq 1) "a test that failed twice, then passed, is listed once ($(Format-Names $flaky))"
 Assert-True (@(Get-FlakyTests @((New-Run 'gut' @('a')))).Count -eq 0) 'a single attempt has no flaky tests'
+$flaky = @(Get-FlakyTests @((New-Run 'gut' @('a')), (New-Run 'gut' @() 124 0)))
+Assert-True ($flaky.Count -eq 0) "a last attempt that crashed or timed out before any test ran says nothing about a: not flaky ($(Format-Names $flaky))"
 
 # --- Quarantine: only the named test of that runner, only while it lasts, never a crash -----------------------------
 $run = Set-RunQuarantine (New-Run 'gut' @('a', 'b')) @((New-Entry 'gut' 'a' '2099-01-01'))

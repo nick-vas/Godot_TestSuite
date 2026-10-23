@@ -484,10 +484,13 @@ function Set-RunQuarantine($Run, [object[]]$Entries) {
 
 # The tests that failed in an earlier attempt of a runner but not in its last one: they passed on a retry. Each attempt is a
 # runner result (Write-TestSummary, after Set-RunQuarantine). A runner that failed without naming a test counts as
-# "(runner)", as in Get-FailureIds, so a crash that went away on the retry is reported too.
+# "(runner)", as in Get-FailureIds, so a crash that went away on the retry is reported too. A last attempt that failed
+# without running a test (a crash, a time-out) shows nothing passed, so then no test is flaky.
 function Get-FlakyTests([object[]]$Attempts) {
     $flaky = [ordered]@{}
     if ($Attempts.Count -lt 2) { return @() }
+    $last = $Attempts[$Attempts.Count - 1]
+    if (-not $last.Ok -and $last.Total -eq 0) { return @() }
     $failing = {
         param($Attempt)
         $names = @($Attempt.FailedNames | Where-Object { $_ })
