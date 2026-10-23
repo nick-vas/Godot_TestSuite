@@ -17,7 +17,8 @@ desktop only). Everything below was tested on an exported Godot 4.7.2 mono game;
 | Assets and scenes | A PCK or ZIP of Godot resources | Code: a `.tres` or `.tscn` can carry a script that runs on load | Desktop |
 | Scripts | GDScript or C# in a pack | Full rights: files, network, `OS.Execute`; Godot has no sandbox | Desktop only (C# needs JIT) |
 
-- Start with data mods: the game reads files it validates, like Breakout's `data` runner does with `data.json`.
+- Start with data mods: the game reads files it validates, like Breakout's `data` runner does with `data.json`. Keep
+  gameplay in data and scripts that can be replaced, and when rewriting internals, keep the old data contract working.
 - Loading a `.tres` from a mod or save folder runs any script embedded in it (tested). Never load Godot resources from
   `user://` or a Workshop folder unless that mod is trusted as code; the `architecture` runner warns (`untrusted-load`).
 

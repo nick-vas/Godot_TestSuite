@@ -1,6 +1,6 @@
 ---
 name: godot-narrative
-description: Use when a Godot game has a story, lore, named characters, quests or random events, a codex or journal, dialogue or barks, voice acting, or text that several agents or writers add to over time, or when names, dates or facts in the game start to contradict each other.
+description: Use when writing or organising a Godot game's story, lore, characters, quests, dialogue, barks or voice lines, or when names, dates or facts in the game contradict each other.
 ---
 
 # Story, lore and voice

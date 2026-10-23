@@ -11,8 +11,8 @@ captions, added Croteam's talk on CI and automated testing, and read Bohemia's p
 Reforger samples in place of the wiki pages Cloudflare blocks.
 
 The skills carry the working version: `godot-game-design` (prototyping and feel), `godot-game-plan` (scope, playtests,
-release), `godot-automation-hooks` (bots, telemetry, testing), `godot-architecture` (data, simulation, networking) and
-`weekly-review`. `doctor` checks two of them (keyboard and gamepad bindings, a git remote), and every program the kit runs
+release), `godot-automation-hooks` (bots, telemetry, testing), `godot-patterns` (simulation apart from presentation),
+`godot-data`, `godot-progression`, `godot-multiplayer` and `weekly-review`. `doctor` checks two of them (keyboard and gamepad bindings, a git remote), and every program the kit runs
 now has a time limit, so a hung game fails instead of stalling (Croteam's "lockups deadlocks").
 
 ## What recurs across sources
@@ -1157,7 +1157,7 @@ The captions hear "bot" as "boat", "board" and "bodkin", and Ladavac's name as "
 1. **Unit-test the low-level code, play-test the rest.** "we're gonna have unit tests for some things but we're just gonna functionality test the rest as much as we can" ([27:20](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1640))
    Godot: `test -Json` already runs both halves: xUnit, gdUnit4Net or GUT for pure logic, and the `validate`, `smoke` and `flows` runners for the game in the real engine. The `godot-test-loop` skill says when to write which.
 2. **Do not build towers of mocks; game code is cross-cutting.** "90% of your work is just trying to come up with walks in order to create the test and people just give up" (the captions hear "mocks" as "walks") ([27:04](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1624))
-   Godot: keep the rules in plain C# classes that need no scene tree, as `godot-architecture` ("State in plain C#") asks, and test node-heavy code headless in the real engine with `flows` instead of mocking `SceneTree`.
+   Godot: keep the rules in plain C# classes that need no scene tree, as `godot-patterns` ("State in plain C#") asks, and test node-heavy code headless in the real engine with `flows` instead of mocking `SceneTree`.
 3. **A bot cannot prove there are no bugs, but it can prove the game can be finished.** "it can't prove that there are no bugs ... but what he can do is to prove that the game can be completed" ([17:15](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1035))
    Godot: the `playthrough` runner (`playthrough.json`) fails unless the bot logs every milestone, the ending last; the plan gate `production.playthrough` is checked by it. A `smoke` run with `-GameArgs '--autoplay'` alone passes a bot stuck in the first room.
 4. **"Can you complete it?" is the first ship criterion.** "can you complete the game this is the number one if you if you can't complete the game that's obviously not shippable" ([28:45](https://www.youtube.com/watch?v=YGIvWT-NBHk&t=1725))

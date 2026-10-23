@@ -1,6 +1,6 @@
 ---
 name: godot-playtest
-description: Use when preparing, running or reading a playtest of a Godot game, when players get lost, stuck, bored or confused, when deciding what a playtest found and what to change, or when a level, tutorial or companion character needs tuning from what testers did.
+description: Use when preparing, running or reading a playtest of a Godot game, when players get stuck, bored or confused, or when deciding what a playtest found and what to change.
 ---
 
 # Playtests that change the game (Valve's method)

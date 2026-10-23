@@ -28,8 +28,9 @@ capture mode: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/capturing-footage-for-trailers.md`
 
 ## 2. Debug flags from the command line
 
-Give the game flags an agent can pass (`export -Run -GameArgs`, `bench -GameArgs`, `godot-automation-hooks`), read
-with `OS.GetCmdlineUserArgs()`, and accept them only in debug builds:
+Give the game flags an agent can pass (`test -GameArgs` for `smoke` and `playthrough`, `bench -GameArgs`,
+`shot -GameArgs`; `godot-automation-hooks`), read with `OS.GetCmdlineUserArgs()`, and accept them only in debug builds.
+Those commands run the editor binary, a debug build; `export -Run` runs the release export, where the flags do nothing:
 
 ```csharp
 #if DEBUG

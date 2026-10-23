@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Use when the user asks for a retrospective at the end of a work session on a Godot game, to turn what went wrong into lessons.
+description: Use when the user asks for a retrospective at the end of a work session on a Godot game.
 disable-model-invocation: true
 ---
 

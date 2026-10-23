@@ -18,8 +18,9 @@ Before this change a GUT failure came back as `"message": "failed", "line": null
 the 16 KB log, so an agent had to read it. Now the JSON carries `message`, `file`, `line` and `details`, for example
 `[20] expected to equal [25]:` at `test/test_score.gd:7`, or `Expecting be equal: '31' but is '30'` at `MainSceneTest.cs:28`.
 
-What every session starts with is small: the `AGENTS.md` template is 1.8 KB (it was 2.6 KB) and capped at 4 KB by the
-skill validator; the skill descriptions total about 1.7 KB; the largest skill is 5.4 KB.
+What every session starts with: the `AGENTS.md` template is 2.5 KB, capped at 4 KB by the skill validator, and the 50
+skill descriptions total about 9.4 KB. A skill's body loads only when it is used: the largest `SKILL.md` is 15.8 KB, under
+the validator's 16 KB limit, and seven skills keep detail in side files that load only when the skill links to them.
 
 ### First eval runs (`claude plugin eval`)
 
@@ -125,6 +126,5 @@ of which input and output were 1,947. Comparisons need the medians of repeated r
 
 ## Not adopted
 
-- Splitting skills into side files: measured as already small.
-- Path-scoped rules in games: `AGENTS.md` is under 2 KB; little to gain.
+- Path-scoped rules in games: the `AGENTS.md` template is 2.5 KB; little to gain.
 - A C# language-server plugin: nothing found showing it works with Godot projects.

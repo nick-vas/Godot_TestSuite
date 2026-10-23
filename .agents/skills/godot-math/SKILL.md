@@ -1,6 +1,6 @@
 ---
 name: godot-math
-description: Use when game code works with positions, directions, angles, distances, rotations, bounces, jump height and gravity, oscillation, easing curves or smoothing toward a target in Godot, or when a textbook formula and the engine disagree.
+description: Use when Godot game code needs rotations, angles between directions, reflections and bounces, jumps set by height and distance, easing curves or smoothing that holds at any frame rate, or when a textbook formula and the engine disagree.
 ---
 
 # Game math in Godot 4

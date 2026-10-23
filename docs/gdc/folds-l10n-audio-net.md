@@ -32,7 +32,7 @@ Tom Slattery, localization manager, Bungie. 2015 inferred (he describes 2012 to 
   text on art, no symbols made of English initials, dirt or decals over sign text; uppercase widens text. Measured:
   `Translate(key, context)` with no such context returns the raw key, so each language must fill a variant.
 - Not taken: staffing, web localization, VO length policy (only lip-synced cinematics must match), the shrink-a-pixel
-  fallback (`godot-ui-layout` already covers shrink-to-fit), glyph subsetting (Godot rasterises glyphs on demand).
+  fallback (`godot-ui-accessibility` already covers shrink-to-fit), glyph subsetting (Godot rasterises glyphs on demand).
 
 ### Localization Shenanigans in the Chinese Speaking World
 "Johnson" (surname not transcribed), programmer, IGDShare and Taipei Game Developers Forum. 2017 inferred (events up to
@@ -66,7 +66,7 @@ https://www.youtube.com/watch?v=XxtTD6QlOLc
 Terence Weinzierl (Whisper: "Weinzerl"), type designer, Monotype. Year not stated. https://www.youtube.com/watch?v=mdaHTa_zE8I
 - Taken (`godot-localization` section 6): no negative letter spacing for running text; room above and below letters
   for accents; one point size is not one height across scripts.
-- Not taken: type history and taste; free-font licence checks (already in `godot-credits`/`godot-legal`).
+- Not taken: type history and taste; free-font licence checks (already in `godot-asset-pipeline`/`godot-legal`).
 
 ### Breaking the Ankh: Deterministic Propagation Netcode in 'Spelunky 2'
 Guillermo (surname not transcribed), Blitworks (Whisper: "Bladeworks", "Bleedworks"). 2021 inferred (findings from

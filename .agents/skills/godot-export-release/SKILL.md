@@ -114,9 +114,7 @@ Upload only the CI build that `export -Run` launched, from a tag or a manual run
   then `-mode=LabelBinary`.
 - **GOG**: `GOGGalaxyPipelineBuilder build-game project.json` (from search results only; check GOG's documentation).
 
-## Gold-master checklist
+## Gold master
 
-- `test -Json -MinCoverage <your floor>` green on the release commit.
-- `export -Run` passes for every shipped preset on its own OS.
-- The version shows correctly in the Windows file properties and in the game.
-- Tag, let CI build; upload the CI artifacts, not a build from your machine.
+The checklist is `godot-release-readiness` section 1. In short: tag the release commit, let CI build, and upload the CI
+artifacts, never a build from your machine.

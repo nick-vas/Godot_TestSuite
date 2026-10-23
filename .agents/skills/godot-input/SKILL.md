@@ -1,6 +1,6 @@
 ---
 name: godot-input
-description: Use when a Godot game takes keyboard, mouse or controller input, when adding a controls or rebinding menu, button prompts or icons, controller support, Steam Deck or Steam Input support, local multiplayer, or when a binding, prompt or controller misbehaves or controls feel unresponsive (coyote time, jump buffering, accidental restarts).
+description: Use when a Godot game takes keyboard, mouse or controller input, when adding rebinding, button prompts, controller or Steam Input support or local multiplayer, or when a binding or prompt misbehaves or presses are missed (coyote time, jump buffering).
 ---
 
 # Input in Godot 4 (C#)

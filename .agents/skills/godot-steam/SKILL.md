@@ -1,6 +1,6 @@
 ---
 name: godot-steam
-description: Use when a Godot game ships on Steam or uses Steamworks: achievements, stats, leaderboards, Steam Cloud saves, rich presence, DLC, authentication, depots, branches, demos or dedicated servers, or when Steam does not start or an exported build quits at once.
+description: Use when a Godot game ships on Steam or uses Steamworks: achievements, stats, leaderboards, Steam Cloud, rich presence, DLC, demos, authentication, depots or branches, or when Steam does not start or an exported build quits at once.
 ---
 
 # Steam for Godot 4 (C#)
@@ -100,8 +100,9 @@ manual runs (Spacewar or your App ID) touch the real client: overlay, popups, cl
 - Networking: relay game traffic through Steam rather than connecting peers directly, so no player's IP is revealed and
   peers are known by Steam ID. GodotSteam's `SteamMultiplayerPeer` (`create_host`, `create_client(steam_id, ...)`) does
   this after `Steam.initRelayNetworkAccess()`; Steamworks.NET has `SteamNetworkingSockets.ConnectP2P`/
-  `CreateListenSocketP2P` with a `SteamNetworkingIdentity`. Why it matters for denial of service and IP privacy:
-  `godot-anti-cheat`.
+  `CreateListenSocketP2P` with a `SteamNetworkingIdentity` (`SetSteamID64`), and ICE set to
+  `k_nSteamNetworkingConfig_P2P_Transport_ICE_Enable_Disable` so no IP reaches the peer. Why it matters for denial of
+  service and IP privacy: `godot-anti-cheat`.
 
 ## 7. Done means
 

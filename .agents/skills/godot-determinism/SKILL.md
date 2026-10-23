@@ -1,6 +1,6 @@
 ---
 name: godot-determinism
-description: Use when a Godot game needs replays, time rewind, rollback or lockstep netcode, server-side score checks, reproducible bug reports or seeded runs that must repeat exactly, or when a replay or multiplayer session goes out of sync.
+description: Use when a Godot game's simulation must give the same state from the same inputs, for replays, time rewind, rollback or lockstep netcode or server-side score checks, or when a replay or rolled-back session goes out of sync.
 ---
 
 # Deterministic simulation in Godot 4 (C#)
