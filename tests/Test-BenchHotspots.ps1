@@ -70,5 +70,11 @@ $b = Invoke-Bench @('-Scene', 'res://no_camera.tscn', '-Headless', '-Warmup', '0
 Assert-True ($b.camera -eq 'none' -and @($b.hotspots).Count -eq 0 -and $b.hotspotCell -eq 0) "no camera, no hotspots: $($b.camera), $(@($b.hotspots).Count)"
 Assert-True (@($b.hitches | Where-Object { $null -ne $_.pos }).Count -eq 0) 'hitches without a camera have no position'
 
+# Under a decimal-comma culture bench.csv still writes 59.5, not "59,5", so rows from machines in other cultures agree.
+$deResults = Join-Path ([IO.Path]::GetTempPath()) "bench-de-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+$null = pwsh -NoProfile -Command "[cultureinfo]::CurrentCulture = 'de-DE'; & '$kit' bench -Json -Quiet -Project '$fixture' -Results '$deResults' -Scene res://no_camera.tscn -Headless -Warmup 0 -Seconds 1" 2>$null
+$deRow = @(Import-Csv -LiteralPath (Join-Path $deResults 'bench.csv'))
+Assert-True ($deRow.Count -eq 1 -and $deRow[0].fpsAvg -match '^\d+\.\d+$' -and $deRow[0].p99Ms -match '^\d+(\.\d+)?$') "bench.csv under de-DE writes numbers with a point: fpsAvg '$(if ($deRow.Count) { $deRow[0].fpsAvg })', p99Ms '$(if ($deRow.Count) { $deRow[0].p99Ms })'"
+
 if ($failures.Count) { throw "$($failures.Count) bench hotspot check(s) failed" }
 Write-Host 'bench hotspots self-test passed'

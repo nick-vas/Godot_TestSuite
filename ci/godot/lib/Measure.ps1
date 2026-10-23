@@ -91,7 +91,7 @@ function Add-BenchCsvRow([string]$Path, $Result) {
         drawCallsAvg = $Result.drawCalls.avg; customMonitorDeltas = $monitors
     }
     $exists = Test-Path -LiteralPath $Path
-    [pscustomobject]$row | Export-Csv -LiteralPath $Path -Append:$exists -NoTypeInformation -Encoding utf8
+    Export-InvariantCsv @([pscustomobject]$row) $Path -Append:$exists
 }
 
 function Invoke-Shot {

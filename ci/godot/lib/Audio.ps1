@@ -170,7 +170,7 @@ function Invoke-Audio {
             }
         }
     }
-    @($assets | ForEach-Object { [pscustomobject]$_ }) | Export-Csv -LiteralPath (Join-Path $ResultsDir 'loudness.csv') -NoTypeInformation -Encoding utf8
+    Export-InvariantCsv @($assets | ForEach-Object { [pscustomobject]$_ }) (Join-Path $ResultsDir 'loudness.csv')
 
     # --- The game's own mix -----------------------------------------------------------------------
     $mixResult = $null

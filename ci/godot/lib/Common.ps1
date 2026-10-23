@@ -486,6 +486,16 @@ function ConvertTo-UtcTime($Value) {
     return [datetime]::Parse([string]$Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal)
 }
 
+# Rows to a CSV file with numbers as 59.5 under every culture: Export-Csv writes them in the current one (59,5 in de-DE),
+# which a spreadsheet or script in another culture misreads, and which the next run's rows would then disagree with.
+function Export-InvariantCsv([object[]]$Rows, [string]$Path, [switch]$Append) {
+    $culture = [cultureinfo]::CurrentCulture
+    try {
+        [cultureinfo]::CurrentCulture = [cultureinfo]::InvariantCulture
+        $Rows | Export-Csv -LiteralPath $Path -Append:$Append -NoTypeInformation -Encoding utf8
+    } finally { [cultureinfo]::CurrentCulture = $culture }
+}
+
 # res:// path of a file inside the project.
 function ConvertTo-ResPath([string]$ProjectDir, [string]$File) {
     $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $File) -replace '\\', '/'
