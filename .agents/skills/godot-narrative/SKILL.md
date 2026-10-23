@@ -96,7 +96,8 @@ of four letters or more are checked; the same word in capitals is fine.
   criteria, and criteria that can never hold together; it warns on a fact read but never remembered and not in `facts`
   (the facts the game supplies), which is usually a typo. The game loads the same file with `ResponseTable.Load` in
   `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Narrative/ResponseTable.cs`; the grammar is in
-  `${CLAUDE_PLUGIN_ROOT}/docs/data.md`. Lines are one language: make them translation keys for other languages.
+  `${CLAUDE_PLUGIN_ROOT}/docs/data.md`. Translations go on each line (`"locales": { "fr": "..." }`); the table's
+  `"locales"` makes the runner fail a line missing one, and `ResponseTable.Load(json, symbols, locale: "fr")` reads them.
 
 ## 5. Voice
 

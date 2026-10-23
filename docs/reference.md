@@ -316,7 +316,9 @@ Godot. Each table names its file (JSON: an array of objects or an object keyed b
 `type` (`string`, `int`, `number`, `bool`), `min`/`max`, `enum`, `pattern`, `ref` (another table whose ids the value must name),
 `list` (a JSON array, or `;` between values in a CSV cell) and `optional`. Columns that data.json does not list fail (`"extra": "allow"`
 to permit them), and so does a CSV table without a committed `.import` saying `importer="keep"`: Godot imports every `.csv` as a
-translation otherwise, and the exported game cannot read the file.
+translation otherwise, and the exported game cannot read the file. Tables can also add up per group (`totals`), name
+money flows that need a sink (`economy`), hold dialogue rules with their translations (`"kind": "responses"`,
+`locales`) or levels searched for soft-locks (`"kind": "softlock"`): [data.md](data.md).
 
 ```json
 { "tables": {

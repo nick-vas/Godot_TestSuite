@@ -19,6 +19,8 @@
     <None Include="Saves/golden/*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- The criteria grammar's cases, shared with the data runner's self-test (tests/Test-Data.ps1), and the game's dialogue table. -->
     <None Include="criteria-examples.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Soft-lock levels as data, shared the same way with tests/Test-Data.ps1. -->
+    <None Include="softlock-examples.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../game/data/barks.json" Link="barks.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="Exists('../../../../ci/godot/templates/playtest-events.json')">

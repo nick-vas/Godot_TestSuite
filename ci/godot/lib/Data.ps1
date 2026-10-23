@@ -21,7 +21,13 @@
 # column), a then naming a concept no rule has, voice files that do not exist, rules with the same who, concept and
 # criteria, and criteria that contradict each other; facts read but never remembered are warnings unless "facts" lists them:
 #   "barks": { "file": "data/barks.json", "kind": "responses", "facts": ["health", "weapon"], "voiced": false }
+# "locales": ["fr", "de"] on a responses table: every line needs its text in each ("locales": { "fr": "Salut" } or
+# { "fr": { "text", "voice" } } on the line object; a voiced table needs each locale's voice file too), and a locale the
+# table does not list is reported with the near name.
 # "type": "criteria" is the criteria grammar in any table (Read-ResponseCriteria, the same as CriteriaSyntax in C#).
+# "kind": "softlock" on a JSON table: levels as areas, passages, pickups, supplies and goals, searched for soft-locks as
+# Example.Core's SoftLockCheck does (see "Soft-lock levels" below).
+# "economy": { "currency": "<field>", "rate": "<field>" } on a table of money flows: every currency needs a sink.
 
 function Read-DataTable([string]$Path) {
     if ($Path -match '\.csv$') {
@@ -162,6 +168,7 @@ function Test-ResponseTable([string]$ProjectDir, $Spec, [object[]]$Records, $Con
     $given = [System.Collections.Generic.HashSet[string]]::new()
     if ($Spec.Contains('facts')) { foreach ($f in @($Spec['facts'])) { [void]$given.Add("$f") } }
     $voiced = $Spec.Contains('voiced') -and $Spec['voiced'] -eq $true
+    $locales = [string[]]@(if ($Spec.Contains('locales')) { foreach ($l in @($Spec['locales'])) { "$l" } })
     $idField = $Spec['id']
     $readBy = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[string]]]::new([StringComparer]::Ordinal)
     $seen = [System.Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
@@ -210,6 +217,22 @@ function Test-ResponseTable([string]$ProjectDir, $Spec, [object[]]$Records, $Con
                     if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir ($voice -replace '^res://', '')) -PathType Leaf)) { $problems.Add("$where line $number voice $voice does not exist") }
                 }
                 elseif ($voiced) { $problems.Add("$where line $number has no voice file") }
+                # Each locale the table lists, in every line: text, and a voice file when the table is voiced.
+                $translated = if ($line -is [System.Collections.IDictionary] -and $line.Contains('locales') -and $line['locales'] -is [System.Collections.IDictionary]) { $line['locales'] } else { @{} }
+                foreach ($locale in $translated.Keys) {
+                    if ($locale -cnotin $locales) { $problems.Add("$where line $number has locale '$locale', which the table's locales do not list$(Format-DidYouMean "$locale" $locales)") }
+                }
+                foreach ($locale in $locales) {
+                    $t = $null
+                    foreach ($k in $translated.Keys) { if ($k -ceq $locale) { $t = $translated[$k] } }
+                    $text = if ($t -is [string]) { $t } elseif ($t -is [System.Collections.IDictionary] -and $t.Contains('text') -and $t['text'] -is [string]) { $t['text'] } else { '' }
+                    if (-not $text) { $problems.Add("$where line $number has no '$locale' text"); continue }
+                    $localVoice = if ($t -is [System.Collections.IDictionary] -and $t.Contains('voice') -and $t['voice'] -is [string]) { $t['voice'] } else { '' }
+                    if ($localVoice) {
+                        if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir ($localVoice -replace '^res://', '')) -PathType Leaf)) { $problems.Add("$where line $number '$locale' voice $localVoice does not exist") }
+                    }
+                    elseif ($voiced) { $problems.Add("$where line $number has no '$locale' voice file") }
+                }
             }
         }
     }
@@ -250,9 +273,18 @@ function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
         }
         'line' {
             if ($Value -is [System.Collections.IDictionary]) {
-                foreach ($k in $Value.Keys) { if ($k -cnotin 'text', 'voice') { return "has '$k' (a line has text and voice)" } }
+                foreach ($k in $Value.Keys) { if ($k -cnotin 'text', 'voice', 'locales') { return "has '$k' (a line has text, voice and locales)" } }
                 if (-not ($Value.Contains('text') -and $Value['text'] -is [string] -and $Value['text'])) { return 'has a line without text' }
                 if ($Value.Contains('voice') -and $Value['voice'] -isnot [string]) { return "voice is not text: '$($Value['voice'])'" }
+                if ($Value.Contains('locales')) {
+                    if ($Value['locales'] -isnot [System.Collections.IDictionary]) { return "locales is not { locale: text or { text, voice } }: '$($Value['locales'])'" }
+                    foreach ($locale in $Value['locales'].Keys) {
+                        $t = $Value['locales'][$locale]
+                        $ok = ($t -is [string] -and $t) -or ($t -is [System.Collections.IDictionary] -and $t.Contains('text') -and $t['text'] -is [string] -and $t['text'] -and
+                            -not @($t.Keys | Where-Object { $_ -cnotin 'text', 'voice' }).Count -and (-not $t.Contains('voice') -or $t['voice'] -is [string]))
+                        if (-not $ok) { return "'$locale' is neither text nor { text, voice }" }
+                    }
+                }
             }
             elseif ($Value -isnot [string]) { return "is neither text nor { text, voice }: '$Value'" }
         }
@@ -337,21 +369,33 @@ function Get-DataCases([string]$ProjectDir) {
     # Read every table first: references between them need all the ids.
     $loaded = [ordered]@{}; $configProblems = @()
     # A responses table (ResponseSystem's rules) gets its columns predefined; fields it lists are added or override them.
-    $responses = @(foreach ($name in $tables.Keys) {
+    # A soft-lock table (levels for SoftLockCheck) likewise; its rows' structure is checked by Test-SoftLockTable.
+    $responses = [System.Collections.Generic.List[string]]::new(); $softlocks = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in $tables.Keys) {
         $spec = $tables[$name]
         if (-not $spec.Contains('kind')) { continue }
-        if ($spec['kind'] -cne 'responses') { $configProblems += "table '$name': kind '$($spec['kind'])' is unknown (the one kind is responses)"; continue }
-        if ("$($spec['file'])" -notmatch '\.json$') { $configProblems += "table '$name': a responses table is a JSON file, not $($spec['file'])" }
+        $kind = $spec['kind']
+        if ($kind -cnotin 'responses', 'softlock') { $configProblems += "table '$name': kind '$kind' is unknown (the kinds are responses and softlock)$(Format-DidYouMean "$kind" @('responses', 'softlock'))"; continue }
+        if ("$($spec['file'])" -notmatch '\.json$') { $configProblems += "table '$name': a $kind table is a JSON file, not $($spec['file'])" }
         if (-not $spec.Contains('id')) { $spec['id'] = 'id' }
-        $fields = [ordered]@{
-            who = @{ type = 'string'; optional = $true }; concept = @{ type = 'string' }; criteria = @{ type = 'criteria'; optional = $true }
-            lines = @{ type = 'line'; list = $true }; then = @{ type = 'followup'; optional = $true }
-            remember = @{ type = 'remember'; list = $true; optional = $true }; once = @{ type = 'bool'; optional = $true }
+        $fields = if ($kind -ceq 'responses') {
+            [ordered]@{
+                who = @{ type = 'string'; optional = $true }; concept = @{ type = 'string' }; criteria = @{ type = 'criteria'; optional = $true }
+                lines = @{ type = 'line'; list = $true }; then = @{ type = 'followup'; optional = $true }
+                remember = @{ type = 'remember'; list = $true; optional = $true }; once = @{ type = 'bool'; optional = $true }
+            }
+        } else {
+            [ordered]@{
+                areas = @{ type = 'string'; list = $true }; goals = @{ type = 'string'; list = $true }; start = @{ type = 'string'; optional = $true }
+                items = @{ list = $true; optional = $true }; pickups = @{ list = $true; optional = $true }
+                supplies = @{ list = $true; optional = $true }; passages = @{ list = $true; optional = $true }
+                everyItemCanBeLost = @{ type = 'bool'; optional = $true }; maxStates = @{ type = 'int'; min = 1; optional = $true }
+            }
         }
         if ($spec.Contains('fields') -and $spec['fields']) { foreach ($f in $spec['fields'].Keys) { $fields[$f] = $spec['fields'][$f] } }
         $spec['fields'] = $fields
-        $name
-    })
+        if ($kind -ceq 'responses') { $responses.Add($name) } else { $softlocks.Add($name) }
+    }
     foreach ($name in $tables.Keys) {
         $spec = $tables[$name]
         $file = Join-Path $ProjectDir (($spec['file'] -replace '^res://', ''))
@@ -447,8 +491,10 @@ function Get-DataCases([string]$ProjectDir) {
         }
         foreach ($cycle in @(Find-DataCycles $edges)) { $problems.Add("$cycle is a cycle: none of them can come first") }
         foreach ($problem in @(Test-DataTotals $name $spec $loaded $tables)) { $problems.Add($problem) }
+        foreach ($problem in @(Test-DataEconomy $name $spec $loaded $tables)) { $problems.Add($problem) }
+        if ($softlocks.Contains($name)) { foreach ($problem in @(Test-SoftLockTable $spec $loaded[$name])) { $problems.Add($problem) } }
         $warnings = @()
-        if ($responses -ccontains $name) {
+        if ($responses.Contains($name)) {
             $checked = Test-ResponseTable $ProjectDir $spec $loaded[$name] $conceptWho $remembered
             foreach ($problem in $checked.Problems) { $problems.Add($problem) }
             $warnings = @($checked.Warnings)
@@ -510,6 +556,48 @@ function Test-DataTotals([string]$Name, $Spec, $Loaded, $Tables) {
     return $problems
 }
 
+# "economy" on a table of money flows (Example.Core's EconomySim rows: a currency and a rate per hour, negative for a sink):
+#   "flows": { ..., "economy": { "currency": "currency", "rate": "perHour" } }
+# Every currency with a source needs a sink, or it only piles up (the usual shape of an exploit). When the currency field
+# is a ref, every currency of that table needs one too, flows or not. Problems as text.
+function Test-DataEconomy([string]$Name, $Spec, $Loaded, $Tables) {
+    if (-not $Spec.Contains('economy')) { return @() }
+    $economy = $Spec['economy']
+    if ($economy -isnot [System.Collections.IDictionary] -or $economy['currency'] -isnot [string] -or $economy['rate'] -isnot [string]) {
+        return @("economy needs currency and rate, the fields holding each row's currency and its rate per hour: $($economy | ConvertTo-Json -Compress)")
+    }
+    $currency = $economy['currency']; $rate = $economy['rate']
+    $missing = @(foreach ($f in $currency, $rate) { if (-not $Spec['fields'].Contains($f)) { $f } })
+    if ($missing) { return @("economy names $($missing -join ' and '), which the table does not list$(Format-DidYouMean $missing[0] @($Spec['fields'].Keys))") }
+    $idField = $Spec['id']
+    $sources = [ordered]@{}; $sinks = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($record in $Loaded[$Name]) {
+        $c = if ($record.Contains($currency)) { "$($record[$currency])" } else { '' }
+        $n = if ($record.Contains($rate)) { ConvertTo-DataNumber $record[$rate] } else { $null }
+        if (-not $c -or $null -eq $n) { continue }   # the field rules report it
+        if ($n -lt 0) { [void]$sinks.Add($c); continue }
+        if ($n -eq 0) { continue }
+        $id = if ($record.Contains('@key')) { $record['@key'] } elseif ($idField -and $record.Contains($idField)) { "$($record[$idField])" } else { "row $($record['@line'])" }
+        if (-not $sources.Contains($c)) { $sources[$c] = [System.Collections.Generic.List[string]]::new() }
+        $sources[$c].Add($id)
+    }
+    $problems = @(foreach ($c in $sources.Keys) {
+        if ($sinks.Contains($c)) { continue }
+        $from = $sources[$c]
+        $by = if ($from.Count -gt 3) { "$($from[0..2] -join ', ') and $($from.Count - 3) more" } else { $from -join ', ' }
+        "currency '$c' has no sink: $by pay$(if ($from.Count -eq 1) { 's' }) it in and nothing takes it out, so it only piles up"
+    })
+    $ref = $Spec['fields'][$currency]['ref']
+    if ($ref -and $Loaded.Contains($ref)) {
+        $refIdField = $Tables[$ref]['id']
+        foreach ($row in $Loaded[$ref]) {
+            $id = if ($row.Contains('@key')) { $row['@key'] } elseif ($refIdField -and $row.Contains($refIdField)) { "$($row[$refIdField])" } else { '' }
+            if ($id -and -not $sources.Contains($id) -and -not $sinks.Contains($id)) { $problems += "currency '$id' has no sink (and no source): no row of $Name moves it" }
+        }
+    }
+    return $problems
+}
+
 # Proper nouns in the game's text that are one or two letters away from a canonical name but not one: the misspellings
 # players notice. Canonical words come from a table's field (default its id), split into words of four letters or more.
 # A word is suspect when Get-ClosestName finds a canonical word near it and no canonical word equals it, ignoring case.
@@ -557,6 +645,242 @@ function Test-DataNames([string]$ProjectDir, $Spec, $Loaded, $Tables) {
         }
     }
     return $problems
+}
+
+# ---- Soft-lock levels ("kind": "softlock") --------------------------------------------------------------------------
+# A level written down as data, checked as Example.Core's SoftLockCheck checks a SoftLockLevel built in C# (SoftLock.cs;
+# SoftLockTable.cs loads the same file): every state the player can reach, in every order, and whether the goal can still
+# be reached from each. One row per level:
+#   { "id": "vault", "areas": ["Hall", "Closet", "Exit"], "start": "Hall", "goals": ["Exit"],
+#     "items": ["key", { "name": "box", "max": 1, "canBeLost": true, "start": 0 }],
+#     "pickups": [{ "area": "Hall", "item": "key", "count": 1 }],
+#     "supplies": [{ "area": "Hall", "item": "key", "upTo": 1, "name": "key rack" }],
+#     "passages": [{ "from": "Hall", "to": "Exit", "name": "exit door", "oneWay": false, "needs": "box", "needsCount": 1,
+#                    "uses": "key", "useCount": 1 }],
+#     "everyItemCanBeLost": false, "maxStates": 100000 }
+# Rules are added as pickups, then supplies, then passages, each in file order; both languages explore in that order,
+# so the counterexample (the fewest steps into a dead end) is the same text.
+
+# The level's names resolved and its rules checked, as SoftLockLevel's builder checks them. Returns Level (areas, items,
+# rules, start, goals) and Problems (text, without the level's id).
+function Read-SoftLockLevel($Record) {
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $areas = [string[]]@(foreach ($a in @($Record['areas'])) { "$a" })
+    $areaIndex = @{}
+    for ($i = 0; $i -lt $areas.Count; $i++) {
+        if ($areaIndex.ContainsKey($areas[$i])) { $problems.Add("area '$($areas[$i])' appears twice") } else { $areaIndex[$areas[$i]] = $i }
+    }
+    $items = [System.Collections.Generic.List[object]]::new(); $itemIndex = @{}
+    if ($Record.Contains('items') -and $null -ne $Record['items']) {
+        $n = 0
+        foreach ($raw in @($Record['items'])) {
+            $n++
+            $item = if ($raw -is [string]) { @{ name = $raw } } elseif ($raw -is [System.Collections.IDictionary]) { $raw } else { $null }
+            if ($null -eq $item -or -not ($item.Contains('name') -and $item['name'] -is [string] -and $item['name'])) { $problems.Add("item $n needs a name"); continue }
+            $bad = @($item.Keys | Where-Object { $_ -cnotin 'name', 'max', 'canBeLost', 'start' })
+            if ($bad) { $problems.Add("item '$($item['name'])' has '$($bad[0])' (an item has name, max, canBeLost and start)"); continue }
+            $max = if ($item.Contains('max')) { $item['max'] } else { 1 }
+            $start = if ($item.Contains('start')) { $item['start'] } else { 0 }
+            $lost = $item.Contains('canBeLost') -and $item['canBeLost'] -eq $true
+            if (-not ($max -is [long] -or $max -is [int]) -or $max -lt 1) { $problems.Add("item '$($item['name'])': max must be a whole number of at least 1, not '$max'"); continue }
+            if (-not ($start -is [long] -or $start -is [int]) -or $start -lt 0 -or $start -gt $max) { $problems.Add("item '$($item['name'])': start must be 0 to $max, not '$start'"); continue }
+            if ($itemIndex.ContainsKey($item['name'])) { $problems.Add("item '$($item['name'])' appears twice"); continue }
+            $itemIndex[$item['name']] = $items.Count
+            $items.Add([pscustomobject]@{ Name = $item['name']; Max = [int]$max; CanBeLost = $lost; Start = [int]$start })
+        }
+    }
+    $itemNames = [string[]]@($items | ForEach-Object Name)
+    # Each reference by name; $null (with a problem) when it names nothing.
+    $area = {
+        param($Where, $Value)
+        if ($Value -is [string] -and $areaIndex.ContainsKey($Value)) { return $areaIndex[$Value] }
+        $problems.Add("$Where names area '$Value', which areas do not list$(Format-DidYouMean "$Value" $areas)"); return $null
+    }
+    $itemOf = {
+        param($Where, $Value)
+        if ($Value -is [string] -and $itemIndex.ContainsKey($Value)) { return $itemIndex[$Value] }
+        $problems.Add("$Where names item '$Value', which items do not list$(Format-DidYouMean "$Value" $itemNames)"); return $null
+    }
+    $countOf = {
+        param($Where, $Object, [string]$Key, $Item)
+        $count = if ($Object.Contains($Key)) { $Object[$Key] } else { 1 }
+        if (-not ($count -is [long] -or $count -is [int]) -or $count -lt 1 -or $count -gt $items[$Item].Max) {
+            $problems.Add("$Where ${Key}: item $($items[$Item].Name): $count is outside 1 to its max $($items[$Item].Max)"); return $null
+        }
+        return [int]$count
+    }
+    $rules = [System.Collections.Generic.List[object]]::new()
+    foreach ($list in 'pickups', 'supplies', 'passages') {
+        if (-not $Record.Contains($list) -or $null -eq $Record[$list]) { continue }
+        $known = switch ($list) { 'pickups' { 'area', 'item', 'count' } 'supplies' { 'area', 'item', 'upTo', 'name' } default { 'from', 'to', 'name', 'oneWay', 'needs', 'needsCount', 'uses', 'useCount' } }
+        $n = 0
+        foreach ($o in @($Record[$list])) {
+            $n++
+            $where = "$($list.TrimEnd('s') -replace 'ie$', 'y') $n"
+            if ($o -isnot [System.Collections.IDictionary]) { $problems.Add("$where is not an object"); continue }
+            $bad = @($o.Keys | Where-Object { $_ -cnotin $known })
+            if ($bad) { $problems.Add("$where has '$($bad[0])' (it has $($known -join ', '))$(Format-DidYouMean "$($bad[0])" $known)"); continue }
+            $name = if ($o.Contains('name') -and $o['name'] -is [string] -and $o['name']) { $o['name'] } else { $null }
+            if ($list -eq 'passages') {
+                $from = & $area $where $o['from']; $to = & $area $where $o['to']
+                $needs = -1; $needsCount = 0; $uses = -1; $useCount = 0
+                if ($o.Contains('needs')) { $needs = & $itemOf "$where needs" $o['needs']; if ($null -ne $needs) { $needsCount = & $countOf $where $o 'needsCount' $needs } }
+                if ($o.Contains('uses')) { $uses = & $itemOf "$where uses" $o['uses']; if ($null -ne $uses) { $useCount = & $countOf $where $o 'useCount' $uses } }
+                if ($null -in $from, $to, $needs, $needsCount, $uses, $useCount) { continue }
+                $rules.Add([pscustomobject]@{ Kind = 'Move'; From = $from; To = $to; Name = $name; Item = $uses; Count = $useCount
+                    Needs = $needs; NeedsCount = $needsCount; OneWay = ($o.Contains('oneWay') -and $o['oneWay'] -eq $true) })
+                continue
+            }
+            $at = & $area $where $o['area']; $item = & $itemOf $where $o['item']
+            if ($null -in $at, $item) { continue }
+            $count = & $countOf $where $o $(if ($list -eq 'pickups') { 'count' } else { 'upTo' }) $item
+            if ($null -eq $count) { continue }
+            $kind = if ($list -eq 'pickups') { 'Pickup' } else { 'Supply' }
+            if ($kind -eq 'Supply' -and -not $name) { $name = 'supply' }
+            $rules.Add([pscustomobject]@{ Kind = $kind; From = $at; To = $at; Name = $name; Item = $item; Count = $count; Needs = -1; NeedsCount = 0; OneWay = $false })
+        }
+    }
+    $startArea = 0
+    if ($Record.Contains('start') -and $null -ne $Record['start']) { $s = & $area 'start' $Record['start']; if ($null -ne $s) { $startArea = $s } }
+    $goals = @(foreach ($g in @($Record['goals'])) { & $area 'goals' $g })
+    return @{ Problems = $problems.ToArray()
+        Level = [pscustomobject]@{ Areas = $areas; Items = $items.ToArray(); Rules = $rules.ToArray(); Start = $startArea; Goals = @($goals | Where-Object { $null -ne $_ }) } }
+}
+
+function Get-SoftLockBits([int]$Value) { if ($Value -le 0) { return 0 }; return [int][Math]::Floor([Math]::Log2($Value)) + 1 }
+
+# SoftLockCheck.Run: breadth-first over (area, items held, flags of pickups taken and one-time ways opened), then
+# backward from the goals. A state is an int array: area, then each item's count, then each flag (0 or 1). Returns the
+# same text as SoftLockResult.ToString(), Safe, States and DeadEndStates; throws past MaxStates, as C# does.
+function Invoke-SoftLockSearch($Level, [int]$MaxStates = 100000, [bool]$EveryItemCanBeLost = $false) {
+    $items = @($Level.Items); $areas = @($Level.Areas); $itemCount = $items.Count
+    $bits = (Get-SoftLockBits ($areas.Count - 1))
+    foreach ($item in $items) { $bits += Get-SoftLockBits $item.Max }
+    # Actions: each rule (a two-way passage twice, sharing one flag), then a loss per item that can be lost.
+    $actions = [System.Collections.Generic.List[object]]::new(); $flags = 0
+    foreach ($r in $Level.Rules) {
+        $flag = -1
+        if ($r.Kind -eq 'Pickup' -or ($r.Kind -eq 'Move' -and $r.Item -ge 0)) { $flag = $flags; $flags++ }
+        $actions.Add([pscustomobject]@{ Rule = $r; From = $r.From; To = $r.To; Flag = $flag })
+        if ($r.Kind -eq 'Move' -and -not $r.OneWay) { $actions.Add([pscustomobject]@{ Rule = $r; From = $r.To; To = $r.From; Flag = $flag }) }
+    }
+    if ($bits + $flags -gt 128) {
+        throw "The level needs $($bits + $flags) bits of state (areas, item counts, pickups and one-time ways) and the check holds 128: lower item maxima or split the level at a checkpoint"
+    }
+    $losses = @(for ($i = 0; $i -lt $itemCount; $i++) { if ($items[$i].CanBeLost -or $EveryItemCanBeLost) { [pscustomobject]@{ Rule = [pscustomobject]@{ Kind = 'Lose'; Item = $i }; From = -1; To = -1; Flag = -1 } } })
+    $byArea = @(for ($a = 0; $a -lt $areas.Count; $a++) { , [object[]]@(@($actions | Where-Object From -eq $a) + $losses) })
+    $isGoal = @($false) * $areas.Count
+    foreach ($g in $Level.Goals) { $isGoal[$g] = $true }
+    $flagAt = 1 + $itemCount
+
+    $begin = [int[]]::new($flagAt + $flags)
+    $begin[0] = $Level.Start
+    for ($i = 0; $i -lt $itemCount; $i++) { $begin[1 + $i] = $items[$i].Start }
+    $index = @{ ($begin -join ',') = 0 }
+    $states = [System.Collections.Generic.List[int[]]]::new(); $states.Add($begin)
+    $parent = [System.Collections.Generic.List[int]]::new(); $parent.Add(-1)
+    $via = [System.Collections.Generic.List[object]]::new(); $via.Add($null)
+    $edgeFrom = [System.Collections.Generic.List[int]]::new(); $edgeTo = [System.Collections.Generic.List[int]]::new()
+    for ($head = 0; $head -lt $states.Count; $head++) {
+        $s = $states[$head]
+        if ($isGoal[$s[0]]) { continue }
+        foreach ($action in $byArea[$s[0]]) {
+            $r = $action.Rule; $next = [int[]]$s.Clone()
+            # if, not switch: "continue" inside a switch only leaves the switch.
+            if ($r.Kind -eq 'Move') {
+                if ($r.Needs -ge 0 -and $s[1 + $r.Needs] -lt $r.NeedsCount) { continue }
+                if ($action.Flag -ge 0 -and $s[$flagAt + $action.Flag] -eq 0) {
+                    if ($s[1 + $r.Item] -lt $r.Count) { continue }
+                    $next[1 + $r.Item] -= $r.Count; $next[$flagAt + $action.Flag] = 1
+                }
+                $next[0] = $action.To
+            }
+            elseif ($r.Kind -eq 'Pickup') {
+                $max = $items[$r.Item].Max
+                if ($s[$flagAt + $action.Flag] -eq 1 -or $s[1 + $r.Item] -ge $max) { continue }
+                $next[1 + $r.Item] = [Math]::Min($max, $s[1 + $r.Item] + $r.Count); $next[$flagAt + $action.Flag] = 1
+            }
+            elseif ($r.Kind -eq 'Supply') {
+                if ($s[1 + $r.Item] -ge $r.Count) { continue }
+                $next[1 + $r.Item] = $r.Count
+            }
+            else {
+                if ($s[1 + $r.Item] -eq 0) { continue }
+                $next[1 + $r.Item]--
+            }
+            $key = $next -join ','
+            if ($index.ContainsKey($key)) { $id = $index[$key] }
+            else {
+                if ($states.Count -ge $MaxStates) {
+                    throw "The soft-lock check stopped at $MaxStates states without exploring the whole level. Raise maxStates, lower item maxima, or split the level at a checkpoint and check each part."
+                }
+                $id = $states.Count; $index[$key] = $id; $states.Add($next); $parent.Add($head); $via.Add($action)
+            }
+            if ($id -eq $head) { continue }
+            $edgeFrom.Add($head); $edgeTo.Add($id)
+        }
+    }
+    # Backward: the states that can still reach a goal.
+    $count = $states.Count
+    $sources = @{}
+    for ($e = 0; $e -lt $edgeTo.Count; $e++) {
+        if (-not $sources.ContainsKey($edgeTo[$e])) { $sources[$edgeTo[$e]] = [System.Collections.Generic.List[int]]::new() }
+        $sources[$edgeTo[$e]].Add($edgeFrom[$e])
+    }
+    $canFinish = [bool[]]::new($count)
+    $queue = [System.Collections.Generic.Queue[int]]::new()
+    for ($i = 0; $i -lt $count; $i++) { if ($isGoal[$states[$i][0]]) { $canFinish[$i] = $true; $queue.Enqueue($i) } }
+    $finishing = $queue.Count
+    while ($queue.Count) {
+        $t = $queue.Dequeue()
+        if (-not $sources.ContainsKey($t)) { continue }
+        foreach ($from in $sources[$t]) { if (-not $canFinish[$from]) { $canFinish[$from] = $true; $finishing++; $queue.Enqueue($from) } }
+    }
+    $dead = $count - $finishing
+    $first = [Array]::IndexOf($canFinish, $false)
+    if ($first -lt 0) { return @{ Safe = $true; States = $count; DeadEndStates = 0; Text = "No soft-lock: the goal can be reached from all $count reachable states." } }
+
+    $named = { param($Item, $N) if ($N -eq 1) { $items[$Item].Name } else { "$N $($items[$Item].Name)" } }
+    $steps = [System.Collections.Generic.List[string]]::new()
+    for ($i = $first; $parent[$i] -ge 0; $i = $parent[$i]) {
+        $action = $via[$i]; $r = $action.Rule; $before = $states[$parent[$i]]
+        $steps.Insert(0, $(switch ($r.Kind) {
+            'Pickup' { "pick up $(& $named $r.Item $r.Count) in $($areas[$r.From])" }
+            'Supply' { "take $($items[$r.Item].Name) from $($r.Name) in $($areas[$r.From])" }
+            'Lose' { "lose $($items[$r.Item].Name)" }
+            default {
+                $go = "go $($areas[$action.From]) -> $($areas[$action.To])"
+                if ($action.Flag -ge 0 -and $before[$flagAt + $action.Flag] -eq 0) { "use $(& $named $r.Item $r.Count) on $(if ($r.Name) { $r.Name } else { 'the way' }), $go" }
+                elseif ($r.Name) { "$go through $($r.Name)" } else { $go }
+            }
+        }))
+    }
+    $stuck = $states[$first]
+    $held = @(for ($i = 0; $i -lt $itemCount; $i++) { if ($stuck[1 + $i]) { "$($stuck[1 + $i]) $($items[$i].Name)" } })
+    $at = "$($areas[$stuck[0]]), holding $(if ($held) { $held -join ', ' } else { 'nothing' })"
+    $text = if ($steps.Count -eq 0) { "The goal cannot be reached from the start ($at); $count states explored." }
+    else { "Soft-lock after $($steps.Count) step(s): $($steps -join '; '). Stuck in ${at}: $dead of $count reachable states cannot reach the goal." }
+    return @{ Safe = $false; States = $count; DeadEndStates = $dead; Text = $text }
+}
+
+# The checks of a "kind": "softlock" table: each level's names and counts, then the search. Problems as text.
+function Test-SoftLockTable($Spec, [object[]]$Records) {
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $idField = $Spec['id']
+    foreach ($record in $Records) {
+        $id = if ($record.Contains('@key')) { $record['@key'] } elseif ($record.Contains($idField)) { "$($record[$idField])" } else { '' }
+        $where = if ($id) { "'$id'" } elseif ($record.Contains('@line')) { "row $($record['@line'])" } else { 'a row' }
+        if (-not ($record.Contains('areas') -and @($record['areas']).Count -and $record.Contains('goals') -and @($record['goals']).Count)) { continue }   # the field rules report it
+        $read = Read-SoftLockLevel $record
+        foreach ($p in $read.Problems) { $problems.Add("$where $p") }
+        if ($read.Problems.Count) { continue }
+        $max = if ($record.Contains('maxStates') -and ($record['maxStates'] -is [long] -or $record['maxStates'] -is [int])) { [int]$record['maxStates'] } else { 100000 }
+        $every = $record.Contains('everyItemCanBeLost') -and $record['everyItemCanBeLost'] -eq $true
+        try { $result = Invoke-SoftLockSearch $read.Level $max $every }
+        catch { $problems.Add("$where $($_.Exception.Message)"); continue }
+        if (-not $result.Safe) { $problems.Add("$where $($result.Text)") }
+    }
+    return $problems.ToArray()
 }
 
 function Invoke-DataRunner([string]$ProjectDir, [string]$ResultsDir) {

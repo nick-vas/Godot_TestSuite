@@ -95,7 +95,8 @@ and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Exa
 
 - **Net change per hour** (`PlannedNetPerHour`, and `NetPerHour` from a seeded run) stays inside a band you choose:
   slightly positive lets players save for something big; well above it, prices stop meaning anything.
-- **Every currency has a sink** (`WithoutSink`): a source alone only piles up, the usual shape of an exploit.
+- **Every currency has a sink** (`WithoutSink`): a source alone only piles up, the usual shape of an exploit. With the
+  flows in a table, `"economy": { "currency": "currency", "rate": "perHour" }` makes the `data` runner fail it.
 - **Hours short, not only the balance.** A sink takes only what the player has, so sinks above sources show a net
   change near 0 that looks healthy; `ShortHours` (hours a sink could not be paid in full) shows the dead economy: 94 of
   100 hours with 500 in and 700 out.

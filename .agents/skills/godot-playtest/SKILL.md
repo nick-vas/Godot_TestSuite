@@ -103,6 +103,10 @@ the level survives losing anything at any moment. It models what the designer wr
 lost only in one room is lost anywhere here, which is stricter, never looser. Check a large level part by part between
 checkpoints; past `maxStates` (100,000) it stops with an error rather than run for ever.
 
+The same level can be data: a `data.json` table of `"kind": "softlock"` (one row a level, the same fields, names for
+areas and items) that the `data` runner searches with the same result, for GDScript games too, and that C# tests load
+with `SoftLockTable.Load` (`${CLAUDE_PLUGIN_ROOT}/docs/data.md`).
+
 ## 7. Deciding
 
 - A finding says why it hurts the player, not only that it does ("This game is not fun, and here’s why…", Kenji

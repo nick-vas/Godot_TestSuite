@@ -121,4 +121,27 @@ public sealed class ResponseTableTests
             "row 3 then needs a concept: { \"who\": ..., \"concept\": ... }"), e.Message);
         Assert.Single(ResponseTable.Load("""[ { "id": "b", "concept": "Idle", "lines": ["x"], "notes": "for the actor" } ]""", new Symbols(), ["notes"]));
     }
+
+    // The game's table carries French (data.json lists "fr", so the data runner fails a line without it): loaded in French,
+    // every rule says its translation; a locale a line lacks is a problem, as the runner reports it.
+    [Fact]
+    public void LinesLoadInTheirLocale()
+    {
+        var s = new Symbols();
+        var english = ResponseTable.Load(File.ReadAllText(Copied("barks.json")), s);
+        var french = ResponseTable.Load(File.ReadAllText(Copied("barks.json")), s, locale: "fr");
+        Assert.Equal(english.Select(r => r.Name), french.Select(r => r.Name));
+        Assert.Equal(["Shake it off.", "Still in this."], english[0].Lines);
+        Assert.Equal(["On oublie.", "Toujours là."], french[0].Lines);
+        Assert.All(french, r => Assert.DoesNotContain(r.Lines, l => english.SelectMany(e => e.Lines).Contains(l)));
+
+        var e = Assert.Throws<FormatException>(() => ResponseTable.Load("""
+            [{ "id": "hi", "concept": "Greet", "lines": [{ "text": "Hi.", "locales": { "fr": { "text": "Salut.", "voice": "res://voice/fr/hi.ogg" } } }, "Hey."] }]
+            """, s, locale: "fr"));
+        Assert.Equal("'hi' line 2 has no 'fr' text", e.Message);
+        var voiced = Assert.Single(ResponseTable.Load("""
+            [{ "id": "hi", "concept": "Greet", "lines": [{ "text": "Hi.", "locales": { "fr": { "text": "Salut.", "voice": "res://voice/fr/hi.ogg" } } }] }]
+            """, s, locale: "fr"));
+        Assert.Equal("res://voice/fr/hi.ogg", voiced.VoiceOf("Salut."));
+    }
 }

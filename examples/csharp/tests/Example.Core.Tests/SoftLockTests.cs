@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Example.Core.Level;
 using Xunit;
 
@@ -138,5 +139,48 @@ public sealed class SoftLockTests
         Assert.Equal("Soft-lock after 2 step(s): pick up key in Hall; use key on closet door, go Hall -> Closet. " +
             "Stuck in Closet, holding nothing: 2 of 5 reachable states cannot reach the goal.", e.Message);
         Assert.False(e.Result.Safe);
+    }
+
+    /// <summary>
+    /// Levels as data (<see cref="SoftLockTable"/>), also checked by tests/Test-Data.ps1 against the data runner's search:
+    /// both must give the same text, counterexample and state counts included.
+    /// </summary>
+    public static TheoryData<string> TableCases()
+    {
+        var data = new TheoryData<string>();
+        using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "softlock-examples.json")));
+        foreach (var c in doc.RootElement.EnumerateArray()) data.Add(c.GetRawText());
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(TableCases))]
+    public void LevelsAsDataGiveTheSharedAnswers(string example)
+    {
+        using var doc = JsonDocument.Parse(example);
+        var c = doc.RootElement;
+        var level = Assert.Single(SoftLockTable.Load("[" + c.GetProperty("level").GetRawText() + "]"));
+        if (c.TryGetProperty("error", out var error))
+        {
+            Assert.Equal(error.GetString(), Assert.Throws<InvalidOperationException>(() => level.Run()).Message);
+            return;
+        }
+        var result = level.Run();
+        Assert.Equal(c.GetProperty("result").GetString(), result.ToString());
+    }
+
+    [Fact]
+    public void ATableWithWrongNamesReportsEachAtOnce()
+    {
+        var e = Assert.Throws<FormatException>(() => SoftLockTable.Load("""
+            [{ "id": "vault", "areas": ["Hall", "Exit"], "goals": ["Exitt"], "items": ["key"],
+               "pickups": [{ "area": "Hal", "item": "key" }],
+               "passages": [{ "from": "Hall", "to": "Exit", "uses": "kye" }, { "from": "Hall", "to": "Exit", "uses": "key", "useCount": 2 }] }]
+            """));
+        Assert.Equal(string.Join("\n",
+            "'vault' pickup 1 names area 'Hal', which areas do not list",
+            "'vault' passage 1 uses names item 'kye', which items do not list",
+            "'vault' passage 2 useCount: item key: 2 is outside 1 to its max 1",
+            "'vault' goals names area 'Exitt', which areas do not list"), e.Message);
     }
 }

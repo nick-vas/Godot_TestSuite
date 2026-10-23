@@ -104,7 +104,8 @@ The `juice` runner has one case named `run` (Godot's exit and engine errors) and
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one
 missing; its log is `playthrough.log`.
 The `data` runner has a case `data.json` (files that cannot be read, references to tables it does not list) and one
-case `table <name>` per table, each listing up to 50 problems, one per line. A fact that a `"kind": "responses"` table's
+case `table <name>` per table, each listing up to 50 problems, one per line (for a `"kind": "softlock"` table, a level's
+soft-lock is one line with the steps into it; for a table with `"economy"`, each currency without a sink). A fact that a `"kind": "responses"` table's
 criteria read but no rule remembers and its `facts` do not list is a warning (`fact-never-written`, `file` the table's
 file, `line` null) in `runnerResults[].warnings`; it does not fail the run.
 The `textsize` runner has one case per resolution (`1280x800`), listing text whose font size is under the minimum,

@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **The `data` runner checks soft-locks, sinks and translations.**
+  - A table of `"kind": "softlock"` holds levels as areas, passages, pickups, supplies and goals, and the runner searches
+    each the way Example.Core's `SoftLockCheck` does, with the same counterexample text, so GDScript games get it too;
+    `SoftLockTable.Load` reads the same file in C#. The ten levels of `softlock-examples.json` run in both.
+  - `"economy": { "currency", "rate" }` on a table of money flows fails a currency with a source and no sink, and, when
+    the currency is a `ref`, one no flow moves (`EconomySim.WithoutSink` checked it in code only).
+  - `"locales"` on a responses table fails a line missing a locale's text or voice file, or naming a locale the table
+    does not list; `ResponseTable.Load(..., locale: "fr")` reads them, and the C# example's barks are in French too.
+  - An unknown `kind` now lists both kinds.
 - **Playtest telemetry from a real level in the C# example.** `Main` raises `PlaytestTracker`'s events from each floor
   (deaths with the floor as checkpoint, the upgrade taken as the item found, a floor's time as finished, failed or quit),
   `Diagnostics` adds `PlaytestEvents` to its schema, and a playtest build (the custom feature `playtest`, or

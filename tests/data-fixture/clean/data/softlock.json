@@ -1,0 +1,7 @@
+{
+  "vault": { "areas": ["Hall", "Closet", "Exit"], "goals": ["Exit"], "items": ["key"],
+             "pickups": [{ "area": "Hall", "item": "key" }], "supplies": [{ "area": "Hall", "item": "key", "name": "key rack" }],
+             "passages": [{ "from": "Hall", "to": "Closet", "name": "closet door", "uses": "key" },
+                          { "from": "Hall", "to": "Exit", "name": "exit door", "uses": "key" }],
+             "everyItemCanBeLost": true }
+}

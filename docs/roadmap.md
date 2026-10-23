@@ -204,9 +204,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off**, only if it can be
   kept quiet: warn when a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess` and the game sets no
   `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way.
-- **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
-  `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
-  lines (and voice files) in a responses table, checked for lines missing in a locale.
 - **A `placement` runner, or placement checks in C#.** `templates/placement_check.gd` is GDScript run from a GUT test; a
   runner could read each limit from a script constant named in a `placement.json`.
 - **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as

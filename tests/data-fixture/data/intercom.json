@@ -1,0 +1,8 @@
+[
+  { "id": "intercom_hello", "concept": "Intercom",
+    "lines": [{ "text": "Hello.", "voice": "voice/coach_witch_1.ogg",
+                "locales": { "fr": { "text": "Bonjour.", "voice": "voice/coach_witch_1.ogg" },
+                             "de": { "text": "Hallo.", "voice": "voice/de/hallo.ogg" } } }] },
+  { "id": "intercom_bye", "concept": "IntercomBye",
+    "lines": [{ "text": "Bye.", "voice": "voice/coach_witch_1.ogg", "locales": { "fr": "Au revoir.", "fre": "Salut." } }] }
+]

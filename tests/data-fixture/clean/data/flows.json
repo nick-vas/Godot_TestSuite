@@ -1,0 +1,6 @@
+[
+  { "id": "quest_gold", "currency": "gold", "perHour": 500 },
+  { "id": "repairs", "currency": "gold", "perHour": -300 },
+  { "id": "daily_gems", "currency": "gems", "perHour": 5 },
+  { "id": "cosmetics", "currency": "gems", "perHour": -4 }
+]

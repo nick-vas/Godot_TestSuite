@@ -99,9 +99,14 @@ every row without Godot and writes one JUnit case per table:
   in a CSV cell), `optional`, `acyclic` (on a `ref` to its own table: prerequisites that loop, as in a tech tree,
   `godot-algorithms`); `"extra": "allow"` on a table permits unlisted columns.
 - Across rows: `"totals"` on a table (what a zone's quests give must reach its next level: `godot-progression`) and
-  `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`).
-- Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4); `"type": "criteria"` checks the same
-  criteria grammar (`health<25;!seen_tank`) in any table, such as quest or unlock conditions.
+  `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`);
+  `"economy": { "currency": ..., "rate": ... }` on a table of flows per hour fails a currency with no sink
+  (`godot-progression`).
+- Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4), with `"locales"` for lines missing a
+  translation; `"type": "criteria"` checks the same criteria grammar (`health<25;!seen_tank`) in any table, such as quest
+  or unlock conditions.
+- Soft-locks: a table of `"kind": "softlock"`, levels as areas, passages, pickups, supplies and goals, searched like
+  `SoftLockCheck` in C# (`godot-playtest` section 6), so GDScript games get it too.
 - Run it alone: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.

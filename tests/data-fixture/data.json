@@ -185,6 +185,37 @@
       "extra": "allow",
       "fields": {}
     },
+    "levels_lock": {
+      "file": "data/softlock.json",
+      "kind": "softlock"
+    },
+    "currencies": {
+      "file": "data/currencies.json",
+      "id": "id",
+      "fields": {}
+    },
+    "flows": {
+      "file": "data/flows.json",
+      "id": "id",
+      "fields": {
+        "currency": {
+          "ref": "currencies"
+        },
+        "perHour": {
+          "type": "number"
+        }
+      },
+      "economy": {
+        "currency": "currency",
+        "rate": "perHour"
+      }
+    },
+    "intercom": {
+      "file": "data/intercom.json",
+      "kind": "responses",
+      "locales": ["fr", "de"],
+      "voiced": true
+    },
     "characters": {
       "file": "data/characters.json",
       "id": "id",
