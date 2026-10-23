@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **The maths conventions pinned in the C# example** (`game/test/gdunit4/MathConventionsTest.cs`): on Godot's types, a
+  positive yaw turns `Vector3.Forward` to the left, `Right x Up` is +Z and the book's cross product has area 26.94; and
+  where Example.Core's `System.Numerics` differs (no forward axis, matrices composed left first). `godot-math` points to it.
 - **`DifficultyDirector` in the C# example** (`Ai/DifficultyDirector.cs`): dynamic difficulty from a window of attempts,
   with a dead band, one bounded step at a time and the window emptied after each change, so two changes are always a
   window apart. In 600 simulated attempts it changed 20 times where moving on every result changed 500 times and
