@@ -192,11 +192,7 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **`bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram**, each with a new failure
   code. `Measure.ps1` already has `drawCalls.avg`. Also a sweep helper for particle counts and quality tiers (the skill
   shows the manual way with `-GameArgs`).
-- **`doctor`: duplicate files under `res://`, occluders with occlusion culling off, and a build size breakdown on
-  `export -Json`**, each with a fixture.
-- **A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off**, only if it can be
-  kept quiet: warn when a `CharacterBody` or `RigidBody` script moves it in `_PhysicsProcess` and the game sets no
-  `Engine.MaxFps` at the tick rate; a `tests/doctor-fixture` case each way.
+- **A build size breakdown on `export -Json`**, with a fixture.
 - **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
   `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
   lines (and voice files) in a responses table, checked for lines missing in a locale.

@@ -121,6 +121,84 @@ function Get-RepositoryHygiene([string]$ProjectDir) {
     return $result
 }
 
+# Scenes and scripts that add OccluderInstance3D nodes, as res:// paths. Occluders cull nothing until
+# rendering/occlusion_culling/use_occlusion_culling is on, which is off by default (Godot 4.7.2).
+function Get-OccluderFiles([string]$ProjectDir) {
+    $files = @(Find-ProjectFiles $ProjectDir '*.tscn') + @(Find-ProjectFiles $ProjectDir '*.gd') + @(Find-ProjectFiles $ProjectDir '*.cs')
+    return @(foreach ($file in $files) {
+        if ($file.Length -gt 8MB) { continue }
+        if ([System.IO.File]::ReadAllText($file.FullName) -match 'type="OccluderInstance3D"|\bOccluderInstance3D\.new\s*\(|\bnew\s+OccluderInstance3D\s*\(') { ConvertTo-ResPath $ProjectDir $file.FullName }
+    })
+}
+
+# The body of a GDScript function: the lines after its "func" line until one indented no deeper than it.
+function Get-GdFunctionBody([string]$Text, [string]$Name) {
+    $lines = $Text -split "`r?`n"
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $m = [regex]::Match($lines[$i], '^(?<indent>[ \t]*)(static\s+)?func\s+' + [regex]::Escape($Name) + '\s*\(')
+        if (-not $m.Success) { continue }
+        $depth = $m.Groups['indent'].Value.Length
+        $body = [System.Collections.Generic.List[string]]::new()
+        $body.Add($lines[$i].Substring($m.Length))
+        for ($j = $i + 1; $j -lt $lines.Count; $j++) {
+            if ($lines[$j].Trim() -and ($lines[$j].Length - $lines[$j].TrimStart().Length) -le $depth) { break }
+            $body.Add($lines[$j])
+        }
+        return $body -join "`n"
+    }
+    return ''
+}
+
+# The body of a C# method: from its opening brace to the matching one (or an expression body up to its semicolon).
+function Get-CsMethodBody([string]$Text, [string]$Name) {
+    $m = [regex]::Match($Text, '\b' + [regex]::Escape($Name) + '\s*\([^)]*\)\s*(?<open>\{|=>)')
+    if (-not $m.Success) { return '' }
+    $start = $m.Groups['open'].Index
+    if ($m.Groups['open'].Value -eq '=>') { $end = $Text.IndexOf(';', $start); return $Text.Substring($start, ($end -lt 0 ? $Text.Length : $end) - $start) }
+    $depth = 0
+    for ($k = $start; $k -lt $Text.Length; $k++) {
+        if ($Text[$k] -eq '{') { $depth++ } elseif ($Text[$k] -eq '}') { $depth--; if ($depth -eq 0) { return $Text.Substring($start, $k - $start + 1) } }
+    }
+    return $Text.Substring($start)
+}
+
+# Scripts on a CharacterBody or RigidBody (2D or 3D) that move it in _physics_process or _PhysicsProcess, as res:// paths:
+# move_and_slide and move_and_collide, forces and impulses, translate, or setting the position or linear velocity.
+# Test folders are left out.
+$script:PhysicsMovePattern = '\b(move_and_slide|move_and_collide|MoveAndSlide|MoveAndCollide|apply_(central_)?(force|impulse)|apply_torque(_impulse)?|Apply(Central)?(Force|Impulse)|ApplyTorque(Impulse)?|(global_)?translate|(Global)?Translate)\s*\(|\b(global_position|position|GlobalPosition|Position|linear_velocity|LinearVelocity)(\.[xyzXYZ])?\s*[-+*/]?=(?!=)'
+function Get-PhysicsBodyMovers([string]$ProjectDir) {
+    $files = @(Find-ProjectFiles $ProjectDir '*.gd') + @(Find-ProjectFiles $ProjectDir '*.cs')
+    return @(foreach ($file in $files) {
+        $res = ConvertTo-ResPath $ProjectDir $file.FullName
+        if ($res -match '^res://(tests?|gdunit4_testadapter[^/]*)/') { continue }
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        $body = if ($file.Extension -eq '.gd') {
+            if ($text -notmatch '(?m)^\s*(class_name\s+\w+\s+)?extends\s+(CharacterBody|RigidBody)[23]D\b') { continue }
+            Get-GdFunctionBody $text '_physics_process'
+        } else {
+            if ($text -notmatch ':\s*(Godot\.)?(CharacterBody|RigidBody)[23]D\b') { continue }
+            Get-CsMethodBody $text '_PhysicsProcess'
+        }
+        if ($body -match $script:PhysicsMovePattern) { $res }
+    })
+}
+
+# Whether the game caps the frame rate at the physics tick rate (application/run/max_fps, or Engine.max_fps /
+# Engine.MaxFps in code), which keeps bodies moved per tick from juddering. A value in code that is not a plain number
+# (Engine.physics_ticks_per_second, a setting) counts as capped, to stay quiet when unsure.
+function Test-MaxFpsAtTickRate([string]$ProjectDir, [string]$ProjectGodot) {
+    $ticks = Get-GodotProjectSetting $ProjectGodot 'physics/common/physics_ticks_per_second'
+    $tickRate = if ($ticks -match '^\d+$') { [int]$ticks } else { 60 }
+    if ((Get-GodotProjectSetting $ProjectGodot 'application/run/max_fps') -eq "$tickRate") { return $true }
+    foreach ($file in @(Find-ProjectFiles $ProjectDir '*.gd') + @(Find-ProjectFiles $ProjectDir '*.cs')) {
+        foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($file.FullName), '\bEngine\.(max_fps|MaxFps)\s*=(?!=)\s*(?<v>[^;\r\n]+)')) {
+            $value = $m.Groups['v'].Value.Trim()
+            if ($value -notmatch '^\d+$' -or [int]$value -eq $tickRate) { return $true }
+        }
+    }
+    return $false
+}
+
 function Invoke-Doctor($Info) {
     $checks = [System.Collections.Generic.List[object]]::new()
     function Add-Check([string]$Status, [string]$Message, [string]$Fix = '') {
@@ -309,6 +387,22 @@ function Invoke-Doctor($Info) {
             'Project Settings > Accessibility > General: Accessibility Support on Auto and the driver on accesskit (godot-ui-accessibility)'
     }
 
+    # Occluders cull nothing while occlusion culling is off, Godot's default: the work of placing them is lost.
+    $occluders = @(Get-OccluderFiles $project)
+    if ($occluders -and (Get-GodotProjectSetting $projectGodot 'rendering/occlusion_culling/use_occlusion_culling') -ne 'true') {
+        Add-Check WARN "OccluderInstance3D nodes cull nothing, since rendering/occlusion_culling/use_occlusion_culling is off: $(($occluders | Select-Object -First 3) -join ', ')$(if ($occluders.Count -gt 3) { " and $($occluders.Count - 3) more" })" `
+            'Project Settings > Rendering > Occlusion Culling > Use Occlusion Culling on, then bake the occluders; or delete them (godot-performance)'
+    }
+    # A body moved per physics tick (60 a second by default) without physics interpolation judders on a faster screen.
+    # Quiet when interpolation is on, or the frame rate is capped at the tick rate.
+    if ((Get-GodotProjectSetting $projectGodot 'physics/common/physics_interpolation') -ne 'true') {
+        $movers = @(Get-PhysicsBodyMovers $project)
+        if ($movers -and -not (Test-MaxFpsAtTickRate $project $projectGodot)) {
+            Add-Check WARN "Physics bodies moved in _physics_process with physics/common/physics_interpolation off, so they judder on screens faster than the tick rate: $(($movers | Select-Object -First 3) -join ', ')$(if ($movers.Count -gt 3) { " and $($movers.Count - 3) more" })" `
+                'Project Settings > Physics > Common > Physics Interpolation on, and call reset_physics_interpolation() after a teleport (godot-performance)'
+        }
+    }
+
     # Crash reporting: the Sentry addon starts before game code and attaches the Godot log unless told otherwise
     # (sentry-godot 2.4.0 defaults). Reporting needs the player's consent first, and the log can hold their data (godot-telemetry).
     if ((Test-Path -LiteralPath (Join-Path $project 'addons/sentry')) -or $projectGodot -match '(?m)^\[sentry\]') {
@@ -371,6 +465,12 @@ function Invoke-Doctor($Info) {
     $open = @($placeholders.entries | Where-Object { -not $_.pastDue })
     if ($late) { Add-Check FAIL "Placeholders past their due date in assets.json: $(& $describe $late)" 'Replace each with the real asset and remove "placeholder" from its entry, or agree a new "due" date (godot-asset-pipeline)' }
     if ($open) { Add-Check WARN "$($open.Count) placeholder(s) in assets.json to replace before release: $(& $describe $open)" 'Replace each with the real asset, then remove "placeholder" from its entry (godot-asset-pipeline)' }
+    # Copies of one file: each is imported and shipped, and a fix to one misses the others.
+    $duplicates = @(Get-DuplicateAssetFiles $project)
+    if ($duplicates) {
+        Add-Check WARN "Files with the same content, each imported and shipped on its own: $(($duplicates | Select-Object -First 3 | ForEach-Object { $_.Files -join ' = ' }) -join '; ')$(if ($duplicates.Count -gt 3) { " and $($duplicates.Count - 3) more" })" `
+            'Keep one copy, point the scenes, resources and code that use the others at it, then delete the others'
+    }
 
     # Pixel art: Nearest filtering declared, so check the imports that would blur or smear it (godot-asset-pipeline).
     $pixel = Get-PixelArtImportReport $project $projectGodot

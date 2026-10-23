@@ -211,6 +211,17 @@ a temporary file deleted in an `always()` step, and passes no secret as a logged
   `.dll`, which catches the exit-0 export above.
 - `doctor` (`ci/godot/lib/Doctor.ps1`) warns when `application/config/version` is not numbers and dots, and when a preset
   has `application/modify_resources=false`.
+- `doctor` warns about asset files (images, sounds, models, fonts, shaders) with the same content, each copy imported and
+  exported on its own: compared by size, then SHA-256, outside `addons/` (an add-on keeps its own icons), `.godot/` and
+  folders with a `.gdignore`; empty files are skipped.
+- `doctor` warns when a scene or script adds an `OccluderInstance3D` and `rendering/occlusion_culling/use_occlusion_culling`
+  is off (4.7.2's default, read with `ProjectSettings.get_setting`): the occluders cull nothing.
+- `doctor` warns when physics interpolation is off (`physics/common/physics_interpolation`, 4.7.2's default) and a script
+  on a `CharacterBody2D/3D` or `RigidBody2D/3D` moves it in `_physics_process` / `_PhysicsProcess` (`move_and_slide`,
+  `move_and_collide`, forces and impulses, `translate`, or setting the position or linear velocity), so it moves at the
+  tick rate (60 by default) and judders on a faster screen. It stays quiet when the frame rate is capped at the tick rate
+  (`application/run/max_fps`, or `Engine.max_fps` / `Engine.MaxFps` set in code to that number or to anything that is not
+  a plain number), and skips test folders. A script that extends the body through a class of its own is not followed.
 - `.github/actions/godot/action.yml` caches `.godot/imported`, `.godot/uid_cache.bin` and
   `.godot/editor/filesystem_cache*` under `godot-import-<os>-<godot version>-<hash of *.import and project.godot>`, with
   the prefix without the hash as a restore key.

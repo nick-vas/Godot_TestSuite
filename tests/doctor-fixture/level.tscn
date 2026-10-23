@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6doctorlevel1"]
+
+[sub_resource type="BoxOccluder3D" id="BoxOccluder3D_wall"]
+size = Vector3(10, 4, 0.5)
+
+[node name="Level" type="Node3D"]
+
+[node name="WallOccluder" type="OccluderInstance3D" parent="."]
+occluder = SubResource("BoxOccluder3D_wall")

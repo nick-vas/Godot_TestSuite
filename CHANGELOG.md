@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **Three `doctor` warnings**, each with a case both ways in `tests/doctor-fixture` (`tests/Test-DoctorFixture.ps1`):
+  - asset files with the same content (size, then SHA-256), outside `addons/` and `.godot/`;
+  - `OccluderInstance3D` nodes while `rendering/occlusion_culling/use_occlusion_culling` is off, so they cull nothing;
+  - a `CharacterBody` or `RigidBody` script that moves the body in `_physics_process` / `_PhysicsProcess` while
+    `physics/common/physics_interpolation` is off, unless the frame rate is capped at the tick rate (`application/run/max_fps`
+    or `Engine.max_fps` / `Engine.MaxFps`).
 - **Add-on licences without an `assets.json` entry** (`doctor`): an `addons/<name>/LICENSE*` whose add-on code no entry
   covers is a warning, since `credits` then writes no notice for code that ships. The fix is the entry, with the licence
   read from the text, `copyright` from its first `Copyright` line and `licenceFile`. GUT, gdUnit4 and the git plugin are

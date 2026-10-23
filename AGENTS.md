@@ -97,6 +97,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Platforms.ps1` | `doctor`'s Web and Android checks | - |
 | `Test-Web.ps1` | Web `export -Run` (`web-fixture`) | Godot's templates, Node.js, a Playwright browser |
 | `Test-Addons.ps1` | `doctor`'s add-on and GDExtension checks (a project made in a temporary folder) | - |
+| `Test-DoctorFixture.ps1` | `doctor`'s copies of one file, occluders with occlusion culling off and bodies moved without physics interpolation, each way (`doctor-fixture` and copies of it) | - |
 | `Test-RepoHygiene.ps1` | `doctor`'s repository checks (a broken project made in a temporary folder, since reserved names or case twins committed here would break Windows checkouts) | - |
 | `Test-Context.ps1` | `doctor`'s check of agent instructions; holds the template, skills and docs to the kit's real flags | - |
 | `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test, a plan `plan` and `status` cannot read | - |

@@ -164,8 +164,8 @@ A one-frame spike the first time something appears (first enemy hit, first popup
   the simulation 1 ms a frame until the display queue drained. Keep `rendering/rendering_device/vsync/frame_queue_size`
   at its default 2 and measure input lag in the GPU-bound case, not only in the menu.
 - Movement that judders on a 144 Hz screen while the frame rate is fine: a body moved in `_PhysicsProcess` at 60 Hz
-  with `physics/common/physics_interpolation` off (the default). Turn it on, and call `ResetPhysicsInterpolation()`
-  after a teleport.
+  with `physics/common/physics_interpolation` off (the default; `doctor` warns). Turn it on, and call
+  `ResetPhysicsInterpolation()` after a teleport.
 
 ## Cheap wins
 
@@ -191,7 +191,7 @@ budget, not Godot measurements.
 - "Restrict cameras' culling mask": `Camera3D.CullMask` against `VisualInstance3D.Layers`, so a minimap or second
   camera draws only its layers.
 - "Use occlusion culling in interiors": `OccluderInstance3D` does nothing until
-  `rendering/occlusion_culling/use_occlusion_culling` is on (default off).
+  `rendering/occlusion_culling/use_occlusion_culling` is on (default off; `doctor` warns).
 - "Pause out-of-screen subsystems": `VisibleOnScreenEnabler2D/3D` stops its target's processing off screen.
 - "Adapt the budget allocated to physics": `physics/common/max_physics_steps_per_frame` (default 8) caps the steps one
   frame may catch up on, so a slow frame cannot snowball into ever slower ones.

@@ -220,3 +220,31 @@ function Get-AddonLicenceGaps([string]$ProjectDir) {
     })
 }
 
+# Files under res:// with the same content: each copy is imported and exported on its own, and a fix made to one misses
+# the others. Asset files only (images, sounds, models, fonts, shaders), outside addons/ and .godot/ (an add-on keeps its
+# own icons) and folders with a .gdignore; empty files are skipped. Each group is the res-relative paths of one content.
+function Get-DuplicateAssetFiles([string]$ProjectDir) {
+    $bySize = @{}
+    foreach ($relative in @(Get-AssetFiles $ProjectDir)) {
+        $length = (Get-Item -LiteralPath (Join-Path $ProjectDir $relative)).Length
+        if ($length -eq 0) { continue }
+        if (-not $bySize.ContainsKey($length)) { $bySize[$length] = [System.Collections.Generic.List[string]]::new() }
+        $bySize[$length].Add($relative)
+    }
+    $groups = [System.Collections.Generic.List[object]]::new()
+    foreach ($size in @($bySize.Keys | Sort-Object -Descending)) {
+        if ($bySize[$size].Count -lt 2) { continue }
+        $byHash = [ordered]@{}
+        foreach ($relative in $bySize[$size]) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $ProjectDir $relative) -Algorithm SHA256).Hash
+            if (-not $byHash.Contains($hash)) { $byHash[$hash] = [System.Collections.Generic.List[string]]::new() }
+            $byHash[$hash].Add($relative)
+        }
+        foreach ($same in $byHash.Values) {
+            if ($same.Count -lt 2) { continue }
+            $names = [string[]]$same.ToArray(); [System.Array]::Sort($names, [System.StringComparer]::Ordinal)
+            $groups.Add([pscustomobject]@{ Bytes = [long]$size; Files = $names })
+        }
+    }
+    return $groups.ToArray()
+}
