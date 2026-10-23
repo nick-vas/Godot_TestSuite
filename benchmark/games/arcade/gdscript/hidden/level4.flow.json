@@ -1,0 +1,13 @@
+{
+  "name": "Level 4 can be chosen and spawns its first wave",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_level", "args": [4] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "level", "equals": 4 } },
+    { "assert": { "node": "Enemies/Enemy1", "exists": true } },
+    { "assert": { "node": ".", "prop": "state", "equals": "playing" } }
+  ]
+}

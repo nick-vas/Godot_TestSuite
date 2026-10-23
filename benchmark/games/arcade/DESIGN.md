@@ -48,9 +48,9 @@ Five levels, the fifth ending in a boss. Clearing level 5 is victory.
 | Data | `data/levels.json`, `data/enemies.json`, `data.json` (types, ranges, `ref` from levels to enemies) |
 | Bot runs | `playthrough.json`: `--autoplay --seed=1 --no-save`, expecting `[Run] level 1 done` to `[Run] level 5 done` and `[Run] victory`, within 10800 frames. `juice.json`: enemy_destroyed gets flash and sfx within 100 ms; ship_hit gets flash, shake and sfx |
 | Text | `i18n/strings.csv` (keys, `en`, `fr`, `de`), every visible text through `tr()`; `textsize.json` (menu, HUD, game over at 1280x800); `layout.json` (menu and HUD on `phone_landscape` and `ultrawide`) |
-| Architecture | `architecture.json` with `fragile-node-path` and `per-frame-lookup` set to `error` |
+| Architecture | `architecture.json` with `parent-path` and `per-frame-lookup` set to `error` |
 | Assets | generated sounds in `sounds/` (from `hyperdot.ps1 sfx`), generated PNGs in `art/`; `assets.json` with each source and licence (`CC0-1.0` or `proprietary` for the game's own) |
-| Release | `export_presets.cfg` (Linux, Web); `application/config/version="1.0.0"`; `store/steam/` art at the sizes `doctor` checks, generated, plus 5 screenshots and `short_description.txt`; `store/.gdignore`; `CREDITS.md` and `THIRD-PARTY-NOTICES.txt` from `credits` |
+| Release | `export_presets.cfg` (Linux, Web; C# has Linux only, as Godot 4.7 cannot export C# to the Web); `application/config/version="1.0.0"`; `store/steam/` art at the sizes `doctor` checks, generated, plus 5 screenshots and `short_description.txt`; `store/.gdignore`; `CREDITS.md` and `THIRD-PARTY-NOTICES.txt` from `credits` |
 | Plan | `plan.json` at the release gate, its gates met |
 
 The whole game must pass the kit's `test` (every runner it detects) and `doctor` with no FAIL. Its `export -Preset
@@ -117,7 +117,7 @@ placeholders. Each task has:
 | # | Template | Defect | Graded by |
 |---|---|---|---|
 | 1 | `fix-export` | the Linux preset excludes `data/*.json` | `kit`: `export -Preset Linux -Run` |
-| 2 | `fix-store` | `header_capsule` is 920x400, and the sounds' entry in `assets.json` has no licence | `kit`: `doctor` (no FAIL) and `credits`; a hidden check that the capsule is 920x430 |
+| 2 | `fix-store` | `header_capsule` is 920x400 (a `copy` edit lays `defects/header_capsule_920x400.png` over it), and the sounds' entry in `assets.json` has no licence | `kit`: `doctor` (no FAIL) and `credits`; a hidden check that the capsule is 920x430 |
 | 3 | `cut-version` | none; `{version}` 1.1.0, `{details}`: the version in the project, a `CHANGELOG.md` entry, the version shown on the menu | `match` on `project.godot` and `CHANGELOG.md`; a hidden flow reading the menu's version label |
 
 ### Milestones
@@ -141,3 +141,18 @@ of the next stage:
 - Keep the game small: about 1,500 lines of game code per language, a test run under a minute, a playthrough under 3
   minutes of game time.
 - Comment like the rest of the kit: say why, not what.
+
+## As built
+
+Choices the two builders made where this design was open. They hold for both languages.
+
+- **Screens:** children of `Main`, not scene changes. Start adds `game/game.tscn` as `Game` and hides `Menu`; the others
+  are `Settings`, `Credits`, `GameOver` and `Victory`. The flows, identical in both languages, use paths from `Main`.
+- **C# names:** the C# `Game` keeps the snake_case names the flows read: `level`, `state` and `start_level`.
+- **Rules at the prototype:** it is complete there, not lives only, because the write-tests mutants need invulnerability,
+  enemy hp and points.
+- **SaveStore at alpha:** it reads only version 2. Version 1 migration arrives in beta, which is what the alpha
+  migrate-save task asks for.
+- **The juice run:** it uses `--level=5` for 2400 frames. The bot is only hit in the boss fight, and it ignores the
+  boss's diagonal shots on purpose so that a `ship_hit` happens.
+- **Decoys:** fix-playthrough and fill-translations have decoys too.

@@ -1,0 +1,27 @@
+{
+  "tables": {
+    "enemies": {
+      "file": "data/enemies.json",
+      "id": "id",
+      "fields": {
+        "hp": { "type": "int", "min": 1, "max": 1000 },
+        "points": { "type": "int", "min": 0 },
+        "drift": { "type": "number", "min": 0, "max": 300 },
+        "fire": { "type": "number", "min": 0 },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "boss": { "type": "bool" }
+      }
+    },
+    "levels": {
+      "file": "data/levels.json",
+      "id": "id",
+      "fields": {
+        "level": { "type": "int", "min": 1, "max": 5 },
+        "enemy": { "ref": "enemies" },
+        "count": { "type": "int", "min": 1, "max": 24 },
+        "formation": { "enum": ["line", "v", "grid"] },
+        "speed": { "type": "number", "min": 0, "max": 200 }
+      }
+    }
+  }
+}

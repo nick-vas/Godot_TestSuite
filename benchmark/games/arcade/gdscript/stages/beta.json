@@ -1,0 +1,151 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) never gets past the boss of level 5"
+      },
+      "edits": [
+        {
+          "file": "data/enemies.json",
+          "find": "\"hp\": 50",
+          "replace": "\"hp\": 500"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_boss_hp.gd"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "destroying an enemy feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_play(_sfx_explosion)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the victory screen in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "VICTORY_TITLE,Orbit secured,Orbite sécurisée\n",
+          "replace": "VICTORY_TITLE,Orbit secured,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "VICTORY_MESSAGE,All five sectors are clear. Final score: %d,Les cinq secteurs sont dégagés. Score final : %d\n",
+          "replace": "VICTORY_MESSAGE,All five sectors are clear. Final score: %d,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "VICTORY_MENU,Back to menu,Retour au menu\n",
+          "replace": "VICTORY_MENU,Back to menu,\n"
+        }
+      ],
+      "unchanged": [
+        "ui/victory.tscn",
+        "ui/victory.gd"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "a whole wave is on screen and the ship keeps firing"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "## Tests the ship's shots against the enemies in their own column of the screen only: with a full wave and a stream of\n## shots, testing every shot against every enemy is most of a frame.\nfunc resolve_shot_hits() -> void:\n\tfor column: Array in _columns:\n\t\tcolumn.clear()\n\tfor enemy: Enemy in enemies.get_children():\n\t\tvar half := enemy.size.x / 2.0 + COLUMN_MARGIN\n\t\tfor c in range(_column_of(enemy.position.x - half), _column_of(enemy.position.x + half) + 1):\n\t\t\t_columns[c].append(enemy)\n\tfor shot: Shot in shots.get_children():\n\t\tif shot.hostile or shot.spent:\n\t\t\tcontinue\n\t\tfor enemy: Enemy in _columns[_column_of(shot.position.x)]:\n\t\t\tcollision_checks += 1\n\t\t\tif enemy.hp > 0 and _overlaps(shot.position, shot.size, enemy.position, enemy.size):\n\t\t\t\t_shot_hit_enemy(shot, enemy)\n\t\t\t\tbreak\n\n\nfunc _column_of(x: float) -> int:\n\treturn clampi(int(x / COLUMN_WIDTH), 0, COLUMNS - 1)\n\n\n",
+          "replace": "## Tests the ship's shots against the enemies.\nfunc resolve_shot_hits() -> void:\n\tfor shot: Shot in shots.get_children():\n\t\tif shot.hostile or shot.spent:\n\t\t\tcontinue\n\t\tvar targets := enemies.get_children()\n\t\tfor enemy: Enemy in targets:\n\t\t\tcollision_checks += 1\n\t\t\tif enemy.hp > 0 and _overlaps(shot.position, shot.size, enemy.position, enemy.size):\n\t\t\t\t_shot_hit_enemy(shot, enemy)\n\t\t\t\tbreak\n\n\n"
+        },
+        {
+          "file": "game/game.gd",
+          "find": "const COLUMN_WIDTH := 80.0\nconst COLUMNS := 17\n## Enemies are filed under every column they reach plus this margin, so a shot on a column's edge still finds them.\nconst COLUMN_MARGIN := 6.0\n",
+          "replace": ""
+        },
+        {
+          "file": "game/game.gd",
+          "find": "## The enemies in each column of the screen, refilled every tick; kept so the pass allocates nothing.\nvar _columns: Array[Array] = []\n",
+          "replace": ""
+        },
+        {
+          "file": "game/game.gd",
+          "find": "\tfor i in COLUMNS:\n\t\t_columns.append([])\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_collisions.gd"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the settings screen does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/settings.gd",
+          "find": "\t_back.pressed.connect(closed.emit)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "levels 4 and 5 in data/levels.json, level 5 ending in a boss (an enemy with boss true and 30 to 80 hp); a bot: with --autoplay (after --) it plays from the main scene and finishes all five levels, every random choice from one generator seeded by --seed=N, nothing saved with --no-save, --level=N starts at level N, and it prints [Run] level N done after each level, then [Run] victory or [Run] game over, and quits; juice: print [juice] event enemy_destroyed <ms> and [juice] event ship_hit <ms> in game time (ms), each answered within 100 ms by [juice] feedback flash <ms> and [juice] feedback sfx <ms> (and [juice] feedback shake <ms> for ship_hit) for a visible flash, a sound and a camera shake; and French: every visible text through tr() with an fr column in the translation table, menus included"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      "hidden/test_hidden_french.gd"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

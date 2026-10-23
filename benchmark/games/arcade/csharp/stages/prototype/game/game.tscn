@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/Game.cs" id="1_game"]
+[ext_resource type="Texture2D" path="res://art/ship.png" id="2_ship"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="Ship" type="Sprite2D" parent="."]
+position = Vector2(640, 650)
+texture = ExtResource("2_ship")
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Shots" type="Node2D" parent="."]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 20.0
+offset_right = 500.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 26
+text = "Score: 0"
+
+[node name="LivesLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -460.0
+offset_top = 20.0
+offset_right = -140.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 26
+text = "Lives: 3"
+horizontal_alignment = 2

@@ -1,0 +1,106 @@
+{
+  "tasks": [
+    {
+      "template": "fix-export",
+      "vars": {
+        "report": "the exported Linux game logs errors at start and never shows a level"
+      },
+      "edits": [
+        {
+          "file": "export_presets.cfg",
+          "find": "exclude_filter=\"test/*\"",
+          "replace": "exclude_filter=\"test/*, data/*.json\""
+        }
+      ],
+      "kit": [
+        {
+          "command": "export",
+          "args": [
+            "-Preset",
+            "Linux",
+            "-Run"
+          ]
+        }
+      ],
+      "reference": "solutions/release/fix-export",
+      "decoy": "solutions/release/fix-export-decoy"
+    },
+    {
+      "template": "fix-store",
+      "vars": {
+        "report": "the credits cannot be built from assets.json, and the Steam store art in store/steam must be at the sizes Steam asks for"
+      },
+      "edits": [
+        {
+          "file": "assets.json",
+          "find": "\"source\": \"generated with hyperdot sfx (bfxr synth)\", \"licence\": \"proprietary\"",
+          "replace": "\"source\": \"generated with hyperdot sfx (bfxr synth)\""
+        },
+        {
+          "file": "store/steam/header_capsule.png",
+          "copy": "defects/header_capsule_920x400.png"
+        }
+      ],
+      "kit": [
+        {
+          "command": "doctor"
+        },
+        {
+          "command": "credits"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenCapsuleTest.cs"
+      ],
+      "reference": "solutions/release/fix-store",
+      "decoy": "solutions/release/fix-store-decoy"
+    },
+    {
+      "template": "cut-version",
+      "vars": {
+        "version": "1.1.0",
+        "details": "the version in the project settings, an entry for it at the top of CHANGELOG.md, and the version shown on the main menu"
+      },
+      "match": [
+        {
+          "file": "project.godot",
+          "pattern": "(?m)^config/version=\"1\\.1\\.0\""
+        },
+        {
+          "file": "CHANGELOG.md",
+          "pattern": "(?m)^##.*1\\.1\\.0"
+        }
+      ],
+      "hidden": [
+        {
+          "from": "hidden/version.flow.json",
+          "to": "test/flows/version.flow.json"
+        }
+      ],
+      "reference": "solutions/release/cut-version",
+      "decoy": "solutions/release/cut-version-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "an export preset for Linux whose build starts without errors (export -Preset Linux -Run; Godot 4.7 cannot export C# games to the Web), Steam store art in store/steam at the sizes the kit's doctor checks with five screenshots and a short description, credits and third-party notices built from assets.json by the kit's credits command and shown from a Credits button on the menu, and version 1.0.0 in the project settings"
+    },
+    "kit": [
+      {
+        "command": "doctor"
+      },
+      {
+        "command": "export",
+        "args": [
+          "-Preset",
+          "Linux",
+          "-Run"
+        ]
+      },
+      {
+        "command": "credits"
+      }
+    ],
+    "reference": "solutions/milestone-release"
+  }
+}

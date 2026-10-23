@@ -1,0 +1,17 @@
+{
+  "name": "Settings switch the menu to French and back to English, and Back returns to the menu",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/SettingsButton" },
+    { "assert": { "node": "Settings", "exists": true } },
+    { "press": "Settings/Box/Languages/FrButton" },
+    { "assert": { "node": "Menu/StartButton", "prop": "text", "equals": "Jouer" } },
+    { "assert": { "node": "Settings/Box/Title", "prop": "text", "equals": "Réglages" } },
+    { "press": "Settings/Box/Languages/EnButton" },
+    { "assert": { "node": "Menu/StartButton", "prop": "text", "equals": "Play" } },
+    { "press": "Settings/Box/BackButton" },
+    { "assert": { "node": "Settings", "exists": false } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } }
+  ]
+}

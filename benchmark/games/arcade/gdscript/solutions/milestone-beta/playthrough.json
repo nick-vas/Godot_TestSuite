@@ -1,0 +1,5 @@
+{
+  "frames": 10800,
+  "args": ["--autoplay", "--seed=1", "--no-save"],
+  "expect": ["[Run] level 1 done", "[Run] level 2 done", "[Run] level 3 done", "[Run] level 4 done", "[Run] level 5 done", "[Run] victory"]
+}

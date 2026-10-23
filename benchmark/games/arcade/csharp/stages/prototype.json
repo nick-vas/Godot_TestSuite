@@ -1,0 +1,182 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "art/boss.png",
+    "art/enemy_shot.png",
+    "scripts/Waves.cs",
+    "scripts/SaveStore.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/TextFormat.cs",
+    "game/Bot.cs",
+    "game/PauseMenu.cs",
+    "data",
+    "data.json",
+    "i18n",
+    "sounds",
+    "assets.json",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/ProjectFiles.cs",
+    "test/RulesCollisionsTest.cs",
+    "test/ScoreBestTest.cs",
+    "test/WavesTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Score.cs",
+      "find": "    public int Best { get; set; }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Score.cs",
+      "find": "        Best = Math.Max(Best, Points);\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Score.cs",
+      "find": "/// <summary>A new game; the best score stays.</summary>",
+      "replace": "/// <summary>A new game.</summary>"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the combo multiplier comes one hit late: the fifth enemy destroyed in a row still scores single points"
+      },
+      "edits": [
+        {
+          "file": "scripts/Score.cs",
+          "find": "Combo / 5",
+          "replace": "Combo / 6"
+        }
+      ],
+      "unchanged": [
+        "test/ScoreTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenMultiplierTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Rules class (scripts/Rules.cs: lives, invulnerability and collisions)",
+        "file": "test/RulesCollisionsTest.cs",
+        "rules": "a hit costs one life, a second hit within two seconds costs nothing, the game is over at zero lives and not before, a destroyed enemy scores its own points, and an enemy with hit points left scores nothing",
+        "code": "scripts/Rules.cs"
+      },
+      "unchanged": [
+        "scripts/Rules.cs"
+      ],
+      "mutantTests": [
+        "test/RulesCollisionsTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "a hit costs no life",
+          "file": "scripts/Rules.cs",
+          "find": "Lives -= 1;",
+          "replace": "Lives -= 0;"
+        },
+        {
+          "name": "invulnerability is ignored",
+          "file": "scripts/Rules.cs",
+          "find": "if (Invulnerable > 0 || IsGameOver)",
+          "replace": "if (IsGameOver)"
+        },
+        {
+          "name": "the game is over at one life",
+          "file": "scripts/Rules.cs",
+          "find": "public bool IsGameOver => Lives <= 0;",
+          "replace": "public bool IsGameOver => Lives <= 1;"
+        },
+        {
+          "name": "an enemy's points are ignored",
+          "file": "scripts/Rules.cs",
+          "find": "return enemy.Points;",
+          "replace": "return 100;"
+        },
+        {
+          "name": "hit points are off by one",
+          "file": "scripts/Rules.cs",
+          "find": "if (enemy.Hp > 0)",
+          "replace": "if (enemy.Hp > 1)"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests",
+      "decoy": "solutions/prototype/write-tests-decoy"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "a best score: Score (scripts/Score.cs) gets an int property Best, the highest Points of any game so far, and Reset() starts a new game (Points and Combo back to 0) but keeps Best"
+      },
+      "hidden": [
+        "hidden/HiddenBestTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature",
+      "decoy": "solutions/prototype/add-feature-decoy"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "test/RulesTest.cs",
+          "find": "var rules = new Rules(3);",
+          "replace": "var rules = new Rules(4);"
+        }
+      ],
+      "unchanged": [
+        "scripts/Rules.cs",
+        "scripts/Score.cs",
+        "game/Game.cs",
+        "test/RulesTest.cs",
+        "test/ScoreTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "One_hit_costs_one_life",
+          "re:RulesTest\\.cs\\D{0,40}\\b21\\b",
+          "2",
+          "3"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure",
+      "decoy": "solutions/prototype/explain-failure-decoy"
+    }
+  ]
+}

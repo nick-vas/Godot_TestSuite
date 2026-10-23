@@ -1,0 +1,14 @@
+{
+  "name": "Play on the menu starts the game at level 1 with three lives",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/StartButton" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "Menu", "prop": "visible", "equals": false } },
+    { "assert": { "node": "Game", "prop": "level", "equals": 1 } },
+    { "assert": { "node": "Game/HUD/LivesLabel", "prop": "text", "contains": "3" } }
+  ]
+}

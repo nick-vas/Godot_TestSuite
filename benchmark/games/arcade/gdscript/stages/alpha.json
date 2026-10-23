@@ -1,0 +1,143 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "playthrough.json",
+    "juice.json",
+    "game/bot.gd",
+    "test/flows/settings.flow.json",
+    "textsize.json",
+    "layout.json",
+    "sounds/sfx/explosion-1.wav",
+    "sounds/sfx/explosion-1.bfxr",
+    "sounds/sfx/hit_hurt-1.wav",
+    "sounds/sfx/hit_hurt-1.bfxr"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## The player's save, JSON in user://save.json: version, best, settings (volume, locale). Version 2 is current;\n## version 1 kept the best score as best_score and had no settings, and players still have such files.\n",
+      "replace": "## The player's save, JSON in user://save.json: version, best, settings (volume, locale).\n"
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "\tvar version := int(raw.get(\"version\", 1))\n\tif version == 1:\n\t\tdata.best = int(raw.get(\"best_score\", 0))\n\t\treturn data\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/save_store.gd",
+      "find": "## Any version's data as the current version.",
+      "replace": "## The saved data, with defaults for anything missing."
+    },
+    {
+      "file": "test/unit/test_save_store.gd",
+      "find": "func test_a_version_1_save_keeps_its_best_score():\n\t_write_raw('{\"version\": 1, \"best_score\": 4200}')\n\tassert_eq(int(SaveStore.new(PATH).read().best), 4200)\n\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "level 4, with three waves, which brings in a new enemy, the zigzag: 2 hit points, 150 points, drifting sideways as it comes down (data/levels.json and data/enemies.json hold the levels and enemies)"
+      },
+      "hidden": [
+        "hidden/test_hidden_level4.gd",
+        {
+          "from": "hidden/level4.flow.json",
+          "to": "test/flows/level4.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with errors in game/enemy.gd (parent-path, per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\tscore.changed.connect(_update_hud)\n",
+          "replace": ""
+        },
+        {
+          "file": "game/enemy.gd",
+          "find": "func _physics_process(delta: float) -> void:\n",
+          "replace": "func _physics_process(delta: float) -> void:\n\tget_node(\"../../HUD/ScoreLabel\").text = tr(\"HUD_SCORE\") % get_node(\"../..\").score.points\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_score_label.gd"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "their best score is 0 after the update. The previous version saved user://save.json as {\"version\": 1, \"best_score\": <points>}, with no settings"
+      },
+      "hidden": [
+        "hidden/test_hidden_save_migration.gd"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "pausing does not stop the enemies: they keep moving behind the pause menu"
+      },
+      "edits": [
+        {
+          "file": "game/game.tscn",
+          "find": "[node name=\"Enemies\" type=\"Node2D\" parent=\".\"]\n",
+          "replace": "[node name=\"Enemies\" type=\"Node2D\" parent=\".\"]\nprocess_mode = 3\n"
+        }
+      ],
+      "hidden": [
+        {
+          "from": "hidden/pause.flow.json",
+          "to": "test/flows/pause.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/fix-bug"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds the game scene res://game/game.tscn as a child of Main named Game and hides Menu; pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; levels 2 and 3 after level 1, read by a Waves class (scripts/waves.gd: static from_files(), level_count(), waves(level), enemy(id)) from data/levels.json (an array of waves: id, level, enemy, count, formation line/v/grid, speed) and data/enemies.json (an array: id, hp, points, drift, fire, color \"#rrggbb\", boss); a data.json for the kit's data runner; and a save of the best score by a SaveStore class (scripts/save_store.gd: SaveStore.new(path), read() and write(data) of a dictionary with best) in user://save.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/test_hidden_three_levels.gd",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

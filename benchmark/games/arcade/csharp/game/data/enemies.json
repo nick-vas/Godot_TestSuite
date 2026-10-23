@@ -1,0 +1,7 @@
+[
+  { "id": "grunt", "hp": 1, "points": 100, "drift": 0, "fire": 0, "color": "#e05050", "boss": false },
+  { "id": "gunner", "hp": 2, "points": 200, "drift": 0, "fire": 3.0, "color": "#e0a030", "boss": false },
+  { "id": "tank", "hp": 4, "points": 300, "drift": 0, "fire": 4.0, "color": "#a060e0", "boss": false },
+  { "id": "zigzag", "hp": 2, "points": 150, "drift": 120, "fire": 0, "color": "#40d080", "boss": false },
+  { "id": "boss", "hp": 50, "points": 5000, "drift": 160, "fire": 1.2, "color": "#ff4080", "boss": true }
+]

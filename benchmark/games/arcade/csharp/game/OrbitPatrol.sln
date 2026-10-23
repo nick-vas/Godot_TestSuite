@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrbitPatrol", "OrbitPatrol.csproj", "{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{6C1E2A57-3B7D-4F0E-9A51-2D7B8E4C9F10}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,28 @@
+{
+  "frames": 2400,
+  "args": [
+    "--autoplay",
+    "--seed=1",
+    "--no-save",
+    "--level=5"
+  ],
+  "rules": [
+    {
+      "event": "enemy_destroyed",
+      "feedback": [
+        "flash",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "ship_hit",
+      "feedback": [
+        "flash",
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}

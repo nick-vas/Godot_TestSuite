@@ -1,0 +1,11 @@
+[
+  { "id": "1-1", "level": 1, "enemy": "grunt", "count": 6, "formation": "line", "speed": 40 },
+  { "id": "2-1", "level": 2, "enemy": "grunt", "count": 8, "formation": "v", "speed": 45 },
+  { "id": "2-2", "level": 2, "enemy": "gunner", "count": 6, "formation": "line", "speed": 35 },
+  { "id": "3-1", "level": 3, "enemy": "gunner", "count": 8, "formation": "grid", "speed": 35 },
+  { "id": "3-2", "level": 3, "enemy": "grunt", "count": 10, "formation": "grid", "speed": 50 },
+  { "id": "3-3", "level": 3, "enemy": "tank", "count": 4, "formation": "line", "speed": 30 },
+  { "id": "4-1", "level": 4, "enemy": "zigzag", "count": 6, "formation": "line", "speed": 40 },
+  { "id": "4-2", "level": 4, "enemy": "grunt", "count": 8, "formation": "v", "speed": 50 },
+  { "id": "4-3", "level": 4, "enemy": "zigzag", "count": 8, "formation": "grid", "speed": 45 }
+]

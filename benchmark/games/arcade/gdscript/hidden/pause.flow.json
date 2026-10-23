@@ -1,0 +1,18 @@
+{
+  "name": "Pausing freezes the enemies, and Resume lets them move again",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 10 },
+    { "press": "HUD/PauseButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": true } },
+    { "set": "Enemies/Enemy1", "prop": "position:y", "value": 300 },
+    { "wait": 30 },
+    { "assert": { "node": "Enemies/Enemy1", "prop": "position:y", "equals": 300 } },
+    { "assert": { "node": "Enemies/Enemy2", "prop": "position:y", "lt": 200 } },
+    { "press": "PauseMenu/ResumeButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": false } },
+    { "wait": 10 },
+    { "assert": { "node": "Enemies/Enemy1", "prop": "position:y", "gt": 300 } }
+  ]
+}

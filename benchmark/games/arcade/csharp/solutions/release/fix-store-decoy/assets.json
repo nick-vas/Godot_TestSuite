@@ -1,0 +1,6 @@
+{
+  "assets": [
+    { "path": "art/**", "source": "own: drawn as simple shapes by a script for this game", "licence": "proprietary" },
+    { "path": "sounds/**", "source": "generated with hyperdot sfx (bfxr synth)", "licence": "CC-BY-4.0" }
+  ]
+}

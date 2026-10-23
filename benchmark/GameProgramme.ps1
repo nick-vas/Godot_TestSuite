@@ -15,9 +15,17 @@
 # alone are as they were, its tests fail on each mutant (the game with a known bug), and the game's tests and the task's
 # hidden ones pass.
 
-# Replaces the one place a text occurs in a file of the game; $false when it is not there exactly once.
+# Replaces the one place a text occurs in a file of the game; $false when it is not there exactly once. An edit with
+# `copy` (a resolved path) replaces the whole file with that one instead: how a binary defect, such as store art of the
+# wrong size, is planted.
 function Set-GameEdit([string]$Root, $Edit) {
     $path = Join-Path $Root $Edit.file
+    if ($Edit.Contains('copy')) {
+        if (-not (Test-Path -LiteralPath $Edit.copy -PathType Leaf)) { return $false }
+        New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+        Copy-Item -LiteralPath $Edit.copy -Destination $path -Force
+        return $true
+    }
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
     $text = [System.IO.File]::ReadAllText($path)
     $at = $text.IndexOf([string]$Edit.find, [StringComparison]::Ordinal)
@@ -34,6 +42,10 @@ function Assert-GameTask($Spec, $TaskSpec, [string]$RepoRoot) {
     $source = Get-GameSource $Spec $TaskSpec $RepoRoot
     foreach ($key in 'edits', 'mutants') {
         foreach ($edit in @(if ($TaskSpec.game.Contains($key)) { $TaskSpec.game[$key] })) {
+            if ($edit.Contains('copy')) {
+                if (-not $edit.Contains('file') -or -not (Test-Path -LiteralPath $edit.copy -PathType Leaf)) { throw "Task '$id': a copy edit needs a file and a copy that exists ($($edit.copy))" }
+                continue
+            }
             if (-not $edit.Contains('file') -or -not $edit.Contains('find') -or -not $edit.find -or -not $edit.Contains('replace')) {
                 throw "Task '$id': every one of its $key needs a file, a find and a replace"
             }
@@ -94,7 +106,8 @@ function Copy-GameFiles([string]$From, [string]$To, [string[]]$Files) {
 
 # The game's own scripts and code (not add-ons, the import cache or build output).
 function Get-GameCodeFiles([string]$Root) {
-    return @(Get-ChildItem -LiteralPath $Root -Recurse -File -Include '*.gd', '*.cs' | Where-Object { $_.FullName -notmatch '[\\/](addons|\.godot|\.git|bin|obj)[\\/]' })
+    # gdunit4_testadapter_v5: files gdUnit4Net generates into a C# project when its tests run, not the game's own.
+    return @(Get-ChildItem -LiteralPath $Root -Recurse -File -Include '*.gd', '*.cs' | Where-Object { $_.FullName -notmatch '[\\/](addons|\.godot|\.git|bin|obj|gdunit4_testadapter_v\d+)[\\/]' })
 }
 
 # A test file: a GUT script, or C# with a test framework's class or method attribute (gdUnit4, xUnit, NUnit, MSTest).
@@ -169,7 +182,8 @@ function Invoke-GameSuite([string]$Dir, [string[]]$Runners, [string]$ResultsDir 
 # Any kit command on a game, with -Json: whether it reported ok, and its error when it did not. `test` has Invoke-GameSuite.
 function Invoke-KitCommand([string]$Dir, [string]$Command, [string[]]$Arguments, [string]$ResultsDir = "$Dir-results") {
     $kit = Join-Path (Split-Path $PSScriptRoot -Parent) 'ci/godot/hyperdot.ps1'
-    $all = @('-NoProfile', '-File', $kit, $Command, '-Json', '-Quiet', '-Project', $Dir, '-Results', $ResultsDir) + @($Arguments)
+    # -Output beside the game, so an export never lands in the current folder; Remove-GameWorkspace removes it with the game.
+    $all = @('-NoProfile', '-File', $kit, $Command, '-Json', '-Quiet', '-Project', $Dir, '-Results', $ResultsDir, '-Output', "$Dir-build") + @($Arguments)
     $out = & (Get-Process -Id $PID).Path @all 2>$null
     $doc = $null
     try { $doc = ($out -join "`n") | ConvertFrom-Json -AsHashtable } catch { $doc = $null }
@@ -314,6 +328,7 @@ function New-StageFixture($Cell, $Manifest) {
         if (Test-Path -LiteralPath "$target.uid") { Remove-Item -LiteralPath "$target.uid" -Force }
     }
     foreach ($edit in @(if ($Manifest.Contains('edits')) { $Manifest.edits })) {
+        $edit = Resolve-EditCopy $edit $Cell.Dir
         if (-not (Set-GameEdit $dir $edit)) { throw "$key`: '$($edit.find)' is not in $($edit.file) exactly once" }
     }
     $overlay = Join-Path $Cell.Dir "stages/$($Cell.Stage)"
@@ -334,6 +349,14 @@ function Copy-FolderOver([string]$From, [string]$To, [string[]]$Skip = @()) {
         New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
         Copy-Item -LiteralPath $file.FullName -Destination $target -Force
     }
+}
+
+# A copy edit's file names a file of the genre's language folder; resolved to a full path once, when the task is made.
+function Resolve-EditCopy($Edit, [string]$CellDir) {
+    if (-not ($Edit -is [System.Collections.IDictionary]) -or -not $Edit.Contains('copy')) { return $Edit }
+    $resolved = @{}; foreach ($k in $Edit.Keys) { $resolved[$k] = $Edit[$k] }
+    $resolved.copy = Join-Path $CellDir $Edit.copy
+    return $resolved
 }
 
 function Remove-StageFixtures {
@@ -360,6 +383,9 @@ function New-ProgrammeTask($Spec, $Cell, $Template, $Entry, [string]$StageDir, [
     $game = @{ source = $StageDir }
     foreach ($k in 'edits', 'unchanged', 'match', 'mutants', 'mutantTests', 'mutantRunners', 'suite', 'newTests', 'runners', 'kit', 'judge') {
         if ($Entry.Contains($k)) { $game[$k] = $Entry[$k] } elseif ($Template.Contains($k)) { $game[$k] = $Template[$k] }
+    }
+    foreach ($k in 'edits', 'mutants') {
+        if ($game.Contains($k)) { $game[$k] = @(foreach ($e in @($game[$k])) { Resolve-EditCopy $e $Cell.Dir }) }
     }
     # The test runners a mutant is judged with: the language's, unless the task names its own.
     if (-not $game.Contains('mutantRunners') -and $prog.Contains('languages') -and $prog.languages.Contains($Cell.Language) -and $prog.languages[$Cell.Language].Contains('mutantRunners')) {

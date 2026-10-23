@@ -1,0 +1,178 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd",
+    "main.tscn",
+    "ui",
+    "art/boss.png",
+    "art/enemy_shot.png",
+    "scripts/waves.gd",
+    "scripts/save_store.gd",
+    "scripts/launch_options.gd",
+    "game/bot.gd",
+    "game/pause_menu.gd",
+    "data",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/unit/test_rules_collisions.gd",
+    "test/unit/test_score_best.gd",
+    "test/unit/test_waves.gd",
+    "test/unit/test_save_store.gd",
+    "test/unit/test_launch_options.gd",
+    "test/unit/test_game.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/score.gd",
+      "find": "var best := 0\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/score.gd",
+      "find": "\tbest = maxi(best, points)\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/score.gd",
+      "find": "## A new game; the best score stays.",
+      "replace": "## A new game."
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the combo multiplier comes one hit late: the fifth enemy destroyed in a row still scores single points"
+      },
+      "edits": [
+        {
+          "file": "scripts/score.gd",
+          "find": "combo / 5",
+          "replace": "combo / 6"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_score.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_multiplier.gd"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Rules class (scripts/rules.gd: lives, invulnerability and collisions)",
+        "file": "test/unit/test_rules_collisions.gd",
+        "rules": "a hit costs one life, a second hit within two seconds costs nothing, the game is over at zero lives and not before, a destroyed enemy scores its own points, and an enemy with hit points left scores nothing",
+        "code": "scripts/rules.gd"
+      },
+      "unchanged": [
+        "scripts/rules.gd"
+      ],
+      "mutantTests": [
+        "test/unit/test_rules_collisions.gd"
+      ],
+      "mutants": [
+        {
+          "name": "a hit costs no life",
+          "file": "scripts/rules.gd",
+          "find": "lives -= 1",
+          "replace": "lives -= 0"
+        },
+        {
+          "name": "invulnerability is ignored",
+          "file": "scripts/rules.gd",
+          "find": "if invulnerable > 0.0 or is_game_over():",
+          "replace": "if is_game_over():"
+        },
+        {
+          "name": "the game is over at one life",
+          "file": "scripts/rules.gd",
+          "find": "return lives <= 0",
+          "replace": "return lives <= 1"
+        },
+        {
+          "name": "an enemy's points are ignored",
+          "file": "scripts/rules.gd",
+          "find": "return enemy.points",
+          "replace": "return 100"
+        },
+        {
+          "name": "hit points are off by one",
+          "file": "scripts/rules.gd",
+          "find": "if enemy.hp > 0:",
+          "replace": "if enemy.hp > 1:"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "a best score: Score (scripts/score.gd) gets an int property best, the highest points of any game so far, and reset() starts a new game (points and combo back to 0) but keeps best"
+      },
+      "hidden": [
+        "hidden/test_hidden_best.gd"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "test/unit/test_rules.gd",
+          "find": "var rules := Rules.new(3)",
+          "replace": "var rules := Rules.new(4)"
+        }
+      ],
+      "unchanged": [
+        "scripts/rules.gd",
+        "scripts/score.gd",
+        "game/game.gd",
+        "test/unit/test_rules.gd",
+        "test/unit/test_score.gd"
+      ],
+      "expected": {
+        "mustInclude": [
+          "test_one_hit_costs_one_life",
+          "re:test_rules\\.gd\\D{0,40}\\b13\\b",
+          "2",
+          "3"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

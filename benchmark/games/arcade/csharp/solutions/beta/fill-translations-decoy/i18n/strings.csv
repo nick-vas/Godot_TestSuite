@@ -1,0 +1,22 @@
+keys,en,fr
+MENU_TITLE,Orbit Patrol,Patrouille orbitale
+MENU_START,Play,Jouer
+MENU_SETTINGS,Settings,Réglages
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+HUD_SCORE,Score: %d,Score : %d
+HUD_LIVES,Lives: %d,Vies : %d
+HUD_PAUSE,Pause,Pause
+PAUSE_TITLE,Paused,En pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_QUIT,Quit to menu,Retour au menu
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+GAMEOVER_TITLE,Game over,Partie terminée
+GAMEOVER_SCORE,Score: %d,Score : %d
+GAMEOVER_BEST,Best: %d,Record : %d
+GAMEOVER_MENU,Back to menu,Retour au menu

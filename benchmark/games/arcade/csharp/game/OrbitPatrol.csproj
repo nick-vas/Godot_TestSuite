@@ -1,0 +1,20 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <RootNamespace>OrbitPatrol</RootNamespace>
+    <!-- Test code and test packages stay out of release exports. -->
+    <IncludeTests Condition="'$(Configuration)' != 'ExportRelease'">true</IncludeTests>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IncludeTests)' == 'true'">
+    <!-- gdUnit4Net through `dotnet test` (the kit's dotnet and gdunit4 runners). -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="gdUnit4.api" Version="5.0.0" />
+    <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IncludeTests)' != 'true'">
+    <!-- gdUnit4Net generates gdunit4_testadapter_v5/ next to the project when tests run. -->
+    <Compile Remove="test/**;gdunit4_testadapter*/**" />
+  </ItemGroup>
+</Project>

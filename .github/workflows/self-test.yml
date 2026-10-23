@@ -543,12 +543,9 @@ jobs:
       - name: The game benchmark grades good and bad game work by the game's tests, and judges it
         shell: pwsh
         run: ./tests/Test-GameBenchmark.ps1
-      - name: Every staged programme task catches its defect, passes its reference and fails its decoy
+      - name: Every task of a test programme catches its defect, passes its reference and fails its decoy
         shell: pwsh
-        run: |
-          ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          ./tests/Test-GameProgramme.ps1
+        run: ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7
@@ -557,6 +554,44 @@ jobs:
           path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
+
+  # The real staged programme (benchmark/game-programme.json), one job per language: every written genre's tasks must
+  # catch their defect, pass their reference and fail their decoy. It runs Godot hundreds of times (the C# arcade game
+  # alone takes about an hour and a half), so only when the programme's files changed, or when started by hand.
+  game-programme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [gdscript, csharp]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Did the programme change?
+        id: changed
+        shell: pwsh
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          $changed = $env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -or -not $env:BASE -or $env:BASE -match '^0+$'
+          if (-not $changed) {
+            git fetch -q --depth=1 origin $env:BASE 2>$null
+            $files = @(git diff --name-only $env:BASE HEAD 2>$null)
+            # Not fetched (a force push, a deleted base): check rather than skip.
+            $changed = $LASTEXITCODE -ne 0 -or @($files | Where-Object { $_ -match '^benchmark/(games|templates)/|^benchmark/(GameProgramme\.ps1|game-programme\.json)$|^tests/Test-GameProgramme\.ps1$' }).Count -gt 0
+          }
+          "run=$($changed.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if (-not $changed) { Write-Host '::notice::The staged programme did not change; its check is skipped' }
+      - name: Godot (.NET build), for GODOT_BIN
+        if: steps.changed.outputs.run == 'true'
+        shell: pwsh
+        run: ./ci/godot/hyperdot.ps1 setup -Project examples/csharp/game
+      # From a folder of its own, as the check exports builds and writes beside where it runs.
+      - name: Every ${{ matrix.language }} task catches its defect, passes its reference and fails its decoy
+        if: steps.changed.outputs.run == 'true'
+        shell: pwsh
+        working-directory: ${{ runner.temp }}
+        run: '& "$env:GITHUB_WORKSPACE/tests/Test-GameProgramme.ps1" -Language ${{ matrix.language }}'
 
   # Web exports opened in real browsers (export -Run -Browser): Playwright's Chromium and Firefox, and the runner's Edge.
   web:

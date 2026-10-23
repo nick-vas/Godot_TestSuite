@@ -1,0 +1,24 @@
+keys,en
+MENU_TITLE,Orbit Patrol
+MENU_START,Play
+MENU_SETTINGS,Settings
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+HUD_SCORE,Score: %d
+HUD_LIVES,Lives: %d
+HUD_PAUSE,Pause
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English
+GAMEOVER_TITLE,Game over
+GAMEOVER_SCORE,Score: %d
+GAMEOVER_BEST,Best: %d
+GAMEOVER_MENU,Back to menu
+VICTORY_TITLE,Orbit secured
+VICTORY_MESSAGE,All five sectors are clear. Final score: %d
+VICTORY_MENU,Back to menu

@@ -1,0 +1,159 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) never gets past the boss of level 5"
+      },
+      "edits": [
+        {
+          "file": "data/enemies.json",
+          "find": "\"hp\": 50",
+          "replace": "\"hp\": 500"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenBossHpTest.cs"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "destroying an enemy feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        Play(_sfxExplosion);\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback",
+      "decoy": "solutions/beta/add-feedback-decoy"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the victory screen in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "VICTORY_TITLE,Orbit secured,Orbite sécurisée\n",
+          "replace": "VICTORY_TITLE,Orbit secured,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "VICTORY_MESSAGE,All five sectors are clear. Final score: %d,Les cinq secteurs sont dégagés. Score final : %d\n",
+          "replace": "VICTORY_MESSAGE,All five sectors are clear. Final score: %d,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "VICTORY_MENU,Back to menu,Retour au menu\n",
+          "replace": "VICTORY_MENU,Back to menu,\n"
+        }
+      ],
+      "unchanged": [
+        "ui/victory.tscn",
+        "ui/Victory.cs"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "a whole wave is on screen and the ship keeps firing"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "    /// <summary>\n    /// Tests the ship's shots against the enemies in their own column of the screen only: with a full wave and a stream of\n    /// shots, testing every shot against every enemy is most of a frame.\n    /// </summary>\n    public void ResolveShotHits()\n    {\n        foreach (List<Enemy> column in _columns)\n            column.Clear();\n        foreach (Node node in Enemies.GetChildren())\n        {\n            var enemy = (Enemy)node;\n            float half = enemy.Size.X / 2f + ColumnMargin;\n            for (int c = ColumnOf(enemy.Position.X - half); c <= ColumnOf(enemy.Position.X + half); c++)\n                _columns[c].Add(enemy);\n        }\n        foreach (Node node in Shots.GetChildren())\n        {\n            var shot = (Shot)node;\n            if (shot.Hostile || shot.Spent)\n                continue;\n            foreach (Enemy enemy in _columns[ColumnOf(shot.Position.X)])\n            {\n",
+          "replace": "    /// <summary>Tests the ship's shots against the enemies.</summary>\n    public void ResolveShotHits()\n    {\n        foreach (Node node in Shots.GetChildren())\n        {\n            var shot = (Shot)node;\n            if (shot.Hostile || shot.Spent)\n                continue;\n            var targets = new List<Enemy>();\n            foreach (Node child in Enemies.GetChildren())\n                targets.Add((Enemy)child);\n            foreach (Enemy enemy in targets)\n            {\n"
+        },
+        {
+          "file": "game/Game.cs",
+          "find": "    public const float ColumnWidth = 80f;\n    public const int Columns = 17;\n    /// <summary>Enemies are filed under every column they reach plus this margin, so a shot on a column's edge still finds them.</summary>\n    public const float ColumnMargin = 6f;\n",
+          "replace": ""
+        },
+        {
+          "file": "game/Game.cs",
+          "find": "    /// <summary>The enemies in each column of the screen, refilled every tick; kept so the pass allocates nothing.</summary>\n    private readonly List<Enemy>[] _columns = new List<Enemy>[Columns];\n",
+          "replace": ""
+        },
+        {
+          "file": "game/Game.cs",
+          "find": "        for (int i = 0; i < Columns; i++)\n            _columns[i] = new List<Enemy>();\n",
+          "replace": ""
+        },
+        {
+          "file": "game/Game.cs",
+          "find": "    private static int ColumnOf(float x) => Mathf.Clamp((int)(x / ColumnWidth), 0, Columns - 1);\n\n",
+          "replace": ""
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenCollisionsTest.cs"
+      ],
+      "reference": "solutions/beta/fix-performance",
+      "decoy": "solutions/beta/fix-performance-decoy"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the settings screen does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/Settings.cs",
+          "find": "        _back.Pressed += () => EmitSignal(SignalName.Closed);\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow",
+      "decoy": "solutions/beta/fix-flow-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "levels 4 and 5 in data/levels.json, level 5 ending in a boss (an enemy with boss true and 30 to 80 hp); a bot: with --autoplay (after --) it plays from the main scene and finishes all five levels, every random choice from one generator seeded by --seed=N, nothing saved with --no-save, --level=N starts at level N, and it prints [Run] level N done after each level, then [Run] victory or [Run] game over, and quits; juice: print [juice] event enemy_destroyed <ms> and [juice] event ship_hit <ms> in game time (ms), each answered within 100 ms by [juice] feedback flash <ms> and [juice] feedback sfx <ms> (and [juice] feedback shake <ms> for ship_hit) for a visible flash, a sound and a camera shake; and French: every visible text through Tr() with an fr column in the translation table, menus included"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      "hidden/HiddenFrenchTest.cs"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

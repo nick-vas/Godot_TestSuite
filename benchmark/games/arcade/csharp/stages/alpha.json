@@ -1,0 +1,147 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "playthrough.json",
+    "juice.json",
+    "game/Bot.cs",
+    "test/flows/settings.flow.json",
+    "textsize.json",
+    "layout.json",
+    "sounds/sfx/explosion-1.wav",
+    "sounds/sfx/explosion-1.bfxr",
+    "sounds/sfx/hit_hurt-1.wav",
+    "sounds/sfx/hit_hurt-1.bfxr"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// Version 2 is current; version 1 kept the best score as best_score and had no settings, and players still have such files.\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = raw[\"version\"]?.GetValue<int>() ?? 1;\n        if (version == 1)\n        {\n            data.Best = raw[\"best_score\"]?.GetValue<int>() ?? 0;\n            return data;\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_1_save_keeps_its_best_score()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 1, \"best_score\": 4200}\"\"\");\n        AssertThat(new SaveStore(_path).Read().Best).IsEqual(4200);\n    }\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "level 4, with three waves, which brings in a new enemy, the zigzag: 2 hit points, 150 points, drifting sideways as it comes down (data/levels.json and data/enemies.json hold the levels and enemies)"
+      },
+      "hidden": [
+        "hidden/HiddenLevel4Test.cs",
+        {
+          "from": "hidden/level4.flow.json",
+          "to": "test/flows/level4.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content",
+      "decoy": "solutions/alpha/add-content-decoy"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with errors in game/Enemy.cs (parent-path, per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        Score.Changed += UpdateHud;\n",
+          "replace": ""
+        },
+        {
+          "file": "game/Enemy.cs",
+          "find": "    public override void _PhysicsProcess(double delta)\n    {\n",
+          "replace": "    public override void _PhysicsProcess(double delta)\n    {\n        GetNode<Label>(\"../../HUD/ScoreLabel\").Text = TextFormat.Fill(Tr(\"HUD_SCORE\"), GetNode<Game>(\"../..\").Score.Points);\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenScoreLabelTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture",
+      "decoy": "solutions/alpha/fix-architecture-decoy"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "their best score is 0 after the update. The previous version saved user://save.json as {\"version\": 1, \"best_score\": <points>}, with no settings"
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save",
+      "decoy": "solutions/alpha/migrate-save-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "pausing does not stop the enemies: they keep moving behind the pause menu"
+      },
+      "edits": [
+        {
+          "file": "game/game.tscn",
+          "find": "[node name=\"Enemies\" type=\"Node2D\" parent=\".\"]\n",
+          "replace": "[node name=\"Enemies\" type=\"Node2D\" parent=\".\"]\nprocess_mode = 3\n"
+        }
+      ],
+      "hidden": [
+        {
+          "from": "hidden/pause.flow.json",
+          "to": "test/flows/pause.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds the game scene res://game/game.tscn as a child of Main named Game and hides Menu; pause: Escape or the button HUD/PauseButton of the game shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; levels 2 and 3 after level 1, read by a Waves class (scripts/Waves.cs: static Waves Parse(string enemiesJson, string levelsJson), int LevelCount, IReadOnlyList<WaveRow> WavesOf(int level) with WaveRow(string Id, int Level, string Enemy, int Count, string Formation, float Speed), EnemyRow? Enemy(string id)) from data/levels.json (an array of waves: id, level, enemy, count, formation line/v/grid, speed) and data/enemies.json (an array: id, hp, points, drift, fire, color \"#rrggbb\", boss); a data.json for the kit's data runner; and a save of the best score by a SaveStore class (scripts/SaveStore.cs: new SaveStore(string path), SaveData Read() and bool Write(SaveData data), SaveData with an int property Best) in user://save.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/HiddenThreeLevelsTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

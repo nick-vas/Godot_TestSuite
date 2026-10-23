@@ -82,7 +82,8 @@ try {
             $answer = Join-Path $t.game.reference 'answer.md'
             if ($answerOnly -and -not (Test-Path -LiteralPath $answer)) { $problems.Add('the task is graded by its answer, and the reference has no answer.md') }
             if (Test-Path -LiteralPath $answer) {
-                $why = @(Test-BenchmarkAnswer (Get-Content -LiteralPath $answer -Raw) $t.expected)
+                # The grader returns its reasons as one array (`, $list`): assigned straight, never wrapped in @().
+                $why = Test-BenchmarkAnswer (Get-Content -LiteralPath $answer -Raw) $t.expected
                 if ($why.Count) { $problems.Add("the reference answer fails: $($why -join '; ')") }
             }
         }

@@ -1,0 +1,1 @@
+Orbit Patrol is an arcade shooter: slide along the bottom of the screen, shoot down five sectors of raider formations and keep your combo alive for bigger scores, then face the warden that guards the last orbit.

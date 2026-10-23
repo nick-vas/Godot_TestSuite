@@ -1,0 +1,32 @@
+keys,en,fr,de
+MENU_TITLE,Orbit Patrol,Patrouille orbitale,Orbitpatrouille
+MENU_START,Play,Jouer,Spielen
+MENU_SETTINGS,Settings,Réglages,Einstellungen
+MENU_CREDITS,Credits,Crédits,Mitwirkende
+MENU_QUIT,Quit,Quitter,Beenden
+MENU_VERSION,Version %s,Version %s,Version %s
+HUD_SCORE,Score: %d,Score : %d,Punkte: %d
+HUD_LIVES,Lives: %d,Vies : %d,Leben: %d
+HUD_PAUSE,Pause,Pause,Pause
+PAUSE_TITLE,Paused,En pause,Pausiert
+PAUSE_RESUME,Resume,Reprendre,Weiter
+PAUSE_QUIT,Quit to menu,Retour au menu,Zum Menü
+SETTINGS_TITLE,Settings,Réglages,Einstellungen
+SETTINGS_VOLUME,Volume,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Langue,Sprache
+SETTINGS_BACK,Back,Retour,Zurück
+LANG_EN,English,English,English
+LANG_FR,Français,Français,Français
+LANG_DE,Deutsch,Deutsch,Deutsch
+GAMEOVER_TITLE,Game over,Partie terminée,Spiel vorbei
+GAMEOVER_SCORE,Score: %d,Score : %d,Punkte: %d
+GAMEOVER_BEST,Best: %d,Record : %d,Bestwert: %d
+GAMEOVER_MENU,Back to menu,Retour au menu,Zum Menü
+VICTORY_TITLE,Orbit secured,Orbite sécurisée,Orbit gesichert
+VICTORY_MESSAGE,All five sectors are clear. Final score: %d,Les cinq secteurs sont dégagés. Score final : %d,Alle fünf Sektoren sind frei. Endstand: %d
+VICTORY_MENU,Back to menu,Retour au menu,Zum Menü
+CREDITS_TITLE,Credits,Crédits,Mitwirkende
+CREDITS_BACK,Back,Retour,Zurück
+CREDITS_ENGINE,Engine,Moteur,Engine
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces,Fremde Inhalte
+CREDITS_THANKS,Thanks,Remerciements,Dank
