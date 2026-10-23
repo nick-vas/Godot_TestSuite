@@ -74,8 +74,10 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
   `PlaytestEvents.Definitions(levels)` added to the game's `TelemetrySchema`, with `PlaytestTracker` raising the events
   from the player's position each frame and calls such as `Progress()`, `ItemFound(id)`, `Died(checkpoint)`,
   `PuzzleSolved(id)` and `EndLevel(result)` (`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Telemetry/Playtest.cs`,
-  tested with a fake clock; the C# example's `game/Main.cs` raises them from a real floor). Do not write a parallel
-  event system.
+  tested with a fake clock; the C# example's `game/Main.cs` raises them from a real floor). In GDScript, copy
+  `${CLAUDE_PLUGIN_ROOT}/examples/gdscript/playtest/playtest_tracker.gd` (the same events and detectors, consent-gated,
+  `flush()` writes `user://playtests/<session>.jsonl`; GUT tests in `test/test_playtest_tracker.gd`). Do not write a
+  parallel event system.
 - Playtest builds write each batch to a file (`PlaytestFileSink`, one `<session>.jsonl` a tester, flushed every 30 s and
   on quit by the example's `Diagnostics` when the export preset has the custom feature `playtest`); collect the testers'
   files in one folder, then `hyperdot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per

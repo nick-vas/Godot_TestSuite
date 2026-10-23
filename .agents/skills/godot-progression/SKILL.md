@@ -113,6 +113,26 @@ and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Exa
   vocabulary (`[Export(PropertyHint.Flags, "Military,Police,Farm,Town")]`), rarity is painted on map zones rather than
   set per building, and a test fails on any label outside the vocabulary. Where each item then lands: `godot-procgen`.
 
+## 6. Pressure and spending
+
+Design prompts to answer in the GDD ("What failing costs", the economy table); each one ends in a number a test holds.
+
+- **Saving is a difficulty lever.** Save anywhere, checkpoints, or saves that cost something set how much a mistake
+  costs as surely as enemy damage. Write the save rule per difficulty, and test the longest stretch of play a death can
+  undo (the farthest checkpoint gap, in seconds of the bot's playthrough) against its limit.
+- **Pressure against stalling.** A player who loses nothing by waiting will grind the safe spot or turtle, then call the
+  game boring. Name what pushes them on (a clock, a rising threat, upkeep, rewards that shrink when farmed in one place),
+  show it before it bites, and check telemetry's time per area (`godot-playtest`: `stuck`, `revisit`).
+- **Sinks players want.** A sink that only takes (repairs, taxes, fees) feels like a fine; one that buys something the
+  player chose (cosmetics, convenience, upgrades, a house) is spent gladly. Mark each sink `wanted` or `upkeep` in the
+  flow table, and let most of the currency leave through wanted ones.
+- **Fixed costs pegged to a share of wealth.** A flat fee that hurts at hour 1 is nothing at hour 50. Price upkeep,
+  repairs, death penalties and fast travel as a share of what the player holds or earns per hour, with a floor and a
+  cap, and check with `EconomySim` that the share stays in its band at 10, 100 and 1000 hours.
+- **Charges on limited-use items.** A potion, a key or a tool with uses left the player cannot see gets hoarded as too
+  good to use, or breaks at the worst moment. Show the count and warn before the last use; hide it only as a decision
+  written in the GDD, and log uses left at the end of each level to see hoarding.
+
 ## In a review
 
 - Every reward marked power or cosmetic; no repeatable power-only source; nothing missable.
@@ -120,3 +140,5 @@ and simulate it: The C# example's `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Exa
 - `totals` on every table whose sum gates progress; the `data` runner green.
 - Difficulty changes made on enemies, checked with the strongest stats as well as the expected ones.
 - Each currency has a sink; its net change per hour stays in its band and no hours run short over 10, 100 and 1000 hours.
+- A save rule per difficulty, something that pushes against stalling, most sinks wanted, fixed costs as a share of
+  wealth, and limited uses shown.

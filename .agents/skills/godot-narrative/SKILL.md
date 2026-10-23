@@ -29,6 +29,10 @@ Agents write a lot of text fast; without one source they contradict each other. 
   let the writer, or the agent, invent.
 - **Canon tiers.** Each entry is `core`, `soft` or `draft`. Agents build only on `core`; what an agent proposes stays
   `draft` until the user approves it. Blizzard kept "quasi-canonical" sources and dropped them when they got in the way.
+- **The story summary opens the bible.** First the premise as five Ws: who the player is, what they want, where and
+  when it happens, and why it matters now. Then a paragraph of the story with the player's verbs in bold ("you **sneak**
+  past the gate and **trade** the map for passage"): a story beat with no bold verb is one the player watches, and a
+  verb in the core loop that no beat uses is play the story ignores. Copy both into the GDD's Story section.
 - **Answer origin questions first.** Where a monster, race or relic comes from blocks the levels and quests built on
   it; list the open questions in the GDD and answer them before that content starts.
 

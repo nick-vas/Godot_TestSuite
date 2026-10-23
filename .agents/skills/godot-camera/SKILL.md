@@ -16,6 +16,18 @@ Super Mario 3D World) or first person avoids most of what follows. Pick one of t
 tight schedule, and design levels for the camera the game has: a dynamic camera needs levels that flow so the next goal
 is easy to show.
 
+Decide it at `concept.decisions`, with an ADR that answers what the camera costs this game:
+
+- [ ] Levels: seen from every angle the camera reaches (backs of walls, ceilings, the far side of props), or only one?
+- [ ] Occlusion: what happens when a wall hides the player (section 3), and in every tight space the levels have?
+- [ ] Controls: does the player steer the camera (a second stick, the mouse), and what does a touch screen do instead?
+- [ ] Comfort: motion, field of view and shake options (section 6), and a test player who gets motion sick.
+- [ ] Combat and aim: lock-on, aim assist or a free reticle, and how the camera frames two targets.
+- [ ] Split screen or several viewports: each one renders the scene again, against the frame budget (`bench`).
+- [ ] UI: markers, subtitles and prompts that stay readable whatever the camera does.
+- [ ] Cut-scenes and transitions: hand-made shots, or the gameplay camera?
+- [ ] Tests: which flows and `shot` scenes prove each of the above (section 8).
+
 ## 2. Keep yaw, pitch and distance, not a transform
 
 Store yaw and pitch (how players think: turn sideways, look up and down), the distance from the avatar and any framing

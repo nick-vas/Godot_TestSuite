@@ -190,7 +190,7 @@ function Test-SteamTags([string]$Text) {
 
 # Privacy: Google Play and the App Store require a privacy policy for every app, and the law does whenever the game
 # handles personal data (godot-legal section 2). Signs that the game collects player data: Sentry (the addon, its
-# [sentry] settings or SentrySdk), the kit's TelemetryClient, GameAnalytics or Firebase Analytics in the code, or a
+# [sentry] settings or SentrySdk), the kit's TelemetryClient or PlaytestTracker, GameAnalytics or Firebase Analytics in the code, or a
 # policyVersion (consent recorded against a privacy notice). The policy is store/privacy-policy.md (.txt or .html) or PRIVACY.md, and says the
 # version the code asks consent for ("Version 2"). Returns @(status, message, fix) triples.
 $script:PrivacyPolicyPaths = 'store/privacy-policy.md', 'store/privacy-policy.txt', 'store/privacy-policy.html', 'PRIVACY.md'
@@ -198,7 +198,7 @@ function Get-PrivacyProblems([string]$ProjectDir, [string]$ProjectGodot, $Detail
     $problems = [System.Collections.Generic.List[object]]::new()
     $reasons = [ordered]@{}
     if ((Test-Path -LiteralPath (Join-Path $ProjectDir 'addons/sentry')) -or $ProjectGodot -match '(?m)^\[sentry\]') { $reasons['Sentry'] = 'Sentry' }
-    $signs = [ordered]@{ Sentry = '\bSentrySdk\b'; TelemetryClient = '\bTelemetryClient\b'; GameAnalytics = '\bGameAnalytics\b'; 'Firebase Analytics' = '\bFirebase\.?Analytics\b' }
+    $signs = [ordered]@{ Sentry = '\bSentrySdk\b'; TelemetryClient = '\bTelemetryClient\b'; PlaytestTracker = '\bPlaytestTracker\b'; GameAnalytics = '\bGameAnalytics\b'; 'Firebase Analytics' = '\bFirebase\.?Analytics\b' }
     $versions = [ordered]@{}
     $files = @(@(Find-ProjectFiles -Root $ProjectDir -Filter '*.cs') + @(Find-ProjectFiles -Root $ProjectDir -Filter '*.gd'))
     foreach ($file in $files) {

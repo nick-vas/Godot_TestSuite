@@ -5,7 +5,7 @@
 # passes; missing key art without the title, a screenshot count outside 6 to 10 and a fact sheet with no contact address
 # are each named, and doctor warns about them. Trailers made with ffmpeg at run time (skipped without it): H.264 and AAC
 # pass, an MPEG-4 trailer at 25 fps and 22.05 kHz is named on each count. tags.txt: duplicates, several tags on a line and
-# more than 20 are named. Privacy: telemetry, a policyVersion or an Android preset without a policy warns, and so does a
+# more than 20 are named. Privacy: telemetry, a playtest tracker, a policyVersion or an Android preset without a policy warns, and so does a
 # policy that does not say the version the code asks consent for.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -168,6 +168,12 @@ try {
     Assert-True ($p.Count -eq 1 -and $p[0][0] -eq 'OK' -and $p[0][1] -match 'version 2, as in the code') "the policy at the code's version passes: $($p | ForEach-Object { $_[1] })"
     Set-Content (Join-Path $privacyDir 'store/privacy-policy.md') "# Privacy policy`n`nVersion 2.1. We collect crash reports with your consent."
     Assert-True ((Get-PrivacyProblems $privacyDir '' $android)[0][0] -eq 'WARN') 'version 2.1 is not version 2'
+    # The playtest tracker (C# or the GDScript example's playtest_tracker.gd) records players too.
+    $trackerDir = Join-Path $work 'privacy-tracker'
+    New-Item -ItemType Directory -Force $trackerDir | Out-Null
+    Set-Content (Join-Path $trackerDir 'main.gd') "extends Node`nvar tracker := PlaytestTracker.new(func() -> float: return 0.0)`n"
+    $p = Get-PrivacyProblems $trackerDir '' ([ordered]@{})
+    Assert-True ($p.Count -eq 1 -and $p[0][1] -match '^The game collects player data \(PlaytestTracker in res://main\.gd\)') "PlaytestTracker is a sign the game collects player data: $($p | ForEach-Object { $_[1] })"
 
     # doctor, on a project keeping its store art in store/steam without a .gdignore
     $project = Join-Path $work 'game'

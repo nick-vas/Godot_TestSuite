@@ -1,6 +1,37 @@
 # Changelog
 
 ## Unreleased
+- **Design prompts placed.** `godot-progression` section 6: saving as a difficulty lever, pressure against stalling,
+  sinks players want, fixed costs as a share of wealth, and charges on limited-use items shown, each ending in a number
+  a test holds. A camera cost checklist in `godot-camera`, asked for by the `concept.decisions` gate. A premise in five
+  Ws and a story summary with the player's verbs in bold (`godot-narrative`, and an optional Story section in the GDD
+  template). A turn written as named phases with a test per transition (`godot-patterns`). The retro asks who owns each
+  recurring job ("What recurring job has no owner?").
+- **Intentional mistakes in `godot-game-ai`** (`mistakes.md`, a side file: the skill is at its size limit): Lars Lidén's
+  "Artificial Stupidity" (*AI Game Programming Wisdom 2*) as rules with a test each: move before firing, miss the first
+  time, be visible, poor aim on purpose, a few attackers at a time, tell the player, ease off at the end, openings on
+  purpose. The chapter could not be read here, so only the two points the citing papers quote are marked verified;
+  `docs/roadmap.md` asks for the text.
+- **`templates/ARCHITECTURE.md`**, the shape of a game's code on one page: autoloads (each with its decision), the scene
+  tree, signals that cross scenes, authored versus runtime data, the save schema version with its migrations, the
+  minimum spec and the open technical questions an ADR answers. The `godot-architect` subagent creates it from the code
+  with its first decision and adds what each proposal would change; `/game`'s review flags it missing or out of step
+  with `status`'s inventory.
+- **First-session steps as stubs.** `status -Json` lists the GDD's "First session, step by step" as
+  `gdd.firstSession[]` (`S1`... from each step's number), with the flows, tests and `playthrough.json` tagged `GDD:S<n>`
+  that play it and the `*.stub.json` files that only stub it; a confirmed GDD warns about steps with neither, and about
+  tags for steps it lacks. Stubs never count as a feature's tests. `/game` writes the stubs
+  (`test/flows/first_session_s<n>.stub.json` and `playthrough.stub.json`, which no runner plays, so a run stays green)
+  and a task per step; starting the task turns the stub into a failing `.flow.json` first. `playthrough.json` may name
+  the steps it plays in `"covers"`. Self-test: `tests/Test-Plan.ps1`.
+- **A GDScript playtest tracker** (`examples/gdscript/playtest/playtest_tracker.gd`): the C# example's `PlaytestTracker`,
+  its consent rule and `PlaytestFileSink` in one class. It raises the seven events of `templates/playtest-events.json`
+  from the player's position and the game's calls, records nothing before the player agrees, and `flush()` appends one
+  batch a line to `user://playtests/<session>.jsonl`; refusing consent deletes those files. Ten GUT tests
+  (`test/test_playtest_tracker.gd`) repeat the C# cases with a fake clock and check every event against the template;
+  `godot-playtest` and `docs/telemetry.md` point to it (the latter also had the sink's folder wrong). `doctor` now counts
+  `PlaytestTracker` in the code as collecting player data, so a game using it without a privacy policy is warned; the
+  GDScript example has one (`store/privacy-policy.md`).
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run

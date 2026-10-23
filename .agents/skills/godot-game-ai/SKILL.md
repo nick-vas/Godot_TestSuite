@@ -99,7 +99,7 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 Lead anything slow enough to dodge with `Aim.Lead` (the exact intercept: the smallest positive root of a quadratic; null
 means no shot), arc with `Aim.Ballistic`, and miss on purpose with `Aim.Scatter` (±2 degrees) or the AI is an aimbot.
 `position + velocity * distance / speed` hit 3.6% of fast targets where `Aim.Lead` hit 100%. Details, the designer knobs
-and the fallbacks: [aiming.md](aiming.md).
+and the fallbacks: [aiming.md](aiming.md). Losing well (Lidén's intentional mistakes, as tests): [mistakes.md](mistakes.md).
 
 ## 6. Perception
 

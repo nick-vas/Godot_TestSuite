@@ -67,7 +67,7 @@ Each uses only the rules above; where the sources give no number, the check repo
   the first five is INFO (Zukowski).
 - **Privacy policy** (`doctor`): the policy is `store/privacy-policy.md` (or `.txt`, `.html`) or `PRIVACY.md` in the
   project. It warns when the game collects player data with none (Sentry's addon, `[sentry]` settings or `SentrySdk`, the kit's
-  `TelemetryClient`, GameAnalytics or Firebase Analytics in the code, or a `policyVersion` set to a number), when an
+  `TelemetryClient` or `PlaytestTracker`, GameAnalytics or Firebase Analytics in the code, or a `policyVersion` set to a number), when an
   Android or iOS preset exists with none (both stores require one), and when the code asks consent for a
   `policyVersion` the policy does not state as "Version N". Warnings, not failures: the policy may be published
   elsewhere, and whether a game needs one outside the phone stores is a legal question.

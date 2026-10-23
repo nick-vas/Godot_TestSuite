@@ -48,7 +48,16 @@ they start again.
 3.
 
 Each step says what the player sees and does, up to quitting. Keep every step observable: tests turn the steps into UI
-flows (`*.flow.json`) and into the `playthrough` runner's milestones.
+flows (`*.flow.json`) and into the `playthrough` runner's milestones. Step 3 is `S3`: the flow, test or stub that plays
+it is tagged `GDD:S3`, and `status` lists which steps are played and which are only stubbed. Renumbering steps means
+retagging them.
+
+## Story (optional)
+
+Premise in five Ws: who the player is, what they want, where and when it happens, and why it matters now.
+
+Summary: one paragraph, the player's verbs in **bold** (you **sneak** past the gate...). The full bible lives in `lore/`
+(`godot-narrative`).
 
 ## World rules
 
