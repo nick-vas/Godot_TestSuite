@@ -8,7 +8,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest help deck`, all with `-Json`.
 - `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, BuildSize, Help, Deck, Placement.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `placement.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
-  `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
+  `Update-Versions.ps1`, `Update-AddonStatus.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases, and of the
+  add-ons in `ci/godot/addons-status.json`, the known-status list `doctor` reads), release/PR-comment tools.
 - `tests/` self-tests, most with a deliberately broken fixture (`tests/<name>-fixture`); the table under "Self-tests" says what each covers and needs.
 - `ci/godot/templates/` files `init`, `plan`, `/game` and the architect copy into a game (`plan.json`, `plan-jam.json` for `plan -Do init -Profile jam`, `AGENTS.md`, `GDD.md`, `GDD-jam.md` for jams, `ADR.md`, `STYLE.md`, `TECH-DEBT.md`, `TRAILER.md`, `kit-notes.md`, and `placement_check.gd`, a test a game copies to check where levels place things), `ci/godot/templates/playtest-events.json` (the playtest telemetry schema `playtest` reads and games copy), `ci/godot/templates/licences/` (SPDX texts `credits` ships for MIT, ISC, BSD, Apache-2.0, MPL-2.0, OFL-1.1 and Zlib), and `genres-uw.json` (University of Washington, CC BY-NC-SA 4.0 with permission) and `genres.json` (Wikidata, CC0), the genre vocabularies.
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
@@ -101,7 +102,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Store.ps1` | `doctor`'s store art, trailer, tag and privacy checks (generated images, ffmpeg videos) | ffmpeg |
 | `Test-Platforms.ps1` | `doctor`'s Web and Android checks | - |
 | `Test-Web.ps1` | Web `export -Run` (`web-fixture`) | Godot's templates, Node.js, a Playwright browser |
-| `Test-Addons.ps1` | `doctor`'s add-on and GDExtension checks (a project made in a temporary folder) | - |
+| `Test-Addons.ps1` | `doctor`'s add-on and GDExtension checks (a project made in a temporary folder), the known-status list and its refresh (made-up repositories) | - |
 | `Test-DoctorFixture.ps1` | `doctor`'s copies of one file, occluders with occlusion culling off and bodies moved without physics interpolation, each way (`doctor-fixture` and copies of it) | - |
 | `Test-RepoHygiene.ps1` | `doctor`'s repository checks (a broken project made in a temporary folder, since reserved names or case twins committed here would break Windows checkouts) | - |
 | `Test-Help.ps1` | `help` and `docs/help.md`: an entry for every command, skill and subagent, none for what does not exist, quoted calls that bind | - |
@@ -111,7 +112,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
 | `Test-BuildSize.ps1` | `export -Json`'s size breakdown: a synthetic pack read as a file, embedded and zipped; a real Linux export of a copy of `examples/gdscript` | Godot's templates; `-NoGodot` for the synthetic part |
 | `Test-GameVersion.ps1` | `export -GameVersion auto`, Android version codes, download names (temporary git repositories) | git |
-| `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor, a new minor with its GUT release and a package update rewrite every pin and keep the skills valid; the canary's exit checks and pairing (copies of the repository) | - |
+| `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor, a new minor with its GUT release and a package update rewrite every pin and keep the skills valid; the canary's exit checks and pairing, aseprite-mcp's pins tried through a stand-in uvx, the add-on status refresh (copies of the repository) | - |
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |

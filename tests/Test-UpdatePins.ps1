@@ -3,7 +3,8 @@
 # it and leave the file's pin behind on every later update. Also: the C# fixtures' SDK pins move with Godot, a new Godot
 # minor's GUT release is never applied without that Godot, and Invoke-Canary.ps1 counts a failed rewrite as a failure
 # and tries the new minor with its GUT release as a pair. aseprite-mcp's commit and MCP SDK pins (lib/Init.ps1, docs/mcp.md)
-# move like the others, and the canary proposes them only after starting the server through uvx (a stand-in here). On copies of the repository's tracked files, with made-up
+# move like the others, and the canary proposes them only after starting the server through uvx (a stand-in here); the
+# canary refreshes the add-on status list (made-up repositories, -AddonSource). On copies of the repository's tracked files, with made-up
 # releases (-LatestFile) and no example projects for the canary, so no network and no Godot.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -39,14 +40,26 @@ function New-RepoCopy([string]$Name) {
 # No example projects (-Projects @()), so each attempt is the rewrite and the skill validator. Its report is stdout.
 function Invoke-CanaryCopy([string]$Copy, [string]$Latest) {
     $errFile = Join-Path $temp "canary-$([guid]::NewGuid().ToString('n').Substring(0, 8)).err"
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$Copy' -LatestFile '$Latest' -Projects @()" 2>$errFile
+    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$Copy' -LatestFile '$Latest' -Projects @() -AddonSource '$script:AddonSource'" 2>$errFile
     $code = $LASTEXITCODE
     $report = if (-not $code) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     return [pscustomobject]@{ report = $report; text = "exit ${code}: $($out -join ' ') $(Get-Content -LiteralPath $errFile -Raw)" }
 }
 
+# The add-on repositories as addons-status.json last saw them (no network), for the canary's add-on refresh.
+function New-AddonSource([string]$Path, [hashtable]$Changes = @{}) {
+    $source = @{}
+    foreach ($a in (Get-Content -LiteralPath (Join-Path $root 'ci/godot/addons-status.json') -Raw | ConvertFrom-Json).addons) {
+        $source[$a.repo] = @{ head = $a.head; archived = $a.archived; files = @{ $a.entrySymbolSource = "entry_symbol = `"$($a.entrySymbol)`"" } }
+        if ($Changes.ContainsKey($a.repo)) { foreach ($k in $Changes[$a.repo].Keys) { $source[$a.repo][$k] = $Changes[$a.repo][$k] } }
+    }
+    $source | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Path
+    return $Path
+}
+
 try {
     New-Item -ItemType Directory -Force $temp | Out-Null
+    $script:AddonSource = New-AddonSource (Join-Path $temp 'addons-same.json')
     $current = [regex]::Match((Get-Content -LiteralPath (Join-Path $root 'examples/csharp/game/Example.csproj') -Raw), 'Godot\.NET\.Sdk/(?<v>[\d.]+)').Groups['v'].Value
     $parts = $current -split '\.'
     $next = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 1)"
@@ -165,7 +178,7 @@ Write-Output '@@tools 123'
     @{ 'aseprite-mcp' = $newCommit; mcp = '1.99.0' } | ConvertTo-Json | Set-Content -LiteralPath $latestBreak
     $canaryAse = New-RepoCopy 'canary-aseprite'
     $errFile = Join-Path $temp 'canary-aseprite.err'
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryAse' -LatestFile '$latestBreak' -Projects @() -Uvx '$fakeUvx'" 2>$errFile
+    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryAse' -LatestFile '$latestBreak' -Projects @() -Uvx '$fakeUvx' -AddonSource '$script:AddonSource'" 2>$errFile
     $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     $text = "exit ${LASTEXITCODE}: $($out -join ' ') $(Get-Content -LiteralPath $errFile -Raw)"
     if (-not $report) { $failures += "the canary should report on the aseprite-mcp pins: $text" }
@@ -179,14 +192,28 @@ Write-Output '@@tools 123'
     }
     # No uvx at all: the pins are not proposed untried.
     $canaryNoUvx = New-RepoCopy 'canary-no-uvx'
-    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryNoUvx' -LatestFile '$latestAse' -Projects @() -Uvx '$(Join-Path $temp 'no-such-uvx')'" 2>$null
+    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryNoUvx' -LatestFile '$latestAse' -Projects @() -Uvx '$(Join-Path $temp 'no-such-uvx')' -AddonSource '$script:AddonSource'" 2>$null
     $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
     if (-not $report -or @($report.passing).Count -or @($report.failing | Where-Object { $_.problem -match 'was not found' }).Count -ne 2) { $failures += "without uvx both aseprite-mcp pins should fail, saying uvx is missing: $($out -join ' ')" }
+
+    # The add-on status list: with no version update, a moved add-on is still applied and reported, and one that needs a
+    # person is listed under addons.review.
+    $canaryAddons = New-RepoCopy 'canary-addons'
+    $moved = New-AddonSource (Join-Path $temp 'addons-moved.json') @{ 'Moonzel/Godot-PerfBullets' = @{ head = 'd' * 40 } }
+    $latestNone = Join-Path $temp 'latest-none.json'
+    '{}' | Set-Content -LiteralPath $latestNone
+    $out = & pwsh -NoProfile -Command "& '$canary' -Root '$canaryAddons' -LatestFile '$latestNone' -Projects @() -AddonSource '$moved'" 2>$null
+    $report = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
+    if (-not $report -or (@($report.addons.updates | ForEach-Object { "$($_.id).$($_.field)" }) -join ',') -ne 'godot-perfbullets.head' -or
+        (@($report.addons.review | ForEach-Object id) -join ',') -ne 'godot-perfbullets' -or 'ci/godot/addons-status.json' -notin @($report.changed) -or
+        @($report.passing).Count -or (Get-Content -LiteralPath (Join-Path $canaryAddons 'ci/godot/addons-status.json') -Raw) -notmatch ('d' * 40)) {
+        $failures += "the canary should apply and report the add-on that moved: $($out -join ' ')"
+    }
 } finally {
     Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
 }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'Update-Versions -Apply rewrites every pinned file (the C# fixtures too), fails naming a pinned file that is missing, and keeps a new minor''s GUT release for that Godot; the canary fails a rewrite that fails, and pairs Godot with its GUT; aseprite-mcp''s commit and MCP SDK move together with docs/mcp.md, and the canary starts the server before proposing them'
+Write-Host 'Update-Versions -Apply rewrites every pinned file (the C# fixtures too), fails naming a pinned file that is missing, and keeps a new minor''s GUT release for that Godot; the canary fails a rewrite that fails, and pairs Godot with its GUT; aseprite-mcp''s commit and MCP SDK move together with docs/mcp.md, and the canary starts the server before proposing them; it applies and reports add-ons that moved'
 # Some updates failed on purpose; GitHub's pwsh wrapper would exit with their code.
 exit 0

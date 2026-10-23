@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **Known-status list for add-ons** (`ci/godot/addons-status.json`): `doctor` warns about Godot Jolt on Godot 4.7,
+  godot-steam-audio (archived), Godot-PerfBullets (Godot 4.1 and 4.2) and py4godot (a prototype), found by their folder
+  in any letter case or, renamed, by their `.gdextension` file name and `entry_symbol`. Each name was confirmed from the
+  add-on's repository (docs/addons.md says which files). `ci/godot/tools/Update-AddonStatus.ps1` refreshes each entry's
+  newest commit and archived state; the canary runs it, puts what moved in its pull request and opens an issue for what
+  needs a person. Tests: `tests/Test-Addons.ps1` (detection, the refresh on made-up repositories),
+  `tests/Test-UpdatePins.ps1` (the canary).
 - **The canary tracks aseprite-mcp's pins.** `Update-Versions.ps1` reads the commit and MCP SDK that `init -McpAseprite`
   writes (`lib/Init.ps1`) and proposes the server's newest commit (`git ls-remote`) and the newest `mcp` release on PyPI
   within the pinned major (a newer major is a note: SDK 2.x renamed the `FastMCP` the server imports). `-Apply` rewrites

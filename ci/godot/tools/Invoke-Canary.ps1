@@ -19,7 +19,8 @@ param(
     # Example projects every update must pass.
     [string[]]$Projects = @('examples/gdscript', 'examples/csharp/game'),
     # The uv tool runner that starts aseprite-mcp (init -McpAseprite writes uvx into .mcp.json).
-    [string]$Uvx = 'uvx'
+    [string]$Uvx = 'uvx',
+    [string]$AddonSource
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
@@ -124,12 +125,23 @@ if ($passing.Count -gt 0) {
     $changed = @(($applied | ConvertFrom-Json).changed)
 }
 
+# The add-on status list: what moved (newest commit, archived) is applied beside the version updates; what needs a person
+# (a new commit on an add-on doctor warns about, a file that moved) is reported for an issue.
+$statusArgs = @('-NoProfile', '-File', (Join-Path $tools 'Update-AddonStatus.ps1'), '-Root', $Root, '-Apply', '-Json')
+if ($AddonSource) { $statusArgs += '-Source', $AddonSource }
+$addonOut = & pwsh @statusArgs
+$addons = if (-not $LASTEXITCODE) { try { ($addonOut -join "`n") | ConvertFrom-Json } catch { $null } }
+$notes = @($report.notes)
+if ($addons) { $changed = @($changed) + @($addons.changed) }
+else { $notes += "Update-AddonStatus.ps1 failed ($LASTEXITCODE): $($addonOut -join ' ')" }
+
 $byName = @{}; foreach ($u in $report.updates) { $byName[$u.name] = $u }
 [ordered]@{
     schema = 'godot-canary/1'
     passing = @($passing | ForEach-Object { $byName[$_] })
     failing = @($failing.Keys | ForEach-Object { [ordered]@{ name = $_; current = $byName[$_].current; latest = $byName[$_].latest; problem = $failing[$_] } })
     blocked = @($report.blocked)
-    notes = @($report.notes)
+    notes = $notes
+    addons = [ordered]@{ updates = @(if ($addons) { $addons.updates }); review = @(if ($addons) { $addons.review }); notes = @(if ($addons) { $addons.notes }) }
     changed = $changed
 } | ConvertTo-Json -Depth 5

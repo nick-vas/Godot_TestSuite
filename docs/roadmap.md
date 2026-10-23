@@ -157,9 +157,11 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 - **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
   shows them. A small C# `[Tool]` node that draws each report for the open scene.
-- **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
-  folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
-  refreshed by `Invoke-Canary.ps1`.
+- **Add-on status from release zips and the API.** `ci/godot/addons-status.json`'s names were confirmed from each
+  repository's files and build scripts with git, because GitHub's release downloads and API answered 403 in the sandbox
+  that built it; Godot Jolt's, PerfBullets' and py4godot's `archived` are still `null`. The canary's first run fills
+  `archived` in; checking the folder inside each release zip needs a run where `github.com/<repo>/releases/download` is
+  reachable.
 - **First-session steps as stubs.** `status` reads only the GDD's pitch and features; the first-session steps could
   become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema

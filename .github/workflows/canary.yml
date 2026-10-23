@@ -1,5 +1,5 @@
 # Weekly check against new releases: Godot (through Godot.NET.Sdk), the test-framework packages, GUT, and the aseprite-mcp
-# commit and MCP SDK that init -McpAseprite pins. Each update is tried on both example projects (aseprite-mcp's by
+# commit and MCP SDK that init -McpAseprite pins; and the add-ons doctor warns about (ci/godot/addons-status.json). Each update is tried on both example projects (aseprite-mcp's by
 # starting the server through uvx); the ones that pass become one pull request, the ones that fail an issue each, so the
 # pinned versions on main never break because something upstream moved.
 #
@@ -52,11 +52,15 @@ jobs:
           $summary += @($c.failing | ForEach-Object { "| $($_.name) $($_.current) -> $($_.latest) | fails |" })
           $summary += @($c.blocked | ForEach-Object { "| $_ | blocked |" })
           if (-not ($c.passing -or $c.failing -or $c.blocked)) { $summary += '| everything | already on the newest stable release |' }
-          $summary += @($c.notes | ForEach-Object { '', "Note: $_" })
+          $summary += @($c.addons.updates | ForEach-Object { "| add-on $($_.id) $($_.field) | $($_.old) -> $($_.new) |" })
+          $summary += @($c.addons.review | ForEach-Object { "| add-on $($_.id) | needs a look |" })
+          $summary += @(@($c.notes) + @($c.addons.notes) | ForEach-Object { '', "Note: $_" })
           $summary | Add-Content $env:GITHUB_STEP_SUMMARY
 
-          if ($c.passing) {
-            $title = 'Canary: ' + (@($c.passing | ForEach-Object { "$($_.name) $($_.latest)" }) -join ', ')
+          # The add-on status list (ci/godot/addons-status.json) rides along with the version updates.
+          if ($c.passing -or $c.addons.updates) {
+            $names = @($c.passing | ForEach-Object { "$($_.name) $($_.latest)" }) + @(if ($c.addons.updates) { 'add-on status' })
+            $title = 'Canary: ' + ($names -join ', ')
             $open = @(gh pr list --state open --search 'Canary: in:title' --json title | ConvertFrom-Json | Where-Object title -eq $title)
             if ($open) {
               Write-Host "An open pull request already proposes: $title"
@@ -70,13 +74,15 @@ jobs:
               git push -u origin $branch
               $body = @('Newer releases that pass both example projects (`examples/gdscript`, `examples/csharp/game`) and the skill validator:', '')
               $body += @($c.passing | ForEach-Object { "- $($_.name): $($_.current) -> $($_.latest)" })
+              $body += @($c.addons.updates | ForEach-Object { "- add-on $($_.id) $($_.field): $($_.old) -> $($_.new) (ci/godot/addons-status.json)" })
               $body += '', "Files: $(@($c.changed) -join ', ')", '', "Canary run: $run"
               if ($c.failing) { $body += '', 'Not included (see the canary issues):'; $body += @($c.failing | ForEach-Object { "- $($_.name) $($_.latest)" }) }
               gh pr create --base main --head $branch --title $title --body ($body -join "`n")
             }
           }
 
-          foreach ($f in @($c.failing) + @($c.blocked | ForEach-Object { [pscustomobject]@{ name = $_; latest = ''; current = ''; problem = $_ } })) {
+          $addonReview = @($c.addons.review | ForEach-Object { [pscustomobject]@{ name = "add-on $($_.id) needs a look"; latest = ''; current = ''; problem = $_.message } })
+          foreach ($f in @($c.failing) + @($c.blocked | ForEach-Object { [pscustomobject]@{ name = $_; latest = ''; current = ''; problem = $_ } }) + $addonReview) {
             $title = if ($f.latest) { "Canary: $($f.name) $($f.latest) does not pass" } else { "Canary: $($f.name)" }
             $existing = @(gh issue list --state open --search "$title in:title" --json number,title | ConvertFrom-Json | Where-Object title -eq $title)
             $text = "$(if ($f.current) { "$($f.name) $($f.current) -> $($f.latest)`n`n" })``````text`n$($f.problem)`n```````n`nCanary run: $run"

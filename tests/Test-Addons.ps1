@@ -114,6 +114,59 @@ linux.release.x86_64 = {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# Add-ons with a known status (ci/godot/addons-status.json), in a project of their own: found by folder in any letter
+# case, or renamed by their .gdextension's file name and entry_symbol; a Godot range only warns outside it.
+$known = Join-Path ([System.IO.Path]::GetTempPath()) "addons-known-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+try {
+    foreach ($d in 'addons/perfbullets', 'addons/godot-steam-audio', 'addons/py', 'addons/other') { New-Item -ItemType Directory -Force (Join-Path $known $d) | Out-Null }
+    Set-Content -LiteralPath (Join-Path $known 'addons/py/python.gdextension') "[configuration]`n`nentry_symbol = `"initialize_pythonscript`"`ncompatibility_minimum = `"4.7.0`"`n"
+    # The same file name with another entry_symbol is someone else's extension.
+    Set-Content -LiteralPath (Join-Path $known 'addons/other/python.gdextension') "[configuration]`n`nentry_symbol = `"other_init`"`ncompatibility_minimum = `"4.5`"`n"
+    $statusList = Get-Content -LiteralPath (Join-Path $root 'ci/godot/addons-status.json') -Raw | ConvertFrom-Json
+    Assert-True (@($statusList.addons | Where-Object { -not ($_.id -and $_.repo -and $_.folders -and $_.gdextension -and $_.entrySymbol -and $_.entrySymbolSource -and $_.why -and $_.fix -and $_.head -match '^[0-9a-f]{40}$' -and $_.confirmed) }).Count -eq 0) 'every status entry names its repository, folders, file, entry_symbol, source, reason, fix, commit and how it was confirmed'
+    $knownProblems = @(Get-AddonProblems $known "config_version=5`n" @() '4.7.2')
+    $knownText = Get-Messages $knownProblems
+    Assert-True ($knownText -match 'WARN res://addons/perfbullets is Godot-PerfBullets \(Moonzel/Godot-PerfBullets\), not made for this Godot: .*works with Godot 4\.1 and 4\.2.* It supports Godot up to 4\.2, and the project uses 4\.7\.2') "PerfBullets is found by its folder in another case, outside its Godot range: $knownText"
+    Assert-True ($knownText -match 'WARN res://addons/godot-steam-audio is godot-steam-audio \(stechyo/godot-steam-audio\), archived') 'godot-steam-audio warns as archived'
+    Assert-True ($knownText -match 'WARN res://addons/py/python\.gdextension is py4godot' -and @($knownProblems | Where-Object Message -match 'addons/other').Count -eq 0) 'a renamed py4godot is found by file name and entry_symbol, another extension with its file name is not'
+    Assert-True ((Get-Messages @(Get-AddonProblems $known "config_version=5`n" @() '4.2.2')) -notmatch 'PerfBullets') 'PerfBullets on Godot 4.2 is within its range'
+    # Godot Jolt: the folder alone warns; with the extension's physics engine set, the setting's warning (which names the
+    # folder) is the only Jolt line.
+    New-Item -ItemType Directory -Force (Join-Path $known 'addons/godot-jolt') | Out-Null
+    $joltFolder = Get-Messages @(Get-AddonProblems $known "config_version=5`n" @() '4.7.2')
+    Assert-True ($joltFolder -match 'WARN res://addons/godot-jolt is Godot Jolt \(godot-jolt/godot-jolt\), superseded by the engine') "addons/godot-jolt on 4.7 warns from the list: $joltFolder"
+    $joltBoth = @(Get-AddonProblems $known "config_version=5`n`n[physics]`n`n3d/physics_engine=`"Jolt Physics (Extension)`"`n" @() '4.7.2')
+    Assert-True (@($joltBoth | Where-Object Message -match 'Jolt').Count -eq 1) "with the extension's physics engine set, one Jolt line: $(Get-Messages $joltBoth)"
+    Assert-True ((Get-Messages @(Get-AddonProblems $known "config_version=5`n" @() '4.6.1')) -notmatch 'Godot Jolt') 'Godot Jolt on 4.6 is within its range'
+
+    # The canary's refresh (Update-AddonStatus.ps1) on a copy of the list, with made-up repositories (-Source).
+    $copyRoot = Join-Path $known 'kit'
+    New-Item -ItemType Directory -Force (Join-Path $copyRoot 'ci/godot') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $root 'ci/godot/addons-status.json') -Destination (Join-Path $copyRoot 'ci/godot/addons-status.json')
+    $source = @{}
+    foreach ($a in $statusList.addons) { $source[$a.repo] = @{ head = $a.head; archived = $a.archived; files = @{ $a.entrySymbolSource = "entry_symbol = `"$($a.entrySymbol)`"" } } }
+    $source['godot-jolt/godot-jolt'].archived = $true
+    $source['stechyo/godot-steam-audio'].archived = $false
+    $source['Moonzel/Godot-PerfBullets'].head = 'c' * 40
+    $source['niklas2902/py4godot'].files = @{}
+    $sourceFile = Join-Path $known 'source.json'
+    $source | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $sourceFile
+    $tool = Join-Path $root 'ci/godot/tools/Update-AddonStatus.ps1'
+    $r = & pwsh -NoProfile -File $tool -Root $copyRoot -Source $sourceFile -Apply -Json | Out-String | ConvertFrom-Json
+    $updates = @($r.updates | ForEach-Object { "$($_.id).$($_.field)" } | Sort-Object)
+    Assert-True (($updates -join ',') -eq 'godot-jolt.archived,godot-perfbullets.head,godot-steam-audio.archived') "head and archived changes are found: $($updates -join ',')"
+    $reviewIds = @($r.review | ForEach-Object id | Sort-Object)
+    Assert-True (($reviewIds -join ',') -eq 'godot-perfbullets,godot-steam-audio,py4godot') "a new commit on a warned add-on, an unarchived one and a missing entry_symbol file need a person: $($reviewIds -join ',')"
+    $written = Get-Content -LiteralPath (Join-Path $copyRoot 'ci/godot/addons-status.json') -Raw | ConvertFrom-Json
+    $perf = @($written.addons | Where-Object id -eq 'godot-perfbullets')[0]
+    $jolt = @($written.addons | Where-Object id -eq 'godot-jolt')[0]
+    Assert-True ($perf.head -eq ('c' * 40) -and $jolt.archived -eq $true -and $perf.status -eq 'unsupported' -and @($r.changed) -contains 'ci/godot/addons-status.json') '-Apply writes head and archived, and leaves the status to a person'
+    $again = & pwsh -NoProfile -File $tool -Root $copyRoot -Source $sourceFile -Apply -Json | Out-String | ConvertFrom-Json
+    Assert-True (@($again.updates).Count -eq 0 -and @($again.changed).Count -eq 0 -and (@($again.review | ForEach-Object id) -join ',') -eq 'py4godot') "a second run changes nothing; only the missing file is still reported: $(@($again.review | ForEach-Object id) -join ',')"
+} finally {
+    Remove-Item -LiteralPath $known -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if ($failures.Count) { throw "$($failures.Count) add-on check(s) failed" }
 Write-Host 'add-on self-test passed'
 # The doctor run above failed on purpose; GitHub's pwsh wrapper would exit with its code.
