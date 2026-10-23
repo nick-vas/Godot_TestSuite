@@ -121,36 +121,68 @@ separate, headless tool.
 
 ## What it gives an agent
 
+### Understand the project
+
 | Capability | Command | Result |
 |---|---|---|
 | **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
 | **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files, add-ons, store art |
+| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity |
+| **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; `-McpDiagnostics` adds GDScript checks and the game console |
+
+### Test and verify
+
+| Capability | Command | Result |
+|---|---|---|
 | **Test first** | `test -Json -Quiet [-Runners x -Filter y]` | per-runner pass/fail with the failure's `message`, `file`, `line`; fails on zero tests and on any engine `ERROR:`; Godot's output stays in a log file |
 | **Play the UI** | `flows` runner | `*.flow.json` files: press buttons, send input, wait, assert on node properties, headless in the real engine |
 | **Catch what tests miss** | `validate` and `smoke` runners | loads every script, scene and resource; plays the main scene |
 | **Keep the structure sound** | `architecture` runner, `godot-architect` subagent | warns on fragile node paths, per-frame lookups, events never unsubscribed and more; design reviews recorded in `docs/decisions/` |
-| **Check translations** | `l10n` runner | duplicate, untranslated, missing and too long keys, translation remaps, missing glyphs |
+| **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
+| **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
+| **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed to smoke runs, `export -Run`, `bench` and `shot` |
+| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework) |
+
+### Check the game itself
+
+| Capability | Command | Result |
+|---|---|---|
 | **Check game data** | `data` runner, `data.json` | ids, types, ranges and references in the game's JSON and CSV tables |
+| **Check translations** | `l10n` runner | duplicate, untranslated, missing and too long keys, translation remaps, missing glyphs |
 | **Read on small screens** | `textsize` runner, `textsize.json` | text and subtitle sizes at 1280x800 (Steam Deck) and other resolutions |
 | **Fit every screen** | `layout` runner, `layout.json` | phones, a tablet and an ultrawide: controls off screen, under a notch or too small to touch fail |
 | **Feel the game** | `juice` runner, `juice.json` | every gameplay event must get its feedback (flash, sound, shake) within 100 ms |
 | **Finish the game** | `playthrough` runner, `playthrough.json` | the game's bot plays at fixed game time and must log every milestone, the ending last |
-| **Build errors as data** | `build -Json` | `diagnostics[]` with file, line and C# error code |
-| **Ship** | `export -Preset X -Run` | exported and launched; Web presets open in real browsers (`-Browser chromium,firefox`). The workflow's `release` input zips the exports into a GitHub Release |
-| **Coverage floor** | `-MinCoverage 60` | merged report, fails below the floor |
+
+### Measure
+
+| Capability | Command | Result |
+|---|---|---|
 | **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, a hitch log, draw calls, GC |
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames; with a baseline, the share changed and a diff image; `-Locale` for translations |
 | **Hear the mix** | `audio [-Mix]` | each sound file's loudness and true peak by category; with `-Mix`, the game's own mix against -24 LUFS and -1 dBTP |
 | **Hold up online** | `soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50` | one server and headless clients: crashes, engine errors, memory growth, a clean stop on SIGTERM |
+| **Read a playtest** | `playtest -Sessions playtests/sessions` | per level: time, deaths, stalls, items found, and PNG heat maps from testers' telemetry |
+
+### Ship
+
+| Capability | Command | Result |
+|---|---|---|
 | **Have sounds on day one** | `sfx -Sound jump,coin,hit -Count 3` | placeholder WAVs from a seed (bfxr2's synth) and `.bfxr` files bfxr2 opens |
 | **Credit everyone** | `credits` | `CREDITS.md`, `credits.json` and `THIRD-PARTY-NOTICES.txt` from `assets.json`; fails when a credit or notice is missing |
-| **Read a playtest** | `playtest -Sessions playtests/sessions` | per level: time, deaths, stalls, items found, and PNG heat maps from testers' telemetry |
-| **Drive the game** | `-GameArgs '--autoplay','--seed=3'` | your game's own flags, passed to smoke runs, `export -Run`, `bench` and `shot` |
-| **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; `-McpDiagnostics` adds GDScript checks and the game console |
+| **Ship** | `export -Preset X -Run` | exported and launched; Web presets open in real browsers (`-Browser chromium,firefox`). The workflow's `release` input zips the exports into a GitHub Release |
+
+### Plan
+
+| Capability | Command | Result |
+|---|---|---|
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
-| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity |
 | **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
-| **Keep "done" honest** | the plugin's Stop hook | a turn cannot end while Godot files changed since the last full passing `test` run (no `-Filter`, a real test framework) |
+
+### Improve the agent and the kit
+
+| Capability | Command | Result |
+|---|---|---|
 | **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens, cost and time per task, as medians over repeated runs |
 
