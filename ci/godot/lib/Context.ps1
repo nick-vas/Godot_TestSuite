@@ -60,6 +60,10 @@ function Get-KitCommandLine {
     foreach ($p in $ast.ParamBlock.Parameters) {
         $name = $p.Name.VariablePath.UserPath
         $names.Add($name)
+        # A flag can bind to a variable of another name (-Profile to $PlanProfile).
+        foreach ($alias in @($p.Attributes | Where-Object { $_.TypeName.Name -eq 'Alias' })) {
+            foreach ($a in $alias.PositionalArguments) { $names.Add($a.Value) }
+        }
         if ($name -eq 'Command') {
             $set = @($p.Attributes | Where-Object { $_.TypeName.Name -eq 'ValidateSet' })
             if ($set.Count -gt 0) { $commands = @($set[0].PositionalArguments | ForEach-Object { $_.Value }) }

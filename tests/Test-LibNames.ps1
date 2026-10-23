@@ -21,7 +21,11 @@ foreach ($file in $files) {
 # Every parameter docs/reference.md documents exists on hyperdot.ps1: a lost edit once removed -FixedFps and
 # -MaxChangedPercent from the script while the docs and tests still named them.
 $entry = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'ci/godot/hyperdot.ps1'), [ref]$null, [ref]$null)
-$parameters = @($entry.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
+# A flag can bind to a variable of another name (-Profile to $PlanProfile), so aliases count too.
+$parameters = @($entry.ParamBlock.Parameters | ForEach-Object {
+    $_.Name.VariablePath.UserPath
+    foreach ($alias in @($_.Attributes | Where-Object { $_.TypeName.Name -eq 'Alias' })) { $alias.PositionalArguments | ForEach-Object Value }
+})
 $documented = @(Select-String -LiteralPath (Join-Path $root 'docs/reference.md') -Pattern '^\| `-(?<p>[A-Za-z]+)`' | ForEach-Object { $_.Matches[0].Groups['p'].Value } | Sort-Object -Unique)
 foreach ($p in $documented) { if ($p -notin $parameters) { $failures += "docs/reference.md documents -$p, which hyperdot.ps1 does not have" } }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
