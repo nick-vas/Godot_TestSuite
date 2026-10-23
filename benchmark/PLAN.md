@@ -30,7 +30,10 @@ The owner's decisions (2026-10-23) and the design that follows from them. The pi
 | Languages | GDScript and C# for every stage |
 | Grading | All of it: hard checks, measured stand-ins, a model judge with a rubric, blind side-by-side, and human rating (judge calibration and a blind review page) |
 | Judged results | Count inside the class |
-| Cost | Selectable tiers: min, mid, max |
+| Cost | Selectable tiers: min under $10, mid under $50, max above $50 |
+| Genres | The ten below |
+| Judge | The best value for money: the cheapest model that passes calibration (section 3) |
+| Quality factor | Side-by-side preference moves the index by a factor between 0.75 and 1.25 |
 | Real games | Also a private field test on the owner's machine, numbers only |
 
 ## 1. Fixtures: genres x stages x languages
@@ -96,7 +99,7 @@ Every task names the layers it uses; a session passes when every layer it uses p
 |---|---|---|
 | 1 Hard checks | tests, hidden tests, the kit's runners, unchanged files, mutants | the beta flow passes; `doctor` has no store errors |
 | 2 Measured stand-ins | numbers for qualities | "jump feels better": feedback within 100 ms, frame time under budget; "fair level": the bot finishes in 60-120 s with 1-3 deaths |
-| 3 Model judge | a pinned judge model scores 1-5 against a written rubric, median of three; 4 or more passes | store text: accurate to the GDD, no false claims, the hook in the first sentence |
+| 3 Model judge | a pinned judge model (section 3) scores 1-5 against a written rubric, median of three; 4 or more passes | store text: accurate to the GDD, no false claims, the hook in the first sentence |
 | 4 Blind side-by-side | the judge sees two configurations' results unlabelled and picks one | the same store text task, with and without the plugin |
 | 5 Human rating | see below | |
 
@@ -104,6 +107,15 @@ Every task names the layers it uses; a session passes when every layer it uses p
 win rate against the same model without the plugin. It enters the class as a bounded quality factor: the index is
 divided by `0.75 + 0.5 x win rate`, between 0.75 and 1.25. A configuration whose work is preferred every time gets an
 index 20% lower, and one never preferred gets 33% higher.
+
+**Choosing the judge: the best value for money.** Stage 3 runs every candidate (Haiku 5.5 and Sonnet 5.5 first, a
+larger model only if both fail) over the same pilot results that you also rated blind. The judge is the cheapest
+candidate that:
+
+- agrees with you on at least 80% of them;
+- gives the same pass or fail on at least 90% of repeated judgings of one result.
+
+It is pinned in the scale by its full model id.
 
 **Keeping a judged class honest.**
 
@@ -117,19 +129,37 @@ index 20% lower, and one never preferred gets 33% higher.
 
 ## 4. Choosing what runs
 
-Every run can be narrowed: `-Genre`, `-Stage`, `-Language`, `-Task`, `-Model`, `-Plugin`. Three tiers fix the rest:
+Every run can be narrowed: `-Genre`, `-Stage`, `-Language`, `-Task`, `-Model`, `-Plugin`. A tier fixes the rest and
+carries a cost ceiling. The runner estimates a run's cost before it starts, from the median cost of each kind of
+session in earlier runs (the pilot's until there are more). It refuses a run whose estimate is over the tier's
+ceiling, as `maxCalls` refuses too many sessions now. During the run it adds up what the sessions actually cost (the
+CLI's own figure), and it stops starting new ones once that passes the ceiling. The sessions it did not run are listed
+as not run, so such a run is incomplete and sets no class.
 
-| Tier | Runs | Rough cost | Use |
+| Tier | Runs (4 configurations: Sonnet and Haiku, with and without the plugin) | Ceiling | Use |
 |---|---|---:|---|
-| min | 1 genre, 4 stages, 1 language, 3 tasks a stage, 1 repeat, no milestones | about $5 | a quick check after changing a skill |
-| mid | 3 genres, 4 stages, 2 languages, 3 tasks a stage, 3 repeats, milestones in 1 language | about $130 | **the standard programme: the only run that sets a class** |
-| max | every genre, every task, both languages, milestones in both, 5 repeats | $1,000 or more | a release, with tighter tolerances |
+| min | 1 genre, its 4 stages in 1 language, 2 tasks a stage, 1 repeat | $10 | a quick check after changing a skill |
+| mid | 3 genres, their 4 stages, 2 tasks a stage, 3 repeats, 1 milestone per genre | $50 | **the standard programme: the only run that sets a class** |
+| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $50, shown before it starts | a release, wider coverage, tighter tolerances |
 
-The costs assume Sonnet sessions at about $0.20 and Haiku at about $0.02 on staged tasks, and about $1 a milestone. The
-pilot's $0.05 to $0.08 for Sonnet on prototype tasks is the floor. They are recomputed after stage 2's pilot.
+**The mid tier covers both languages without doubling its cost.** Each of its genres runs two stages in GDScript and
+two in C#, in a balanced pattern (a Latin square), so every stage is measured in both languages across the three
+genres and no language always gets the harder stages:
 
-A run through the subscription token counts against the plan's usage. Mid and max may need several days or an API key
-you choose to add for the purpose.
+| Genre | Prototype | Alpha | Beta | Release candidate |
+|---|---|---|---|---|
+| Arcade shooter | GDScript | C# | GDScript | C# |
+| Narrative | C# | GDScript | C# | GDScript |
+| Tower defence | GDScript | GDScript | C# | C# |
+
+The milestone for each genre also rotates: prototype to alpha, alpha to beta, and beta to release candidate.
+
+The estimate for mid: 24 tasks x 3 repeats x 4 configurations, about $32 at $0.20 a Sonnet session and $0.02 a Haiku
+one. Three milestones x 4 configurations add about $13, at about $2 for Sonnet and $0.20 for Haiku. A Haiku judge adds
+cents. The total is about $45. Stage 2's pilot replaces these guesses with measured costs. If mid would go over, it
+drops to 2 tasks in some stages, never below the three genres.
+
+A run through the subscription token counts against the plan's usage, not a bill. A large max run may need several days.
 
 A narrowed or custom run gives informative results, never a class. The EU label rates only the standard programme,
 however many others a machine has.
@@ -165,9 +195,11 @@ The workflow does this with `useradd` and file modes; the field test does the sa
 | 7 | Introduce the new scale on the mid tier; labels for the current version | class A empty at introduction, tolerances from the bootstrap |
 | 8 | Field test mode | you run it on a game of yours and paste the summary |
 
-## Open questions
+## Settled questions
 
-- **Genres**: the ten above, or others first (the kit's genre vocabularies list many more)?
-- **The judge**: which model, and does it stay fixed for a scale's life (recommended), even when a better one comes out?
-- **Quality factor**: is 0.75 to 1.25 the right bound for what side-by-side preference may move the class?
-- **Budget**: is about $130 per standard run acceptable, or should mid be smaller and max carry the breadth?
+The owner answered on 2026-10-23:
+
+- **Genres:** the ten.
+- **Judge:** the best value for money.
+- **Quality factor:** 0.75 to 1.25.
+- **Budget:** min under $10, mid under $50, max above $50.
