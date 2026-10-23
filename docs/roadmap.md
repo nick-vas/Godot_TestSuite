@@ -455,13 +455,9 @@ Optimization" (AMD, Digital Dragons 2019). Done: `Net/BitPacker.cs` and `Net/Eve
 
 ## To do: from the skills cleanup (October 2026)
 
-The cleanup merged the test-frameworks skill into `godot-test-loop` and the credits skill into `godot-asset-pipeline`.
-Two files outside the skills still name the old ones; they were left alone because another change was editing the kit's code
-at the same time.
+What the skills cleanup left for the kit's example code.
 
 | Item | Why it is open | How |
 |---|---|---|
-| `ci/godot/tools/Update-Versions.ps1` pins versions in the removed test-frameworks skill's `SKILL.md` (five places) | The file is gone, so `-Apply` with a new Godot minor stops at `Read-Text`, and the self-test job "Version updates rewrite every pin" fails | Replace the path with `.agents/skills/godot-test-loop/SKILL.md`; the version block there keeps the same wording, and on a copy the self-test's run then passes and the skills validate |
-| `ci/godot/lib/Credits.ps1` names the removed credits skill when `assets.json` is missing | The message names a skill that no longer exists | Name `godot-asset-pipeline` |
 | Breakout's `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random` | `godot-game-ai` now says to pass a seeded `RandomNumberGenerator` or `DeterministicRandom`, as `godot-determinism` and `godot-procgen` do | Take `DeterministicRandom` (or an interface over it), with the tests updated |
 
