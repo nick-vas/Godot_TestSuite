@@ -1,0 +1,13 @@
+{
+  "name": "Daily drift on the menu starts a generated level",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "press": "Menu/DailyButton" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "Game", "prop": "level", "equals": 0 } },
+    { "assert": { "node": "Game", "prop": "daily_seed", "gt": 0 } },
+    { "assert": { "node": "Game", "prop": "par", "ge": 4 } }
+  ]
+}

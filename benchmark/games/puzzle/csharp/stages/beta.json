@@ -1,0 +1,167 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) gets stuck on level 7 and never reaches the end"
+      },
+      "edits": [
+        {
+          "file": "data/levels.json",
+          "find": "\"#.##......#\",",
+          "replace": "\"#.##....#.#\","
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenLevel7FairTest.cs"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "collecting a spark feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        Play(_sfxSpark);\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown when a level is solved in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "SOLVED_TITLE,Solved!,Résolu !\n",
+          "replace": "SOLVED_TITLE,Solved!,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "SOLVED_MOVES,%d moves (par %d),%d coups (par %d)\n",
+          "replace": "SOLVED_MOVES,%d moves (par %d),\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "SOLVED_NEXT,Next level,Niveau suivant\n",
+          "replace": "SOLVED_NEXT,Next level,\n"
+        }
+      ],
+      "unchanged": [
+        "game/SolvedMenu.cs",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "two players get different boards from the same daily drift, and a drift replayed with --seed=N is not the one that was reported"
+      },
+      "edits": [
+        {
+          "file": "scripts/LevelGenerator.cs",
+          "find": "int i = rng.RandiRange(0, ice.Count - 1);",
+          "replace": "int i = GD.RandRange(0, ice.Count - 1);"
+        }
+      ],
+      "unchanged": [
+        "test/GeneratorTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenSeedsTest.cs"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "the player stops to think in the middle of one of the bigger levels"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        _ticks += 1;\n        UpdateEffects((float)delta);\n",
+          "replace": "        _ticks += 1;\n        UpdateEffects((float)delta);\n        CheckStuck();\n"
+        },
+        {
+          "file": "game/Game.cs",
+          "find": "/// <summary>Asks the solver whether the exit can still be reached from here. Once per move: a search is too dear for every frame.</summary>",
+          "replace": "/// <summary>Asks the solver whether the exit can still be reached from here, so the HUD is always up to date.</summary>"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenStuckChecksTest.cs"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the level select does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/LevelSelect.cs",
+          "find": "        _back.Pressed += () => EmitSignal(SignalName.Closed);\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "levels 7 and 8 in data/levels.json, each solvable in exactly its par; a daily drift: Menu/DailyButton starts a level generated from a seed (the date as a number, or --seed=N) by a LevelGenerator class (scripts/LevelGenerator.cs: static Generate(long seed) returning a GeneratedLevel with string[] Rows and int Par) with every random choice from its own seeded generator, so the same seed gives the same level, always solvable in 4 to 14 moves, and the game shows it with level 0 and its seed in the property daily_seed; a bot: with --autoplay (after --) it plays from the main scene and solves all eight levels, every random choice from one generator seeded by --seed=N, nothing saved with --no-save, --level=N starts at level N, and it prints [Run] level N done after each level, then [Run] victory, and quits; juice: print [juice] event spark_collected <ms> and [juice] event level_solved <ms> in game time (ms), each answered within 100 ms by [juice] feedback flash <ms> and [juice] feedback sfx <ms> (and [juice] feedback shake <ms> for level_solved) for a visible flash, a sound and a camera shake; and French: every visible text through Tr() with an fr column in the translation table, menus included"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/daily.flow.json",
+        "to": "test/flows/daily.flow.json"
+      },
+      "hidden/HiddenFrenchTest.cs",
+      "hidden/HiddenDailyTest.cs"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "main.tscn",
+    "ui",
+    "game/Bot.cs",
+    "game/PauseMenu.cs",
+    "game/SolvedMenu.cs",
+    "scripts/LevelGenerator.cs",
+    "scripts/SaveStore.cs",
+    "scripts/Progress.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/TextFormat.cs",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "test/flows",
+    "test/BoardRulesTest.cs",
+    "test/HintTest.cs",
+    "test/ProgressTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/GeneratorTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Solver.cs",
+      "find": " The tests use it to prove every\n/// level can be solved at its par; the game uses it to tell a stuck player, and the bot to play.\n",
+      "replace": " The tests use it to prove every\n/// level can be solved at its par.\n"
+    },
+    {
+      "file": "scripts/Solver.cs",
+      "find": "    /// <summary>The first move of a shortest solution from the board's current state; Vector2I.Zero when there is none.</summary>\n    public Vector2I Hint(Board board)\n    {\n        List<Vector2I> path = Solve(board);\n        return path.Count > 0 ? path[0] : Vector2I.Zero;\n    }\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "after undoing a move that collected a spark, the spark stays collected, so the exit opens without it"
+      },
+      "edits": [
+        {
+          "file": "scripts/Board.cs",
+          "find": "new Step(Position, new List<Vector2I>(Sparks), Moves)",
+          "replace": "new Step(Position, Sparks, Moves)"
+        }
+      ],
+      "unchanged": [
+        "test/BoardTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenUndoTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Board class (scripts/Board.cs: the slide, sparks, the exit, the move count and undo)",
+        "file": "test/BoardRulesTest.cs",
+        "rules": "a slide stops on the tile before a wall or the edge, snow stops the mote on the snow, every spark the mote passes is collected, the exit is plain ice until every spark is collected and then stops the mote and solves the level, a move that goes nowhere is not counted, and undo puts back the position, the sparks and the move count",
+        "code": "scripts/Board.cs"
+      },
+      "unchanged": [
+        "scripts/Board.cs"
+      ],
+      "mutantTests": [
+        "test/BoardRulesTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "a slide stops one tile early",
+          "file": "scripts/Board.cs",
+          "find": "while (Tile(at + direction) != Wall)",
+          "replace": "while (Tile(at + direction * 2) != Wall)"
+        },
+        {
+          "name": "snow does not stop the mote",
+          "file": "scripts/Board.cs",
+          "find": "if (Tile(at) == Snow)",
+          "replace": "if (Tile(at) == Wall)"
+        },
+        {
+          "name": "the exit opens with one spark left",
+          "file": "scripts/Board.cs",
+          "find": "if (at == Exit && collected.Count == remaining.Count)",
+          "replace": "if (at == Exit && collected.Count + 1 >= remaining.Count)"
+        },
+        {
+          "name": "only a spark the mote stops on is collected",
+          "file": "scripts/Board.cs",
+          "find": "if (remaining.Contains(at) && !collected.Contains(at))",
+          "replace": "if (remaining.Contains(at) && !collected.Contains(at) && Tile(at + direction) == Wall)"
+        },
+        {
+          "name": "a move that goes nowhere is counted",
+          "file": "scripts/Board.cs",
+          "find": "if (result.To == Position)",
+          "replace": "if (Solved)"
+        },
+        {
+          "name": "undo keeps the move count",
+          "file": "scripts/Board.cs",
+          "find": "Moves = last.Moves;",
+          "replace": "Moves = Moves;"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "a hint: Solver (scripts/Solver.cs) gets a method Vector2I Hint(Board board), the direction of the first move of a shortest solution from the board's current state, or Vector2I.Zero when the exit cannot be reached from there or the level is solved"
+      },
+      "hidden": [
+        "hidden/HiddenHintTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "test/BoardTest.cs",
+          "find": "var board = Board.FromRows(new[] { \"######\", \"#S...#\", \"######\" });",
+          "replace": "var board = Board.FromRows(new[] { \"#######\", \"#S....#\", \"#######\" });"
+        }
+      ],
+      "unchanged": [
+        "scripts/Board.cs",
+        "scripts/Solver.cs",
+        "scripts/Levels.cs",
+        "game/Game.cs",
+        "test/BoardTest.cs",
+        "test/SolverTest.cs",
+        "test/LevelsTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "A_slide_stops_before_the_wall",
+          "re:BoardTest\\.cs\\D{0,40}\\b16\\b",
+          "re:(?<!\\.)\\b4\\b(?!\\.\\d)",
+          "re:(?<!\\.)\\b5\\b(?!\\.\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

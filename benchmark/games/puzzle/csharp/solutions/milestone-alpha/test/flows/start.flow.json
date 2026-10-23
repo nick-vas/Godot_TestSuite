@@ -1,0 +1,17 @@
+{
+  "name": "Play on the menu opens the level select, and level 1 starts the game there",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "LevelSelect", "exists": true } },
+    { "assert": { "node": "LevelSelect/Box/Grid/Level1Button", "prop": "disabled", "equals": false } },
+    { "press": "LevelSelect/Box/Grid/Level1Button" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "LevelSelect", "exists": false } },
+    { "assert": { "node": "Game", "prop": "level", "equals": 1 } },
+    { "assert": { "node": "Game/HUD/LevelLabel", "prop": "text", "contains": "1" } }
+  ]
+}
