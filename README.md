@@ -177,7 +177,7 @@ separate, headless tool.
 | Capability | Command | Result |
 |---|---|---|
 | **Plan A to Z** | `plan -Json` | current phase, open gates, warnings |
-| **Track tasks** | `plan -Do add\|move`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
+| **Track tasks** | `plan -Do add\|move\|remove`, `plan -Do sync` | tasks with a work-in-progress limit; optional Trello mirror |
 
 ### Improve the agent and the kit
 

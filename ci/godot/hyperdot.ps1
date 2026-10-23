@@ -160,22 +160,23 @@ param(
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
     # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), add (a task: -Title),
-    # move (a task to -Column: -Id), sync (with a Trello -Board), link (a task to a GDD -Feature or a Trello -Card: -Id).
-    [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync', 'link')]
+    # move (a task to -Column: -Id), remove (delete a task: -Id), sync (with a Trello -Board), link (a task to a GDD
+    # -Feature or a Trello -Card: -Id).
+    [ValidateSet('status', 'init', 'done', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
-    # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move: the task id.
+    # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move|remove|link: the task id.
     [string]$Id,
     # plan -Do add: the task title.
     [string]$Title,
-    # plan -Do add|move: backlog, design, todo, doing, verify or done.
+    # plan -Do add|move|link: backlog, design, todo, doing, verify or done, or the board list one maps to ("To Do").
     [string]$Column,
-    # plan -Do sync: the Trello board id or short link (needs TRELLO_KEY and TRELLO_TOKEN).
+    # plan -Do sync|link: the Trello board id, short link, board URL or Trello connector ARI (sync needs TRELLO_KEY and TRELLO_TOKEN).
     [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
     [string]$Feature,
-    # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
+    # plan -Do link: a task's Trello card: its 24-hex id or the Trello connector's ARI (the plain id is stored).
     [string]$Card,
     # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,

@@ -38,12 +38,13 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
    ```powershell
    pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Feature F1 -Column todo   # -Feature: the GDD feature it delivers
    pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # a task that is no longer wanted
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
-   "tests green" (`godot-verify-before-done`), not "a person reviewed it".
+   "tests green" (`godot-verify-before-done`), not "a person reviewed it". `-Column` also takes the board list's name ("To Do").
 6. Trello is optional and experimental (tested only against a mock); plan.json stays the source of truth. With the Trello connector, `/game` keeps the board in step
    (the `game` skill). Without it, `plan -Do sync -Board <id or short link>` creates a card per new task, pulls back cards
-   the user dragged and moves the cards of tasks moved with `plan -Do move`; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
+   the user dragged, adds a task for each card the user added, archives the cards of removed tasks and moves the cards of tasks moved with `plan -Do move`; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
    prefix: Backlog, Design, To Do, Doing, Testing, Done.
 7. `status -Json` is the whole picture in one call: GDD features with their tagged tests, the plan, latest runs, git
    activity. The user asks for `/game` to see it judged and written to `plan/STATUS.md`.

@@ -66,7 +66,7 @@ Notes from the question round still open, each to be fixed, built or written dow
 | # | Note | What to do |
 |---|---|---|
 | 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental; the live run and the bugs are under [Trello](#trello) |
+| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental; the live run is under [Trello](#trello) |
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
@@ -83,16 +83,9 @@ Notes from the question round still open, each to be fixed, built or written dow
 - **Live run.** `tests/Test-TrelloSync.ps1 -Live` (the Trello sync workflow) waits for the repository secrets
   `TRELLO_KEY` and `TRELLO_TOKEN`; postponed by the owner on 2026-10-23. The mock run passes in the self-test.
 
-Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
-
-- `plan -Do move` and `plan -Do link` accept only the kit's column ids (`backlog`, `design`, `todo`, `doing`, `verify`,
-  `done`) and reject the board's list names, such as "To Do".
-- `plan -Do add` checks `-Column` against those ids only, not against the board's lists.
-- A card a person adds on the board gets no plan task; `plan -Do sync` only creates cards for tasks and moves tasks.
-- `plan -Do sync` changes a task's `column` but never its `boardColumn`.
-- There is no command to delete a task (`plan -Do` takes `status`, `init`, `done`, `add`, `move`, `sync` and `link`).
-- The Trello connector returns card ids as ARIs, while the kit stores plain 24-hex card ids (`cardId`) and `sync`
-  matches cards by them, so `/game` must store the plain id.
+The six bugs the connector test found (list names as columns, cards added on the board, `boardColumn`, removing a
+task, ARI card ids) are fixed and pass against the mock; the live run should also cover importing a card and archiving
+a removed task's card, which only the mock has seen.
 
 ## What was decided
 

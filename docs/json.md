@@ -335,7 +335,7 @@ and `noticesFile`.
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add` also returns `task`; `plan -Do sync` returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `warnings`).
+`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose `cardId` the Trello connector should archive); `plan -Do sync` returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `imported` (tasks added for cards a person added on the board), `archived` (cards of removed tasks archived), `warnings`).
 
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.

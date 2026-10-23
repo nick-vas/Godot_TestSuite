@@ -69,9 +69,14 @@ Day-to-day work lives in `plan.json` `tasks`, edited with commands so an agent c
 ```powershell
 pwsh ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
 pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
+pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column "To Do"    # a board list name works too
+pwsh ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # delete a task
 ```
 
 Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
+`-Column` (in `add`, `move` and `link`) takes a column id or the name of the board list it maps to, case-insensitive and by
+prefix as sync matches lists, so `"to do"` and `"Done 🎉"` work; `plan.json` always stores the id. `remove` deletes a task;
+a removed task's id is never given again (`lastTaskNumber`), and its card is archived by the next sync (`trello.toArchive`).
 
 **Trello sync** (`plan -Do sync -Board <id or short link>`, experimental) keeps the plan the source of truth and uses Trello as the place you drag things:
 - a task with no card gets one in the matching list;
@@ -79,7 +84,13 @@ Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo`
 - a task you moved in the plan (`plan -Do move`) moves its card. Each task records the list its card was in at the last
   sync (`boardColumn`), so a card in another list was moved on the board, and a card still in that list follows the task;
 - a card that is gone (archived or deleted) is reported and left alone;
-- it never imports cards you created on the board, and never deletes anything.
+- a card you added on the board, in a list the plan maps, becomes a task in that column (in the current phase). A card
+  whose description starts `plan task <id>` was made by the kit for a task that no task links now: it is reported, not imported;
+- the card of a task removed with `plan -Do remove` is archived; nothing is ever deleted.
+
+Card ids are stored as Trello's plain 24-hex ids. The Trello connector gives ARIs (`ari:cloud:trello::card/workspace/<workspace id>/<card id>`):
+`plan -Do link -Card` takes one and stores the id at its end, and sync fixes an ARI an older plan stored. `-Board` takes a
+board id, a short link, a board URL (its short link is kept) or a board ARI (its id is kept).
 
 Set `TRELLO_KEY` and `TRELLO_TOKEN` in the environment: on https://trello.com/power-ups/admin, make a Power-Up (any
 name), open its API key page and copy the key (32 hex characters), then use the Token link beside it. They are sent in a request header, never in a URL,

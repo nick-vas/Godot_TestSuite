@@ -53,12 +53,13 @@ Mark | Evidence | Next step; the `warnings` worth acting on; the `decisions` sti
 Every feature that is not proven and not `won't` needs a task:
 `plan -Do add -Title "<feature> - <next step>" -Feature F3 -Column backlog`. A proven feature's tasks go to `done`
 (`plan -Do move -Id t3 -Column done`). `plan -Do move` refuses `doing` past the work-in-progress limit; finish or move
-something back instead.
+something back instead. A task for a feature the user dropped goes with `plan -Do remove -Id t3`.
 
 ## 5. The Trello board (through the Trello connector; experimental)
 
 The board is `plan.board`. If there is none, list the user's boards with the connector and ask which one; save it with
 `plan -Do link -Board <board id>`. Lists map to plan columns by name: Backlog, Design, To Do, Doing, Testing, Done.
+`-Column` takes either the column or the list's name, and `-Card` takes the card id or the ARI the connector returns.
 
 1. Read every card on the board.
 2. A task with a `cardId` whose card is no longer in its `boardColumn` was moved by the user: the board wins.
@@ -72,6 +73,7 @@ The board is `plan.board`. If there is none, list the user's boards with the con
    for it (`plan -Do add -Title <card name> -Column <list>`), link it, and if it is not in the GDD, raise it under the
    scope rule below.
 6. A card that is gone (archived or deleted): leave the task as it is and mention it.
+7. A task you removed (`plan -Do remove` returns it as `task`): archive its card (`task.cardId`) with the connector.
 
 List every card you created or moved under "Board changes" in `STATUS.md`. If the connector is not available, skip this
 step and say so; `plan -Do sync` (REST, with `TRELLO_KEY`/`TRELLO_TOKEN`; also experimental) is the alternative.
