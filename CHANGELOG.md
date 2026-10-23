@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **The puzzle Frostmote in C#** (`benchmark/games/puzzle/csharp`), the third genre's port: the same scenes, node names,
+  data files, levels, flows, bot and juice logs as the GDScript build, with gdUnit4 tests (45 in the release candidate)
+  run by the kit's .NET runner. The daily drift draws from Godot's `RandomNumberGenerator` with the same seed formula and
+  draw order, and compares its rolls as doubles as GDScript does, so a seed gives the same level in both languages; seed
+  7 is pinned by the same rows in each. Its four stages carry the same 17 tasks and 3 milestones, each with hidden
+  gdUnit4 checks, a reference solution and the same decoys; all pass `tests/Test-GameProgramme.ps1 -Genre puzzle
+  -Language csharp`. The C# build exports to Linux only, as Godot 4.7 cannot export C# to the Web.
 - **Blind review and the judge's calibration.** `benchmark/Invoke-SideBySide.ps1 -ReviewOut` writes the pairs the judge
   sees for a person instead (A and B in a seeded order, nothing naming the plugin, the key kept apart);
   `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`

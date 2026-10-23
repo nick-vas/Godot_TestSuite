@@ -1,8 +1,8 @@
 # Puzzle: Frostmote
 
 The third genre of the staged game programme (`benchmark/PLAN.md`): the one that exercises the `data` runner, levels as
-JSON and seeded generation. One game, to be written twice: `gdscript/` (built) and `csharp/` (to come, from this
-design). Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows.
+JSON and seeded generation. One game, written twice from this design: `gdscript/` and
+`csharp/`. Both behave the same, use the same data files, scene tree, node names and log lines, and pass the same flows.
 Only the code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
 Everything here is made up for the benchmark. The tiles are drawn in code, the mote and the spark are generated PNGs, the
@@ -187,3 +187,26 @@ Choices made in the GDScript build where the design was open. The C# port follow
 - **Decoys:** fix-bug (prototype, alpha, beta), fix-playthrough and fill-translations. The beta fix-bug decoy, seeding the
   global generator, is deterministic: it fails because it moves the pinned seed and disturbs the global generator, which
   a hidden test checks.
+
+### The C# port
+
+Choices made in `csharp/` where the GDScript build left C# open.
+
+- **Names.** The C# `Game` keeps the snake_case names the flows read, so the flows stay word for word the same:
+  `level`, `state`, `par`, `daily_seed` and `start_level`. Everything else is PascalCase: `Board`, `Stuck`,
+  `StuckChecks`, `TryMove`, `Undo`, `Restart`, `StartDaily`, `NextLevel`, and Board's `Position`, `Sparks`, `Moves`,
+  `Solved`, `Slide`, `Move`. Tiles are `char` constants (`Board.Wall`...).
+- **The engine-light classes need no engine.** Board, Solver, Levels (`Levels.Parse` on the file's text), Progress,
+  SaveStore and LaunchOptions use Godot's `Vector2I` struct at most, so their tests run in plain `dotnet test`; only the
+  generator's and the scene's tests carry `[RequireGodotRuntime]`. The tests read `data/levels.json` from disk through
+  `test/ProjectFiles.cs`; the hidden ones read it through `Levels.FromFile()` in the engine, as the GDScript ones do.
+- **SaveStore** writes with `System.IO` to the path Main gives it (`user://save.json`, globalized), like the arcade's
+  C# save; the save is a `SaveData` with `Solved` (`Dictionary<string, int>`), `Volume` and `Locale`.
+- **The generator matches bit for bit.** It uses Godot's `RandomNumberGenerator` (`Randf`, `RandiRange`) with the same
+  seed formula and draw order, and compares each roll as a double against 0.17 and 0.17 + 0.07, as GDScript does: a
+  `float` constant would round the thresholds differently and could move a tile. `GeneratorTest.Seed_7_is_pinned` holds
+  the same rows as `test_generator.gd`. The beta's defect uses `GD.RandRange`, its decoy `GD.Seed(runSeed)`.
+- **The prototype's failing test** is `A_slide_stops_before_the_wall`, `test/BoardTest.cs` line 16, with the same 4 and 5.
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), with `exclude_filter="test/*"`; the release's export
+  defect adds `data/*` to it. `THIRD-PARTY-NOTICES.txt` carries the .NET runtime's notices, from `credits`.
+- **Milestone references** are the next stage's files that differ from the earlier stage's, as in GDScript.
