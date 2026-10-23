@@ -127,6 +127,6 @@ for AI agents", not a game backend.
 ## Licences
 
 Every add-on's code ships with the game, so its licence notice does too: an `assets.json` entry for `addons/<name>/**`
-lets `credits` write it (`godot-credits`). Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
+lets `credits` write it (`godot-asset-pipeline`). Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
 Services, Steam Audio's "proprietary libraries"), ProtonScatter's textures "cannot redistribute them on their own", and
 EIRTeam.FFmpeg's h264 needs a check of patent law where the game sells.

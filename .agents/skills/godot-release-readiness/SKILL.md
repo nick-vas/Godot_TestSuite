@@ -16,20 +16,22 @@ results in the plan's launch gates (`godot-game-plan`), and answer with what pas
 - [ ] the worst-case scene meets its budget (`bench -BudgetMs`) at the target resolutions (`godot-performance`)
 - [ ] every achievement can be earned and survives a restart (`godot-steam`: `LocalPlatform` in CI, the real client by hand)
 - [ ] `export -Run -GameVersion <tag>` passes for every preset on its own OS; the version shows in the game and the
-      file properties (`godot-export-release`)
+      Windows file properties (`godot-export-release`)
+- [ ] the release is a tag built by CI, and the CI artifacts are what gets uploaded, never a build from a developer's
+      machine
 
 ## 2. Platform
 
 - [ ] store page live long enough (Steam: 2 weeks minimum; `plan` warns from plan.json's `release` dates), store art,
       trailer and tags pass `doctor`, trailer uploaded and encoded (`godot-store-page`)
 - [ ] Steam Cloud tested on two devices with a conflict (`godot-steam`)
-- [ ] Steam Deck: `textsize` passes at 1280x800, controls complete, sleep and resume (`godot-steam-deck`)
+- [ ] Steam Deck: `textsize` passes at 1280x800, controls complete, sleep and resume (`godot-console-cert`)
 - [ ] build uploaded to a beta branch and tested from Steam before going live
 - [ ] press kit in `store/press/` passes `doctor`; review keys sent about a month ahead with an embargo (`godot-store-page`)
 
 ## 3. Legal
 
-- [ ] `credits` passes; credits reachable from the main menu; `THIRD-PARTY-NOTICES.txt` in every export (`godot-credits`)
+- [ ] `credits` passes; credits reachable from the main menu; `THIRD-PARTY-NOTICES.txt` in every export (`godot-asset-pipeline`)
 - [ ] privacy policy published if the game sends data, and always for Android and iOS (`godot-legal`)
 - [ ] age ratings done: Steam's Content Survey, IARC elsewhere (`godot-legal`)
 - [ ] every asset's licence allows selling the game (`doctor`, `credits`)

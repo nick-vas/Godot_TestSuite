@@ -1,6 +1,6 @@
 ---
 name: godot-servers
-description: Use when a Godot game runs dedicated servers or its own matchmaker, when hosting servers on a VPS, Docker, systemd or Agones, when servers must stop, drain or report health, when choosing who may join a server, when a server must survive packet floods, when building a matchmaking queue with skill, region or backfill, or when moderating chat.
+description: Use when a Godot game hosts dedicated servers or its own matchmaker: running, stopping and health checks, join tokens, packet floods, matchmaking queues or chat moderation.
 ---
 
 # Dedicated servers and matchmaking (Godot 4.7, C#)
@@ -81,8 +81,10 @@ The refused client sees `ServerDisconnected`, not `ConnectionFailed`.
 
 ## 4. Floods
 
-- The ENet server measured in `godot-anti-cheat` copes with tens of thousands of junk packets a second, then collapses.
-  Inside Godot nothing runs before ENet: filter in the OS firewall (nftables, a per-address limit), in a proxy (Quilkin
+- Measured here: flooding a Godot 4.7.2 ENet server's port on loopback with junk UDP (`soak -JunkPps`) has no effect up
+  to ~10,000 packets a second, then collapses by ~50,000 (input loss ~38-57%, round trips into the seconds, dropped
+  clients). Well-written transports cope to ~250,000; Godot's single-threaded ENet poll sits well below that.
+- Inside Godot nothing runs before ENet: filter in the OS firewall (nftables, a per-address limit), in a proxy (Quilkin
   drops packets without a known token), and against a flood that fills the link, at the provider's edge.
 - Keep no state for anyone who has not passed a check yet, and never answer an unchecked packet with more bytes than it
   sent (a server query that replies bigger is an amplifier for attacks on others).

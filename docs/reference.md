@@ -18,7 +18,7 @@
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `GODOT_CI_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `GODOT_CI_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
 | `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`) |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`). The run log, `godot-ci.log`, goes in the command's results folder (`-Output` for `shot`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
@@ -51,7 +51,7 @@
 | `-RequireCleanStop` | off | `soak`: fail (`soak-unclean-stop`) when the server does not quit with 0 within `-StopGraceSeconds` of SIGTERM |
 | `-JunkPps` | `0` (off) | `soak`: flood the server's own port on `127.0.0.1` with this many junk UDP packets a second (loopback only), to measure how it holds up; reported under `soak.junk` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
-| `-Quiet` | off | Godot and dotnet output only in `<Results>/godot-ci.log`, not on the console. Use with `-Json` for agents |
+| `-Quiet` | off | Godot and dotnet output only in `godot-ci.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
 | `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board; `link -Column` the card's list, `link -Board` the plan's board |
 | `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
@@ -217,7 +217,7 @@ from the engine, and the .NET runtime's notices for a C# game). It fails (`credi
 licence asks for. Optional fields help: `title`, `copyright` (the original copyright line), `modified` (what you changed),
 `licenceFile` and `noticeFile` (paths of the upstream licence and NOTICE files). Licence texts for MIT, ISC, BSD-2-Clause,
 BSD-3-Clause, Apache-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
-`THIRD-PARTY-NOTICES.txt` next to each executable. The rules: the `godot-credits` skill and [store-and-legal.md](store-and-legal.md).
+`THIRD-PARTY-NOTICES.txt` next to each executable. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
 
 **`store/steam/`** (optional, in the Godot project folder, with an empty `store/.gdignore` so Godot does not ship it) holds
 the Steam store art. `doctor` checks the current sizes (`header_capsule` 920x430, `small_capsule` 462x174, `main_capsule`

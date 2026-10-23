@@ -1,10 +1,12 @@
 # `bench` and `shot`: measure a scene's frame pacing, and save real screenshots of scenes. Both run the game with a window by
 # default, because a headless run draws nothing: bench -Headless still works but measures CPU time only, and shot needs a display.
 
-# Linux without a display server cannot open a window. Say so before Godot fails with a less helpful message.
+# Linux without a display server cannot open a window. Say so before Godot fails with a less helpful message. The advice is
+# to start Xvfb and set DISPLAY, not xvfb-run: xvfb-run merges stderr into stdout, which breaks -Json.
 function Assert-Display([string]$What) {
     if ($IsLinux -and -not $env:DISPLAY -and -not $env:WAYLAND_DISPLAY) {
-        Stop-GodotCi "$What needs a display, and this machine has none. Run it under a virtual one: xvfb-run -a pwsh ci/godot/godot-ci.ps1 ..." 'no-display'
+        Stop-GodotCi ("$What needs a display, and this machine has none. Start a virtual one (Xvfb :99 &, then export DISPLAY=:99) " +
+            "and run again: $(Format-KitCommand "$What ..."). Not xvfb-run: it mixes stderr into stdout, which breaks -Json") 'no-display'
     }
 }
 

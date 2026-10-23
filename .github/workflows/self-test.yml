@@ -139,6 +139,15 @@ jobs:
       - name: No function in ci/godot is defined twice or named like a built-in alias
         shell: pwsh
         run: ./tests/Test-LibNames.ps1
+      - name: bench and audio refuse several scenes before any setup
+        shell: pwsh
+        run: ./tests/Test-SceneCount.ps1
+      - name: A pinned file that is missing fails the version update
+        shell: pwsh
+        run: ./tests/Test-UpdatePins.ps1
+      - name: The PR comment finds its summary past the first 100 comments
+        shell: pwsh
+        run: ./tests/Test-PrComment.ps1
       - name: Version updates rewrite every pin and keep the skills valid
         shell: pwsh
         run: |

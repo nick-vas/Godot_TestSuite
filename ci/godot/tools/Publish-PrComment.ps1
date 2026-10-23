@@ -85,11 +85,18 @@ $body.Add("[Run details]($runUrl)")
 $payload = @{ body = ($body -join "`n") } | ConvertTo-Json
 
 try {
+    # Every page of comments, not only the first 100: on a busy pull request the summary would otherwise be missed and a
+    # new one posted on each run. A page shorter than 100 is the last; the cap stops a server that ignores page=.
     # foreach, not Where-Object: Invoke-RestMethod returns a JSON array as one object (empty or not).
-    $comments = Invoke-RestMethod -Headers $headers "$api/repos/$repo/issues/$PullRequest/comments?per_page=100"
     $existing = $null
-    foreach ($comment in $comments) {
-        if ($comment.body -and $comment.body.StartsWith($marker)) { $existing = $comment; break }
+    for ($page = 1; -not $existing -and $page -le 100; $page++) {
+        $comments = Invoke-RestMethod -Headers $headers "$api/repos/$repo/issues/$PullRequest/comments?per_page=100&page=$page"
+        $count = 0
+        foreach ($comment in $comments) {
+            $count++
+            if ($comment.body -and $comment.body.StartsWith($marker)) { $existing = $comment; break }
+        }
+        if ($count -lt 100) { break }
     }
     if ($existing) {
         Invoke-RestMethod -Method Patch -Headers $headers -Body $payload -ContentType 'application/json' "$api/repos/$repo/issues/comments/$($existing.id)" | Out-Null

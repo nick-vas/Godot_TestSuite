@@ -97,7 +97,7 @@ if ($godotUpdate -and (& $minor $godotUpdate[0].latest) -ne (& $minor $godotUpda
 # Every place a version is a promise, not history: each pattern names the context, so notes such as "seen on 4.7.2" stay.
 $godotPins = @(
     @{ File = 'examples/breakout/game/Breakout.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
-    @{ File = '.agents/skills/godot-test-frameworks/SKILL.md'; Pattern = 'Godot\.NET\.Sdk/{v}|verified on Godot {v}' }
+    @{ File = '.agents/skills/godot-test-loop/SKILL.md'; Pattern = 'Godot\.NET\.Sdk/{v}|verified on Godot {v}' }
     @{ File = 'ci/godot/lib/Detect.ps1'; Pattern = "else \{ '{v}' \}" }
     @{ File = 'ci/godot/godot-ci.ps1'; Pattern = 'else {v}\.' }
     @{ File = '.github/actions/godot/action.yml'; Pattern = 'else {v}\)' }
@@ -110,12 +110,13 @@ $godotPins = @(
     @{ File = 'evals/fix-score-bug/prompt.md'; Pattern = 'Godot {v} is installed' }
     @{ File = 'evals/explain-failure/prompt.md'; Pattern = 'Godot {v} is installed' }
 )
-$packageFiles = @($csprojs) + @('ci/godot/lib/Init.ps1', '.agents/skills/godot-test-frameworks/SKILL.md', 'docs/godot-pipelines.md')
+$packageFiles = @($csprojs) + @('ci/godot/lib/Init.ps1', '.agents/skills/godot-test-loop/SKILL.md', 'docs/godot-pipelines.md')
 
 $changed = [System.Collections.Generic.HashSet[string]]::new()
 function Update-Pin([string]$File, [string]$Pattern, [string]$Old, [string]$New) {
     $path = Join-Path $Root $File
-    if (-not (Test-Path -LiteralPath $path)) { return }
+    # A pinned file that moved or was deleted would otherwise stop getting updates without a word.
+    if (-not (Test-Path -LiteralPath $path)) { throw "Update-Pin: $File is pinned (pattern $Pattern) but does not exist; update the pin list in Update-Versions.ps1" }
     $text = Get-Content -LiteralPath $path -Raw
     $regex = $Pattern.Replace('{v}', [regex]::Escape($Old))
     $updated = [regex]::Replace($text, $regex, { param($m) $m.Value.Replace($Old, $New) })
@@ -141,11 +142,11 @@ if ($Apply) {
                     # A new Godot minor: map it to its GUT release, keeping the older mappings for older projects.
                     Write-Text 'ci/godot/lib/Setup.ps1' $setup.Replace("        '^4\.", "        '^4\.$m' { '$($u.latest)' } '^4\.")
                     [void]$changed.Add('ci/godot/lib/Setup.ps1')
-                    $skill = Read-Text '.agents/skills/godot-test-frameworks/SKILL.md'
+                    $skill = Read-Text '.agents/skills/godot-test-loop/SKILL.md'
                     $skillNew = $skill.Replace("GUT: $($u.current) for Godot $oldMinor (", "GUT: $($u.latest) for Godot $newMinor ($($u.current) for $oldMinor, ")
-                    if ($skillNew -ne $skill) { Write-Text '.agents/skills/godot-test-frameworks/SKILL.md' $skillNew; [void]$changed.Add('.agents/skills/godot-test-frameworks/SKILL.md') }
+                    if ($skillNew -ne $skill) { Write-Text '.agents/skills/godot-test-loop/SKILL.md' $skillNew; [void]$changed.Add('.agents/skills/godot-test-loop/SKILL.md') }
                 }
-                Update-Pin '.agents/skills/godot-test-frameworks/SKILL.md' 'GUT: {v} for' $u.current $u.latest
+                Update-Pin '.agents/skills/godot-test-loop/SKILL.md' 'GUT: {v} for' $u.current $u.latest
                 Update-Pin 'AGENTS.md' 'GUT {v}' $u.current $u.latest
                 Update-Pin 'docs/godot-pipelines.md' 'v9\.4\.0\u2013{v}' $u.current $u.latest
             }

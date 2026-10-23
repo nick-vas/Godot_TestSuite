@@ -35,8 +35,8 @@
 - `tests/placement-fixture/wayfinding/forest.tscn` and `rule_cases/wayfinding.tscn`, checked by
   `tests/Test-Placement.ps1`: a drifting balloon, a tower seen along one stretch and a trail with nothing ahead on the
   way back give exactly those findings; a canopy over the trail and a beacon behind the start fix them.
-- `godot-game-design` section 7 (the audit table, plan then play, playtests with `--no-hud`), the `--no-hud` row in
-  `godot-automation-hooks`, rows in `godot-data` section 6, and the eval `evals/lost-in-level`.
+- `godot-game-design` section 7 (the audit table, plan then play, playtests with `--capture=nohud`), the `--capture=nohud` row in
+  `godot-automation-hooks` (capture mode: `godot-debug-tools`), rows in `godot-data` section 6, and the eval `evals/lost-in-level`.
 
 ## Numbers
 
@@ -56,4 +56,4 @@
 - An automatic squint test: districts need the designer's labels before a picture can be scored. The skill asks for a
   top-down view looked at small instead.
 - Nodes as places: whether a hub is worth staying in is a design judgement, not a measurement.
-- A kit `--no-hud` switch: the flag belongs to the game, like `--autoplay`.
+- A kit switch to hide the HUD: `--capture=nohud` belongs to the game, like `--autoplay`.

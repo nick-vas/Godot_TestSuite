@@ -38,10 +38,10 @@ Notes from the question round, each to be fixed, built or written down before 1.
 | # | Note | What to do |
 |---|---|---|
 | 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
-| 2 | The README says eighteen skills; there are 55 | Fix in the cleanup; count from the folder, not by hand |
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Test against a real board, or mark it experimental |
+| 2 | The README says eighteen skills; there are 55 | Done in the skills cleanup: the README names no count; 50 skills after five merges |
+| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental in 1.0 in `game`, `godot-game-plan`, `weekly-review`, `docs/plan.md` and the README; a real-board test is still to do |
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
-| 5 | `lost-in-level`: two of three answers left out testing with the minimap and markers off | Make that check a firm line in the level design skill |
+| 5 | `lost-in-level`: two of three answers left out testing with the minimap and markers off | Done: `godot-game-design` section 7 states it as the check |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
 | 8 | The sandbox bug took three eval runs to find; one transcript showed it | Keep transcripts from every eval run (done in #119) |
@@ -80,8 +80,10 @@ Notes from the question round, each to be fixed, built or written down before 1.
    `AGENTS.md`, `docs/GDD.md`, `docs/decisions/`, `plan/`, its tests. A fix to a skill then reaches every game at once.
 3. **Every claim is checked.** The skill validator already checks that quoted commands, flags, codes and versions exist. New
    content follows the same rule: a lesson cites its evidence, a pattern cites the Godot API it uses, a version is tested.
-4. **Upkeep budget.** Skills stay under their 16 KB budget; a new skill must replace or shrink an old one when the total passes
-   200 KB; every command has a self-test job; a feature nobody used for three months is proposed for removal.
+4. **Upkeep budget.** Each `SKILL.md` stays under 16 KB (the skill validator fails it at 16 KB and warns from 15.5 KB);
+   detail goes to side files in the skill's folder, whose kit commands the validator checks too. A new skill that shares
+   a trigger with an old one is merged into it instead; every command has a self-test job; a feature nobody used for
+   three months is proposed for removal.
 5. **The owner sees the reasoning.** Plans, assessments and decisions are written to files in the game repository and mirrored
    to Trello, not left in a chat transcript.
 
@@ -131,8 +133,8 @@ One slash command that answers "where is this project, and what next", in the op
    content, screens) and asks the owner to confirm it section by section. Breakout Roguelike is the first case.
 3. **Assessment.** Claude maps each GDD feature to *missing*, *started*, *works* (code exists, smoke passes) or *proven* (a
    test, flow or bench covers it), and writes `plan/STATUS.md` with the evidence for each mark.
-4. **Trello through MCP.** One card per GDD feature and per open gate; the card description carries `plan-id: <id>` so
-   matching survives renames. Claude creates and moves cards from the assessment; before writing, it reads the board, and a
+4. **Trello through MCP.** One card per GDD feature and per open gate; the card description carries `plan task <id>, phase <phase>`
+   (as `plan -Do sync` writes it) so matching survives renames. Claude creates and moves cards from the assessment; before writing, it reads the board, and a
    card the owner moved since the last sync keeps the owner's column. Every write is listed in `STATUS.md`.
 5. **Then it works with the owner.** It ends with a multiple-choice question: the top three next tasks with reasons, plus
    "something else".
@@ -151,7 +153,7 @@ matches it.
    Game Loop and Update Method are `_Process`, Component is node composition, Type Object is a custom `Resource`, Singleton
    and Service Locator are autoloads), when to add the pattern yourself (Command for replays and undo, State for
    controllers, Object Pool, Event Queue, Dirty Flag, Data Locality with `MultiMesh` and structs), and when not to.
-   It replaces the generic parts of `godot-architecture`, which keeps the project-specific patterns.
+   It replaced the generic parts of the former architecture skill, since merged into it.
 2. **Design reviews.** A `godot-architect` subagent reviews a feature's design before code is written when it adds a system,
    an autoload or a cross-scene dependency. The outcome is an ADR in `docs/decisions/NNNN-title.md` (context, options,
    decision, consequences). `/game` lists decisions awaiting the owner.
@@ -450,3 +452,12 @@ Optimization" (AMD, Digital Dragons 2019). Done: `Net/BitPacker.cs` and `Net/Eve
 | `doctor`: duplicate files under `res://`, and occluders with occlusion culling off; a build size breakdown on `export -Json` | Not built in this pass | Hash files (skipping `.godot/`, `.import` and `.gdignore` folders); sum `.godot/imported/*` per source file; each with a fixture |
 | A `data` rule that every currency has a sink, and adaptive difficulty (`DifficultyDirector`) | `EconomySim` checks sinks in code; the data rule and difficulty curves were not built | A `sinks` check beside `totals` in `data.json`; a director with slow, bounded steps and hysteresis, tested so it never flips every attempt |
 | A test pinning the maths book's 3D yaw sign and cross-product area | Checked headless in Godot 4.7.2 for the skill; Breakout.Core uses `System.Numerics`, whose conventions differ, so a test there would not prove Godot's | A GDScript or gdUnit4 test in `examples/breakout/game` |
+
+## To do: from the skills cleanup (October 2026)
+
+What the skills cleanup left for the kit's example code.
+
+| Item | Why it is open | How |
+|---|---|---|
+| Breakout's `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random` | `godot-game-ai` now says to pass a seeded `RandomNumberGenerator` or `DeterministicRandom`, as `godot-determinism` and `godot-procgen` do | Take `DeterministicRandom` (or an interface over it), with the tests updated |
+

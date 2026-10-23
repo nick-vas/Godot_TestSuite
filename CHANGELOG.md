@@ -5,6 +5,30 @@
   with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
   through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps
   `status`'s error history from shifting by the UTC offset. `Test-Plan.ps1` runs `plan` under el-GR.
+- Fixes before 1.0. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
+  `invalid-arguments` before any setup, instead of passing `a.tscn,b.tscn` on as one scene. The run log (`log`,
+  `godot-ci.log`) now sits with each command's own results: `bench-results`, `soak-results`, `audio-results`, and `shot`'s
+  `-Output`, not `test-results`. `no-display` advises starting Xvfb and setting `DISPLAY` (not `xvfb-run`, which breaks
+  `-Json`) and prints the kit's real command. `sfx` no longer counts `<project>-assets/...` as inside the project (no
+  `../` entry in `assets.json`). The PR summary comment pages through every comment, so a busy pull request gets its
+  summary updated instead of a new one per run. `Update-Versions.ps1` fails on a pinned file that is missing instead of
+  skipping it. Errors that fell back to `failed` now carry `export-failed` (an export with no `export_path`, a file not
+  created, an exported build exiting non-zero) or `invalid-arguments` (an unknown runner, a bad `GODOT_CI_TIMEOUT` or
+  `GODOT_CI_IGNORE_ERRORS`); `docs/json.md` lists `invalid-arguments` as a general code and says `soak` and `credits`
+  write the log and history line too. `textsize` and `layout` join the runners that collect no coverage. New self-tests:
+  `Test-SceneCount.ps1`, `Test-UpdatePins.ps1`, `Test-PrComment.ps1`; `Test-Sfx.ps1` and `Test-Audio.ps1` cover the path
+  check and the log folder.
+- Skills cleanup for 1.0: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
+  into `godot-ui-accessibility` (`layout.md`), `godot-steam-deck` into `godot-console-cert`, `godot-credits` into
+  `godot-asset-pipeline`, and `godot-architecture` into `godot-patterns`, its other sections going to `godot-procgen`,
+  `godot-progression`, `godot-multiplayer`, `godot-modding`, `godot-shaders-vfx`, `godot-game-design` and
+  `godot-algorithms`. Contradictions fixed (Steam Auto-Cloud roots, seeded random in game AI, bot flags only in debug
+  builds, MIT credits, hit-stop length, VRAM compression for 3D only, saving on suspend per platform, volume buses, one
+  `--capture=nohud` flag); the `playthrough` runner replaces grepping for an ending; `/game` writes Trello cards the way
+  `plan -Do sync` does, and Trello sync is marked experimental in 1.0. Descriptions are narrower and no longer share
+  triggers; legal, audio and game AI moved detail to side files; duplicated advice has one owner. The skill validator
+  now checks kit commands in side files too (`tests/skill-fixtures/bad-side-file`). `Update-Versions.ps1` and the credits
+  error name the merged skills.
 - Evals: the cases now run with `TMPDIR` on the runner's temp disk. Under `/tmp`, Claude Code's sandbox refused every
   write in a run's own folder, so no case could run Godot (run 6); with the change, Godot and GUT run (run 7).
   `fix-score-bug`'s `used-kit` grader now matches the kit called by a quoted path. `docs/research.md` records runs 6 and 7.

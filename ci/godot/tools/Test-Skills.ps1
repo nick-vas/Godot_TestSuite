@@ -5,6 +5,7 @@
     unlike a pure-text linter, that every command, flag, error code and package version a skill mentions is real.
 
 .DESCRIPTION
+    Side files in a skill's folder (any other .md it links) get the same command checks; the size limit is per SKILL.md.
     Errors fail the run (exit 1); warnings do not. -IncludeFixtures also checks tests/skill-fixtures, which are
     deliberately broken: CI runs it and requires failure, so a rule that stops firing is noticed.
 #>
@@ -49,20 +50,21 @@ function Add-Finding([string]$Level, [string]$Skill, [string]$Rule, [string]$Mes
     $findings.Add([pscustomobject]@{ Level = $Level; Skill = $Skill; Rule = $Rule; Message = $Message })
 }
 
-# Every godot-ci.ps1 invocation must use a real command, real parameters and real values.
-function Test-Invocations([string]$Name, [string]$Text) {
+# Every godot-ci.ps1 invocation must use a real command, real parameters and real values. $Where names a side file.
+function Test-Invocations([string]$Name, [string]$Text, [string]$Where = '') {
+    $at = $Where ? "${Where}: " : ''
     $code = (@([regex]::Matches($Text, '(?s)```.*?```') | ForEach-Object Value) + @([regex]::Matches($Text, '`[^`\r\n]+`') | ForEach-Object Value)) -join "`n"
     foreach ($m in [regex]::Matches($code, '(?m)godot-ci\.ps1\s+(?<args>[^\r\n#`]*)')) {
         $argv = $m.Groups['args'].Value
         $first = [regex]::Match($argv, '^(?<c>[a-z]+)\b').Groups['c'].Value
-        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "godot-ci.ps1 has no command '$first' (has: $($commands -join ', '))" }
+        if ($first -and $first -notin $commands) { Add-Finding error $Name unknown-command "${at}godot-ci.ps1 has no command '$first' (has: $($commands -join ', '))" }
         foreach ($p in [regex]::Matches($argv, '(?<![\w-])-(?<p>[A-Za-z]+)\b')) {
-            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "godot-ci.ps1 has no parameter -$($p.Groups['p'].Value)" }
+            if (-not $params.ContainsKey($p.Groups['p'].Value)) { Add-Finding error $Name unknown-parameter "${at}godot-ci.ps1 has no parameter -$($p.Groups['p'].Value)" }
         }
         foreach ($set in 'Do', 'Runners', 'Column') {
             $v = [regex]::Match($argv, "-$set\s+(?<v>[A-Za-z0-9,|]+)").Groups['v'].Value
             if ($v -and $params[$set] -and $v -notmatch '[|<]') {
-                foreach ($one in $v -split ',') { if ($one -notin $params[$set] -and $one -ne 'none') { Add-Finding error $Name invalid-value "-$set $one is not one of: $($params[$set] -join ', ')" } }
+                foreach ($one in $v -split ',') { if ($one -notin $params[$set] -and $one -ne 'none') { Add-Finding error $Name invalid-value "${at}-$set $one is not one of: $($params[$set] -join ', ')" } }
             }
         }
     }
@@ -115,6 +117,11 @@ foreach ($dir in $skillDirs) {
     }
 
     Test-Invocations $name $text
+    # Side files are read by the agent when the skill links them, so their kit commands must be real too.
+    foreach ($side in @(Get-ChildItem -LiteralPath $dir.FullName -Recurse -File -Filter '*.md' | Where-Object { $_.FullName -ne (Get-Item -LiteralPath $file).FullName })) {
+        $relative = [System.IO.Path]::GetRelativePath($dir.FullName, $side.FullName) -replace '\\', '/'
+        Test-Invocations $name (Get-Content -LiteralPath $side.FullName -Raw) $relative
+    }
 
     # Error codes named in a table's first column must be documented in docs/json.md.
     foreach ($m in [regex]::Matches($text, '(?m)^\|\s*((?:`[a-z]+(?:-[a-z]+)+`(?:\s*/\s*)?)+)\s*\|')) {

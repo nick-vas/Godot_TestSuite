@@ -1,6 +1,6 @@
 ---
 name: godot-game-design
-description: Use when deciding what a game or feature should be, whether it is fun, what to cut, when drafting or reviewing a GDD, a pitch, pillars or a core loop, or when a level's layout loses players.
+description: Use when deciding what a game or feature should be, whether it is fun or what to cut, when drafting or reviewing a GDD, pitch, pillars or core loop, or when players get lost in a level.
 ---
 
 # Game design: naming the fun
@@ -134,7 +134,7 @@ Hold every level to this with a `levels` table for the `data` runner (`godot-dat
 
 A level fails with no `solution` or an empty one, with a second sentence (`.`, `!` or `?` followed by more words, so write
 no abbreviations), or with a `purpose` or `kind` not in the list. Run it alone with
-`pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`. The `mechanics` column also shows which pairs of mechanics
+`pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners data`. The `mechanics` column also shows which pairs of mechanics
 no level combines yet.
 
 ## 7. Levels players find their way in
@@ -153,14 +153,15 @@ it is not one yet, so make it clearer.
 | **Nodes** (hubs, junctions) | many ways meet but there is no reason to stay: make it a place, not a pass-through |
 
 - Lay the elements out top-down first, then play the level to check each still reads at eye level.
-- Playtest navigation with the HUD, minimap and waypoint markers off (`--no-hud`, `godot-automation-hooks`): turn-by-turn
-  guidance lowers route memory, so it hides a layout that does not guide.
+- **The check is always a playtest with the minimap, markers and waypoint arrows turned off** (`--capture=nohud`, with
+  them in group `hud`: `godot-debug-tools`). Never judge a layout with them on: turn-by-turn guidance lowers route
+  memory, so it hides a layout that does not guide.
 - In 3D, check it every run: put landmarks in group `landmark` and the routes players travel (`Path3D`) in group `route`;
   `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.
 
 Pacing (Dan Taylor, "Ten Principles for Good Level Design"): each level introduces, showcases or subverts a mechanic;
-the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first; the
+the main path is easy to medium, with harder routes signposted by an obvious reward; greybox a risky idea first (Croteam's graybox kit: pacing.md); the
 way back plays differently. Details: [pacing.md](pacing.md).
 
 Size an open world by the minutes it takes to cross, on foot and by vehicle, measured in two comparable games, and time

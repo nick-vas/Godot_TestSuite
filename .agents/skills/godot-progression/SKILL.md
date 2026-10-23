@@ -95,6 +95,17 @@ and simulate it: Breakout's `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakou
   change near 0 that looks healthy; `ShortHours` (hours a sink could not be paid in full) shows the dead economy: 94 of
   100 hours with 500 in and 700 out.
 - Run 10, 100 and 1000 hours on each change to a rate, with the same seed.
+- **One ledger, like a central bank** (NetEase's inflation monitoring, GDC): every faucet and sink goes through it with a
+  source or sink tag, so each day logs issued, collected and stock (`[Econ] day=12 issued=... collected=... stock=...`).
+  Alert when issued exceeds collected day after day; fix the source and add short-term sinks until the stock settles.
+  Keep counting currency held by players who left (a returning-player event releases it at once); with player trading,
+  log transfers, so one player trading back and forth with dozens of others stands out.
+- **A spawn economy as data** (DayZ's Central Economy): each item type a `[GlobalClass]` Resource with a target count, a
+  floor, a lifetime and which copies count (on the map, in containers, on players); a plain C# economy keeps a live count
+  per type and runs on a `Timer` every few seconds, removing expired items and spawning at most a fixed number per tick.
+  Crafted-only items have a target of 0: counted, never spawned. Usage and rarity labels come from one declared
+  vocabulary (`[Export(PropertyHint.Flags, "Military,Police,Farm,Town")]`), rarity is painted on map zones rather than
+  set per building, and a test fails on any label outside the vocabulary. Where each item then lands: `godot-procgen`.
 
 ## In a review
 

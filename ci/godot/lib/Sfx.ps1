@@ -91,8 +91,9 @@ function Invoke-Sfx {
     $entry = $null
     $project = $Info.ProjectDir
     $full = [System.IO.Path]::GetFullPath($OutputDir)
-    if ($project -and $full.StartsWith([System.IO.Path]::GetFullPath($project), [StringComparison]::OrdinalIgnoreCase)) {
-        $relative = ([System.IO.Path]::GetRelativePath($project, $full) -replace '\\', '/').TrimEnd('/')
+    # Only a folder below the project: <project>-assets is outside it, and the project root itself would claim every asset.
+    $relative = if ($project) { ([System.IO.Path]::GetRelativePath($project, $full) -replace '\\', '/').TrimEnd('/') } else { '.' }
+    if ($project -and $relative -ne '.' -and (Test-PathInside $full $project)) {
         $entry = [ordered]@{ path = "$relative/**"; source = 'generated with godot-ci sfx (bfxr synth)'; licence = 'own' }
         $manifest = Join-Path $project 'assets.json'
         if (Test-Path -LiteralPath $manifest) {

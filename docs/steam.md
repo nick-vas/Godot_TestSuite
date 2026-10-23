@@ -1,6 +1,6 @@
 # Steam and Steam Deck: sources and measurements
 
-The research behind the `godot-steam` and `godot-steam-deck` skills, the `textsize` runner, the `steam-removed-api` and
+The research behind the `godot-steam` and `godot-console-cert` (Steam Deck) skills, the `textsize` runner, the `steam-removed-api` and
 `steam-env-dotnet` architecture rules, `doctor`'s GDExtension, Steam package and Steamworks file checks, the `SteamAppId=480` default,
 and Breakout's `Platform/` (`IPlatformServices`, `LocalPlatform`, `BreakoutProgress`) and `SaveStore.SaveResolved`,
 gathered on 2026-10-21. Tests ran on Godot 4.7.2 mono and standard, .NET 8 (SDK 8.0.131), Linux x86_64, with no Steam

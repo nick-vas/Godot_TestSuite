@@ -1,6 +1,6 @@
 ---
 name: godot-game-ai
-description: Use when a Godot game has enemies, companions, crowds or opponents that decide or move on their own, when choosing between a state machine, behaviour tree, utility AI or a planner, when enemies must notice the player (sight, hearing, stealth), when adding navigation or steering, or when an AI dithers, gets stuck, stands still or is hard to test.
+description: Use when a Godot game has enemies, companions or opponents that decide, perceive or move on their own (state machines, behaviour trees, utility AI, planners, steering, navigation), or when an AI dithers, gets stuck or is hard to test.
 ---
 
 # Game AI in Godot 4 (C#)
@@ -75,38 +75,10 @@ Left 4 Dead's director, `PacingDirector` (`docs/valve.md` 4).
 
 ### Deliberation under a frame budget
 
-Re-plans, path batches, influence maps and procgen are slow but rarely needed: a 20 ms search spread at 1 ms a frame
-answers in 20 frames, a third of a second, which players read as reaction time. Run them as C# iterators under a fixed
-budget on the main thread (`Ai/FrameBudget.cs`; the talk: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/beyond-framerate-taming-your-timeslice.md`):
-
-```csharp
-readonly FrameBudget _budget = new(checkEvery: 4);
-
-public void ReplanSquad() => _budget.Start(Replan, onDone: _ => EmitSignal(SignalName.SquadReplanned));
-
-IEnumerator Replan(BudgetJob job)
-{
-    var world = ReadWorldFacts();
-    for (int i = 0; i < _squad.Count; i++)
-    {
-        if (job.Resumed) world = ReadWorldFacts();   // a frame went by: the snapshot may be stale
-        _squad[i].Plan = GoapPlanner.Plan(world, _squad[i].Goal, _squad[i].Actions);
-        if (i < _squad.Count - 1) yield return null;   // between units, not after the last
-    }
-}
-
-public override void _PhysicsProcess(double delta) => _budget.Run(1.0);   // milliseconds of AI per tick
-```
-
-- Yield between small units of work, never half-way through a change other code reads (a plan half-written). The clock
-  is read every `checkEvery` steps, so a frame overruns by at most that many steps.
-- `job.Cancel()` when the agent dies or the goal changes: its `finally` blocks run at once, releasing what it reserved.
-  `job.Priority = 3` gives it three steps for each one the others get.
-- Not an unbounded `Task.Run`: background threads give no guaranteed CPU (latency rises wherever physics is busy), a
-  lock shared with the main thread can stall it, and a result arriving at an uncontrolled time from another thread is
-  what `godot-determinism` rules out. A time budget is still not repeatable: 200 GOAP re-plans at 1 ms a frame took 4,
-  5 or 6 frames over 30 identical runs. For a replayed or lockstep game, budget work instead: `FrameBudget.CountingWork`.
-- `_PhysicsProcess` runs once per physics tick, several times in one frame when Godot catches up: size the budget per tick.
+Re-plans, path batches, influence maps and procgen are slow but rarely needed: run them as C# iterators under a fixed
+budget per physics tick on the main thread (`Ai/FrameBudget.cs`), not on an unbounded `Task.Run`; a 20 ms search spread
+at 1 ms a frame answers in a third of a second, which players read as reaction time. The code, cancelling and
+priorities, and why a time budget is not repeatable: [budget.md](budget.md).
 
 ## 5. Steering
 
@@ -119,7 +91,7 @@ applies it capped at `MaxForce` per second. Feed `agent.Velocity` to `CharacterB
 - Arrive slows inside a radius; Seek overshoots and orbits ("like a moth around a light bulb").
 - Pursuit aims at `target + targetVelocity * distance / speed`; it catches a crossing target sooner than Seek. That guess
   is fine for a body that re-steers every frame, not for a projectile, which cannot (below).
-- Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass a seeded `Random`.
+- Wander nudges a point on a circle ahead each step; random force each frame is twitchy. Pass in a generator seeded from the run seed (`godot-procgen`), not `System.Random` (`godot-determinism`).
 - Summed behaviours can cancel out; put obstacle avoidance first (the first non-zero wins) when it must not lose.
 
 ### Aiming projectiles
@@ -209,7 +181,8 @@ Decision logic is plain C#: unit tests under 10 ms each, with seeded randomness.
 - [ ] re-plans and path batches for many agents run under a `FrameBudget`, tested with a fake clock, not wall time
 - [ ] a scenario test waits for navigation to be ready, then asserts the agent reaches its goal within N seconds and is
       never stuck (it moves more than a little over every half second)
-- [ ] every random choice comes from an injected `Random(seed)`; the same seed gives the same run
+- [ ] every random choice comes from an injected, seeded `RandomNumberGenerator` (or `DeterministicRandom` inside a
+      replayed simulation); the same seed gives the same run
 - [ ] decisions are recorded (frame, agent, choice, top scores) to a ring buffer the game can show when debugging
 - [ ] `bench` with the most agents the design allows stays inside the frame budget (`godot-performance`)
 - [ ] squad choices are made once per squad; arrival and range tests also run at the game's largest coordinates

@@ -32,7 +32,10 @@ Sources, years and what was left out: `${CLAUDE_PLUGIN_ROOT}/docs/gdc/folds-ai-d
 - The main path is easy to medium. Harder routes are clearly marked as risky, with an obvious reward (Burnout's narrow
   shortcuts); easier ones are offered where the main path gets tough. Risk and reward then set the difficulty, not a
   menu.
-- Greybox and playtest anything risky as early as possible, or it is cut as the milestone nears.
+- Greybox and playtest anything risky as early as possible, or it is cut as the milestone nears. Croteam built puzzles
+  and levels from a small kit: a `GridMap` whose `MeshLibrary` holds 2, 3 and 5 m wall blocks in one plain material.
+  Layout is judged in playtests before any theme exists; a `[Tool]` `EditorScript` then swaps in a themed
+  `MeshLibrary`, and decoration is added by hand on top.
 - Make the way back play differently instead of plain backtracking: Halo's 343 Guilty Spark goes in exploring and comes
   out in a fight.
 - Design from the feeling: pick the emotion, then the space (tight, wide, high), story and mechanics that produce it.

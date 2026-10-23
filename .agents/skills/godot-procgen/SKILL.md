@@ -1,6 +1,6 @@
 ---
 name: godot-procgen
-description: Use when a Godot game generates levels, maps, dungeons, loot, names or text, or when a generated run must be reproducible from its seed for tests, bug reports and balancing.
+description: Use when a Godot game generates levels, maps, dungeons, loot, names or text, or needs seeds that give each generator its own stream.
 ---
 
 # Procedural generation that can be tested
@@ -14,7 +14,8 @@ report carries the one seed that reproduces it (`godot-automation-hooks`).
 - One run seed (`--seed=N`, or a random one that is logged). Every generator gets its own stream derived from it, so changing
   one level does not reshuffle the others.
 - Derive with a fixed mix, never `HashCode.Combine` or `GetHashCode()`: .NET randomises those per process, so the same inputs
-  give a different seed on every launch (three runs of `HashCode.Combine(42, 1, 2, 3)` gave three different numbers).
+  give a different seed on every launch (three runs of `HashCode.Combine(42, 1, 2, 3)` gave three different numbers). Nor a
+  plain XOR of the parts, where act 1 floor 2 and act 2 floor 1 collide.
 
   ```csharp
   public static class Seeds
@@ -150,7 +151,9 @@ time flipping between two); build the scene from the data after. Then check the 
 
 - Hard rules: every room reachable from the start (a flood fill: `Regions.Label`, `godot-algorithms`), an exit exists, counts within bounds, the start is safe,
   clusters of objects kept apart (XCOM 2 keeps two empty tiles between cover clusters, so movement and the camera stay
-  clear at full density).
+  clear at full density). A Slay-the-Spire-style map: a few paths climb from the bottom, each step up-left, up or
+  up-right without crossing an edge, all merging at the boss; the first floor a battle, the floor before the boss a
+  rest, no elite or rest early or twice in a row.
 - On failure, try the next derived seed (`Seeds.Derive(runSeed, floor, attempt)`), a bounded number of times, and log it:
   `[gen] floor 3 seed 1234 valid after 2 attempts`. A generator that often needs retries has a bug worth fixing.
 - Soft goals (path length, enemy density, treasure spread) are measured and logged, and balanced with the bot

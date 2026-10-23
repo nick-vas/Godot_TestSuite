@@ -90,6 +90,10 @@ void fragment() {
 }
 ```
 
+In a 3D game, put that `CanvasLayer` at layer -1: it grades the 3D world but not the UI on layers 0 and up. Posterize,
+crosshatch, paper tint, grain and vignette all work there, and cheerful assets under a stark grade give a distinctive look
+cheaply (posterize under soft fog bands: `godot-pitfalls`).
+
 In the Compatibility renderer colours above 1.0 are clamped, so an edge or rim cannot glow through bloom there.
 
 ## 3. What a shader costs
@@ -160,7 +164,8 @@ compare tiers: `bench -GameArgs '--quality=low'`, then `high`.
 
 Each post there is CC0, MIT or GPL v3, chosen by its author and shown at the bottom of the post; its images and videos are not
 covered. Record each one in `assets.json` (source URL, author, licence: `CC0-1.0`, `MIT`, `GPL-3.0-only`); `doctor` warns
-about GPL, which would bind the whole game. MIT asks for its notice in the credits.
+about GPL, which would bind the whole game. MIT asks for nothing on screen; the shipped build needs its copyright line
+and licence text, which `credits` writes (`godot-asset-pipeline`).
 
 ## 7. Prove it
 

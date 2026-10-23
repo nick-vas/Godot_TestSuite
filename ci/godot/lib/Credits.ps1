@@ -227,7 +227,7 @@ function Find-DotnetNotices {
 
 function Invoke-Credits($Info, [string]$OutputDir) {
     $manifest = Join-Path $Info.ProjectDir 'assets.json'
-    if (-not (Test-Path -LiteralPath $manifest)) { Stop-GodotCi "No assets.json in $($Info.ProjectDir): list where every asset came from first (godot-credits)" 'no-asset-manifest' }
+    if (-not (Test-Path -LiteralPath $manifest)) { Stop-GodotCi "No assets.json in $($Info.ProjectDir): list where every asset came from first (godot-asset-pipeline)" 'no-asset-manifest' }
     $engineJson = Join-Path ([System.IO.Path]::GetTempPath()) "engine-notices-$([guid]::NewGuid().ToString('N').Substring(0, 8)).json"
     $tool = (Join-Path $PSScriptRoot '../tools/notices.gd' | Resolve-Path).Path -replace '\\', '/'
     $log = [System.IO.Path]::GetTempFileName()
