@@ -1,6 +1,6 @@
 ---
 name: godot-data
-description: Use when a Godot game defines items, enemies, levels, spells, dialogue or balance numbers as data, when choosing between custom Resources and JSON or CSV tables, when designers tune values in a spreadsheet, when objects placed in level scenes (AI points, interactables, zip lines) must keep obeying gameplay rules, or when game data loads wrong, changes by itself or is missing from an exported build.
+description: Use when a Godot game keeps items, enemies, levels, dialogue or balance numbers as data (Resources, JSON or CSV tables, spreadsheets), or when that data loads wrong, changes by itself or is missing from an export.
 ---
 
 # Data-driven design in Godot 4 (C#)
@@ -102,7 +102,7 @@ every row without Godot and writes one JUnit case per table:
   `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`).
 - Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4); `"type": "criteria"` checks the same
   criteria grammar (`health<25;!seen_tank`) in any table, such as quest or unlock conditions.
-- Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
+- Run it alone: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.
 
@@ -111,6 +111,8 @@ every row without Godot and writes one JUnit case per table:
 - One direction only: the sheet, then an export (a script or a downloaded CSV) committed to the repository, then the
   game. Never hand-edit the export; commit it so a review shows every balance change.
 - Keep derived columns (damage per second, time to kill) in the sheet; export only the inputs.
+- Feature switches are data too, so a feature can be turned off for a test (DayZ). Values tuned around a bug break when
+  it is fixed: retune after fixes, and keep whole-system regression runs (IL-2).
 - Print a digest of all data tables in the game's log and in bug reports, so a report says which balance it ran.
 - Balance downloaded from a server (rebalancing without a patch; a Sony online consultant's GDC advice) is data only:
   JSON or CSV parsed into the same records and checked by the same rules, never a `.tres`, a script or an expression,
@@ -155,4 +157,4 @@ group and fails once, one line per finding: scene, node path, position, rule, me
 - On 4.7.2 headless, navigation answered after 9 to 11 physics frames for the first level of a GUT run and 3 or 4 for
   the next; the helper polls, capped. The checks take about 10 ms per 1,000 nodes.
 - A check at commit time does not replace the full run: data fine on day one breaks on day ten through another change.
-- Run it: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners gut -Filter test_every_level`.
+- Run it: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners gut -Filter test_every_level`.

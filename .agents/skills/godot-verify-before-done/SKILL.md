@@ -37,7 +37,7 @@ after the last passing `test` run, unless you say why the tests could not run.
 | "Quarantine it and move on" | Only the user decides that, with an owner and an end date in `quarantine.json`. Report `quarantined[]` too. |
 | "No time to run everything" | The suite is the time saver. A wrong "done" costs a round trip. |
 | "The last run was green" | That was before your change. Fresh evidence only. |
-| "Zero tests ran, so nothing failed" | Zero tests fails by design. The framework is not wired; see `godot-test-frameworks`. |
+| "Zero tests ran, so nothing failed" | Zero tests fails by design. The framework is not wired; see `godot-test-loop`. |
 | "I'll lower the coverage floor / ignore that engine error" | That moves the goalposts. Fix the cause, or ask the user. |
 
 ## Red flags - stop

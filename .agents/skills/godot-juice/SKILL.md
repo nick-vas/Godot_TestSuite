@@ -1,6 +1,6 @@
 ---
 name: godot-juice
-description: Use when a Godot game feels flat or unresponsive, when adding feedback to hits, jumps, pickups or deaths, or when checking that every action gets feedback in time.
+description: Use when a Godot game feels flat or actions do not seem to land, when adding feedback to hits, jumps, pickups or deaths, or when checking that every action gets feedback in time.
 ---
 
 # Juice: feedback a player can feel, checked by a bot
@@ -33,7 +33,7 @@ Optional, at boot: a short sound under the splash logo tells the player the game
 Sakamoto write the Dreamcast's (*Untold History*). Keep the splash short and skippable.
 
 Keep feedback on the presentation side: it must never change gameplay state, so tests and bots stay deterministic
-(`godot-architecture`).
+(`godot-patterns`).
 
 ## Screen shake
 

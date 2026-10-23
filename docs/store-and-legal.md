@@ -1,6 +1,6 @@
 # Store pages, ratings, privacy, licences and credits: sources
 
-The research behind the `godot-store-page`, `godot-legal`, `godot-credits` and `godot-release-readiness` skills, the
+The research behind the `godot-store-page`, `godot-legal`, `godot-asset-pipeline` (credits) and `godot-release-readiness` skills, the
 `credits` command, `doctor`'s Steam store art, trailer, tag and privacy checks and `plan`'s release timeline, gathered
 on 2026-10-21. Pages were fetched as served that day;
 store rules change, so check the source before relying on a number. **General information for developers, not legal

@@ -68,7 +68,7 @@
 - Keeping the flaky record on CI. The history lives in the project's `.godot/`, which a fresh CI checkout does not
   keep, so `status` counts only local runs.
 - Choosing pre-commit tests from what each test touched: it needs per-test code and asset coverage the kit does not
-  record. Actor-style tests already exist as gdUnit4Net `[RequireGodotRuntime]` and GUT tests (`godot-test-frameworks`).
+  record. Actor-style tests already exist as gdUnit4Net `[RequireGodotRuntime]` and GUT tests (`godot-test-loop`).
 - Writing tests after the change works: the kit keeps test-first, because for an agent the failing test is the proof
   that the change does something.
 

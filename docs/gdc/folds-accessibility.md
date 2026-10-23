@@ -133,7 +133,7 @@ Zach Gage. Year not stated; 2018 inferred (an Into the Breach screenshot from be
 launch"). https://www.youtube.com/watch?v=YISKcRDcDJg
 
 - Taken: `/look` critique names each gameplay screen's first, second and third read and flags constant state drawn
-  smaller than decoration (`look` section 2); `godot-ui-layout` Rules: menus that slide away during play (Really Bad
+  smaller than decoration (`look` section 2); `godot-ui-accessibility` layout rules: menus that slide away during play (Really Bad
   Chess), a rule-teaching colour change animated rather than popped (TypeShift).
 - Not taken: trailer and store advice (under a minute, the first seconds say what it is): `godot-store-page` has it.
 

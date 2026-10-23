@@ -30,7 +30,7 @@ The kit already covered version pinning, export checks and test-first work. This
 | `dotnet build` first, `--headless --import` after adding assets | Already done in that order by `build` | `build` |
 | User flags after `--`; release exports ignore scene paths | **New:** `-GameArgs`, passed after `--` to smoke runs, `export -Run`, `bench` and `shot` | `godot-automation-hooks`, `godot-pitfalls` |
 | Extra `partial` classes in one file are fine when created with `new` | Pitfall row | `godot-pitfalls` |
-| The movie writer is tied to the startup window size; save `GetViewport().GetTexture().GetImage()` after `FramePostDraw` | **New:** `shot` does exactly that at any `-Resolution`, and refuses headless runs, which have no image | `shot`, `godot-ui-layout` |
+| The movie writer is tied to the startup window size; save `GetViewport().GetTexture().GetImage()` after `FramePostDraw` | **New:** `shot` does exactly that at any `-Resolution`, and refuses headless runs, which have no image | `shot`, `godot-ui-accessibility` |
 | "N resources still in use at exit" is harmless in headless runs | Not reproduced here (the message exists in the engine, but the test project didn't trigger it). It is not silenced globally, because real leaks print the same text; the pitfall gives the ignore pattern | `godot-pitfalls` |
 | Export: embed PCK, ship the exe and the `data_*` folder, exclude `*.md, *.pdf` | **Corrected and checked.** Tested on 4.7.2: by default Godot exports resources only, so `.md` and `.pdf` files ship only when a preset's `include_filter` matches them. `doctor` now warns in exactly that case. The release zip already contains the whole export folder, `data_*` included | `doctor`, `godot-pitfalls` |
 | PowerShell: alias collisions, `,` vs `+` precedence, `Compress-Archive -Force`, no Python | Contributor rules in AGENTS.md (each claim checked in pwsh); the kit uses no Python | `AGENTS.md` |
@@ -39,19 +39,19 @@ The kit already covered version pinning, export checks and test-first work. This
 | Zero-GC frame loop: cache `StringName`, don't read `Label.Text`, pool particles and labels, reuse materials | Table of allocations and fixes, plus a GC custom-monitor snippet so `bench` proves zero collections | `godot-performance` |
 | First-use hitches are pipeline compiles: pre-draw every visual, pre-rasterise glyphs | Recipe | `godot-performance` |
 | `MultiMesh`, no billboard shadows, compressed textures, QOA audio, shadow-map size, `SubViewport` `UpdateMode.Once` | "Cheap wins" list; `bench` reports draw calls | `godot-performance` |
-| Native-resolution authoring, `canvas_items` + `expand`, anchors, `KeepAspect.Height`, font scale, shrink-to-fit vs autowrap, readable panels | Rules and a stretch-mode table (when `expand` and when `keep`) | `godot-ui-layout` |
+| Native-resolution authoring, `canvas_items` + `expand`, anchors, `KeepAspect.Height`, font scale, shrink-to-fit vs autowrap, readable panels | Rules and a stretch-mode table (when `expand` and when `keep`) | `godot-ui-accessibility` |
 | Screenshot every screen at the real resolution after each change | **New:** `shot`, and a vertical-slice gate. This caught a real bug in the kit's own Breakout example (the 640x480 arena sat in the top-left at 1080p), now fixed with `canvas_items`/`keep` | `shot`, `plan.json` |
-| 2D gameplay with 3D presentation; style classes; the `Visual` wrapper | Pattern | `godot-architecture` |
-| Grade shader on `CanvasLayer -1`; posterize plus fog banding; fog darkens additive particles | Pattern and pitfall | `godot-architecture`, `godot-pitfalls` |
-| Run state as plain C# in an autoload; deterministic RNG per map node | Pattern, plus the testability argument | `godot-architecture`, `godot-automation-hooks` |
-| Slay-the-Spire-style map with fairness rules | Example of "generated content with rules" | `godot-architecture` |
+| 2D gameplay with 3D presentation; style classes; the `Visual` wrapper | Pattern | `godot-patterns` |
+| Grade shader on `CanvasLayer -1`; posterize plus fog banding; fog darkens additive particles | Pattern and pitfall | `godot-shaders-vfx`, `godot-pitfalls` |
+| Run state as plain C# in an autoload; deterministic RNG per map node | Pattern, plus the testability argument | `godot-patterns`, `godot-procgen` |
+| Slay-the-Spire-style map with fairness rules | Example of "generated content with rules" | `godot-procgen` |
 | Debug flags as first-class features (`--autoplay`, `--seed`, `--no-save`, `--stress`, `--shot`...) | Flag table, a C# flag reader, and a vertical-slice plan gate | `godot-automation-hooks`, `plan.json` |
 | Bots with human-like error, game-time logs, `--fixed-fps 60` faster than real time, several seeds in parallel | Recipe and a production plan gate | `godot-automation-hooks`, `plan.json` |
 | Fight length vs HP, waves vs HP inflation, boss = 3x, 20-25 min per act | Genre-specific numbers, kept here and not in a skill | this page |
 | Breakout mechanics: front piece only, narrow gaps trap the ball, one-way pieces, one action per shot, edge aiming, time limits | Genre-specific. The general lesson (deterministic bots loop; pick a random safe move) is in `godot-automation-hooks`. The one-way +Y rule is a pitfall | this page, `godot-pitfalls` |
-| Puzzle solvers (recursion, BFS, GF(2)), par = optimal + slack, minimal take-back, sentinel bug, solver-backed hints | Generalised to "systems with an exact solver" | `godot-architecture` |
+| Puzzle solvers (recursion, BFS, GF(2)), par = optimal + slack, minimal take-back, sentinel bug, solver-backed hints | Generalised to "exact solvers for small systems" | `godot-algorithms` |
 | Test every puzzle end to end with a bot at two skill levels and several seeds (found five bugs solvers missed) | Recipe | `godot-automation-hooks` |
-| Cheerful assets under a stark grade; per-act tint; pixel billboards with nearest filtering and no shadows | Pattern | `godot-architecture`, `godot-performance` |
+| Cheerful assets under a stark grade; per-act tint; pixel billboards with nearest filtering and no shadows | Pattern | `godot-shaders-vfx`, `godot-performance` |
 | One tagged log line per meaningful event; re-run balance and benchmarks after big changes | Rule in the game AGENTS.md template; the benchmark gate in the plan | `templates/AGENTS.md`, `plan.json` |
 
 ## Found while applying it

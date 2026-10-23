@@ -1,6 +1,6 @@
 ---
 name: godot-diagnose
-description: Use when starting work in a Godot project, or when a build, import, export or test run fails and the cause is unclear.
+description: Use when a Godot build, import, export or test run fails and the cause is unclear, or when a project's setup or wiring looks wrong.
 ---
 
 # detect, doctor, validate

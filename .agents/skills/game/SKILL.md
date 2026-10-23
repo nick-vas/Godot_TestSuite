@@ -55,7 +55,7 @@ Every feature that is not proven and not `won't` needs a task:
 (`plan -Do move -Id t3 -Column done`). `plan -Do move` refuses `doing` past the work-in-progress limit; finish or move
 something back instead.
 
-## 5. The Trello board (through the Trello connector)
+## 5. The Trello board (through the Trello connector; experimental in 1.0)
 
 The board is `plan.board`. If there is none, list the user's boards with the connector and ask which one; save it with
 `plan -Do link -Board <board id>`. Lists map to plan columns by name: Backlog, Design, To Do, Doing, Testing, Done.
@@ -66,13 +66,15 @@ The board is `plan.board`. If there is none, list the user's boards with the con
 3. A task with a `cardId` whose card is still in its `boardColumn`: move the card to the task's column if they differ,
    then record it with `plan -Do link -Id <task> -Column <column>`.
 4. A task without a card: create one in its column's list, named after the task, with the description
-   `plan-id: <task id>` and `GDD: <feature>`; then `plan -Do link -Id <task> -Card <card id> -Column <column>`.
-5. A card with no `plan-id` was added by the user: add a task for it (`plan -Do add -Title <card name> -Column <list>`),
-   link it, and if it is not in the GDD, raise it under the scope rule below.
+   `plan task <task id>, phase <phase>` (what `plan -Do sync` writes) and a second line `GDD: <feature>`; then
+   `plan -Do link -Id <task> -Card <card id> -Column <column>`.
+5. A card that no task's `cardId` names and whose description has no `plan task <id>` was added by the user: add a task
+   for it (`plan -Do add -Title <card name> -Column <list>`), link it, and if it is not in the GDD, raise it under the
+   scope rule below.
 6. A card that is gone (archived or deleted): leave the task as it is and mention it.
 
 List every card you created or moved under "Board changes" in `STATUS.md`. If the connector is not available, skip this
-step and say so; `plan -Do sync` (REST, with `TRELLO_KEY`/`TRELLO_TOKEN`) is the alternative.
+step and say so; `plan -Do sync` (REST, with `TRELLO_KEY`/`TRELLO_TOKEN`; also experimental) is the alternative.
 
 ## 6. What next
 

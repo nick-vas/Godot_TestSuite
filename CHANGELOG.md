@@ -14,6 +14,17 @@
   write the log and history line too. `textsize` and `layout` join the runners that collect no coverage. New self-tests:
   `Test-SceneCount.ps1`, `Test-UpdatePins.ps1`, `Test-PrComment.ps1`; `Test-Sfx.ps1` and `Test-Audio.ps1` cover the path
   check and the log folder.
+- Skills cleanup for 1.0: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
+  into `godot-ui-accessibility` (`layout.md`), `godot-steam-deck` into `godot-console-cert`, `godot-credits` into
+  `godot-asset-pipeline`, and `godot-architecture` into `godot-patterns`, its other sections going to `godot-procgen`,
+  `godot-progression`, `godot-multiplayer`, `godot-modding`, `godot-shaders-vfx`, `godot-game-design` and
+  `godot-algorithms`. Contradictions fixed (Steam Auto-Cloud roots, seeded random in game AI, bot flags only in debug
+  builds, MIT credits, hit-stop length, VRAM compression for 3D only, saving on suspend per platform, volume buses, one
+  `--capture=nohud` flag); the `playthrough` runner replaces grepping for an ending; `/game` writes Trello cards the way
+  `plan -Do sync` does, and Trello sync is marked experimental in 1.0. Descriptions are narrower and no longer share
+  triggers; legal, audio and game AI moved detail to side files; duplicated advice has one owner. The skill validator
+  now checks kit commands in side files too (`tests/skill-fixtures/bad-side-file`). `Update-Versions.ps1` and the credits
+  error name the merged skills.
 - Evals: the cases now run with `TMPDIR` on the runner's temp disk. Under `/tmp`, Claude Code's sandbox refused every
   write in a run's own folder, so no case could run Godot (run 6); with the change, Godot and GUT run (run 7).
   `fix-score-bug`'s `used-kit` grader now matches the kit called by a quoted path. `docs/research.md` records runs 6 and 7.
