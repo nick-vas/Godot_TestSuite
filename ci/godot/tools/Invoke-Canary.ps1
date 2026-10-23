@@ -26,13 +26,26 @@ if (@(& git -C $Root status --porcelain).Count -gt 0) { throw 'Invoke-Canary.ps1
 $versionArgs = @('-NoProfile', '-File', (Join-Path $tools 'Update-Versions.ps1'), '-Root', $Root, '-Json')
 if ($LatestFile) { $versionArgs += '-LatestFile', $LatestFile }
 $report = & pwsh @versionArgs | ConvertFrom-Json
+if ($LASTEXITCODE) { throw "Update-Versions.ps1 failed ($LASTEXITCODE)" }
 $names = @($report.updates | ForEach-Object name)
 # A Godot minor without a GUT release cannot pass the GDScript example; report it instead of trying.
 if ($report.blocked.Count -gt 0) { $names = @($names | Where-Object { $_ -ne 'godot' }) }
+# Updates tried as one: a new Godot minor and its GUT release only work together (Update-Versions.ps1 will not apply
+# that GUT release alone), so they pass or fail as a pair.
+$minor = { param($v) ($v -split '\.')[0..1] -join '.' }
+$newMinor = @($report.updates | Where-Object { $_.name -eq 'godot' -and (& $minor $_.latest) -ne (& $minor $_.current) }).Count -gt 0
+$units = @(foreach ($name in $names) {
+    if ($newMinor -and 'godot' -in $names -and 'gut' -in $names) {
+        if ($name -eq 'godot') { , @('godot', 'gut') }
+        elseif ($name -ne 'gut') { , @($name) }
+    } else { , @($name) }
+})
 
 function Test-Updates([string[]]$Selected) {
     & git -C $Root checkout -q -- .
-    & pwsh @versionArgs -Apply -Only ($Selected -join ',') | Out-Null
+    # A failed rewrite (a pinned file gone) leaves the tree as it was, which would then pass every test.
+    $applyErrors = @(& pwsh @versionArgs -Apply -Only ($Selected -join ',') 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+    if ($LASTEXITCODE) { return @("Update-Versions.ps1 -Apply failed: $(@($applyErrors | ForEach-Object { "$_" }) -join ' ')") }
     $problems = @()
     $skills = & pwsh -NoProfile -File (Join-Path $tools 'Test-Skills.ps1') -Root $Root -Json | ConvertFrom-Json
     if (-not $skills.ok) { $problems += "skill validator: $(@($skills.findings | Where-Object level -eq 'error' | ForEach-Object message) -join '; ')" }
@@ -61,23 +74,31 @@ $passing = @(); $failing = [ordered]@{}
 if ($names.Count -gt 0) {
     $together = @(Test-Updates $names)
     if ($together.Count -eq 0) { $passing = $names }
-    elseif ($names.Count -eq 1) { $failing[$names[0]] = $together -join "`n" }
+    elseif ($units.Count -eq 1) { foreach ($name in $names) { $failing[$name] = $together -join "`n" } }
     else {
-        foreach ($name in $names) {
-            $alone = @(Test-Updates @($name))
-            if ($alone.Count -eq 0) { $passing += $name } else { $failing[$name] = $alone -join "`n" }
+        $passingUnits = @()
+        foreach ($unit in $units) {
+            $alone = @(Test-Updates $unit)
+            if ($alone.Count -eq 0) { $passingUnits += , $unit } else { foreach ($name in $unit) { $failing[$name] = $alone -join "`n" } }
         }
         # Updates that pass alone can still clash; keep the set only if it passes as a whole, else the first one.
-        if ($passing.Count -gt 1 -and @(Test-Updates $passing).Count -gt 0) {
-            foreach ($name in $passing[1..($passing.Count - 1)]) { $failing[$name] = "passes alone, but not together with $($passing[0])" }
-            $passing = @($passing[0])
+        $passing = @($passingUnits | ForEach-Object { $_ })
+        if ($passingUnits.Count -gt 1 -and @(Test-Updates $passing).Count -gt 0) {
+            foreach ($unit in $passingUnits[1..($passingUnits.Count - 1)]) {
+                foreach ($name in $unit) { $failing[$name] = "passes alone, but not together with $($passingUnits[0] -join ' and ')" }
+            }
+            $passing = @($passingUnits[0])
         }
     }
 }
 
 & git -C $Root checkout -q -- .
 $changed = @()
-if ($passing.Count -gt 0) { $changed = @((& pwsh @versionArgs -Apply -Only ($passing -join ',') | ConvertFrom-Json).changed) }
+if ($passing.Count -gt 0) {
+    $applied = & pwsh @versionArgs -Apply -Only ($passing -join ',')
+    if ($LASTEXITCODE) { throw "Update-Versions.ps1 -Apply -Only $($passing -join ',') failed ($LASTEXITCODE)" }
+    $changed = @(($applied | ConvertFrom-Json).changed)
+}
 
 $byName = @{}; foreach ($u in $report.updates) { $byName[$u.name] = $u }
 [ordered]@{
