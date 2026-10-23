@@ -1,0 +1,6 @@
+{
+  "levels": ["res://levels"],
+  "limits": {
+    "reach": "res://scripts/movement.gd:REACH"
+  }
+}

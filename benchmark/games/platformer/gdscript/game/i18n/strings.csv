@@ -1,0 +1,39 @@
+keys,en,fr,de
+MENU_TITLE,Glowmoss Ridge,La Crête aux mousses,Leuchtmooskamm
+MENU_START,Play,Jouer,Spielen
+MENU_CONTINUE,Continue from level %d,Reprendre au niveau %d,Weiter ab Level %d
+MENU_SETTINGS,Settings,Réglages,Einstellungen
+MENU_CREDITS,Credits,Crédits,Mitwirkende
+MENU_QUIT,Quit,Quitter,Beenden
+MENU_VERSION,Version %s,Version %s,Version %s
+HUD_LEVEL,Level %d: %s,Niveau %d : %s,Level %d: %s
+HUD_MOSS,Glowmoss: %d,Mousse : %d,Leuchtmoos: %d
+HUD_HEARTS,Hearts: %d,Cœurs : %d,Herzen: %d
+HUD_PAUSE,Pause,Pause,Pause
+LEVEL_1,Mossy Steps,Marches moussues,Moosstufen
+LEVEL_2,Thorn Hollow,Creux épineux,Dornensenke
+LEVEL_3,The Climb,L'ascension,Der Aufstieg
+LEVEL_4,Runner Bridge,Pont des coureurs,Läuferbrücke
+LEVEL_5,Beacon Crest,Crête du phare,Feuerkamm
+PAUSE_TITLE,Paused,En pause,Pausiert
+PAUSE_RESUME,Resume,Reprendre,Weiter
+PAUSE_QUIT,Quit to menu,Retour au menu,Zum Menü
+SETTINGS_TITLE,Settings,Réglages,Einstellungen
+SETTINGS_VOLUME,Volume,Volume,Lautstärke
+SETTINGS_LANGUAGE,Language,Langue,Sprache
+SETTINGS_BACK,Back,Retour,Zurück
+LANG_EN,English,English,English
+LANG_FR,Français,Français,Français
+LANG_DE,Deutsch,Deutsch,Deutsch
+GAMEOVER_TITLE,Out of hearts,Plus de cœurs,Keine Herzen mehr
+GAMEOVER_SCORE,Score: %d,Score : %d,Punkte: %d
+GAMEOVER_BEST,Best: %d,Record : %d,Bestwert: %d
+GAMEOVER_MENU,Back to menu,Retour au menu,Zum Menü
+VICTORY_TITLE,The ridge is lit,La crête est illuminée,Der Kamm leuchtet
+VICTORY_MESSAGE,All five beacons burn. Final score: %d,Les cinq phares brûlent. Score final : %d,Alle fünf Feuer brennen. Endstand: %d
+VICTORY_MENU,Back to menu,Retour au menu,Zum Menü
+CREDITS_TITLE,Credits,Crédits,Mitwirkende
+CREDITS_BACK,Back,Retour,Zurück
+CREDITS_ENGINE,Engine,Moteur,Engine
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces,Fremde Inhalte
+CREDITS_THANKS,Thanks,Remerciements,Dank
