@@ -171,6 +171,17 @@ else is half. `preferences.json` holds each pair and each model's win rate. `Get
 the plugin configuration's index by `0.75 + 0.5 x win rate` (the configuration without the plugin stays at 1). The runner
 saves each session's prompt (`<profile>-<task>-r<n>.prompt.md`) for this.
 
+**A person's review, and the judge's calibration.** `Invoke-SideBySide.ps1 -Results <folders> -ReviewOut <folder>` calls
+no judge: it writes the same pairs as `review-pairs.json` (the task and the two pieces of work as A and B, in a seeded
+random order, with nothing naming the model, the profile or the plugin) and, apart, `review-key.json` (which side had the
+plugin). The same results and seed always give the same key, so it need not be kept. `benchmark/review-page.html`,
+published as an artifact with `review-pairs.json` beside it, shows each pair and keeps the owner's verdict (A, B or
+even, and a note) in the page's own store, one document per pair under `verdicts`, which only the owner can write.
+`benchmark/Get-JudgeAgreement.ps1 -Key <review-key.json> -Verdicts <verdicts.json> -Preferences <preferences.json>`
+then says how often the judge agrees with the owner and with itself (the same work chosen in both orders); below 80% or
+90% it exits 1, and the judge's results stay out of the label. The verdicts file is a JSON array of `{id, choice}`, as
+the page's store holds them.
+
 **In the workflow**, choose the `staged` programme, a tier, any selectors, and `configurations: all`. A plan job dry-runs
 each configuration (Sonnet and Haiku, with and without the plugin) and fails before anything is spent if one is over
 its share. Then one job per configuration runs in parallel.

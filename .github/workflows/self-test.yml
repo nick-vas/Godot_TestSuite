@@ -183,6 +183,9 @@ jobs:
       - name: The label's index, classes, minimum, verification and rescaling
         shell: pwsh
         run: ./tests/Test-HyperdotLabel.ps1
+      - name: The blind review's pairs name no plugin side, and the judge's agreement with a person and with itself is scored
+        shell: pwsh
+        run: ./tests/Test-ReviewPairs.ps1
       - name: status reads the GDD, tagged tests and plan links
         shell: pwsh
         run: |

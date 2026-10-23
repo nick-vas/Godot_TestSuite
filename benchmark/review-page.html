@@ -1,0 +1,274 @@
+<title>Hyperdot Blind Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a pair list on the left, the two pieces of work side by side on the right; one column on a phone. */
+:root {
+  --bg: #f4f5f2; --panel: #ffffff; --fg: #1d2420; --muted: #5e6862; --line: #d9ddd6;
+  --a: #2f5d8a; --a-soft: #e3ecf5; --b: #9a5a1c; --b-soft: #f6eadc; --even: #4f5a54; --even-soft: #e7eae5;
+  --add: #e2f1e4; --add-fg: #1f5a2b; --del: #f8e1df; --del-fg: #7d2a22; --hunk: #eceee9;
+  --focus: #2f5d8a;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151916; --panel: #1d221f; --fg: #e3e8e4; --muted: #9aa59e; --line: #333b36;
+  --a: #8fb7e0; --a-soft: #1f2e3c; --b: #e0a96c; --b-soft: #382a1c; --even: #b6c0ba; --even-soft: #2a302c;
+  --add: #1b3321; --add-fg: #9ad6a6; --del: #3a1f1c; --del-fg: #f0aaa2; --hunk: #262c28; --focus: #8fb7e0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #151916; --panel: #1d221f; --fg: #e3e8e4; --muted: #9aa59e; --line: #333b36;
+  --a: #8fb7e0; --a-soft: #1f2e3c; --b: #e0a96c; --b-soft: #382a1c; --even: #b6c0ba; --even-soft: #2a302c;
+  --add: #1b3321; --add-fg: #9ad6a6; --del: #3a1f1c; --del-fg: #f0aaa2; --hunk: #262c28; --focus: #8fb7e0; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5 }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; max-width: 1500px; margin: 0 auto; display: grid; gap: 18px }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px }
+h1 { font-family: var(--display); font-weight: 600; font-size: 1.7rem; margin: 0; letter-spacing: .01em; text-wrap: balance }
+.sub { color: var(--muted); margin: 2px 0 0; max-width: 70ch }
+.progress { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .95rem; white-space: nowrap }
+.progress b { color: var(--fg) }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 6px }
+.bar i { display: block; height: 100%; background: var(--a); width: 0 }
+details.rubric { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px }
+details.rubric summary { cursor: pointer; font-family: var(--display); font-weight: 500 }
+details.rubric pre { white-space: pre-wrap; font-family: var(--body); margin: 8px 0 0; max-width: 90ch }
+.notice { border-left: 3px solid var(--b); background: var(--b-soft); padding: 8px 12px; border-radius: 0 4px 4px 0 }
+.layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 18px; align-items: start }
+nav.pairs { display: grid; gap: 4px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px) }
+nav.pairs button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 6px 10px; font: inherit; color: var(--fg); cursor: pointer }
+nav.pairs button:hover { background: var(--panel); border-color: var(--line) }
+nav.pairs button[aria-current="true"] { background: var(--panel); border-color: var(--focus) }
+nav.pairs .pid { font-family: var(--mono); font-size: .9rem }
+.chip { font-family: var(--mono); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted) }
+.chip.A { background: var(--a-soft); color: var(--a); border-color: transparent }
+.chip.B { background: var(--b-soft); color: var(--b); border-color: transparent }
+.chip.even { background: var(--even-soft); color: var(--even); border-color: transparent }
+main { display: grid; gap: 14px; min-width: 0 }
+.task { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px }
+.task h2, .work h2 { font-family: var(--display); font-weight: 600; font-size: 1.05rem; margin: 0 0 6px; letter-spacing: .02em }
+.task pre { white-space: pre-wrap; font-family: var(--body); margin: 0; max-width: 100ch }
+.works { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px }
+.work { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--a); border-radius: 6px; padding: 12px 14px; min-width: 0; display: grid; gap: 10px; align-content: start }
+.work.B { border-top-color: var(--b) }
+.work h2 span { color: var(--a) } .work.B h2 span { color: var(--b) }
+.label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 }
+.answer { white-space: pre-wrap; margin: 0; font-family: var(--body); max-height: 320px; overflow: auto; overflow-wrap: anywhere }
+.diff { margin: 0; font-family: var(--mono); font-size: .8rem; line-height: 1.45; max-height: 560px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--bg) }
+.diff span { display: block; padding: 0 8px; white-space: pre }
+.diff .add { background: var(--add); color: var(--add-fg) }
+.diff .del { background: var(--del); color: var(--del-fg) }
+.diff .hunk { background: var(--hunk); color: var(--muted) }
+.diff .file { font-weight: 600; background: var(--hunk); padding-top: 4px }
+.verdict { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; display: grid; gap: 10px }
+.choices { display: flex; flex-wrap: wrap; gap: 8px }
+.choices button { font: inherit; font-weight: 500; padding: 8px 16px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer }
+.choices button[data-c="A"] { color: var(--a) } .choices button[data-c="B"] { color: var(--b) }
+.choices button[aria-pressed="true"][data-c="A"] { background: var(--a); color: var(--panel); border-color: var(--a) }
+.choices button[aria-pressed="true"][data-c="B"] { background: var(--b); color: var(--panel); border-color: var(--b) }
+.choices button[aria-pressed="true"][data-c="even"] { background: var(--even); color: var(--panel); border-color: var(--even) }
+.choices button:disabled { opacity: .5; cursor: not-allowed }
+textarea { font: inherit; width: 100%; box-sizing: border-box; min-height: 64px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--fg); padding: 8px }
+.row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between }
+.status { color: var(--muted); font-size: .9rem }
+.keys { color: var(--muted); font-size: .85rem } kbd { font-family: var(--mono); font-size: .8rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px }
+.next { font: inherit; padding: 6px 14px; border-radius: 5px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+.empty { color: var(--muted); padding: 24px 0 }
+@media (max-width: 900px) { .works { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 720px) {
+  .layout { grid-template-columns: minmax(0, 1fr) }
+  nav.pairs { position: static; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)) }
+}
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: width .3s ease } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Hyperdot Blind Review</h1>
+      <p class="sub">Each pair is the same game task done twice. Read both, then say which does the task better, or that they are even. Nothing here says how either was made.</p>
+    </div>
+    <div class="progress" id="progress"><b>0</b> of 0 judged<div class="bar"><i id="bar"></i></div></div>
+  </header>
+  <details class="rubric" id="rubricBox"><summary>What "better" means here</summary><pre id="rubric"></pre></details>
+  <p class="notice" id="notice" hidden></p>
+  <div class="layout">
+    <nav class="pairs" id="pairs" aria-label="Pairs"></nav>
+    <main id="main"><p class="empty">Loading the pairs…</p></main>
+  </div>
+</div>
+
+<script>
+(() => {
+  const state = { pairs: [], rubric: '', index: 0, verdicts: {}, canWrite: false, db: null, saving: false };
+  const $ = (id) => document.getElementById(id);
+
+  function el(tag, attrs = {}, text) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  // The runner saves each piece of work as "ANSWER\n<final message>\nCHANGES\n<diff>".
+  function splitWork(work) {
+    const at = work.indexOf('\nCHANGES\n');
+    const answer = (at < 0 ? work : work.slice(0, at)).replace(/^ANSWER\n/, '').trim();
+    const changes = at < 0 ? '' : work.slice(at + 9).trim();
+    return { answer, changes };
+  }
+
+  function renderDiff(text) {
+    const pre = el('pre', { class: 'diff' });
+    if (!text || text === '(none)') { pre.appendChild(el('span', { class: 'hunk' }, 'No changes to files.')); return pre; }
+    for (const line of text.split('\n')) {
+      let cls = '';
+      if (line.startsWith('diff --git') || line.startsWith('+++') || line.startsWith('---')) cls = 'file';
+      else if (line.startsWith('@@')) cls = 'hunk';
+      else if (line.startsWith('+')) cls = 'add';
+      else if (line.startsWith('-')) cls = 'del';
+      pre.appendChild(el('span', cls ? { class: cls } : {}, line || ' '));
+    }
+    return pre;
+  }
+
+  function renderWork(side, work) {
+    const { answer, changes } = splitWork(work);
+    const box = el('section', { class: 'work ' + side, 'aria-label': 'Work ' + side });
+    const h = el('h2'); h.appendChild(el('span', {}, 'Work ' + side)); box.appendChild(h);
+    box.appendChild(el('p', { class: 'label' }, 'Its answer'));
+    box.appendChild(el('pre', { class: 'answer' }, answer || '(no answer)'));
+    box.appendChild(el('p', { class: 'label' }, 'Its changes'));
+    box.appendChild(renderDiff(changes));
+    return box;
+  }
+
+  function renderProgress() {
+    const done = state.pairs.filter(p => state.verdicts[p.id]).length;
+    $('progress').textContent = '';
+    const b = el('b', {}, String(done)); $('progress').append(b, ' of ' + state.pairs.length + ' judged');
+    const bar = el('div', { class: 'bar' }); const fill = el('i', { id: 'bar' });
+    fill.style.width = state.pairs.length ? (100 * done / state.pairs.length) + '%' : '0';
+    bar.appendChild(fill); $('progress').appendChild(bar);
+  }
+
+  function renderNav() {
+    const nav = $('pairs'); nav.textContent = '';
+    state.pairs.forEach((p, i) => {
+      const v = state.verdicts[p.id];
+      const btn = el('button', { type: 'button', 'aria-current': String(i === state.index) });
+      btn.appendChild(el('span', { class: 'pid' }, p.id));
+      btn.appendChild(el('span', { class: 'chip ' + (v ? v.choice : '') }, v ? (v.choice === 'even' ? 'even' : v.choice) : 'open'));
+      btn.addEventListener('click', () => { state.index = i; render(); });
+      nav.appendChild(btn);
+    });
+  }
+
+  function renderMain() {
+    const main = $('main'); main.textContent = '';
+    const p = state.pairs[state.index];
+    if (!p) { main.appendChild(el('p', { class: 'empty' }, 'No pairs to review.')); return; }
+    const task = el('section', { class: 'task' });
+    task.appendChild(el('h2', {}, 'The task (' + p.id + ')'));
+    task.appendChild(el('pre', {}, p.task.trim()));
+    main.appendChild(task);
+    const works = el('div', { class: 'works' });
+    works.append(renderWork('A', p.a), renderWork('B', p.b));
+    main.appendChild(works);
+
+    const v = state.verdicts[p.id];
+    const box = el('section', { class: 'verdict', 'aria-label': 'Your verdict' });
+    box.appendChild(el('h2', { class: 'label' }, 'Your verdict'));
+    const choices = el('div', { class: 'choices', role: 'group', 'aria-label': 'Which does the task better' });
+    for (const [c, label] of [['A', 'A is better'], ['even', 'Even'], ['B', 'B is better']]) {
+      const b = el('button', { type: 'button', 'data-c': c, 'aria-pressed': String(!!v && v.choice === c) }, label);
+      if (!state.canWrite) b.disabled = true;
+      b.addEventListener('click', () => save(p.id, c));
+      choices.appendChild(b);
+    }
+    box.appendChild(choices);
+    const note = el('textarea', { id: 'note-' + p.id, placeholder: 'Why, in a line (optional)', 'aria-label': 'Note' });
+    note.value = v && v.note ? v.note : '';
+    if (!state.canWrite) note.disabled = true;
+    note.addEventListener('change', () => { const cur = state.verdicts[p.id]; if (cur) save(p.id, cur.choice, note.value); });
+    box.appendChild(note);
+    const row = el('div', { class: 'row' });
+    row.appendChild(el('span', { class: 'status', id: 'status' }, v ? 'Saved: ' + (v.choice === 'even' ? 'even' : v.choice + ' is better') : (state.canWrite ? 'Not judged yet.' : 'Only the owner can record verdicts.')));
+    const keys = el('span', { class: 'keys' }); keys.innerHTML = '<kbd>1</kbd> A, <kbd>2</kbd> even, <kbd>3</kbd> B, <kbd>j</kbd>/<kbd>k</kbd> next and previous';
+    row.appendChild(keys);
+    const next = el('button', { type: 'button', class: 'next' }, 'Next open pair');
+    next.addEventListener('click', nextOpen);
+    row.appendChild(next);
+    box.appendChild(row);
+    main.appendChild(box);
+  }
+
+  function render() { renderProgress(); renderNav(); renderMain(); }
+
+  function nextOpen() {
+    const n = state.pairs.length;
+    for (let k = 1; k <= n; k++) { const i = (state.index + k) % n; if (!state.verdicts[state.pairs[i].id]) { state.index = i; render(); window.scrollTo(0, 0); return; } }
+    state.index = (state.index + 1) % n; render(); window.scrollTo(0, 0);
+  }
+
+  async function save(id, choice, noteText) {
+    if (!state.db || !state.canWrite || state.saving) return;
+    const note = noteText !== undefined ? noteText : (document.getElementById('note-' + id)?.value || '');
+    const previous = state.verdicts[id];
+    if (previous && previous.choice === choice && (previous.note || '') === note) return;
+    state.saving = true;
+    state.verdicts[id] = { choice, note, at: new Date().toISOString() };
+    render();
+    try {
+      await state.db.collection('verdicts').doc(id).set({ choice, note, at: state.verdicts[id].at });
+    } catch (e) {
+      if (previous) state.verdicts[id] = previous; else delete state.verdicts[id];
+      render();
+      const s = document.getElementById('status'); if (s) s.textContent = 'Not saved: ' + (e && e.message ? e.message : 'the store refused it') + '. Try again.';
+      if (e && e.code === 'invalid_argument') state.canWrite = false;
+    } finally { state.saving = false; }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') || e.metaKey || e.ctrlKey || e.altKey) return;
+    const p = state.pairs[state.index]; if (!p) return;
+    if (e.key === '1') save(p.id, 'A');
+    else if (e.key === '2') save(p.id, 'even');
+    else if (e.key === '3') save(p.id, 'B');
+    else if (e.key === 'j') { state.index = Math.min(state.pairs.length - 1, state.index + 1); render(); }
+    else if (e.key === 'k') { state.index = Math.max(0, state.index - 1); render(); }
+  });
+
+  async function start() {
+    try {
+      const res = await fetch('review-pairs.json');
+      const doc = await res.json();
+      state.pairs = doc.pairs || []; state.rubric = doc.rubric || '';
+      $('rubric').textContent = state.rubric.trim();
+    } catch (e) {
+      $('main').textContent = ''; $('main').appendChild(el('p', { class: 'empty' }, 'The pairs could not be loaded.')); return;
+    }
+    render();
+    const claude = window.claude;
+    const db = claude ? await claude.use('db') : null;
+    const user = claude ? await claude.use('user') : null;
+    if (!db) {
+      const n = $('notice'); n.hidden = false; n.textContent = 'Verdicts cannot be saved in this view (sign in to claude.ai and open the page there). You can still read every pair.';
+      return;
+    }
+    state.db = db;
+    state.canWrite = user ? !!(user.isOwner && user.isOwner()) : true;
+    db.collection('verdicts').onSnapshot((snap) => {
+      const next = {};
+      for (const d of snap.docs) { const data = d.data(); if (data && ['A', 'B', 'even'].includes(data.choice)) next[d.id] = data; }
+      state.verdicts = next;
+      if (!state.saving) render();
+    }, () => {
+      const n = $('notice'); n.hidden = false; n.textContent = 'The saved verdicts stopped updating. Reload the page to see the latest.';
+    });
+    render();
+  }
+  start();
+})();
+</script>

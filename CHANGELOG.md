@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **Blind review and the judge's calibration.** `benchmark/Invoke-SideBySide.ps1 -ReviewOut` writes the pairs the judge
+  sees for a person instead (A and B in a seeded order, nothing naming the plugin, the key kept apart);
+  `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`
+  scores the judge against those verdicts and against itself (80% and 90%, from `benchmark/PLAN.md`). Self-test:
+  `tests/Test-ReviewPairs.ps1`.
 - **The staged programme's first pilot** (min tier, 32 sessions, $1.89; `benchmark/PLAN.md`): five of the eight arcade
   GDScript tasks were solved by every configuration, Haiku's fix-playthrough sessions ran out of time (the template now
   allows 1800 s), the plugin used about twice the tokens again, and `cost-model.json` now holds the measured costs. The

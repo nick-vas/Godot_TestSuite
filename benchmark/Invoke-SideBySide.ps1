@@ -15,8 +15,16 @@ A model's win rate is the mean over its pairs. The judge never learns which work
 Writes preferences.json to -OutDir (and prints it with -Json): the judge model, the rubric, each pair's outcome and
 each model's win rate, which benchmark/Get-HyperdotLabel.ps1 -Preferences turns into the quality factor.
 
+With -ReviewOut it calls no judge: it writes the same pairs for a person to judge blind on the review page
+(review-pairs.json: each pair's task and its two pieces of work as A and B, in a random order, with nothing that says
+which had the plugin) and, apart, review-key.json, which side was which. benchmark/Get-JudgeAgreement.ps1 compares the
+person's verdicts with the judge's.
+
 .EXAMPLE
 pwsh benchmark/Invoke-SideBySide.ps1 -Results run-sonnet,run-sonnet-plugin -OutDir side-by-side
+
+.EXAMPLE
+pwsh benchmark/Invoke-SideBySide.ps1 -Results run-sonnet,run-sonnet-plugin -ReviewOut review
 #>
 [CmdletBinding(PositionalBinding = $false)]
 param(
@@ -30,6 +38,8 @@ param(
     # The most of each piece of work the judge reads; a longer diff is cut, and the judge is told so.
     [int]$MaxChars = 12000,
     [int]$Seed = 20261023,
+    # Write the pairs for a person's blind review instead of judging them.
+    [string]$ReviewOut,
     [switch]$Json
 )
 Set-StrictMode -Version 3.0
@@ -87,6 +97,32 @@ function Get-Preference([string]$Task, [string]$WorkA, [string]$WorkB, [string]$
     return [pscustomobject]@{ choice = $(if ($parsed.ok -and $match.Success) { $match.Groups[1].Value } else { 'even' }); costUsd = $parsed.costUsd }
 }
 
+# A pair's name across the judge's preferences, the review page and its key.
+function Get-PairKey($Session) { "$($Session.model)|$($Session.task)|r$($Session.repetition)|$($Session.profile)" }
+
+if ($ReviewOut) {
+    $random = [System.Random]::new($Seed)
+    $review = [System.Collections.Generic.List[object]]::new(); $key = [ordered]@{}
+    foreach ($group in @($sessions | Group-Object model, task, repetition, profile | Sort-Object Name)) {
+        $with = @($group.Group | Where-Object plugin) | Select-Object -First 1
+        $without = @($group.Group | Where-Object { -not $_.plugin }) | Select-Object -First 1
+        if (-not $with -or -not $without) { continue }
+        $id = 'p{0:d2}' -f ($review.Count + 1)
+        $withFirst = $random.Next(2) -eq 0
+        # The page shows the work and the task, never the model, the profile or the run, which could hint at the plugin.
+        $review.Add([ordered]@{ id = $id; task = $with.prompt; a = $(if ($withFirst) { $with.work } else { $without.work }); b = $(if ($withFirst) { $without.work } else { $with.work }) })
+        $key[$id] = [ordered]@{ pair = (Get-PairKey $with); model = $with.model; task = $with.task; pluginIs = $(if ($withFirst) { 'A' } else { 'B' }) }
+    }
+    if ($review.Count -eq 0) { Write-Host 'No pairs: the results need the same tasks run with and without the plugin'; exit 1 }
+    New-Item -ItemType Directory -Force $ReviewOut | Out-Null
+    [ordered]@{ schema = 'hyperdot-review-pairs/1'; rubric = $rubricText; pairs = $review.ToArray() } | ConvertTo-Json -Depth 5 |
+        Set-Content -LiteralPath (Join-Path $ReviewOut 'review-pairs.json') -Encoding utf8NoBOM
+    [ordered]@{ schema = 'hyperdot-review-key/1'; seed = $Seed; pairs = $key } | ConvertTo-Json -Depth 5 |
+        Set-Content -LiteralPath (Join-Path $ReviewOut 'review-key.json') -Encoding utf8NoBOM
+    Write-Host "$($review.Count) pair(s) for review in $ReviewOut (review-pairs.json for the page, review-key.json kept apart)"
+    exit 0
+}
+
 $folder = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-sidebyside-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 New-Item -ItemType Directory -Force $folder | Out-Null
 $random = [System.Random]::new($Seed)
@@ -106,7 +142,7 @@ try {
         $otherFirst = if ($firstWith) { $one.choice -eq 'B' } else { $one.choice -eq 'A' }
         $otherSecond = if ($firstWith) { $two.choice -eq 'A' } else { $two.choice -eq 'B' }
         $outcome = if ($pluginFirst -and $pluginSecond) { 1.0 } elseif ($otherFirst -and $otherSecond) { 0.0 } else { 0.5 }
-        $pairs.Add([ordered]@{ model = $with.model; task = $with.task; repetition = $with.repetition; profile = $with.profile
+        $pairs.Add([ordered]@{ pair = (Get-PairKey $with); model = $with.model; task = $with.task; repetition = $with.repetition; profile = $with.profile
                 choices = @($one.choice, $two.choice); pluginShownFirstAs = $(if ($firstWith) { 'A' } else { 'B' }); pluginOutcome = $outcome })
     }
 } finally { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue }
