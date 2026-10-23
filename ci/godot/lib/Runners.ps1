@@ -100,6 +100,28 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
     return $cases
 }
 
+# GUT skips a test script that does not load (a parse error) with a warning, "Ignoring script ... because it does not
+# extend GutTest", and the run still passes. Such a script fails as a case named after the file, with its parse error when
+# the log has one: one that extends GutTest on disk, or that the log says failed to load (it may extend another test).
+function Get-GutLoadFailures([string]$LogFile, [string]$ProjectDir) {
+    $lines = @(Get-Content -LiteralPath $LogFile | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    $seen = @{}
+    foreach ($line in $lines) {
+        if ($line -notmatch 'Ignoring script (?<res>res://.+?) because it does not extend GutTest') { continue }
+        $res = $Matches.res
+        if ($seen.ContainsKey($res)) { continue }
+        $seen[$res] = $true
+        $why = @(for ($i = 0; $i -lt $lines.Count - 1; $i++) {
+            if ($lines[$i] -match '^\s*SCRIPT ERROR:' -and $lines[$i + 1].Contains("($res`:")) { "$($lines[$i].Trim()) $($lines[$i + 1].Trim())" }
+        })
+        $failedToLoad = @($lines | Where-Object { $_.Contains("Failed to load script `"$res`"") }).Count -gt 0
+        $file = Join-Path $ProjectDir $res.Substring(6)
+        $isTest = (Test-Path -LiteralPath $file) -and (Get-Content -LiteralPath $file -Raw) -match '(?m)^extends\s+GutTest\b'
+        if (-not ($isTest -or $failedToLoad -or $why)) { continue }
+        @{ Name = $res; Failure = (@("$res does not load, so GUT skipped its tests") + $why) -join "`n" }
+    }
+}
+
 function Invoke-TestRunner {
     param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs, [int]$FixedFps = 0)
 
@@ -160,6 +182,8 @@ function Invoke-TestRunner {
             Start-LogGroup 'GUT'
             $code = Invoke-Logged $godot $gutArgs (Join-Path $ResultsDir 'gut.log')
             Stop-LogGroup
+            $unloaded = @(Get-GutLoadFailures (Join-Path $ResultsDir 'gut.log') $project)
+            if ($unloaded.Count -gt 0) { Write-JUnitCases (Join-Path $ResultsDir 'gut-load.junit.xml') 'gut' $unloaded }
         }
         'validate' {
             $log = Join-Path $ResultsDir 'validate.log'
