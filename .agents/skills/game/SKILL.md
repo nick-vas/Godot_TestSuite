@@ -55,7 +55,7 @@ Every feature that is not proven and not `won't` needs a task:
 (`plan -Do move -Id t3 -Column done`). `plan -Do move` refuses `doing` past the work-in-progress limit; finish or move
 something back instead.
 
-## 5. The Trello board (through the Trello connector; experimental in 1.0)
+## 5. The Trello board (through the Trello connector; experimental)
 
 The board is `plan.board`. If there is none, list the user's boards with the connector and ask which one; save it with
 `plan -Do link -Board <board id>`. Lists map to plan columns by name: Backlog, Design, To Do, Doing, Testing, Done.

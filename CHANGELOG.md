@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Versioning: the first Hyperdot release will be 0.1.0 (Semantic Versioning; 0.x while it is used on its first real
+  game, 1.0.0 once the criteria in `docs/roadmap.md` hold). `plugin.json` goes from 0.4.0 to 0.1.0 with the new name.
 - Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`); before this the repository had no licence. The files a
   game receives (`ci/godot/templates/`, the starter tests `init` writes) are MIT No Attribution
   (`ci/godot/templates/LICENSE.md`). `NOTICE` lists the third-party parts and their licences: Sfxr (Apache-2.0 and MIT),
@@ -16,10 +18,10 @@
   calling `nick-vas/hyperdot`, and `.claude/settings.json`'s `godot-agent-kit` plugin entry becomes `hyperdot`. The C#
   example is `examples/csharp` (`Example.sln`, `Example.Core`, project name "CSharp Example"), so it is no longer
   confused with Breakout Roguelike.
-- Docs cleanup for 1.0. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
+- Docs cleanup for the first release. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
   display), the `-Project` form throughout, 50 skills grouped by area, every page in `docs/` linked, what each command
   writes into a project, and a refreshed status (exports run, eval results). `docs/roadmap.md` keeps only what is open
-  (44 KB to 24 KB): the 1.0 plan, what was decided, the open Trello work (the live run waits for the repository's
+  (44 KB to 24 KB): the release plan, what was decided, the open Trello work (the live run waits for the repository's
   secrets) and three to-do groups. `docs/strategies.md` is retired into the roadmap's decisions. AGENTS.md lists the
   self-tests once, in a table; `docs/reference.md` documents `-Templates` and the environment variables.
 - `tests/Test-TrelloSync.ps1` tests `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an
@@ -32,7 +34,7 @@
   with "String '10/23/2026 05:57:27' was not recognized as a valid DateTime", because the phase's start time was read back
   through text in the PC's culture. Stored times now go through `ConvertTo-UtcTime` (Common.ps1), which also keeps
   `status`'s error history from shifting by the UTC offset. `Test-Plan.ps1` runs `plan` under el-GR.
-- Fixes before 1.0. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
+- Fixes before the first release. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
   `invalid-arguments` before any setup, instead of passing `a.tscn,b.tscn` on as one scene. The run log (`log`,
   `godot-ci.log`) now sits with each command's own results: `bench-results`, `soak-results`, `audio-results`, and `shot`'s
   `-Output`, not `test-results`. `no-display` advises starting Xvfb and setting `DISPLAY` (not `xvfb-run`, which breaks
@@ -45,14 +47,14 @@
   write the log and history line too. `textsize` and `layout` join the runners that collect no coverage. New self-tests:
   `Test-SceneCount.ps1`, `Test-UpdatePins.ps1`, `Test-PrComment.ps1`; `Test-Sfx.ps1` and `Test-Audio.ps1` cover the path
   check and the log folder.
-- Skills cleanup for 1.0: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
+- Skills cleanup for the first release: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
   into `godot-ui-accessibility` (`layout.md`), `godot-steam-deck` into `godot-console-cert`, `godot-credits` into
   `godot-asset-pipeline`, and `godot-architecture` into `godot-patterns`, its other sections going to `godot-procgen`,
   `godot-progression`, `godot-multiplayer`, `godot-modding`, `godot-shaders-vfx`, `godot-game-design` and
   `godot-algorithms`. Contradictions fixed (Steam Auto-Cloud roots, seeded random in game AI, bot flags only in debug
   builds, MIT credits, hit-stop length, VRAM compression for 3D only, saving on suspend per platform, volume buses, one
   `--capture=nohud` flag); the `playthrough` runner replaces grepping for an ending; `/game` writes Trello cards the way
-  `plan -Do sync` does, and Trello sync is marked experimental in 1.0. Descriptions are narrower and no longer share
+  `plan -Do sync` does, and Trello sync is marked experimental. Descriptions are narrower and no longer share
   triggers; legal, audio and game AI moved detail to side files; duplicated advice has one owner. The skill validator
   now checks kit commands in side files too (`tests/skill-fixtures/bad-side-file`). `Update-Versions.ps1` and the credits
   error name the merged skills.

@@ -21,10 +21,12 @@ Still open from phases 1 and 2:
 - A first real `/game` run on Breakout Roguelike: a confirmed GDD, a `plan/STATUS.md` the owner agrees with, and a board
   that matches it.
 
-## 1.0: Hyperdot
+## 0.1.0: the first Hyperdot release
 
 Agreed in a question round with the owner on 2026-10-22. The kit becomes **Hyperdot**, a Godot-specific game development
-interface, and ships as 1.0 once these steps are done, in this order. Each step is one or more pull requests.
+interface, and ships its first tagged release once these steps are done, in this order. Each step is one or more pull
+requests. On 2026-10-23 the owner chose to number it **0.1.0**, a fresh start for the new name (`plugin.json` had 0.4.0),
+instead of 1.0: see [Versions](#versions).
 
 1. **Sanity check.** Every self-test, both examples, `doctor` and `plan` on both, the Windows job; an inventory of the
    commands, skills, docs and library files, with what is dead, stale or contradictory.
@@ -41,15 +43,28 @@ interface, and ships as 1.0 once these steps are done, in this order. Each step 
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
    (costs money: confirm first) and `bench` on the C# example.
 6. **Retro** over all of the above.
-7. **Release 1.0**: changelog, version, tag `v1.0.0`, a start-here page for working on a game (first use: The C# example
-   Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat with the kit cloned beside it).
+7. **Release 0.1.0**: changelog, version, tag `v0.1.0` (the workflow snippet and `init` pin it instead of `@main`), a
+   start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
+   with the kit cloned beside it).
 
-Notes from the question round still open, each to be fixed, built or written down before 1.0 (numbers as first agreed):
+### Versions
+
+[Semantic Versioning](https://semver.org). The public interface is the commands and flags, the `-Json` output (schema
+`hyperdot/1`), the error codes, the environment variables, the workflow inputs and the files `init` writes.
+
+- **0.x** while Hyperdot is used on its first real game: anything may change; a breaking change bumps the minor (0.1 to
+  0.2), a fix the patch. Each release is a tag `v0.x.y` and a CHANGELOG section.
+- **1.0.0-beta.n, then 1.0.0-rc.n** once all of these hold: a vertical slice of Breakout Roguelike was built with
+  Hyperdot; about four weeks passed without a breaking change to the commands, the JSON or the error codes; the live
+  Trello run passes; the evals pass three runs in a row.
+- **1.0.0**: from then on a breaking change needs 2.0.
+
+Notes from the question round still open, each to be fixed, built or written down before 0.1.0 (numbers as first agreed):
 
 | # | Note | What to do |
 |---|---|---|
 | 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental in 1.0; the live run and the bugs are under [Trello](#trello) |
+| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental; the live run and the bugs are under [Trello](#trello) |
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |

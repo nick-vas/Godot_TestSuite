@@ -203,7 +203,7 @@ jobs:
     permissions: { contents: read, pull-requests: write }
     uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
 ```
-Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. Version 1.0 will
+Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. The first release, 0.1.0, will
 publish a release tag to pin instead of `@main`. In this repository, a weekly canary tries new Godot, test-framework and GUT
 releases on both examples and opens a pull request for those that pass. Free on public repositories; Linux runners are the
 cheapest on private ones. More: [docs/usage.md](docs/usage.md) and [docs/reference.md](docs/reference.md).
@@ -287,7 +287,7 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 - [docs/self-hosted-runners.md](docs/self-hosted-runners.md): the workflow on your own machines
 - [docs/plan.md](docs/plan.md): the A-to-Z plan, tasks and Trello sync
 - [docs/mcp.md](docs/mcp.md): editor-bridge MCP servers and how they fit
-- [docs/roadmap.md](docs/roadmap.md): the 1.0 plan, decisions and the open to-do list
+- [docs/roadmap.md](docs/roadmap.md): the plan to 0.1.0 and 1.0, decisions and the open to-do list
 
 **Making the game**
 - [docs/art.md](docs/art.md): textures, pixel art, Blender to glTF, shaders, particles, animation

@@ -32,5 +32,5 @@ A short, written look back at the week and forward at the next one. Read the fac
 ## 3. Agree next week
 
 One multiple-choice question (multi-select) with the proposed tasks. Add the chosen ones with
-`plan -Do add -Title ... -Feature F<n> -Column todo` and put them on the Trello board (experimental in 1.0) the way `game` step 5 describes.
+`plan -Do add -Title ... -Feature F<n> -Column todo` and put them on the Trello board (experimental) the way `game` step 5 describes.
 If the week produced a lesson worth keeping, suggest running `/retro`.

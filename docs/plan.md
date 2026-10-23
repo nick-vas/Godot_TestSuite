@@ -73,7 +73,7 @@ pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused pas
 
 Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
 
-**Trello sync** (`plan -Do sync -Board <id or short link>`, experimental in 1.0) keeps the plan the source of truth and uses Trello as the place you drag things:
+**Trello sync** (`plan -Do sync -Board <id or short link>`, experimental) keeps the plan the source of truth and uses Trello as the place you drag things:
 - a task with no card gets one in the matching list;
 - a card you moved to another list moves its task (Trello wins on column only);
 - a card that is gone (archived or deleted) is reported and left alone;
