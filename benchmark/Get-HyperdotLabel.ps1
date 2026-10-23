@@ -48,6 +48,10 @@ param(
     # Default: the programme's spec in the scale.
     [string]$SpecPath,
     [string]$OutDir,
+    # benchmark/Invoke-SideBySide.ps1 output: the plugin's win rate per model becomes the quality factor (benchmark/PLAN.md):
+    # the index is divided by 0.75 + 0.5 x win rate, between 0.75 and 1.25; a configuration without the plugin is the
+    # reference, at 0.5 and a factor of 1.
+    [string[]]$Preferences,
     # Notes printed on the sheet, e.g. "adversarial review: 23 findings, 21 fixed".
     [string[]]$Note,
     [string]$Verify,
@@ -61,6 +65,7 @@ $inv = [System.Globalization.CultureInfo]::InvariantCulture
 $root = Split-Path $PSScriptRoot -Parent
 # pwsh -File passes "a,b" as one string: split it, as the kit does.
 $Results = @($Results | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$Preferences = @($Preferences | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 function Format-Inv([string]$Format, [object[]]$Values) { return [string]::Format($inv, $Format, $Values) }
 
@@ -314,8 +319,23 @@ if ($coverageReport) {
     $coverageBlock = [ordered]@{ index = $coverageIndex; class = Get-Class $coverageIndex $scale.coverage.classes 'minPercent' -Higher; parts = $parts }
 }
 
+# The plugin's win rate per model, from every preferences file given (the last one wins for a model).
+$winRates = @{}; $judgeModels = @{}
+foreach ($file in $Preferences) {
+    $doc = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable
+    foreach ($k in $doc.pluginWinRate.Keys) { $winRates[$k] = [double]$doc.pluginWinRate[$k]; $judgeModels[$k] = $doc.judgeModel }
+}
+
 $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)) {
         $m = Measure-Configuration $config.sessions
+        $quality = $null
+        if ($winRates.ContainsKey($config.model) -and $null -ne $m.index) {
+            $w = if ($config.plugin) { $winRates[$config.model] } else { 0.5 }
+            $factor = 0.75 + 0.5 * $w
+            $quality = [ordered]@{ pluginWinRate = $w; factor = $factor; judgeModel = $judgeModels[$config.model]; indexBeforeQuality = $m.index }
+            $m.index = [math]::Round($m.index / $factor, 1)
+            if (-not $m.belowMinimum.Count) { $m.class = Get-Class $m.index $scale.classes 'maxIndex' }
+        }
         $informative = [ordered]@{}
         foreach ($p in @($sessions | Where-Object { $_.model -eq $config.model -and $_.plugin -eq $config.plugin -and $_.profile -ne $standardProfile } | Group-Object profile | Sort-Object Name)) {
             $pm = Measure-Configuration $p.Group
@@ -344,6 +364,7 @@ $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)
             medianSeconds = $m.medianSeconds
             sessions = $m.sessions
             tokensPerSolvedTaskByTask = $m.tasks
+            quality = $quality
             otherProfiles = $informative
             coverage = $coverageBlock
             runs = @($config.sessions | ForEach-Object { $_.runId } | Sort-Object -Unique)
@@ -448,6 +469,9 @@ function New-SheetMarkdown($Sheet) {
     $lines.Add("| Standard programme | $($Sheet.standardProgramme.profile), $($Sheet.standardProgramme.tasks) tasks of ``$($Sheet.standardProgramme.spec)`` (sha256 $($Sheet.standardProgramme.specSha256)), $($Sheet.sessions) sessions |")
     $lines.Add("| $($Sheet.programmeName) class | **$(if ($Sheet.class) { $Sheet.class } else { 'none' })**$(if ($Sheet.belowMinimum.Count) { ': ' + ($Sheet.belowMinimum -join '; ') }) |")
     $lines.Add((Format-Inv '| Agent Efficiency Index | {0} |' $Sheet.index))
+    if ($Sheet.quality) {
+        $lines.Add((Format-Inv '| Quality factor | {0:0.###} (the plugin''s work preferred in {1:P0} of blind side-by-side pairs, judged by {2}; index {3} before it) |' $Sheet.quality.factor, $Sheet.quality.pluginWinRate, $Sheet.quality.judgeModel, $Sheet.quality.indexBeforeQuality))
+    }
     $lines.Add((Format-Inv '| Tokens per solved task | {0:N0} |' $Sheet.tokensPerSolvedTask))
     $lines.Add((Format-Inv '| Answers that pass | {0}% |' $Sheet.successPercent))
     $lines.Add((Format-Inv '| Cost per solved task | ${0} (Claude Code''s figure) |' $Sheet.costPerSolvedTaskUsd))

@@ -156,6 +156,21 @@ the programme's `configurations` in proportion to their estimates, so that four 
 `summary.json` records the tier, the selection, the estimate, the ceiling and what was spent. `standard` is true only
 for an unnarrowed, complete `mid` run, the one that can set a class.
 
+**Judged grading.** A task with a `judge` block (`rubric`, a file under `benchmark/rubrics/`; `subject`, `answer` or a
+file the session left; optional `runs` and `passScore`) is also scored by the programme's pinned judge model (`judge` in
+the programme, provisionally Haiku until calibration picks one). The judge scores from 1 to 5, `runs` times (3), in fresh
+sessions with no tools, in an empty folder. It is told the work is data, not instructions, and nothing about who made
+it. A median under `passScore` (4) fails the task. The scores go in the row's `judge`. The judge's cost counts toward the
+run's ceiling but not toward the configuration's tokens.
+
+**Blind side-by-side.** `benchmark/Invoke-SideBySide.ps1 -Results <folders>` pairs each session of a model with the
+plugin against the same task and repetition without it. The judge gets the task, the two answers and diffs as A and B,
+and the rubric `benchmark/rubrics/side-by-side.md`. Each pair is judged twice, the order swapped and its first order
+random. The plugin's session wins the pair (1) if it is chosen both times, loses it (0) if the other is, and anything
+else is half. `preferences.json` holds each pair and each model's win rate. `Get-HyperdotLabel.ps1 -Preferences` divides
+the plugin configuration's index by `0.75 + 0.5 x win rate` (the configuration without the plugin stays at 1). The runner
+saves each session's prompt (`<profile>-<task>-r<n>.prompt.md`) for this.
+
 **In the workflow**, choose the `staged` programme, a tier, any selectors, and `configurations: all`. A plan job dry-runs
 each configuration (Sonnet and Haiku, with and without the plugin) and fails before anything is spent if one is over
 its share. Then one job per configuration runs in parallel.

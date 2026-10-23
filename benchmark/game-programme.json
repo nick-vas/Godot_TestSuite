@@ -254,6 +254,13 @@
         "cells": "*",
         "milestones": "*"
       }
+    },
+    "judge": {
+      "model": "haiku",
+      "runs": 3,
+      "passScore": 4,
+      "maxBudgetUsdPerCall": 0.5,
+      "note": "Provisional: the cheapest candidate. Stage 3's calibration keeps it only if it agrees with the owner's blind ratings at least 80% of the time and with itself at least 90%; otherwise the next candidate (sonnet) is tried. The scale pins the full model id."
     }
   }
 }

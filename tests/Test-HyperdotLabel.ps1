@@ -16,7 +16,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 
 # One benchmark run: rows of @(task, tokens, answer) for a model, written as Invoke-TokenBenchmark writes them.
-function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$Profile = 'A-baseline', [switch]$Plugin) {
+function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$ProfileId = 'A-baseline', [switch]$Plugin) {
     $dir = Join-Path $temp $Name
     New-Item -ItemType Directory -Force (Join-Path $dir 'responses') | Out-Null
     $rows = @()
@@ -26,10 +26,10 @@ function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$Pr
         $known = -not ($s.Count -gt 3 -and $s[3] -eq 'hang')
         $game = if ($s.Count -gt 4) { $s[4] } else { '' }
         # results.json says every session passed: the label must grade the saved answers itself.
-        $rows += [ordered]@{ profile = $Profile; task = $task; repetition = $rep[$task]; model = $Model; plugin = [bool]$Plugin
+        $rows += [ordered]@{ profile = $ProfileId; task = $task; repetition = $rep[$task]; model = $Model; plugin = [bool]$Plugin
             success = $true; retries = 0; steps = 1; tokensTotal = $s[1]; costUsd = $s[1] / 1e6; durationMs = 1000
             reasons = $(if ($known) { $game } else { 'timed out' }); infrastructure = -not $known; spendKnown = $known; gameReasons = $game }
-        Set-Content -LiteralPath (Join-Path $dir "responses/$Profile-$task-r$($rep[$task])-a0-s0.md") -Value $s[2]
+        Set-Content -LiteralPath (Join-Path $dir "responses/$ProfileId-$task-r$($rep[$task])-a0-s0.md") -Value $s[2]
     }
     ConvertTo-Json -InputObject @($rows) -Depth 4 | Set-Content -LiteralPath (Join-Path $dir 'results.json')
     @{ meta = @{ runId = $Name; claudeVersion = '9.9.9 (Claude Code)' } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $dir 'summary.json')
@@ -56,7 +56,7 @@ try {
     # Long: T2 says beta but in 60 words, over its limit of 50.
     $long = New-Run 'long' 'm-long' @(@('T1', 1000, 'alpha'), @('T1', 1000, 'alpha'), @('T1', 1000, 'alpha'),
         @('T2', 2000, ('beta ' * 60)), @('T2', 2000, 'beta'), @('T2', 2000, 'beta'))
-    $other = New-Run 'good-b' 'm-good' @(@('T1', 300, 'alpha'), @('T2', 600, 'beta')) -Profile 'B-scoped'
+    $other = New-Run 'good-b' 'm-good' @(@('T1', 300, 'alpha'), @('T2', 600, 'beta')) -ProfileId 'B-scoped'
 
     $coverage = Join-Path $temp 'coverage.json'
     @{ functions = @{ percent = 80.0 }; errorCodes = @{ percent = 70.0 }; commands = @{ percent = 100.0 } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $coverage
@@ -110,6 +110,17 @@ try {
     $intro = Invoke-Label @('-Results', "$good,$poor,$fail,$hang,$best", '-Introduce')
     Assert-True ($intro.Json.standardTokensPerSolvedTask.T1 -eq 1000 -and $intro.Json.standardTokensPerSolvedTask.T2 -eq 2000) 'a new scale''s standard tokens are the median over the market, to the nearest 1,000'
     Assert-True ($intro.Json.topClassEmpty -eq $false) 'a new scale reports when its top class would not start empty'
+
+    # The quality factor (layer 4): the plugin's side-by-side win rate divides its index by 0.75 + 0.5 x win rate; the
+    # configuration without the plugin is the reference, at a factor of 1.
+    $goodPlugin = New-Run 'good-plugin' 'm-good' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha'), @('T1', 600, 'alpha'),
+        @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'no second word')) -Plugin
+    $prefs = Join-Path $temp 'preferences.json'
+    @{ judgeModel = 'judge-1'; pluginWinRate = @{ 'm-good' = 1.0 } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $prefs
+    $q = Invoke-Label @('-Results', "$good,$goodPlugin", '-Preferences', $prefs)
+    $plain = @($q.Json.labels | Where-Object { -not $_.plugin })[0]; $withPlugin = @($q.Json.labels | Where-Object { $_.plugin })[0]
+    Assert-True ($plain.index -eq 67.1 -and $plain.quality.factor -eq 1.0) 'without the plugin the quality factor is 1'
+    Assert-True ($withPlugin.index -eq 53.7 -and $withPlugin.class -eq 'B' -and $withPlugin.quality.indexBeforeQuality -eq 67.1) "work preferred every time divides the index by 1.25 (67.1 to 53.7, class B; got $($withPlugin.index))"
 
     # The game programme: its own label, and a right answer whose game fails its tests (gameReasons) is a failure.
     $gameRun = New-Run 'game' 'm-game' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha', 'ok', 'tests fail: test_x'), @('T1', 600, 'alpha'),

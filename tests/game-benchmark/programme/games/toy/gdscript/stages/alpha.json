@@ -18,7 +18,11 @@
       "hidden": [
         "hidden/test_hidden_multiplier.gd"
       ],
-      "reference": "solutions/alpha/fix-bug"
+      "reference": "solutions/alpha/fix-bug",
+      "judge": {
+        "rubric": "tests/game-benchmark/programme/rubric.md",
+        "subject": "answer"
+      }
     }
   ],
   "milestone": {

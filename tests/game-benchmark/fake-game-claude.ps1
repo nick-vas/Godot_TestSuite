@@ -1,6 +1,6 @@
 # A stand-in for the Claude Code CLI on the game programme (benchmark/game-benchmark.json): it does each task's work in the
 # folder it runs in, the way a session would, well when $env:FAKE_GAME_MODE is 'good' and badly when it is 'bad', so the
-# grader is tested against both. The prompt arrives on stdin; each call is appended to $env:FAKE_CLAUDE_LOG.
+# grader is tested against both. It also stands in for the judge (layers 3 and 4 of benchmark/PLAN.md). The prompt arrives on stdin; each call is appended to $env:FAKE_CLAUDE_LOG.
 $arguments = @($args)
 if ($arguments -contains '--version') { '9.9.9 (Claude Code)'; exit 0 }
 $prompt = [Console]::In.ReadToEnd()
@@ -20,6 +20,15 @@ function Write-File([string]$Path, [string]$Text) {
 }
 
 $answer = 'Done.'
+# As a judge: a score from $env:FAKE_JUDGE_SCORE (5 by default); comparing, the work that says GOOD wins.
+if ($prompt -match '^You are grading') {
+    $answer = "{`"score`": $(if ($env:FAKE_JUDGE_SCORE) { $env:FAKE_JUDGE_SCORE } else { 5 }), `"why`": `"stand-in`"}"
+} elseif ($prompt -match '^You are comparing') {
+    $a = [regex]::Match($prompt, '(?s)WORK A BEGINS(.*?)WORK A ENDS').Groups[1].Value
+    $b = [regex]::Match($prompt, '(?s)WORK B BEGINS(.*?)WORK B ENDS').Groups[1].Value
+    $better = if ($a -match 'GOOD' -and $b -notmatch 'GOOD') { 'A' } elseif ($b -match 'GOOD' -and $a -notmatch 'GOOD') { 'B' } else { 'even' }
+    $answer = "{`"better`": `"$better`", `"why`": `"stand-in`"}"
+} else {
 switch -Regex ($prompt) {
     'A test in this Godot' {
         $answer = 'test_every_fifth_hit_raises_the_multiplier in test/test_score.gd, line 7, expected 25 but got 20. The test is wrong: the fifth hit doubles 10 to 20.'
@@ -92,6 +101,7 @@ func test_a_hit_scores():
         if ($good) { Edit-File 'main.gd' 'score.hit(10)' 'score.hit(hit_value)' }
         $answer = 'hit_value is exported.'
     }
+}
 }
 [ordered]@{
     type = 'result'; subtype = 'success'; is_error = $false; result = $answer; num_turns = 4; ttft_ms = 150; duration_ms = 900

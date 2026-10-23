@@ -44,6 +44,13 @@ use Regulation (EU) 2019/2014. All quotations below are from those two texts.
 **A configuration** is a model, with or without the plugin loaded. The label rates the configuration under the standard
 programme: profile `A-baseline` over all tasks, `repeat` runs each (three).
 
+**Judged results in the game class.** On the game programme, a task may also be scored by a pinned judge model
+against a rubric (a pass is a median of 4 or more out of 5, over three judgings). A blind side-by-side of each model with
+and without the plugin gives the plugin a win rate, and the plugin configuration's index is divided by
+`0.75 + 0.5 x win rate`: from 1.25 times better when its work is preferred every time to 0.75 when never. The judge and
+its rubrics belong to the scale, so changing either means a new scale. [benchmark/PLAN.md](../benchmark/PLAN.md) says how
+the judge is chosen and checked against the owner's own blind ratings.
+
 **Two programmes.** The tool programme asks questions about Hyperdot's own code with read-only tools. The game
 programme gives the agent a small Godot game (a copy of `examples/gdscript`, broken or unfinished on purpose for each
 task) with Bash, Edit and Write, and grades what it leaves: the files it was told not to touch are unchanged, its own

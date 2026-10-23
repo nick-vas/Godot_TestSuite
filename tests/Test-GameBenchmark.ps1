@@ -105,12 +105,38 @@ try {
     $badRows = if ($badMilestone.Json) { @(Get-Content -LiteralPath (Join-Path $badMilestone.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
     Assert-True ($badRows.Count -eq 1 -and -not $badRows[0].success -and $badRows[0].gameReasons -match 'hidden_') 'a milestone not reached fails on the next stage''s acceptance tests'
 
+    # Layer 3: the judge's median score decides a judged task (the stand-in judge scores what FAKE_JUDGE_SCORE says).
+    $judgedRow = @($stagedRows | Where-Object task -eq 'toy.alpha.gdscript.fix-bug') | Select-Object -First 1
+    Assert-True ($judgedRow -and $judgedRow.judge -and (@($judgedRow.judge.scores) -join ',') -eq '5,5,5') 'a judged task is judged three times'
+    $env:FAKE_JUDGE_SCORE = '2'
+    $lowJudge = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1', '-TaskId', 'toy.alpha.gdscript.fix-bug')
+    Remove-Item Env:FAKE_JUDGE_SCORE
+    $lowRows = if ($lowJudge.Json) { @(Get-Content -LiteralPath (Join-Path $lowJudge.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
+    Assert-True ($lowRows.Count -eq 1 -and -not $lowRows[0].success -and $lowRows[0].gameReasons -match 'judged 2/5') 'work the judge scores under the pass mark fails, however well it passes the tests'
+
+    # Layer 4: blind side-by-side of the same task with and without the plugin; the plugin's win rate per model.
+    $sbs = Join-Path $work 'side-by-side'
+    foreach ($variant in @(@{ name = 'with'; plugin = $true; answers = @('GOOD work', 'plain work') }, @{ name = 'without'; plugin = $false; answers = @('plain work', 'plain work') })) {
+        $dir = Join-Path $sbs "$($variant.name)/run"
+        New-Item -ItemType Directory -Force (Join-Path $dir 'responses') | Out-Null
+        $rows = @(for ($r = 1; $r -le 2; $r++) {
+                Set-Content -LiteralPath (Join-Path $dir "responses/A-baseline-T1-r$r-a0-s0.md") -Value $variant.answers[$r - 1]
+                Set-Content -LiteralPath (Join-Path $dir "responses/A-baseline-T1-r$r.prompt.md") -Value 'Fix the bug.'
+                [ordered]@{ profile = 'A-baseline'; task = 'T1'; repetition = $r; retries = 0; steps = 1; model = 'claude-m'; plugin = $variant.plugin; infrastructure = $false }
+            })
+        ConvertTo-Json -InputObject $rows -Depth 4 | Set-Content -LiteralPath (Join-Path $dir 'results.json')
+    }
+    $prefOut = & pwsh -NoProfile -File (Join-Path $root 'benchmark/Invoke-SideBySide.ps1') -Results "$sbs/with,$sbs/without" -Model haiku -Claude $fake -OutDir $sbs -Json 2>$null
+    $prefs = if ($prefOut) { ($prefOut -join "`n") | ConvertFrom-Json } else { $null }
+    Assert-True ($prefs -and $prefs.pluginWinRate.'claude-m' -eq 0.75 -and @($prefs.pairs).Count -eq 2) "a pair the plugin wins both ways counts 1, an even one half (win rate $(if ($prefs) { $prefs.pluginWinRate.'claude-m' }))"
+    Assert-True (@(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.prompt -match '^You are comparing' -and $_.prompt -match 'plugin' }).Count -eq 0) 'the judge is never told which work had the plugin'
+
     $stopped = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1', '-BudgetUsd', '0.015')
     $stoppedRows = if ($stopped.Json) { @(Get-Content -LiteralPath (Join-Path $stopped.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
     Assert-True ($stopped.Code -eq 1 -and $stoppedRows.Count -eq 2 -and @($stopped.Json.meta.notRun).Count -eq 2) "past the ceiling nothing new starts, and the run is incomplete ($($stoppedRows.Count) run, exit $($stopped.Code))"
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item Env:FAKE_GAME_MODE, Env:FAKE_CLAUDE_LOG -ErrorAction SilentlyContinue
+    Remove-Item Env:FAKE_GAME_MODE, Env:FAKE_CLAUDE_LOG, Env:FAKE_JUDGE_SCORE -ErrorAction SilentlyContinue
 }
 if ($failures.Count) { Write-Host "$($failures.Count) check(s) failed" -ForegroundColor Red; exit 1 }
 Write-Host 'All game benchmark checks passed'

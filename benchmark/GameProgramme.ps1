@@ -358,7 +358,7 @@ function New-ProgrammeTask($Spec, $Cell, $Template, $Entry, [string]$StageDir, [
     $prompt = Format-Template $Template.prompt $values
     if ($prog.Contains('promptSuffix')) { $prompt += ' ' + (Format-Template $prog.promptSuffix $values) }
     $game = @{ source = $StageDir }
-    foreach ($k in 'edits', 'unchanged', 'match', 'mutants', 'mutantTests', 'mutantRunners', 'suite', 'newTests', 'runners', 'kit') {
+    foreach ($k in 'edits', 'unchanged', 'match', 'mutants', 'mutantTests', 'mutantRunners', 'suite', 'newTests', 'runners', 'kit', 'judge') {
         if ($Entry.Contains($k)) { $game[$k] = $Entry[$k] } elseif ($Template.Contains($k)) { $game[$k] = $Template[$k] }
     }
     # The test runners a mutant is judged with: the language's, unless the task names its own.
@@ -432,12 +432,17 @@ function Get-SessionCostUsd($CostModel, [string]$ModelName, [bool]$WithPlugin, [
     return [double]$CostModel.fallbackUsd
 }
 
-function Get-RunEstimateUsd($CostModel, [object[]]$Tasks, [object[]]$Profiles, [int]$Repeat, [string]$ModelName, [bool]$WithPlugin) {
+function Get-RunEstimateUsd($CostModel, [object[]]$Tasks, [object[]]$Profiles, [int]$Repeat, [string]$ModelName, [bool]$WithPlugin, [string]$JudgeModel = '') {
     $total = 0.0
     foreach ($p in $Profiles) {
         foreach ($t in $Tasks) {
             $kind = if ($t.Contains('kind')) { $t.kind } else { 'task' }
             $total += (Get-StepPrompts $p $t).Count * $Repeat * (Get-SessionCostUsd $CostModel $ModelName $WithPlugin $kind)
+            # A judged task adds the judge's sessions, priced by the judge's own model.
+            if ($t.Contains('game') -and $t.game.Contains('judge') -and $JudgeModel) {
+                $runs = if ($t.game.judge.Contains('runs')) { [int]$t.game.judge.runs } else { 3 }
+                $total += $Repeat * $runs * (Get-SessionCostUsd $CostModel $JudgeModel $false 'judge')
+            }
         }
     }
     return $total

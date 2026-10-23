@@ -22,6 +22,11 @@
   change, and five mutants its tests must catch. The label now has two classes per version, **tool efficiency** and
   **game-making efficiency** (`-Programme tool|game`), each with its own standard tokens. `tests/Test-GameBenchmark.ps1`
   checks the grading with a stand-in that does every task well and badly.
+- **Judged grading for the game programme**: a task can be scored by a pinned judge model against a rubric (median of
+  three), and `benchmark/Invoke-SideBySide.ps1` judges each model's work with and without the plugin blind, both ways
+  round. The plugin's win rate becomes a quality factor on its index (`Get-HyperdotLabel.ps1 -Preferences`).
+  `tests/Test-GameProgramme.ps1` checks every staged task without a model: the planted defect is caught, the reference
+  solution passes, the decoy fails.
 - **The staged game programme, stage 1** (`benchmark/PLAN.md`): the benchmark runs programmes made of genres, stages
   (prototype to release candidate), languages and task templates, chosen by a tier (min under $10, mid under $50, max)
   and narrowed by genre, stage, language or task. A stage is built from the genre's whole game. Milestones take a game
