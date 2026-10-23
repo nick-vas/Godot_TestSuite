@@ -1,7 +1,7 @@
 # A-to-Z plan for a solo developer
 
 `hyperdot.ps1 plan` tracks a game from first idea to post-launch as seven phases with gates. This page explains
-where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init | status | done -Id <gate> | reopen -Id <gate>`, tasks with `add | move | remove | link | sync`,
+where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init [-Profile jam] | status | done -Id <gate> | reopen -Id <gate>`, tasks with `add | move | remove | link | sync`,
 all with `-Json` (see [json.md](json.md)).
 
 ## Where it comes from
@@ -163,8 +163,12 @@ manual-only on purpose: a scheduled prompt can start only skills Claude is allow
 ## Jam mode, risks, money and exit criteria
 
 `godot-game-plan` also covers what the gates only point to:
-- **Jam mode:** a jam of 2 to 9 days uses `ci/godot/templates/GDD-jam.md` and its day table instead of the seven
-  phases. The first question is "browser build?": Godot 4.7 refuses to export C# to the Web
+- **Jam mode:** a jam of 2 to 9 days starts with `plan -Do init -Profile jam` (`ci/godot/templates/plan-jam.json`):
+  five phases sized in days (`timeboxDays`) for a 7-day jam, from the day table of `ci/godot/templates/GDD-jam.md`:
+  theme and core feel (1), loop (1), must-haves (3), export and submit (2), then 3 days after the jam for the
+  retrospective. Scale `timeboxDays` to the jam; an overrun warns in days. Its gates (`jam.*`) follow the day table:
+  `jam.platform` first, `jam.gdd`, `jam.feel`, `jam.loop`, `jam.tests`, `jam.musthaves`, `jam.credits`, `jam.export`,
+  `jam.fixes`, `jam.submit`, `jam.retro`. The first question is "browser build?": Godot 4.7 refuses to export C# to the Web
   ([mobile-web.md](mobile-web.md), measured: "Exporting to Web is currently not supported in Godot 4 when using
   C#/.NET"), so a browser jam is made in GDScript.
 - **A risk log** at the concept stage (`docs/RISKS.md`, gate `concept.risks`): the top five risks with likelihood,

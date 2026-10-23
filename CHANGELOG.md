@@ -23,6 +23,10 @@
   `"placeholder": true` and the Placeholders table of `docs/TECH-DEBT.md` has no row (open while neither file exists).
   `file:<path>` checks now want a file with something in it (or a folder): an empty file no longer meets a gate. A plan
   made before keeps its gates (plan.json is the game's); `godot-game-plan` offers to add them.
+- **`plan -Do init -Profile jam`**: a plan for a game jam of 2 to 9 days (`ci/godot/templates/plan-jam.json`), five
+  phases sized in days (`timeboxDays`, for a 7-day jam) with the gates of `GDD-jam.md`'s day table (`jam.platform`
+  first: "browser build?"). `plan -Json` gives `timeboxDays` and `elapsedDays` beside the weeks, PLAN.md sizes jam
+  phases in days, and a jam phase over its timebox warns in days.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

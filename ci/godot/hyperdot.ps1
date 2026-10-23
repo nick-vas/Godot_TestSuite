@@ -174,6 +174,9 @@ param(
     [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
+    # plan -Do init: full (seven phases sized in weeks) or jam (a game jam of 2 to 9 days, sized in days).
+    [ValidateSet('full', 'jam')]
+    [string]$Profile = 'full',
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
     [string]$Feature,
     # plan -Do link: a task's Trello card: its 24-hex id or the Trello connector's ARI (the plain id is stored).
@@ -578,7 +581,7 @@ switch ($Command) {
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
-    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $Profile }
     'status' { Invoke-Status $info }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }

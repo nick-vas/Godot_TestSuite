@@ -130,7 +130,8 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 
 ## Jam mode (2 to 9 days)
 
-Use `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` as `docs/GDD.md`; its day table replaces the seven phases.
+Start with `plan -Do init -Profile jam`: phases sized in days, for a 7-day jam (scale `timeboxDays` to yours), with
+gates from the day table of `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md`, which becomes `docs/GDD.md` (`jam.gdd`).
 Ask "browser build?" before anything else: Godot 4.7 stops a C# Web export ("Exporting to Web is currently not supported
 in Godot 4 when using C#/.NET", `godot-mobile-web`), so a browser jam is made in GDScript. Day 1 proves the riskiest feel
 with plain shapes; day 2 has the loop with win and lose; the day before the end exports to the jam's platform and

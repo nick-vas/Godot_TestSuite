@@ -7,7 +7,8 @@
 # count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
 # warning in `status`. `init` never overwrites an existing test/test_example.gd. concept.risks wants a non-empty
 # docs/RISKS.md, the optional concept.budget does not hold its phase back, beta.placeholders reads assets.json and the
-# Placeholders table of docs/TECH-DEBT.md, and `plan -Do reopen` opens a manual gate again. No Godot needed.
+# Placeholders table of docs/TECH-DEBT.md, and `plan -Do reopen` opens a manual gate again. `plan -Do init -Profile jam`
+# writes the jam plan, sized in days. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -23,12 +24,14 @@ function Invoke-PlanJson([string[]]$Arguments) {
 }
 
 $template = Get-Content -LiteralPath (Join-Path $templates 'plan.json') -Raw | ConvertFrom-Json -Depth 10
-$gateIds = @(foreach ($phase in $template.phases) { foreach ($gate in $phase.gates) { $gate.id } })
+$jamTemplate = Get-Content -LiteralPath (Join-Path $templates 'plan-jam.json') -Raw | ConvertFrom-Json -Depth 10
+$gateIds = @(foreach ($phase in @($template.phases) + @($jamTemplate.phases)) { foreach ($gate in $phase.gates) { $gate.id } })
+Assert-True (@($gateIds | Group-Object | Where-Object Count -gt 1).Count -eq 0) 'gate ids are unique across the full and jam templates'
 
 # Flags quoted after "hyperdot.ps1 <command>" in a gate's text must be parameters of the script.
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($ci, [ref]$null, [ref]$null)
 $parameters = @($ast.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
-foreach ($phase in $template.phases) {
+foreach ($phase in @($template.phases) + @($jamTemplate.phases)) {
     foreach ($gate in $phase.gates) {
         foreach ($quote in [regex]::Matches($gate.text, 'hyperdot\.ps1 \w+(?<rest>[^:;,)]*)')) {
             foreach ($flag in [regex]::Matches($quote.Groups['rest'].Value, '(?<=\s)-(?<name>[A-Za-z]+)')) {
@@ -41,7 +44,7 @@ foreach ($phase in $template.phases) {
 # Gate ids any skill names exist in the template (plan.json is copied once, so a renamed gate would strand them).
 foreach ($skillFile in @(Get-ChildItem -LiteralPath (Join-Path $root '.agents/skills') -Filter 'SKILL.md' -Recurse)) {
     $skill = Get-Content -LiteralPath $skillFile.FullName -Raw
-    foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post)\.[a-z0-9]+)`')) {
+    foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post|jam)\.[a-z0-9]+)`')) {
         Assert-True ($quoted.Groups['id'].Value -in $gateIds) "$($skillFile.Directory.Name) names gate $($quoted.Groups['id'].Value), which plan.json has"
     }
 }
@@ -252,6 +255,34 @@ try {
     Assert-True ($d.ok -and -not (& $placeholderOpen $d)) 'with "placeholder": false it is met again'
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# plan -Do init -Profile jam: phases sized in days, with the jam's gates; a day over the timebox warns in days.
+$jam = Join-Path ([IO.Path]::GetTempPath()) "plan-jam-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force $jam | Out-Null
+    Set-Content -LiteralPath (Join-Path $jam 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Jam""`n"
+    $d = pwsh -NoProfile -File $ci plan -Do init -Profile jam -Json -Project $jam 2>$null | ConvertFrom-Json
+    $jamPath = Join-Path $jam 'plan/plan.json'
+    $jamPlan = Get-Content -LiteralPath $jamPath -Raw | ConvertFrom-Json -Depth 10
+    Assert-True ($d.ok -and $jamPlan.profile -eq 'jam' -and $jamPlan.game -eq 'Jam') 'plan -Do init -Profile jam writes a jam plan'
+    $days = @($jamPlan.phases | ForEach-Object { if ($_.PSObject.Properties['timeboxDays']) { [double]$_.timeboxDays } })
+    Assert-True ($days.Count -eq @($jamPlan.phases).Count -and @($jamPlan.phases | Where-Object { $_.PSObject.Properties['timeboxWeeks'] }).Count -eq 0) "every jam phase is sized in days: $($days -join ', ')"
+    $sum = ($days | Select-Object -First 4 | Measure-Object -Sum).Sum
+    Assert-True ($sum -ge 2 -and $sum -le 9) "the jam itself (all but the last phase) fits a 2- to 9-day jam: $sum days"
+    $d = pwsh -NoProfile -File $ci plan -Json -Project $jam 2>$null | ConvertFrom-Json
+    $ids = @($d.nextActions | ForEach-Object id)
+    Assert-True ($d.ok -and $d.currentPhase.id -eq 'jam-concept' -and $d.currentPhase.timeboxDays -eq 1 -and $null -ne $d.currentPhase.elapsedDays) "the jam starts in jam-concept, 1 day: $(if ($d.ok) { $d.currentPhase | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($ids.Count -gt 0 -and $ids[0] -eq 'jam.platform' -and 'jam.gdd' -in $ids) "'browser build?' comes first, then the jam GDD: $($ids -join ', ')"
+    Assert-True ((Get-Content -LiteralPath (Join-Path $jam 'plan/PLAN.md') -Raw) -match '## Theme and core feel \(current, 1 day\)') 'PLAN.md sizes the phase in days'
+    $jamPlan.phases[0].startedAt = [datetime]::UtcNow.AddDays(-2).ToString('o')
+    $jamPlan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $jamPath -Encoding utf8
+    $d = pwsh -NoProfile -File $ci plan -Json -Project $jam 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok -and @($d.warnings | Where-Object { $_ -match "is 2 days in, over its 1-day timebox" }).Count -eq 1) "two days into a one-day phase warns in days: $($d.warnings -join ' | ')"
+    $d = pwsh -NoProfile -File $ci plan -Do init -Json -Project $jam 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok -and (Get-Content -LiteralPath $jamPath -Raw | ConvertFrom-Json).profile -eq 'jam') 'init again leaves the jam plan as it is'
+} finally {
+    Remove-Item -LiteralPath $jam -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # A day-first culture (Greek here) must read the phase's start time back: it once failed with "String '10/23/2026

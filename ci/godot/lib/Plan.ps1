@@ -250,16 +250,25 @@ function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date)
                 done = ($null -ne $auto ? [bool]$auto : $manual) ; auto = ($null -ne $auto)
                 optional = [bool]($gate.PSObject.Properties['optional'] -and $gate.optional -eq $true) }
         })
-        [ordered]@{ id = $phase.id; name = $phase.name; goal = $phase.goal; timeboxWeeks = $phase.timeboxWeeks
+        # A phase is sized in weeks (timeboxWeeks) or, in a jam plan, in days (timeboxDays); both are reported.
+        $byDays = [bool]$phase.PSObject.Properties['timeboxDays']
+        $timeboxDays = $byDays ? [double]$phase.timeboxDays : ($phase.PSObject.Properties['timeboxWeeks'] ? [double]$phase.timeboxWeeks * 7 : $null)
+        $timeboxWeeks = $phase.PSObject.Properties['timeboxWeeks'] ? $phase.timeboxWeeks : ($null -ne $timeboxDays ? [math]::Round($timeboxDays / 7, 2) : $null)
+        [ordered]@{ id = $phase.id; name = $phase.name; goal = $phase.goal; timeboxWeeks = $timeboxWeeks; timeboxDays = $timeboxDays; byDays = $byDays
             startedAt = ($phase.PSObject.Properties['startedAt'] ? $phase.startedAt : $null)
             gates = $gates; complete = (@($gates | Where-Object { -not $_.done -and -not $_.optional }).Count -eq 0) }
     })
     $current = $phases | Where-Object { -not $_.complete } | Select-Object -First 1
     $warnings = [System.Collections.Generic.List[string]]::new()
     if ($current -and $current.startedAt) {
-        $weeks = [math]::Round(($now - (ConvertTo-UtcTime $current.startedAt)).TotalDays / 7, 1)
+        $elapsed = ($now - (ConvertTo-UtcTime $current.startedAt)).TotalDays
+        $weeks = [math]::Round($elapsed / 7, 1)
+        $days = [math]::Round($elapsed, 1)
         $current['elapsedWeeks'] = $weeks
-        if ($weeks -gt $current.timeboxWeeks) {
+        $current['elapsedDays'] = $days
+        if ($current.byDays -and $days -gt $current.timeboxDays) {
+            $warnings.Add("Phase '$($current.name)' is $days days in, over its $($current.timeboxDays)-day timebox. Cut from the cut list, then the must-haves; don't cut testing or the time to submit.")
+        } elseif (-not $current.byDays -and $null -ne $current.timeboxWeeks -and $weeks -gt $current.timeboxWeeks) {
             $warnings.Add("Phase '$($current.name)' is $weeks weeks in, over its $($current.timeboxWeeks)-week timebox. Cut scope or kill; don't cut testing.")
         }
     }
@@ -287,7 +296,8 @@ function Write-PlanMarkdown($Plan, $State, [string]$Path) {
     if ($Plan.pitch) { $md.Add(''); $md.Add("> $($Plan.pitch)") }
     foreach ($phase in $State.phases) {
         $mark = $phase.complete ? 'done' : ($phase.id -eq $State.current.id ? 'current' : 'later')
-        $md.Add(''); $md.Add("## $($phase.name) ($mark, $($phase.timeboxWeeks) weeks)"); $md.Add(''); $md.Add("_$($phase.goal)_"); $md.Add('')
+        $size = $phase.byDays ? "$($phase.timeboxDays) day$(if ($phase.timeboxDays -ne 1) { 's' })" : "$($phase.timeboxWeeks) weeks"
+        $md.Add(''); $md.Add("## $($phase.name) ($mark, $size)"); $md.Add(''); $md.Add("_$($phase.goal)_"); $md.Add('')
         foreach ($gate in $phase.gates) { $md.Add("- [$($gate.done ? 'x' : ' ')] $($gate.text)$($gate.auto ? ' _(auto)_' : '')$($gate.optional ? ' _(optional)_' : '')") }
     }
     $tasks = @($Plan.tasks)
@@ -541,14 +551,16 @@ function Sync-PlanTrello([string]$Path, [string]$Dir, $Info, [string]$Board) {
     Set-JsonField sync ([ordered]@{ board = $Board; created = $created; moved = $moved; cardsMoved = $cardsMoved; imported = $imported; archived = $archived; warnings = @($warnings) })
 }
 
-function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Card) {
+function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string]$Title, [string]$Column, [string]$Board, [string]$Feature, [string]$Card, [string]$PlanProfile = 'full') {
     $path = Get-PlanPath $Info
     $dir = Split-Path $path
     switch ($Action) {
         'init' {
             if (Test-Path -LiteralPath $path) { Write-CiLog "Plan already exists: $path"; Set-JsonField plan $path; return }
             New-Item -ItemType Directory -Force $dir | Out-Null
-            $plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../templates/plan.json') -Raw | ConvertFrom-Json -Depth 10
+            # -Profile jam: a game jam of 2 to 9 days, phases sized in days with the jam's gates (templates/plan-jam.json).
+            $template = $PlanProfile -eq 'jam' ? 'plan-jam.json' : 'plan.json'
+            $plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot "../templates/$template") -Raw | ConvertFrom-Json -Depth 10
             $plan.game = $Game ? $Game : $Info.Name
             $plan.phases[0] | Add-Member -NotePropertyName startedAt -NotePropertyValue ([datetime]::UtcNow.ToString('o'))
             Save-Plan $plan $path
@@ -678,7 +690,8 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
     $state = Get-PlanState $plan $Info
     Set-JsonField plan $path
     Set-JsonField currentPhase ($state.current ? [ordered]@{ id = $state.current.id; name = $state.current.name; goal = $state.current.goal
-        timeboxWeeks = $state.current.timeboxWeeks; elapsedWeeks = ($state.current.Contains('elapsedWeeks') ? $state.current.elapsedWeeks : $null) } : $null)
+        timeboxWeeks = $state.current.timeboxWeeks; elapsedWeeks = ($state.current.Contains('elapsedWeeks') ? $state.current.elapsedWeeks : $null)
+        timeboxDays = $state.current.timeboxDays; elapsedDays = ($state.current.Contains('elapsedDays') ? $state.current.elapsedDays : $null) } : $null)
     Set-JsonField nextActions @($state.current ? @($state.current.gates | Where-Object { -not $_.done } | ForEach-Object {
         [ordered]@{ id = $_.id; text = $_.text; auto = $_.auto; check = $_.check; optional = $_.optional } }) : @())
     Set-JsonField phases @($state.phases | ForEach-Object {
