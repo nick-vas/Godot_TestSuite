@@ -16,12 +16,27 @@ $script:SteamAssetRules = [ordered]@{
     app_icon        = @{ Width = 184;  Height = 184; Format = 'jpeg' }
 }
 
+# A PNG is transparent with an alpha channel (colour types 4 and 6) or a tRNS chunk before the image data, which is how
+# a palette PNG (type 3, what image optimisers often make of a logo) or a grey or RGB one keeps its transparency.
+function Test-PngTransparency([byte[]]$Bytes) {
+    if ($Bytes[25] -in 4, 6) { return $true }
+    $i = 8
+    while ($i + 8 -le $Bytes.Length) {
+        $length = ([long]$Bytes[$i] -shl 24) -bor ([long]$Bytes[$i + 1] -shl 16) -bor ([long]$Bytes[$i + 2] -shl 8) -bor $Bytes[$i + 3]
+        $type = [System.Text.Encoding]::ASCII.GetString($Bytes, $i + 4, 4)
+        if ($type -eq 'tRNS') { return $true }
+        if ($type -in 'IDAT', 'IEND') { break }
+        $i += 12 + $length
+    }
+    return $false
+}
+
 function Get-ImageInfo([string]$Path) {
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     if ($bytes.Length -gt 24 -and $bytes[0] -eq 0x89 -and $bytes[1] -eq 0x50) {
         $w = ([int]$bytes[16] -shl 24) -bor ([int]$bytes[17] -shl 16) -bor ([int]$bytes[18] -shl 8) -bor $bytes[19]
         $h = ([int]$bytes[20] -shl 24) -bor ([int]$bytes[21] -shl 16) -bor ([int]$bytes[22] -shl 8) -bor $bytes[23]
-        return [ordered]@{ format = 'png'; width = $w; height = $h; alpha = ($bytes[25] -in 4, 6) }
+        return [ordered]@{ format = 'png'; width = $w; height = $h; alpha = (Test-PngTransparency $bytes) }
     }
     if ($bytes.Length -gt 4 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xD8) {
         $i = 2
