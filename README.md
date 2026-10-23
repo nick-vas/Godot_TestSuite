@@ -1,33 +1,60 @@
-# Hypedot
+<p align="center">
+  <img src="docs/assets/hypedot-wordmark.svg" alt="Hypedot" width="420">
+</p>
 
-[![Self-test](https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml)
-[![Godot](https://github.com/nick-vas/hypedot/actions/workflows/godot.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/godot.yml)
-[![Token benchmark](https://github.com/nick-vas/hypedot/actions/workflows/token-benchmark.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/token-benchmark.yml)
-[![Evals](https://github.com/nick-vas/hypedot/actions/workflows/evals.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/evals.yml)
-[![Canary](https://github.com/nick-vas/hypedot/actions/workflows/canary.yml/badge.svg)](https://github.com/nick-vas/hypedot/actions/workflows/canary.yml)
+<h3 align="center">Build, test, ship and plan Godot games with an AI agent.</h3>
 
-**Tools that let AI coding agents build, test, ship and plan Godot 4.7 games - for any genre, solo or small team.**
+<p align="center">
+  One PowerShell script, 50 skills and a Claude Code plugin, for GDScript and C# games of any genre.<br>
+  Runs on your Windows machine and, as a GitHub workflow, on Linux runners.
+</p>
 
-Hypedot is a game development interface for agents working in Godot. It is not affiliated with or endorsed by the Godot
-Foundation; Godot is a trademark of the Godot Foundation.
+<p align="center">
+  <a href="https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml"><img src="https://github.com/nick-vas/hypedot/actions/workflows/self-test.yml/badge.svg" alt="Self-test"></a>
+  <a href="https://github.com/nick-vas/hypedot/actions/workflows/godot.yml"><img src="https://github.com/nick-vas/hypedot/actions/workflows/godot.yml/badge.svg" alt="Godot"></a>
+  <a href="https://github.com/nick-vas/hypedot/actions/workflows/evals.yml"><img src="https://github.com/nick-vas/hypedot/actions/workflows/evals.yml/badge.svg" alt="Evals"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence: Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/Godot-4.7.2-478cbf" alt="Godot 4.7.2">
+  <img src="https://img.shields.io/badge/.NET-8-512bd4" alt=".NET 8">
+  <img src="https://img.shields.io/badge/PowerShell-7.2%2B-5391fe" alt="PowerShell 7.2+">
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#what-it-gives-an-agent">Features</a> ·
+  <a href="#skills">Skills</a> ·
+  <a href="docs/reference.md">Reference</a> ·
+  <a href="docs/roadmap.md">Roadmap</a>
+</p>
+
+---
 
 An agent can already write GDScript and C#. What it lacks is a way to know whether the game still works, and a plan that says
-what to build next. This kit supplies both:
+what to build next. Hypedot supplies both.
 
-- **Verify**: one PowerShell 7 script that detects your project, installs the right Godot, runs every test framework you use,
-  plays your UI flows, exports and launches the build, and reports in **JSON an agent can read**. It runs on your Windows machine
-  and, packed into a GitHub workflow, on a Linux runner.
-- **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
-- **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync (experimental in 1.0).
-- **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
-- **Teach**: `AGENTS.md` and 50 skills in [`.agents/skills`](.agents/skills), which make the agent work test first and prove it is done before it says so.
-- **Stay lean and get better**: a Claude Code plugin with two subagents and a Stop hook, quiet JSON output that keeps
-  logs out of the agent's context, and a `retro` that turns a session's mistakes into kit changes, each measured with evals.
+| | |
+|---|---|
+| **Verify** | One script detects the project, installs the right Godot, runs every test framework, plays UI flows, exports and launches the build, and answers in **JSON an agent can read**. |
+| **Plan** | Seven phases from concept to post-launch, with gates the project can check, tasks, and an optional Trello mirror. |
+| **Measure** | Frame-pacing benchmarks, real screenshots and loudness checks, so an agent judges performance, layout and sound, not just logic. |
+| **Teach** | `AGENTS.md` and 50 skills that make the agent work test first and prove it is done before it says so. |
+| **Stay honest** | A Claude Code plugin with two subagents and a Stop hook: a turn cannot end while changed code has no passing test run. |
+| **Get better** | `/retro` turns a session's mistakes into kit changes, each measured with evals, with and without the plugin. |
 
 ```powershell
-$kit = 'C:\Tools\hypedot\ci\godot\hypedot.ps1'              # your clone of this repository
+$kit = 'C:\Tools\hypedot\ci\godot\hypedot.ps1'                       # your clone of this repository
 pwsh $kit init -Agents -Mcp godot-mcp -Project 'C:\path\to\your\game'   # once: tests, CI, AGENTS.md, skills, editor bridge
 pwsh $kit test -Json -Quiet -Project 'C:\path\to\your\game'             # every time: build + every test, one JSON result
+```
+
+What the agent reads back when a test fails:
+
+```json
+{ "schema": "hypedot/1", "command": "test", "ok": false,
+  "runnerResults": [
+    { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1,
+      "failures": [ { "name": "test/test_score.gd.test_x", "message": "[20] expected to equal [25]:",
+                      "file": "test/test_score.gd", "line": 7 } ] } ] }
 ```
 
 ## How the pieces fit
@@ -54,7 +81,8 @@ separate, headless tool.
 - Godot: the kit downloads the version your project needs into `~/.hypedot` on the first run. Set `GODOT_BIN` to use your own.
 - For C# projects, the [.NET 8 SDK](https://dotnet.microsoft.com/download).
 
-Only for some commands:
+<details>
+<summary>Only for some commands</summary>
 
 | Need | For |
 |---|---|
@@ -64,6 +92,8 @@ Only for some commands:
 | Node.js and a Playwright browser | `export -Run` of a Web preset; the kit installs the playwright package, `npx playwright install chromium` adds the browser |
 | Node.js 20+ (22+ for `-McpDiagnostics`) | the default editor bridge, godot-mcp |
 | [uv](https://docs.astral.sh/uv/) | the godot-ai editor bridge and `-McpAseprite` |
+
+</details>
 
 `doctor` checks a machine and a project and says what is missing.
 
@@ -191,18 +221,41 @@ What has been run, and what has not.
 
 ## FAQ
 
-**Do I need GitHub?** No. Everything runs locally; the workflow is the same script on a Linux runner.
+<details>
+<summary><b>Do I need GitHub?</b></summary>
 
-**GDScript or C#?** Both. GDScript projects use GUT and need no .NET; C# projects can use all frameworks.
+No. Everything runs locally; the workflow is the same script on a Linux runner.
 
-**Which test framework should I pick?** [`godot-test-loop`](.agents/skills/godot-test-loop/SKILL.md#choosing-a-framework) has the table.
+</details>
+<details>
+<summary><b>GDScript or C#?</b></summary>
 
-**Why does it fail when Godot exited 0?** Godot exits 0 after printing script errors, so the kit scans the log and fails.
+Both. GDScript projects use GUT and need no .NET; C# projects can use all frameworks.
 
-**Do I need the editor MCP server, or Trello?** No. The CLI, flows, plan and skills work without them. See [docs/mcp.md](docs/mcp.md)
+</details>
+<details>
+<summary><b>Which test framework should I pick?</b></summary>
+
+[`godot-test-loop`](.agents/skills/godot-test-loop/SKILL.md#choosing-a-framework) has the table.
+
+</details>
+<details>
+<summary><b>Why does it fail when Godot exited 0?</b></summary>
+
+Godot exits 0 after printing script errors, so the kit scans the log and fails.
+
+</details>
+<details>
+<summary><b>Do I need the editor MCP server, or Trello?</b></summary>
+
+No. The CLI, flows, plan and skills work without them. See [docs/mcp.md](docs/mcp.md)
 and [docs/plan.md](docs/plan.md).
 
-**Does it edit my files?** It never changes your scripts or scenes. These commands write into the project:
+</details>
+<details>
+<summary><b>Does it edit my files?</b></summary>
+
+It never changes your scripts or scenes. These commands write into the project:
 - `init`: the additions above (it never overwrites a file; `.mcp.json` is backed up first);
 - `plan`: `plan/plan.json` and `plan/PLAN.md`;
 - `test`, `build` and the other commands that build: GUT into `addons/gut` when the project has GUT tests and no GUT of its own;
@@ -213,8 +266,14 @@ Results, logs and exports go to folders in the current directory (`test-results`
 history to the project's `.godot/` folder. Run `detect` or
 `doctor` first to see before anything is written.
 
-**Can I call it from a script?** Yes: run it as a process (`pwsh -NoProfile -File ci/godot/hypedot.ps1 test -Json`) and read stdout.
+</details>
+<details>
+<summary><b>Can I call it from a script?</b></summary>
+
+Yes: run it as a process (`pwsh -NoProfile -File ci/godot/hypedot.ps1 test -Json`) and read stdout.
 Logs go to stderr. See [docs/json.md](docs/json.md).
+
+</details>
 
 ## Documentation
 
@@ -265,3 +324,13 @@ Logs go to stderr. See [docs/json.md](docs/json.md).
 - [docs/googleforgames.md](docs/googleforgames.md): Google for Games' open source and what the kit took
 
 **This repository**: [AGENTS.md](AGENTS.md) (working on it), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md).
+
+## Licence
+
+Hypedot is licensed under the [Apache License 2.0](LICENSE). Copies and modified versions must keep the [NOTICE](NOTICE)
+file, which credits Hypedot and its author. The files Hypedot copies into a game (`ci/godot/templates/` and the starter
+tests `init` writes) are under [MIT-0](ci/godot/templates/LICENSE.md): a game owes nothing for them. Third-party parts keep
+their own licences, listed in [NOTICE](NOTICE).
+
+Hypedot is not affiliated with or endorsed by the Godot Foundation. Godot and the Godot logo are trademarks of the Godot
+Foundation.

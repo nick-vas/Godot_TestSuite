@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`); before this the repository had no licence. The files a
+  game receives (`ci/godot/templates/`, the starter tests `init` writes) are MIT No Attribution
+  (`ci/godot/templates/LICENSE.md`). `NOTICE` lists the third-party parts and their licences: Sfxr (Apache-2.0 and MIT),
+  the University of Washington genre vocabulary (CC BY-NC-SA 4.0, with permission), Wikidata genres (CC0).
+- README: a wordmark (`docs/assets/hypedot-wordmark.svg`), a one-line pitch, badges, a sample of the JSON an agent reads,
+  collapsible prerequisites and FAQ, and a licence and trademark section.
 - **Renamed to Hypedot (breaking, no aliases).** The script is `ci/godot/hypedot.ps1`, the plugin `hypedot`, the
   repository `nick-vas/hypedot`, the environment variables `HYPEDOT_TIMEOUT`, `HYPEDOT_IGNORE_ERRORS`,
   `HYPEDOT_PLAYWRIGHT`, `HYPEDOT_STOP_GATE`, `HYPEDOT_WEB_HEADED` (`GODOT_BIN`, `GODOT_VERSION` and `GODOT_TOOLS_DIR` keep

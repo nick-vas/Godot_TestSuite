@@ -1,0 +1,30 @@
+Hypedot
+Copyright 2026 nick-vas (https://github.com/nick-vas/hypedot)
+
+This product is licensed under the Apache License, Version 2.0 (LICENSE). Redistributions, modified or not, must keep
+this NOTICE file, or its text, with the copy.
+
+Files a game receives
+  ci/godot/templates/ and the starter tests that `hypedot.ps1 init` writes into a game are licensed under MIT No
+  Attribution (ci/godot/templates/LICENSE.md): a game may use them without credit. The exceptions in that folder are
+  listed below.
+
+Third-party material in this repository
+  ci/godot/tools/Sfxr.cs
+    A C# port of the Bfxr synth of bfxr2 (https://github.com/increpare/bfxr2).
+    SfxrSynth, Copyright 2010 Thomas Vian, Apache License 2.0.
+    bfxr2's parameters, presets and seeded random numbers, Copyright (c) 2021 Stephen Lavelle, MIT License
+    (ci/godot/templates/licences/MIT.txt).
+    Adventure Kid Waveforms (AKWF) wavetables, CC0 1.0.
+  ci/godot/templates/genres-uw.json
+    University of Washington GAMER Group, Gameplay Genre and Narrative Genre controlled vocabularies, version 1.3,
+    CC BY-NC-SA 4.0, reused with the University's permission. Not covered by the Apache License or MIT-0: credit the
+    GAMER Group, make no commercial use of the vocabulary itself, and share changes under the same licence.
+  ci/godot/templates/genres.json
+    Labels and ids from Wikidata, CC0 1.0.
+  ci/godot/templates/licences/
+    The standard texts of the licences `credits` ships with a game (Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MIT,
+    OFL-1.1, Zlib), reproduced unchanged.
+  docs/
+    Short quotations from talks, interviews, books and public documents are their authors' and are quoted with their
+    sources for commentary; they are not licensed by this project.
