@@ -97,8 +97,8 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Addons.ps1` | `doctor`'s add-on and GDExtension checks (a project made in a temporary folder) | - |
 | `Test-RepoHygiene.ps1` | `doctor`'s repository checks (a broken project made in a temporary folder, since reserved names or case twins committed here would break Windows checkouts) | - |
 | `Test-Context.ps1` | `doctor`'s check of agent instructions; holds the template, skills and docs to the kit's real flags | - |
-| `Test-Plan.ps1` | the plan template's gates, the release timeline, `plan` under a day-first culture | - |
-| `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello; `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
+| `Test-Plan.ps1` | the plan template's gates (only test frameworks count as tests), the release timeline, `plan` under a day-first culture, `init` keeping an existing starter test, a plan `plan` and `status` cannot read | - |
+| `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello (local moves, custom lists, a failure halfway, an unreachable API, an empty board); `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
 | `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
 | `Test-GameVersion.ps1` | `export -GameVersion auto`, Android version codes, download names (temporary git repositories) | git |
 | `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor; the canary's exit checks and pairing (copies of the repository) | - |
