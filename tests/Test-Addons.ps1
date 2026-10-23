@@ -127,7 +127,7 @@ try {
     $knownProblems = @(Get-AddonProblems $known "config_version=5`n" @() '4.7.2')
     $knownText = Get-Messages $knownProblems
     Assert-True ($knownText -match 'WARN res://addons/perfbullets is Godot-PerfBullets \(Moonzel/Godot-PerfBullets\), not made for this Godot: .*works with Godot 4\.1 and 4\.2.* It supports Godot up to 4\.2, and the project uses 4\.7\.2') "PerfBullets is found by its folder in another case, outside its Godot range: $knownText"
-    Assert-True ($knownText -match 'WARN res://addons/godot-steam-audio is godot-steam-audio \(stechyo/godot-steam-audio\), archived') 'godot-steam-audio warns as archived'
+    Assert-True ($knownText -match 'WARN res://addons/godot-steam-audio is godot-steam-audio \(stechyo/godot-steam-audio\), no longer maintained: archived') 'godot-steam-audio warns as archived'
     Assert-True ($knownText -match 'WARN res://addons/py/python\.gdextension is py4godot' -and @($knownProblems | Where-Object Message -match 'addons/other').Count -eq 0) 'a renamed py4godot is found by file name and entry_symbol, another extension with its file name is not'
     Assert-True ((Get-Messages @(Get-AddonProblems $known "config_version=5`n" @() '4.2.2')) -notmatch 'PerfBullets') 'PerfBullets on Godot 4.2 is within its range'
     # Godot Jolt: the folder alone warns; with the extension's physics engine set, the setting's warning (which names the

@@ -20,22 +20,23 @@ function Invoke-Sweep([string]$Results, [string[]]$Arguments) {
 }
 
 try {
-    # 0, 10 and 25 ms a frame, against a 20 ms budget: the first two within it, the last over it.
+    # 0, 10 and 60 ms a frame, against a 40 ms budget: the first two within it, the last over it. The margins are wide
+    # because the budget is held to p99, which a busy machine stretches.
     $results = Join-Path $temp 'ok'
-    $d = Invoke-Sweep $results @('-Sweep', 'cost=0,10,25', '-BudgetMs', '20', '-Label', 'fixture')
+    $d = Invoke-Sweep $results @('-Sweep', 'cost=0,10,60', '-BudgetMs', '40', '-Label', 'fixture')
     Assert-True ($d -and $d.ok) "a sweep whose last value is over the budget still passes: $(if ($d -and -not $d.ok) { $d.error | ConvertTo-Json -Compress })"
     $s = $d.sweep
-    Assert-True ($s.name -eq 'cost' -and (@($s.values) -join ',') -eq '0,10,25' -and @($s.rows).Count -eq 3) "one row per value: $(@($s.rows | ForEach-Object value) -join ',')"
+    Assert-True ($s.name -eq 'cost' -and (@($s.values) -join ',') -eq '0,10,60' -and @($s.rows).Count -eq 3) "one row per value: $(@($s.rows | ForEach-Object value) -join ',')"
     # The median follows the value; p99 is only held to the slowest one, since a busy machine stretches the tail of any run.
     $p50 = @($s.rows | ForEach-Object p50Ms); $p99 = @($s.rows | ForEach-Object p99Ms)
     Assert-True ($p50[0] -lt $p50[1] -and $p50[1] -lt $p50[2] -and $p50[1] -ge 10 -and $p50[2] -ge 25 -and $p99[2] -ge 25) "the frame time follows the value: p50 $($p50 -join ', '), p99 $($p99 -join ', ') ms"
     $last = @($s.rows)[2]
     Assert-True ($last.ok -and -not $last.withinLimits -and $last.code -eq 'bench-over-budget') "the value over the budget is marked: $($last | ConvertTo-Json -Compress)"
-    Assert-True ((@($s.withinLimits) -join ',') -eq '0,10' -and "$($s.lastWithinLimits)" -eq '10' -and $s.budgetMs -eq 20) "withinLimits and lastWithinLimits: $(@($s.withinLimits) -join ','), $($s.lastWithinLimits)"
+    Assert-True ((@($s.withinLimits) -join ',') -eq '0,10' -and "$($s.lastWithinLimits)" -eq '10' -and $s.budgetMs -eq 40) "withinLimits and lastWithinLimits: $(@($s.withinLimits) -join ','), $($s.lastWithinLimits)"
     Assert-True (-not $d.PSObject.Properties['bench']) 'the sweep replaces the single run''s bench object'
     $rows = @(Import-Csv -LiteralPath (Join-Path $results 'bench.csv'))
-    Assert-True ($rows.Count -eq 3 -and (@($rows | ForEach-Object label) -join '|') -eq 'fixture cost=0|fixture cost=10|fixture cost=25') "bench.csv has a labelled row per value: $(@($rows | ForEach-Object label) -join '|')"
-    Assert-True (@('bench.cost-0.json', 'bench.cost-10.json', 'bench.cost-25.log' | Where-Object { -not (Test-Path -LiteralPath (Join-Path $results $_)) }).Count -eq 0 -and $last.result -like '*bench.cost-25.json') 'each run keeps its own result and log'
+    Assert-True ($rows.Count -eq 3 -and (@($rows | ForEach-Object label) -join '|') -eq 'fixture cost=0|fixture cost=10|fixture cost=60') "bench.csv has a labelled row per value: $(@($rows | ForEach-Object label) -join '|')"
+    Assert-True (@('bench.cost-0.json', 'bench.cost-10.json', 'bench.cost-60.log' | Where-Object { -not (Test-Path -LiteralPath (Join-Path $results $_)) }).Count -eq 0 -and $last.result -like '*bench.cost-60.json') 'each run keeps its own result and log'
 
     # A value whose run prints an engine error: the sweep runs every value, then fails naming it.
     $d = Invoke-Sweep (Join-Path $temp 'error') @('-Sweep', 'cost=0,error,5')
