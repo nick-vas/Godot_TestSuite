@@ -14,11 +14,11 @@
     <path d="M164 234 C204 220 244 224 252 246 C246 280 204 288 170 274 Z" fill="#8cc4f5"/>
     <path d="M348 234 C308 220 268 224 260 246 C266 280 308 288 342 274 Z" fill="#8cc4f5"/>
     <path d="M256 236 V280" fill="none" stroke-width="6"/>
-    <rect x="212" y="282" width="40" height="19" rx="8" fill="#8cc4f5"/><rect x="260" y="286" width="38" height="19" rx="8" fill="#8cc4f5"/>
-    <rect x="214" y="305" width="38" height="19" rx="8" fill="#8cc4f5"/><rect x="260" y="309" width="40" height="19" rx="8" fill="#8cc4f5"/>
-    <rect x="215" y="328" width="37" height="18" rx="8" fill="#8cc4f5"/><rect x="260" y="331" width="35" height="18" rx="8" fill="#8cc4f5"/>
-    <rect x="219" y="350" width="33" height="18" rx="8" fill="#8cc4f5"/><rect x="260" y="353" width="35" height="18" rx="8" fill="#8cc4f5"/>
-    <rect x="223" y="372" width="29" height="17" rx="8" fill="#8cc4f5"/><rect x="260" y="374" width="27" height="17" rx="8" fill="#8cc4f5"/>
+    <rect x="212" y="283" width="40" height="19" rx="8" fill="#8cc4f5"/><rect x="260" y="283" width="40" height="19" rx="8" fill="#8cc4f5"/>
+    <rect x="213" y="305" width="39" height="19" rx="8" fill="#8cc4f5"/><rect x="260" y="305" width="39" height="19" rx="8" fill="#8cc4f5"/>
+    <rect x="215" y="327" width="37" height="19" rx="8" fill="#8cc4f5"/><rect x="260" y="327" width="37" height="19" rx="8" fill="#8cc4f5"/>
+    <rect x="218" y="349" width="34" height="19" rx="8" fill="#8cc4f5"/><rect x="260" y="349" width="34" height="19" rx="8" fill="#8cc4f5"/>
+    <rect x="222" y="371" width="30" height="18" rx="8" fill="#8cc4f5"/><rect x="260" y="371" width="30" height="18" rx="8" fill="#8cc4f5"/>
     <rect x="166" y="396" width="180" height="40" rx="10" fill="#d9a521"/>
     <circle cx="256" cy="416" r="26" fill="#f2c94c"/><circle cx="256" cy="416" r="10" fill="#ff8a3d"/>
     <g id="arm">
