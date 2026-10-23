@@ -205,8 +205,8 @@ jobs:
           if ($LASTEXITCODE) { throw "plan -Do init failed ($LASTEXITCODE)" }
           pwsh -NoProfile -File $ci plan -Do add -Title 'Title screen' -Feature F5 -Project $project 2>$null | Out-Null
           if ($LASTEXITCODE) { throw "plan -Do add failed ($LASTEXITCODE)" }
-          $p = pwsh -NoProfile -File $ci plan -Do link -Id t1 -Card card1 -Column todo -Json -Project $project 2>$null | ConvertFrom-Json
-          if ($p.tasks[0].feature -ne 'F5' -or $p.tasks[0].cardId -ne 'card1' -or $p.tasks[0].boardColumn -ne 'todo') { throw "plan link: $($p | ConvertTo-Json -Depth 6)" }
+          $p = pwsh -NoProfile -File $ci plan -Do link -Id t1 -Card 5f0c1a2b3c4d5e6f7a8b9c0d -Column todo -Json -Project $project 2>$null | ConvertFrom-Json
+          if ($p.tasks[0].feature -ne 'F5' -or $p.tasks[0].cardId -ne '5f0c1a2b3c4d5e6f7a8b9c0d' -or $p.tasks[0].boardColumn -ne 'todo') { throw "plan link: $($p | ConvertTo-Json -Depth 6)" }
           $bad = pwsh -NoProfile -File $ci plan -Do add -Title x -Feature 7 -Json -Project $project 2>$null | ConvertFrom-Json
           if ($bad.error.code -ne 'invalid-arguments') { throw 'a feature id must look like F3' }
           $d = pwsh -NoProfile -File $ci status -Json -Project $project 2>$null | ConvertFrom-Json
