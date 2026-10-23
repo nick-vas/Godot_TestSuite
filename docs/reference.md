@@ -18,10 +18,10 @@
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `HYPERDOT_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `HYPERDOT_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
 | `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`) |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `sfx` to `<project>/sounds/sfx`, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`) |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
-| `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, `export -Run`, `bench` and `shot`; comma-separated |
+| `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, the `juice` and `playthrough` runners (after their own `args`), `export -Run`, `bench`, `shot`, `soak` (every server and client) and `audio -Mix`; comma-separated |
 | `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
@@ -67,10 +67,12 @@
 | Variable | |
 |---|---|
 | `GODOT_BIN` | A Godot binary to use instead of the kit's own download (in `~/.hyperdot`); `setup -Templates` still installs the kit's Godot when this one has no export templates for the project's version |
+| `GODOT_TOOLS_DIR` | Where the kit keeps what it downloads (Godot, the export templates, .NET when it installs one, its other tools) instead of `~/.hyperdot` |
 | `GODOT_VERSION` | The Godot version when neither `-GodotVersion` nor the project names one (default `4.7.2`) |
 | `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
 | `HYPERDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
 | `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
+| `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run |
 | `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync`: the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
 
 **Workflow inputs** (`godot.yml`), all optional:
