@@ -7,5 +7,6 @@
   "bad-error-code": "unknown-error-code",
   "bad-version": "version-drift",
   "over-budget": "size",
-  "bad-model": "model-in-main-context"
+  "bad-model": "model-in-main-context",
+  "bad-side-file": "unknown-command"
 }
