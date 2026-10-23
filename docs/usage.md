@@ -15,7 +15,7 @@ With the suite outside, `init -Agents` writes its full path into `AGENTS.md`, so
 To share one pinned version with everyone on the game's repository instead, add it as a submodule:
 `git submodule add https://github.com/nick-vas/Godot_TestSuite tools/godot-test-suite`. Its folders carry a `.gdignore` file, so
 Godot never imports or exports them, and the suite's own detection ignores them. If you copy only the `ci/godot` folder,
-keep its `.gdignore`: without it, the suite's four `.gd` tool scripts would be exported with your game.
+keep its `.gdignore`: without it, the suite's `.gd` tool scripts (nine in `ci/godot/tools`, and the templates' `placement_check.gd`) would be exported with your game.
 `init` only adds things and never overwrites a file, so it's safe to run again. It adds:
 - a starter test: gdUnit4Net for C# projects (packages kept out of release builds), GUT for GDScript;
 - `.gitignore` entries and test-folder exclusions in your export presets;

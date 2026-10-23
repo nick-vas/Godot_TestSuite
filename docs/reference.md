@@ -58,8 +58,20 @@
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
-| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the `godot-verifier` subagent |
+| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the subagents (`godot-verifier`, `godot-architect`) |
+| `-Templates` | off | `setup`: also install the export templates (`export` installs them when it needs them) |
 | `-Plugin` | off | `init`: AGENTS.md and CLAUDE.md, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
+
+**Environment variables**, all optional:
+
+| Variable | |
+|---|---|
+| `GODOT_BIN` | A Godot binary to use instead of the kit's own download (in `~/.godot-ci`); `setup -Templates` still installs the kit's Godot when this one has no export templates for the project's version |
+| `GODOT_VERSION` | The Godot version when neither `-GodotVersion` nor the project names one (default `4.7.2`) |
+| `GODOT_CI_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
+| `GODOT_CI_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
+| `GODOT_CI_PLAYWRIGHT`, `GODOT_CI_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
+| `TRELLO_KEY`, `TRELLO_TOKEN` | `plan -Do sync`: the Trello API key and token, sent in a header (see [plan.md](plan.md)) |
 
 **Workflow inputs** (`godot.yml`), all optional:
 
