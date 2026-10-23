@@ -82,7 +82,7 @@ public sealed class BitPackerTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new BitWriter().WriteQuantized(float.NaN, 0, 1, 0.01f));
     }
 
-    // A ghost's state as GhostReplicator charges it (4 bytes a value) against the same state packed: a position in a 2 km
+    // A ghost's state at 4 bytes a value (GhostFormat.Uniform) against the same state packed: a position in a 2 km
     // world at 1/1024 m, health 0..100, an animation of 16, and alive.
     [Fact]
     public void APackedGhostNeedsAboutAThirdOfTheBytes()
@@ -93,8 +93,8 @@ public sealed class BitPackerTests
         writer.WriteInt(73, 0, 100);
         writer.WriteUInt(9, 4);
         writer.WriteBool(true);
-        int fixedBytes = 5 * GhostReplicator.ValueBytes;
-        _output.WriteLine($"{writer.BitCount} bits, {writer.ByteCount} bytes packed against {fixedBytes} at {GhostReplicator.ValueBytes} bytes a value");
+        int fixedBytes = 5 * sizeof(int);
+        _output.WriteLine($"{writer.BitCount} bits, {writer.ByteCount} bytes packed against {fixedBytes} at 4 bytes a value");
         Assert.Equal(22 + 22 + 7 + 4 + 1, writer.BitCount);
         Assert.Equal(7, writer.ByteCount);
         Assert.True(writer.ByteCount * 2 < fixedBytes);

@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **The C# example's replicator packs bits and keeps to the client's rate.** `GhostFormat` gives each state group of
+  `GhostReplicator` its own width (a ghost's creation: 14 bytes against 27 at 4 bytes a value) and `GhostReceiver`
+  reads the packed payload; a value too wide for its group throws before anything is marked sent. `LinkBudget` holds
+  the packets a second and bytes a packet the client asked for, capped by the tick rate and the server's uplink;
+  `ReplicationTests` checks that no packet and no second carries more than was asked, through two changes of rate.
 - **The C# example draws from `DeterministicRandom` everywhere a run must repeat.** `Steering.Wander` and
   `Aim.Scatter` take it by `ref`, `PacingDirector` and `ResponseSystem` take one at construction (the director exposes
   `RandomState` for saves), as `godot-game-ai` asks; `DeterministicRandom.NextDouble` replaces `EconomySim`'s private copy.

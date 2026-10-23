@@ -219,8 +219,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 In the example game (the C# example):
 
-- `GhostReplicator`: packed bits per group instead of 4 bytes a value, and a client-set `LinkBudget` checked in
-  `ReplicationTests` (never more than the client asked for).
 - A `DifficultyDirector` with slow, bounded steps and hysteresis, tested so it never flips every attempt.
 - A GDScript or gdUnit4 test in `examples/csharp/game` pinning the maths book's 3D yaw sign and cross-product area
   (Example.Core's `System.Numerics` has other conventions).

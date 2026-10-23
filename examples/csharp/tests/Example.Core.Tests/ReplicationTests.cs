@@ -170,7 +170,8 @@ public sealed class ReplicationTests
         var replicator = new GhostReplicator(groups: 1);
         var scope = Enumerable.Range(1, 40).ToDictionary(id => id, id => (float)id);   // object 40 matters most
         replicator.SetScope(scope);
-        int budget = GhostReplicator.PacketHeaderBytes + 5 * (GhostReplicator.UpdateHeaderBytes + GhostReplicator.ValueBytes);
+        // Room for five one-group updates (and so five creations, which carry no mask): 5 x 52 bits and the end bit.
+        int budget = GhostReplicator.PacketHeaderBytes + GhostFormat.PayloadBytes(5 * replicator.Format.UpdateBits(GhostStatus.Update, 1));
         var first = replicator.Write(0, budget, (_, _) => 0);
         Assert.Equal(new[] { 40, 39, 38, 37, 36 }, first.Updates.Select(u => u.Id));   // creations, by priority
         Assert.True(first.Bytes <= budget);
@@ -262,6 +263,107 @@ public sealed class ReplicationTests
         return (longest[Opponent], longest.Where(kv => kv.Key != Opponent).Max(kv => kv.Value), allCreated);
     }
 
+    // A ghost as BitPackerTests packs it: x and z at 1/1024 m in a 2 km world (22 bits each), health 0..100 (7), an
+    // animation of 16 (4) and alive (1). The game quantizes before MarkDirty; the replicator sends the steps.
+    static readonly int Coordinate = BitPacking.QuantizedBits(-1024, 1024, 1f / 1024);
+    static GhostFormat Packed() => new([Coordinate, Coordinate, 7, 4, 1]);
+
+    [Fact]
+    public void PackedGroupsCarryEachValueInItsOwnBits()
+    {
+        var packed = Packed();
+        var uniform = GhostFormat.Uniform(packed.Groups);
+        int[] state = { 1_368_320, 959_488, 73, 9, 1 };
+        (GhostPacket Create, GhostPacket Health, GhostReceiver Client) Run(GhostFormat format)
+        {
+            var replicator = new GhostReplicator(format);
+            var client = new GhostReceiver(format);
+            replicator.SetScope(new Dictionary<int, float> { [7] = 1 });
+            var create = replicator.Write(0, 1200, (_, g) => state[g]);
+            client.Receive(create);
+            replicator.OnNotify(0, Delivery.Delivered);
+            replicator.MarkDirty(7, 1u << 2);
+            var health = replicator.Write(1, 1200, (_, g) => g == 2 ? 72 : state[g]);
+            client.Receive(health);
+            return (create, health, client);
+        }
+        var bits = Run(packed);
+        var ints = Run(uniform);
+        _output.WriteLine($"creation {bits.Create.Bytes} bytes packed, {ints.Create.Bytes} at 4 bytes a value; health alone {bits.Health.Bytes} and {ints.Health.Bytes}");
+        Assert.Equal(new[] { 1_368_320, 959_488, 72, 9, 1 }, bits.Client.Ghosts[7]);
+        Assert.Equal(ints.Client.Ghosts[7], bits.Client.Ghosts[7]);
+        // Header 4, then 1 + 16 + 2 + 56 bits and the end bit: 10 bytes, against 1 + 16 + 2 + 160 + 1 bits (23 bytes).
+        Assert.Equal((14, 27), (bits.Create.Bytes, ints.Create.Bytes));
+        // An update adds a 5-bit mask: health is 1 + 16 + 2 + 5 + 7 bits and the end bit, 4 bytes, against 8.
+        Assert.Equal((8, 12), (bits.Health.Bytes, ints.Health.Bytes));
+    }
+
+    [Fact]
+    public void AValueTooWideForItsGroupFailsBeforeAnythingIsMarkedSent()
+    {
+        var replicator = new GhostReplicator(Packed());
+        replicator.SetScope(new Dictionary<int, float> { [7] = 1 });
+        var e = Assert.Throws<ArgumentOutOfRangeException>(() => replicator.Write(0, 1200, (_, g) => g == 2 ? 300 : 0));
+        Assert.StartsWith("object 7 group 2: 300 does not fit in 7 bits (0 to 127)", e.Message);
+        Assert.True(replicator.AwaitingCreation(7));
+        Assert.Single(replicator.Write(0, 1200, (_, _) => 0).Updates);   // still to be created, with values that fit
+
+        // A full 32-bit group keeps negative values.
+        var signed = new GhostReplicator(1);
+        var client = new GhostReceiver(1);
+        signed.SetScope(new Dictionary<int, float> { [1] = 1 });
+        client.Receive(signed.Write(0, 1200, (_, _) => -5));
+        Assert.Equal(-5, client.Ghosts[1][0]);
+    }
+
+    // TRIBES: "the client sets its rate". The client asks for 20 packets a second of 300 bytes, then drops to 10 of 120
+    // (a worse link), then asks for 60 of 2000; the server ticks 30 times a second with 20,000 bytes a second for this
+    // client, so the last request gets 30 packets of 666 bytes. Every object changes every tick, so every packet is full.
+    [Fact]
+    public void TheClientSetsItsRateAndIsNeverSentMoreThanItAskedFor()
+    {
+        const int TickRate = 30, Uplink = 20_000, Objects = 120, Groups = 4;
+        var replicator = new GhostReplicator(Groups);
+        var client = new GhostReceiver(Groups);
+        var link = new LinkBudget(TickRate, Uplink, packetsPerSecond: 20, bytesPerPacket: 300);
+        var world = new int[Objects + 1, Groups];
+        int version = 0, sequence = 0;
+        var scope = Enumerable.Range(1, Objects).ToDictionary(id => id, id => 1f + id % 5);
+        replicator.SetScope(scope);
+        (int Until, int Pps, int Bytes)[] phases = [(300, 20, 300), (600, 10, 120), (900, 60, 2000)];
+        var sentPerSecond = new Dictionary<int, (int Packets, int Bytes)>();
+
+        for (int tick = 0; tick < 900; tick++)
+        {
+            var phase = phases.First(p => tick < p.Until);
+            if (tick == 300 || tick == 600) link.Request(phase.Pps, phase.Bytes);
+            for (int id = 1; id <= Objects; id++)
+            {
+                world[id, tick % Groups] = ++version;
+                replicator.MarkDirty(id, 1u << (tick % Groups));
+            }
+            if (!link.Tick()) continue;
+            var packet = replicator.Write(sequence, link, (id, g) => world[id, g]);
+            Assert.True(packet.Bytes <= phase.Bytes, $"tick {tick}: {packet.Bytes} bytes, the client asked for at most {phase.Bytes}");
+            Assert.True(packet.Bytes <= link.BytesPerPacket);
+            Assert.True(packet.Bytes > link.BytesPerPacket - 30, $"tick {tick}: {packet.Bytes} of {link.BytesPerPacket} bytes used");
+            client.Receive(packet);
+            replicator.OnNotify(sequence++, Delivery.Delivered);
+            var second = sentPerSecond.GetValueOrDefault(tick / TickRate);
+            sentPerSecond[tick / TickRate] = (second.Packets + 1, second.Bytes + packet.Bytes);
+        }
+
+        Assert.Equal((30, 666), (link.PacketsPerSecond, link.BytesPerPacket));   // capped by the tick rate and the uplink
+        foreach (var (second, sent) in sentPerSecond)
+        {
+            var asked = phases.First(p => second * TickRate < p.Until);
+            Assert.Equal(Math.Min(asked.Pps, TickRate), sent.Packets);           // every second, exactly what was granted
+            Assert.True(sent.Bytes <= Uplink, $"second {second}: {sent.Bytes} bytes");
+        }
+        _output.WriteLine(string.Join(", ", phases.Select(p => $"until tick {p.Until}: {sentPerSecond[(p.Until - 1) / TickRate].Packets} packets, {sentPerSecond[(p.Until - 1) / TickRate].Bytes} bytes a second")));
+        Assert.Throws<ArgumentOutOfRangeException>(() => link.Request(10, LinkBudget.MinBytesPerPacket - 1));
+    }
+
     [Fact]
     public void UnderLossTheClientConvergesAndNeverAppliesOldState()
     {
@@ -301,7 +403,7 @@ public sealed class ReplicationTests
                 var packet = replicator.Write(notify.Send(), Budget, (id, g) => world[id, g]);
                 Assert.True(packet.Bytes <= Budget);
                 ghostBytes += packet.Bytes;
-                snapshotBytes += GhostReplicator.PacketHeaderBytes + scope.Count * (GhostReplicator.UpdateHeaderBytes + Groups * GhostReplicator.ValueBytes);
+                snapshotBytes += GhostReplicator.PacketHeaderBytes + GhostFormat.PayloadBytes(scope.Count * replicator.Format.UpdateBits(GhostStatus.Create, 0));
                 packets++;
                 down.Send(packet, now);
             }
