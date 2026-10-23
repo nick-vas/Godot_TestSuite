@@ -11,6 +11,13 @@ on:
 permissions:
   contents: read
 
+# A push to a branch with an open pull request starts this twice (push and pull_request); both share the branch's group,
+# so the later one cancels the earlier, as a new push cancels a run of an older commit. Not on main, where every merge
+# keeps its own run.
+concurrency:
+  group: self-test-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -91,11 +98,6 @@ jobs:
       - name: doctor checks every asset has a source and a licence
         shell: pwsh
         run: ./tests/Test-AssetManifest.ps1
-      # Before the l10n and audio steps, which measure sound with it.
-      - uses: ./.github/actions/ffmpeg
-      - name: The l10n runner fails on duplicate, untranslated, missing and too long keys, broken remaps and mismatched voice
-        shell: pwsh
-        run: ./tests/Test-Localization.ps1 -NoGodot
       - name: The data runner checks tables against data.json
         shell: pwsh
         run: ./tests/Test-Data.ps1
@@ -114,7 +116,11 @@ jobs:
       - name: doctor picks each GDExtension library as Godot does, and reports add-on mistakes
         shell: pwsh
         run: ./tests/Test-Addons.ps1
-      - name: doctor checks Steam store art, the short description, trailers (with the ffprobe installed above), tags and the privacy policy
+      # The store step's trailer checks read videos with ffprobe.
+      - uses: ./.github/actions/apt
+        with:
+          packages: ffmpeg
+      - name: doctor checks Steam store art, the short description, trailers (with ffprobe), tags and the privacy policy
         shell: pwsh
         run: ./tests/Test-Store.ps1
       - name: doctor checks Web and Android presets and export paths inside the project
@@ -123,9 +129,6 @@ jobs:
       - name: The token benchmark counts, checks and retries (against a stand-in CLI)
         shell: pwsh
         run: ./tests/Test-TokenBenchmark.ps1
-      - name: audio measures sound files, and doctor names missing buses
-        shell: pwsh
-        run: ./tests/Test-Audio.ps1
       - name: sfx makes bfxr's sounds from a seed, as WAV and .bfxr
         shell: pwsh
         run: ./tests/Test-Sfx.ps1
@@ -138,12 +141,6 @@ jobs:
       - name: The juice check matches events with their feedback
         shell: pwsh
         run: ./tests/Test-JuiceLog.ps1
-      - name: The playthrough check wants every milestone in order (log only; the Godot run is in measure)
-        shell: pwsh
-        run: ./tests/Test-Playthrough.ps1 -NoGodot
-      - name: The palette check reads docs/STYLE.md, passes anti-aliased edges and finds an extra colour (generated pictures; the Godot run is in measure)
-        shell: pwsh
-        run: ./tests/Test-Palette.ps1 -NoGodot
       - name: status measures how long passing test runs take
         shell: pwsh
         run: ./tests/Test-TestDuration.ps1
@@ -153,7 +150,7 @@ jobs:
       - name: bench and audio refuse several scenes before any setup
         shell: pwsh
         run: ./tests/Test-SceneCount.ps1
-      - name: A pinned file that is missing fails the version update
+      - name: Version updates rewrite every pin, fail on a missing one and keep the skills valid
         shell: pwsh
         run: ./tests/Test-UpdatePins.ps1
       - name: The PR comment finds its summary past the first 100 comments
@@ -171,21 +168,6 @@ jobs:
       - name: The label's index, classes, minimum, verification and rescaling
         shell: pwsh
         run: ./tests/Test-HyperdotLabel.ps1
-      - name: Version updates rewrite every pin and keep the skills valid
-        shell: pwsh
-        run: |
-          # On a copy, with made-up releases: a new Godot minor with its GUT release, and a package update.
-          $copy = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'versions')
-          git archive HEAD | tar -x -C $copy
-          $latest = Join-Path $env:RUNNER_TEMP 'latest.json'
-          '{"godot":"4.99.0","gut":"v9.99.0","gdUnit4.api":"9.9.9"}' | Set-Content $latest
-          $r = pwsh -NoProfile -File ./ci/godot/tools/Update-Versions.ps1 -Root $copy -LatestFile $latest -Apply -Json | ConvertFrom-Json
-          if ($r.updates.Count -ne 3 -or $r.changed.Count -lt 10) { throw "unexpected result: $($r | ConvertTo-Json -Depth 5)" }
-          $csproj = Get-Content (Join-Path $copy 'examples/csharp/game/Example.csproj') -Raw
-          if ($csproj -notmatch 'Godot\.NET\.Sdk/4\.99\.0' -or $csproj -notmatch '"gdUnit4.api" Version="9\.9\.9"') { throw 'csproj pins were not updated' }
-          if ((Get-Content (Join-Path $copy 'ci/godot/lib/Setup.ps1') -Raw) -notmatch "'\^4\\\.99' \{ 'v9\.99\.0' \} '\^4\\\.7'") { throw 'the GUT mapping for the new minor is missing' }
-          pwsh -NoProfile -File ./ci/godot/tools/Test-Skills.ps1 -Root $copy
-          if ($LASTEXITCODE) { throw 'the skills no longer validate after the update' }
       - name: status reads the GDD, tagged tests and plan links
         shell: pwsh
         run: |
@@ -231,9 +213,6 @@ jobs:
           # Pinned: an unpinned linter can turn a green branch red overnight.
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
-
-  # No inputs at all: detects the shallowest project (examples/gdscript), installs GUT, runs validate,
-  # gut and smoke.
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7
@@ -243,6 +222,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # No inputs at all: detects the shallowest project (examples/gdscript), installs GUT, runs validate,
+  # gut and smoke.
   zero-config:
     permissions:
       contents: read
@@ -333,8 +314,10 @@ jobs:
         shell: pwsh
         run: ./tests/Test-Flaky.ps1
       # The l10n test makes its localized voice files with ffmpeg; without it the remap checks have nothing to find.
-      - uses: ./.github/actions/ffmpeg
-      - name: The l10n runner fails translations the project's fonts cannot draw, and warns on SystemFont-only text
+      - uses: ./.github/actions/apt
+        with:
+          packages: ffmpeg
+      - name: The l10n runner fails duplicate, untranslated, missing and too long keys, broken remaps, mismatched voice, and text the fonts cannot draw
         shell: pwsh
         run: ./tests/Test-Localization.ps1
       - name: Error keys group a run's Godot errors across runs, and status lists the recurring ones
@@ -400,9 +383,6 @@ jobs:
           $f = @($d.runnerResults[0].failures)
           if ($d.ok -or $d.error.code -ne 'tests-failed' -or $f.Count -ne 1 -or $f[0].message -notmatch "had no 'flash' within 100 ms") { throw "late feedback: $($d | ConvertTo-Json -Depth 6)" }
           exit 0   # the last run failed on purpose; see the step above
-
-  # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
-  # prove the commands work, not how fast anything is.
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7
@@ -412,6 +392,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # bench, shot and -GameArgs. A virtual display stands in for a screen; rendering is software OpenGL, so the numbers only
+  # prove the commands work, not how fast anything is.
   measure:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -502,17 +484,19 @@ jobs:
       - name: shot -MaxChangedPercent fails a screen that changed against its baseline
         shell: pwsh
         run: ./tests/Test-ShotChanged.ps1
-      - name: shot -MaxOffPalettePercent fails a swatch that is not in docs/STYLE.md's palette
+      - name: The palette check reads docs/STYLE.md and passes anti-aliased edges; shot -MaxOffPalettePercent fails a swatch not in its palette
         shell: pwsh
         run: ./tests/Test-Palette.ps1
-      - name: The playthrough runner passes a bot that finishes and fails one stuck in level 1
+      - name: The playthrough check wants every milestone in order; the runner passes a bot that finishes and fails one stuck in level 1
         shell: pwsh
         run: ./tests/Test-Playthrough.ps1
       - name: Capture mode hides the HUD, mutes only the music, and freezes the game while the free camera flies
         shell: pwsh
         run: ./tests/Test-Capture.ps1
-      - uses: ./.github/actions/ffmpeg
-      - name: audio -Mix records the game's mix and judges its loudness
+      - uses: ./.github/actions/apt
+        with:
+          packages: ffmpeg
+      - name: audio measures sound files and doctor names missing buses; -Mix records the game's mix and judges its loudness
         shell: pwsh
         run: ./tests/Test-Audio.ps1 -Mix
       - name: -GameArgs reach the game
@@ -531,20 +515,45 @@ jobs:
       - name: Every documented error code no other test raises is raised and reported
         shell: pwsh
         run: ./tests/Test-ErrorCodes.ps1
-      - name: The game benchmark grades good and bad game work by the game's tests
+      - name: Keep what this job's kit runs reached
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-measure
+          path: ${{ runner.temp }}/hyperdot-coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The game benchmark's grading, against stand-ins for the model: the pilot programme and the staged one (a test
+  # programme, and benchmark/game-programme.json's written genres). Its own job: it runs Godot for every task several
+  # times, and the staged programme grows with each genre. The .NET build of Godot runs the GDScript games too.
+  game-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      # Every kit run in this job records the functions it entered and the error code it stopped with; the coverage job
+      # at the end adds them up (tests/Get-KitCoverage.ps1).
+      - name: Record what the kit reaches
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
+      - name: Godot (.NET build), for GODOT_BIN
+        shell: pwsh
+        run: ./ci/godot/hyperdot.ps1 setup -Project examples/csharp/game
+      - name: The game benchmark grades good and bad game work by the game's tests, and judges it
         shell: pwsh
         run: ./tests/Test-GameBenchmark.ps1
       - name: Every staged programme task catches its defect, passes its reference and fails its decoy
         shell: pwsh
         run: |
           ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
-          if (Test-Path benchmark/game-programme.json) { ./tests/Test-GameProgramme.ps1 }
-
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ./tests/Test-GameProgramme.ps1
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-measure
+          name: coverage-game-benchmark
           path: ${{ runner.temp }}/hyperdot-coverage
           if-no-files-found: ignore
           retention-days: 14
@@ -560,8 +569,22 @@ jobs:
       - name: Record what the kit reaches
         shell: pwsh
         run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
+      # Playwright's own --with-deps installs the browsers' system packages from Ubuntu's mirror, which took 11 of this
+      # job's 15 minutes at 35 kB/s; the apt action keeps them in the Actions cache. The browsers come from Playwright's
+      # CDN in seconds. xvfb and the Mesa drivers are for the Firefox step below.
+      - name: The system packages Playwright's browsers need
+        id: browser-packages
+        shell: pwsh
+        run: |
+          $plan = npx --yes playwright@1.56.1 install-deps --dry-run chromium firefox 2>&1 | Out-String
+          $match = [regex]::Match($plan, 'apt-get install -y --no-install-recommends (?<p>[^"\r\n]+)')
+          if (-not $match.Success) { throw "Could not read Playwright's package list: $plan" }
+          "packages=$($match.Groups['p'].Value.Trim()) xvfb libgl1-mesa-dri" >> $env:GITHUB_OUTPUT
+      - uses: ./.github/actions/apt
+        with:
+          packages: ${{ steps.browser-packages.outputs.packages }}
       - name: Playwright's Chromium and Firefox
-        run: npx --yes playwright@1.56.1 install --with-deps chromium firefox
+        run: npx --yes playwright@1.56.1 install chromium firefox
       - name: export -Run starts web builds, serves threads builds isolated and catches script errors
         shell: pwsh
         run: ./tests/Test-Web.ps1 -Browser chromium,msedge
@@ -572,12 +595,9 @@ jobs:
           HYPERDOT_WEB_HEADED: '1'
           DISPLAY: ':99'
         run: |
-          sudo apt-get install -y -q xvfb libgl1-mesa-dri > $null
           Start-Process Xvfb -ArgumentList ':99', '-screen', '0', '1920x1080x24'
           Start-Sleep -Seconds 2
           ./tests/Test-Web.ps1 -Browser firefox
-
-  # The composite action inside a custom workflow.
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7
@@ -587,6 +607,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # The composite action inside a custom workflow.
   action:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -631,16 +652,13 @@ jobs:
       - name: Filtered run
         shell: pwsh
         run: ./ci/godot/hyperdot.ps1 test -Project examples/csharp/game -Runners dotnet -Filter 'FullyQualifiedName~RunState'
-      - name: Doctor
-        shell: pwsh
-        run: ./ci/godot/hyperdot.ps1 doctor -Project examples/csharp/game
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
       - name: A crashed import or export is repeated, a failure or a hang is not
         shell: pwsh
         run: ./tests/Test-CrashRetry.ps1
-      - name: JSON output is one valid document
+      - name: detect and doctor answer with one valid JSON document, and doctor passes
         shell: pwsh
         run: |
           $d = pwsh -NoProfile -File ./ci/godot/hyperdot.ps1 detect -Json -Project examples/csharp/game 2>$null | ConvertFrom-Json
@@ -696,7 +714,7 @@ jobs:
   # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
   # floors fails the run, so coverage cannot fall unnoticed.
   coverage:
-    needs: [lint, init, measure, web, action, local-windows]
+    needs: [lint, init, measure, game-benchmark, web, action, local-windows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

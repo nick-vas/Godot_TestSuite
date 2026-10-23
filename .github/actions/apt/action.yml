@@ -1,0 +1,63 @@
+name: apt
+description: >-
+  Installs Ubuntu packages, keeping the downloaded .deb files in the Actions cache. Ubuntu's mirror has served packages at
+  35 to 128 kB/s in self-test runs: 11 minutes for the 24 MB of fonts and libraries Playwright's browsers need, 12 for
+  ffmpeg's 94 MB. From the cache an install needs only apt's index. Packages already installed are skipped.
+inputs:
+  packages:
+    description: Package names, separated by spaces
+    required: true
+runs:
+  using: composite
+  steps:
+    # One cache per package list. The runner image's version is in the key, so a new image saves a fresh set; the old
+    # set is restored first, so only the packages that changed are downloaded.
+    - id: key
+      if: runner.os == 'Linux'
+      shell: pwsh
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        $list = @($env:PACKAGES -split '\s+' | Where-Object { $_ } | Sort-Object -Unique)
+        $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($list -join ' '))).Substring(0, 12).ToLowerInvariant()
+        "prefix=apt-$env:RUNNER_OS-$env:RUNNER_ARCH-$env:ImageOS-$hash-" >> $env:GITHUB_OUTPUT
+        "key=apt-$env:RUNNER_OS-$env:RUNNER_ARCH-$env:ImageOS-$hash-$env:ImageVersion" >> $env:GITHUB_OUTPUT
+        "dir=$(Join-Path $HOME ".cache/apt-$hash")" >> $env:GITHUB_OUTPUT
+
+    - id: restore
+      if: runner.os == 'Linux'
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.key.outputs.dir }}
+        key: ${{ steps.key.outputs.key }}
+        restore-keys: ${{ steps.key.outputs.prefix }}
+
+    - id: install
+      if: runner.os == 'Linux'
+      shell: pwsh
+      env:
+        PACKAGES: ${{ inputs.packages }}
+        DEBS: ${{ steps.key.outputs.dir }}
+      run: |
+        $list = @($env:PACKAGES -split '\s+' | Where-Object { $_ } | Sort-Object -Unique)
+        $missing = @($list | Where-Object { (dpkg-query -W -f='${Status}' $_ 2>$null) -ne 'install ok installed' })
+        if ($missing.Count -eq 0) { Write-Host "Already installed: $($list -join ' ')"; exit 0 }
+        New-Item -ItemType Directory -Force $env:DEBS | Out-Null
+        $cached = @(Get-ChildItem -LiteralPath $env:DEBS -Filter '*.deb' -ErrorAction SilentlyContinue)
+        if ($cached) { sudo cp $cached.FullName /var/cache/apt/archives/ }
+        sudo apt-get update -q
+        # No recommended extras; retries and a timeout per connection for a slow mirror.
+        sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=3 -o Acquire::http::Timeout=30 @missing
+        if ($LASTEXITCODE) { throw "apt-get install $($missing -join ' ') failed ($LASTEXITCODE)" }
+        Copy-Item /var/cache/apt/archives/*.deb $env:DEBS -Force -ErrorAction SilentlyContinue
+        Write-Host "Installed $($missing -join ' ') ($($cached.Count) package file(s) came from the cache)"
+        'installed=true' >> $env:GITHUB_OUTPUT
+        exit 0
+
+    # Only after an install that downloaded something: an empty folder cannot be saved.
+    - if: runner.os == 'Linux' && steps.install.outputs.installed == 'true' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: ${{ steps.key.outputs.dir }}
+        key: ${{ steps.key.outputs.key }}

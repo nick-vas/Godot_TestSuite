@@ -103,7 +103,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello (local moves, custom lists, a failure halfway, an unreachable API, an empty board); `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
 | `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
 | `Test-GameVersion.ps1` | `export -GameVersion auto`, Android version codes, download names (temporary git repositories) | git |
-| `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor; the canary's exit checks and pairing (copies of the repository) | - |
+| `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor, a new minor with its GUT release and a package update rewrite every pin and keep the skills valid; the canary's exit checks and pairing (copies of the repository) | - |
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |

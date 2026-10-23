@@ -59,7 +59,11 @@ $results = [System.Collections.Generic.List[object]]::new()
 try {
     $expanded = Expand-GameProgramme $spec $root '' $Genre $Stage $Language
     $tasks = @($expanded.Tasks | Where-Object { $t = $_; -not $TaskId -or @($TaskId | Where-Object { $t.id -like $_ }).Count })
-    if ($tasks.Count -eq 0) { throw 'No task selected' }
+    if ($tasks.Count -eq 0) {
+        # A programme whose genres are not written yet has nothing to check; a selection that matches nothing is a mistake.
+        if (-not ($Genre -or $Stage -or $Language -or $TaskId) -and @($expanded.Tasks).Count -eq 0) { Write-Host "No stage of $SpecPath is written yet: nothing to check"; exit 0 }
+        throw 'No task selected'
+    }
     foreach ($m in $expanded.Missing) { Write-Host "not written yet: $m" }
     # Every stage must be green on its own before its tasks plant anything.
     foreach ($source in @($tasks | ForEach-Object { $_.game.source } | Sort-Object -Unique)) {

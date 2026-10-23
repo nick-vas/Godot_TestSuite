@@ -22,6 +22,19 @@
   change, and five mutants its tests must catch. The label now has two classes per version, **tool efficiency** and
   **game-making efficiency** (`-Programme tool|game`), each with its own standard tokens. `tests/Test-GameBenchmark.ps1`
   checks the grading with a stand-in that does every task well and badly.
+- **CI pipelines, sanity pass.**
+  - The web job's 11-minute install of Playwright's system packages (Ubuntu's mirror at 35 kB/s) now comes from the
+    Actions cache, through `.github/actions/apt`. That action replaces `.github/actions/ffmpeg` and also serves ffmpeg
+    and the evals' sandbox.
+  - A push to a branch with an open pull request no longer runs Self-test twice, and a newer push cancels an older
+    run (not on main).
+  - The game benchmark's self-tests have a job of their own, with Godot set up for them; before, the staged check had
+    no `GODOT_BIN` there.
+  - Four lint steps ran no-Godot parts of tests that run whole in later jobs; they are gone.
+  - A second `doctor` run on Windows is gone.
+  - The inline version-update check moved into `tests/Test-UpdatePins.ps1`.
+  - Three job comments sat above the wrong job.
+  - The runner lists in the workflow and action inputs were missing eight runners.
 - **Judged grading for the game programme**: a task can be scored by a pinned judge model against a rubric (median of
   three), and `benchmark/Invoke-SideBySide.ps1` judges each model's work with and without the plugin blind, both ways
   round. The plugin's win rate becomes a quality factor on its index (`Get-HyperdotLabel.ps1 -Preferences`).

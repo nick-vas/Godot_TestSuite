@@ -29,11 +29,14 @@ jobs:
       GODOT_TOOLS_DIR: /opt/hyperdot
     steps:
       - uses: actions/checkout@v7
+      # The eval sandbox (Claude Code runs Bash under bubblewrap), from the Actions cache when it can.
+      - uses: ./.github/actions/apt
+        with:
+          packages: bubblewrap socat
       - name: Eval sandbox, Claude Code and Godot
         shell: pwsh
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run evals' }
-          sudo apt-get update -q; sudo apt-get install -y -q bubblewrap socat
           # Ubuntu 23.10 and later stop unprivileged programs from making user namespaces (AppArmor), so bwrap fails with
           # "loopback: Failed RTM_NEWADDR: Operation not permitted" and every Bash call in a case fails with it: run 4
           # scored a sandbox that could not run a command. An AppArmor profile lets bwrap alone make them; the sysctl,

@@ -64,6 +64,22 @@ try {
         }
     }
 
+    # A new Godot minor with its GUT release, and a test-package update, together: every pin moves, the GUT mapping in
+    # Setup.ps1 gains the new minor, and the skills still validate afterwards.
+    $minor = New-RepoCopy 'minor'
+    $latestAll = Join-Path $temp 'latest-all.json'
+    '{"godot":"4.99.0","gut":"v9.99.0","gdUnit4.api":"9.9.9"}' | Set-Content -LiteralPath $latestAll
+    $out = & pwsh -NoProfile -File $tool -Root $minor -LatestFile $latestAll -Apply -Json 2>&1
+    $r = if (-not $LASTEXITCODE) { try { ($out -join "`n") | ConvertFrom-Json } catch { $null } }
+    if (-not $r -or @($r.updates).Count -ne 3 -or @($r.changed).Count -lt 10) { $failures += "a minor, GUT and package update together should apply: $($out -join ' ')" }
+    else {
+        $csproj = Get-Content -LiteralPath (Join-Path $minor 'examples/csharp/game/Example.csproj') -Raw
+        if ($csproj -notmatch 'Godot\.NET\.Sdk/4\.99\.0' -or $csproj -notmatch '"gdUnit4.api" Version="9\.9\.9"') { $failures += 'the csproj pins were not updated' }
+        if ((Get-Content -LiteralPath (Join-Path $minor 'ci/godot/lib/Setup.ps1') -Raw) -notmatch "'\^4\\\.99' \{ 'v9\.99\.0' \} '\^4\\\.7'") { $failures += 'the GUT mapping for the new minor is missing' }
+        & pwsh -NoProfile -File (Join-Path $root 'ci/godot/tools/Test-Skills.ps1') -Root $minor *> $null
+        if ($LASTEXITCODE) { $failures += 'the skills no longer validate after the update' }
+    }
+
     # One pinned file moved away: a loud failure that names it.
     $broken = New-RepoCopy 'broken'
     Remove-Item -LiteralPath (Join-Path $broken 'evals/fix-score-bug/prompt.md')

@@ -11,7 +11,7 @@ inputs:
     description: "e.g. 4.7.2 or 4.8-rc1 (default - from Godot.NET.Sdk in the csproj, else 4.7.2)"
     default: ""
   runners:
-    description: "Comma list of dotnet, gdunit4, godottest, gut, smoke, or none (default - detected)"
+    description: "Comma list of runners (validate, architecture, dotnet, gdunit4, godottest, gut, flows, smoke, l10n, data, juice, playthrough, textsize, layout), or none (default - detected)"
     default: ""
   filter:
     description: Test filter passed to each runner
