@@ -74,6 +74,7 @@ Branch on `error.code`; `message` can change.
 | `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
+| `install-busy` | Another run on the same machine has been installing the same Godot for longer than `HYPERDOT_TIMEOUT`; the two take turns, so this is a stuck or very slow install, not the project; stop it or wait, then retry | `error.message` (the lock file) |
 | `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
 | `failed` | A failure with no code of its own: no `project.godot` in the project folder, a program not found (the .NET SDK, a tool on the `PATH`), an add-on or runner set-up that is missing or misnamed, a tool that exited non-zero | `error.message` |
 

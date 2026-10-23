@@ -6,8 +6,9 @@ function Save-Download([string]$Url, [string]$Destination) {
     $ProgressPreference = 'SilentlyContinue'   # the progress bar slows Invoke-WebRequest down a lot
     for ($attempt = 1; ; $attempt++) {
         try {
-            Invoke-WebRequest -Uri $Url -OutFile "$Destination.part" -MaximumRedirection 10
-            Move-Item -Force -LiteralPath "$Destination.part" -Destination $Destination
+            # One partial file per process: two runs fetching the same file never write into each other.
+            Invoke-WebRequest -Uri $Url -OutFile "$Destination.$PID.part" -MaximumRedirection 10
+            Move-Item -Force -LiteralPath "$Destination.$PID.part" -Destination $Destination
             return
         } catch {
             if ($attempt -ge 4) { throw }
@@ -23,6 +24,30 @@ function Save-RequiredDownload([string]$Url, [string]$Destination) {
     catch { Stop-GodotCi "Could not download $Url after 4 attempts ($($_.Exception.Message.TrimEnd("."))). Retry later or check the network; the project is not at fault." 'download-failed' }
 }
 
+# Two runs installing the same Godot at once (parallel jobs on one machine, two agent sessions) would share the zip, and
+# one could start a half-extracted editor. An exclusive lock on a file serialises them; the system releases it when a
+# run dies, so a crash never leaves it held. The wait is bounded by HYPERDOT_TIMEOUT, like any program the kit runs.
+function Use-InstallLock([string]$Name, [scriptblock]$Body) {
+    $dir = Get-ToolsDir
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    $path = Join-Path $dir "$Name.lock"
+    $limit = Get-ProcessTimeout
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $waiting = $false
+    while ($true) {
+        try {
+            $lock = [IO.File]::Open($path, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+            break
+        } catch [IO.IOException] {
+            if ($limit -gt 0 -and $watch.Elapsed.TotalSeconds -ge $limit) {
+                Stop-GodotCi "Another run has been installing $Name for $([int]$watch.Elapsed.TotalSeconds) s ($path is locked). Wait for it to finish, or stop it, and retry." 'install-busy'
+            }
+            if (-not $waiting) { Write-CiLog "Waiting for another run installing $Name"; $waiting = $true }
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    try { & $Body } finally { $lock.Dispose() }
+}
 function Expand-Zip([string]$Archive, [string]$Destination) {
     # ZipFile instead of Expand-Archive: it accepts any extension (.tpz) and is much faster on large files.
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -136,38 +161,45 @@ function Install-GodotTools {
     if ($Mono) { Install-DotnetSdk $DotnetChannel }
     $paths = Get-GodotPaths $Version $Release $Mono
 
-    if (Test-Path -LiteralPath $paths.Bin) {
-        Write-CiLog "Godot $($paths.Tag) already installed"
-    } else {
-        $zip = Join-Path (Get-ToolsDir) "$($paths.Package).zip"
-        New-Item -ItemType Directory -Force (Get-ToolsDir) | Out-Null
-        Save-RequiredDownload "$($paths.BaseUrl)/$($paths.Package).zip" $zip
-        # ditto keeps what an app bundle needs (symbolic links, permissions, its code signature) and ZipFile does not.
-        if ($IsMacOS) {
-            New-Item -ItemType Directory -Force $paths.ToolsDir | Out-Null
-            Invoke-Checked ditto @('-x', '-k', $zip, $paths.ToolsDir)
+    Use-InstallLock (Split-Path -Leaf $paths.ToolsDir) {
+        if (Test-Path -LiteralPath $paths.Bin) {
+            Write-CiLog "Godot $($paths.Tag) already installed"
         } else {
-            Expand-Zip $zip $paths.ToolsDir
+            $zip = Join-Path (Get-ToolsDir) "$($paths.Package).zip"
+            New-Item -ItemType Directory -Force (Get-ToolsDir) | Out-Null
+            Save-RequiredDownload "$($paths.BaseUrl)/$($paths.Package).zip" $zip
+            # Unpacked beside the final folder and renamed into place, so a run killed halfway never leaves an editor
+            # that looks installed. ditto keeps what an app bundle needs (symbolic links, permissions, its code
+            # signature) and ZipFile does not.
+            $partial = "$($paths.ToolsDir).$PID.part"
+            if ($IsMacOS) {
+                New-Item -ItemType Directory -Force $partial | Out-Null
+                Invoke-Checked ditto @('-x', '-k', $zip, $partial)
+            } else {
+                Expand-Zip $zip $partial
+            }
+            Remove-Item -Force -LiteralPath $zip
+            if (Test-Path -LiteralPath $paths.ToolsDir) { Remove-Item -Recurse -Force -LiteralPath $paths.ToolsDir }
+            Move-Item -LiteralPath $partial -Destination $paths.ToolsDir
+            if (-not (Test-Path -LiteralPath $paths.Bin)) {
+                $found = @(Get-ChildItem -LiteralPath $paths.ToolsDir | ForEach-Object Name)
+                Stop-GodotCi "$($paths.Package).zip has no $([System.IO.Path]::GetRelativePath($paths.ToolsDir, $paths.Bin)) (it holds: $($found -join ', '))"
+            }
+            if (-not $IsWindows) { Invoke-Checked chmod @('+x', $paths.Bin) }
         }
-        Remove-Item -Force -LiteralPath $zip
-        if (-not (Test-Path -LiteralPath $paths.Bin)) {
-            $found = @(Get-ChildItem -LiteralPath $paths.ToolsDir | ForEach-Object Name)
-            Stop-GodotCi "$($paths.Package).zip has no $([System.IO.Path]::GetRelativePath($paths.ToolsDir, $paths.Bin)) (it holds: $($found -join ', '))"
-        }
-        if (-not $IsWindows) { Invoke-Checked chmod @('+x', $paths.Bin) }
-    }
 
-    if ($Templates) {
-        if (Test-Path -LiteralPath (Join-Path $paths.TemplatesDir 'version.txt')) {
-            Write-CiLog "Export templates already installed"
-        } else {
-            $tpz = Join-Path (Get-ToolsDir) $paths.TemplatesFile
-            Save-RequiredDownload "$($paths.BaseUrl)/$($paths.TemplatesFile)" $tpz
-            $tmp = Join-Path ([IO.Path]::GetTempPath()) "godot-templates-$([guid]::NewGuid())"
-            Expand-Zip $tpz $tmp
-            New-Item -ItemType Directory -Force $paths.TemplatesDir | Out-Null
-            Copy-Item -Recurse -Force (Join-Path $tmp 'templates/*') $paths.TemplatesDir
-            Remove-Item -Recurse -Force -LiteralPath $tmp, $tpz
+        if ($Templates) {
+            if (Test-Path -LiteralPath (Join-Path $paths.TemplatesDir 'version.txt')) {
+                Write-CiLog "Export templates already installed"
+            } else {
+                $tpz = Join-Path (Get-ToolsDir) $paths.TemplatesFile
+                Save-RequiredDownload "$($paths.BaseUrl)/$($paths.TemplatesFile)" $tpz
+                $tmp = Join-Path ([IO.Path]::GetTempPath()) "godot-templates-$([guid]::NewGuid())"
+                Expand-Zip $tpz $tmp
+                New-Item -ItemType Directory -Force $paths.TemplatesDir | Out-Null
+                Copy-Item -Recurse -Force (Join-Path $tmp 'templates/*') $paths.TemplatesDir
+                Remove-Item -Recurse -Force -LiteralPath $tmp, $tpz
+            }
         }
     }
 

@@ -85,6 +85,10 @@ on:
         description: "GitHub environment for the export jobs, e.g. one whose secrets and protection rules guard the signing keys (empty - none)"
         type: string
         default: ""
+      kit-coverage:
+        description: "Hyperdot's own self-test: records what the kit ran and uploads it as artifacts named <this>-test and <this>-export-<n> (empty - off)"
+        type: string
+        default: ""
     outputs:
       presets:
         description: JSON array of the presets that were exported
@@ -226,6 +230,12 @@ jobs:
       - run: New-Item -Force .godot-pipelines/.gdignore | Out-Null
         shell: pwsh
 
+      # Only for Hyperdot's own self-test, whose coverage job counts what these jobs reach too.
+      - name: Record the kit's coverage
+        if: inputs.kit-coverage != ''
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
+
       - id: godot
         uses: ./.godot-pipelines/.github/actions/godot
         with:
@@ -286,6 +296,15 @@ jobs:
           "presets=$(ConvertTo-Json -Compress -InputObject $presets)" >> $env:GITHUB_OUTPUT
           "targets=$(ConvertTo-Json -Compress -InputObject $targets)" >> $env:GITHUB_OUTPUT
 
+      - name: Keep what the kit reached
+        if: always() && inputs.kit-coverage != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.kit-coverage }}-test
+          path: ${{ runner.temp }}/hyperdot-coverage
+          if-no-files-found: ignore
+          retention-days: 1
+
   export:
     name: Export (${{ matrix.target.preset }})
     needs: test
@@ -345,6 +364,11 @@ jobs:
             Write-Host "$variable set"
           }
 
+      - name: Record the kit's coverage
+        if: inputs.kit-coverage != ''
+        shell: pwsh
+        run: '"HYPERDOT_COVERAGE=$env:RUNNER_TEMP/hyperdot-coverage" >> $env:GITHUB_ENV'
+
       - uses: ./.godot-pipelines/.github/actions/godot
         env:
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.GODOT_ANDROID_KEYSTORE_RELEASE_USER }}
@@ -368,6 +392,16 @@ jobs:
         if: always()
         shell: pwsh
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'godot-signing')
+
+      # Numbered, not named after the preset: a preset name may hold characters an artifact name may not.
+      - name: Keep what the kit reached
+        if: always() && inputs.kit-coverage != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.kit-coverage }}-export-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/hyperdot-coverage
+          if-no-files-found: ignore
+          retention-days: 1
 
   release:
     name: Release

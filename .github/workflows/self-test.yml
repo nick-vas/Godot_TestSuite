@@ -83,6 +83,9 @@ jobs:
       - name: A failed Godot download stops with download-failed
         shell: pwsh
         run: ./tests/Test-DownloadFailed.ps1
+      - name: Two installs of one Godot take turns
+        shell: pwsh
+        run: ./tests/Test-InstallLock.ps1
       - name: A hung program is stopped after the time limit
         shell: pwsh
         run: ./tests/Test-ProcessTimeout.ps1
@@ -229,6 +232,8 @@ jobs:
       contents: read
       pull-requests: write
     uses: ./.github/workflows/godot.yml
+    with:
+      kit-coverage: coverage-zero-config
 
   # C# project: every detected runner, a coverage minimum, the Windows export launched on a Windows
   # runner, and a release dry run on branches. Never on a tag: a release there would publish the example game as the
@@ -245,6 +250,7 @@ jobs:
       run-exports: true
       release: ${{ github.ref_type != 'tag' }}
       retention-days: 3
+      kit-coverage: coverage-csharp
 
   # Runners picked by hand.
   explicit-runners:
@@ -254,6 +260,7 @@ jobs:
       runners: gdunit4,gut
       # The csharp job posts the PR comment; this job has no pull-requests: write and would only warn trying to edit it.
       pr-comment: false
+      kit-coverage: coverage-explicit-runners
 
   # init on a bare game (no tests, no CI), then doctor and a full test run of what it generated.
   init:
@@ -749,7 +756,7 @@ jobs:
   # What the self-tests reach, from every job's records: commands, functions, documented error codes. A drop below the
   # floors fails the run, so coverage cannot fall unnoticed.
   coverage:
-    needs: [lint, init, measure, game-benchmark, web, action, local-windows]
+    needs: [lint, zero-config, csharp, explicit-runners, init, measure, game-benchmark, web, action, local-windows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

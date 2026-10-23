@@ -163,9 +163,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   `-Coverage`): "gdUnit4 found 28 tests but ran 26", so the kit's guard failed the run, as it should; the next run on the
   same kit code ran all 28. The log does not say which two, and a "CLR: Assert failure ... after the .NET runtime thread
   state has been destroyed" follows. Needs a Windows machine: run the suite in a loop and keep the TRX files.
-- **Two runs downloading Godot at once** share the `.part` file and may race (found by reading the code, not reproduced).
-- **Coverage of the jobs that call the reusable workflow** (`zero-config`, `csharp`, `explicit-runners`): their kit runs
-  do not see `HYPERDOT_COVERAGE`. Passing it through `godot.yml` as an input would count them too.
 
 ### Kit features not built
 

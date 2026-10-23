@@ -69,7 +69,7 @@
 | `GODOT_BIN` | A Godot binary to use instead of the kit's own download (in `~/.hyperdot`); `setup -Templates` still installs the kit's Godot when this one has no export templates for the project's version |
 | `GODOT_TOOLS_DIR` | Where the kit keeps what it downloads (Godot, the export templates, .NET when it installs one, its other tools) instead of `~/.hyperdot` |
 | `GODOT_VERSION` | The Godot version when neither `-GodotVersion` nor the project names one (default `4.7.2`) |
-| `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off); not a whole number fails with `invalid-arguments` |
+| `HYPERDOT_TIMEOUT` | Seconds a program the kit runs (Godot, `dotnet`) may run before it is stopped (default `1800`; `0` turns the limit off), and how long `setup` waits for another run installing the same Godot (then `install-busy`); not a whole number fails with `invalid-arguments` |
 | `HYPERDOT_IGNORE_ERRORS` | A regex for engine error lines to leave out of the error count, on top of the known noise; an invalid regex fails with `invalid-arguments` |
 | `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_WEB_HEADED` | Web `export -Run`: where the playwright package is; `1` opens a browser window (see `-Browser`) |
 | `HYPERDOT_STOP_GATE` | `off` turns off the plugin's Stop hook (`hooks/stop-gate.ps1`), which keeps Claude from ending its turn while the game changed after the last passing test run |
@@ -92,6 +92,7 @@
 | `timeout-minutes` | `60` | Longest each job may run before GitHub cancels it (its own limit is 6 hours) |
 | `game-version` | | Exports' version on runs that are not for a tag (tag runs use the tag): `1.2.3`, or `auto` (`-GameVersion auto`; the export jobs then fetch the whole history) |
 | `environment` | none | GitHub environment of the export jobs: its protection rules apply (required reviewers, tags only), and its secrets of the names below are used |
+| `kit-coverage` | none | For Hyperdot's own self-test: records what the kit ran (`HYPERDOT_COVERAGE`) and uploads it as artifacts with this prefix; games leave it empty |
 
 **Workflow secrets** (`godot.yml`), all optional, for signing during the export. Pass them by name or with
 `secrets: inherit`, or keep them in the `environment`. Files are base64 (`base64 -w0 release.keystore`): the workflow
