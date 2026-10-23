@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- **Benchmark sessions as a separate user** (`-Isolate`, `benchmark/Isolation.ps1`; benchmark/PLAN.md stage 5). Each
+  session runs as a user made for the run (`useradd`; `runuser` as root, `sudo -n -u` otherwise) whose only folder is its
+  game copy: the runner's temporary files move into a folder it cannot list, the checkout is closed to other users for the
+  run, and Godot (or a .NET SDK in the runner's home) is copied where it can run them. Credentials pass by inheritance,
+  nothing else of the runner's environment does. After each session its processes are ended, links out of the game are
+  removed and the game's `.git` is put back before grading. On in the Token benchmark workflow (input `isolate`); on
+  Windows or without root or passwordless sudo it warns and runs as before. Self-test: `tests/Test-BenchmarkIsolation.ps1`.
+- **The private field test** (`-GameSource <folder>`, `benchmark/FieldTest.ps1`, `benchmark/field-test.json`; stage 8):
+  `fix-mutant`, `write-tests`, `doctor-green` and `bot-finish` on a copy of an owner's game, under the four
+  configurations, reported as numbers only in `field-test.md`. Defects are planted generically: one flipped operator or
+  changed number in the game's GDScript or C#, in an order a seed fixes, kept only when the game's own checks find it.
+  `docs/token-benchmark.md` has the owner's steps on Windows, and `docs/label.md` a field-test table beside the label,
+  outside the class. Self-test: `tests/Test-FieldTest.ps1` (both examples, with the stand-in).
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run

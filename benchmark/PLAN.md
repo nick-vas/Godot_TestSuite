@@ -190,10 +190,10 @@ The workflow does this with `useradd` and file modes; the field test does the sa
 | 2 | `tests/Test-GameProgramme.ps1` (done): every task's untouched game fails, its reference passes, its decoy fails, no model needed. First genre (arcade shooter) in both languages; stage manifests; the generator; every template on it; a pilot run to measure difficulty and cost | each template passes its good stand-in and fails its bad one; the pilot keeps or drops each task by the difficulty rule |
 | 3 | Grading layers 2-4; pinned judge; rubrics; the blind review page; calibration. **Done**: layer 3 (`judge` on a task, in the runner), layer 4 (`Invoke-SideBySide.ps1`), the quality factor in the label tool. **Left**: the review page and calibration, which need the first real pairs | the label tool reads judged and human results; the self-test fakes a judge |
 | 4 | Milestone runs | prototype to alpha graded by the alpha gate, in both languages |
-| 5 | Isolation as separate users | a test session cannot read a hidden test |
+| 5 | Isolation as separate users. **Done**: `-Isolate` (`Isolation.ps1`), on in the workflow; `tests/Test-BenchmarkIsolation.ps1` | a test session cannot read a hidden test |
 | 6 | Genres 2-10, written in parallel by agents, one genre each, reviewed against the first | each passes its stage checks in both languages |
 | 7 | Introduce the new scale on the mid tier; labels for the current version | class A empty at introduction, tolerances from the bootstrap |
-| 8 | Field test mode | you run it on a game of yours and paste the summary |
+| 8 | Field test mode. **Done**: `-GameSource` (`FieldTest.ps1`, `field-test.json`), tested on both examples with a stand-in (`tests/Test-FieldTest.ps1`). **Left**: the owner's run and its summary in `docs/label.md` | you run it on a game of yours and paste the summary |
 
 ## Settled questions
 

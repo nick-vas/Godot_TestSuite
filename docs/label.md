@@ -15,6 +15,16 @@ A third class, **tested**, says how much of the kit the self-tests reach.
 
 <!-- RATING -->
 
+### Field test: one owner's game
+
+Not part of the class. The owner ran the field test (`-GameSource`, [token-benchmark.md](token-benchmark.md#the-private-field-test))
+on a game of their own, which nobody else can repeat, so these numbers are informative only: they say how the
+configurations did on one real game, not how Hyperdot rates.
+
+| Template | Configuration | Runs | Passed | Median tokens | Median cost | Median time (s) |
+|---|---|---:|---:|---:|---:|---:|
+| (not run yet) | | | | | | |
+
 `benchmark/Get-HyperdotLabel.ps1` computes the label from benchmark runs (`-Programme tool` or `game`).
 `benchmark/label-scale.json` holds the scale: the classes and minimum requirements, and for each programme its spec, its
 standard tokens per task and its tolerances. `tests/Test-HyperdotLabel.ps1`
@@ -143,7 +153,9 @@ nothing: they read runs already made.
   (diagnose, fix, add a feature, write tests, expose a value); design, art and legal work stay in `evals/`, judged by a
   model. The washing-machine label likewise measures one programme, not every wash.
 - **Game sessions can run commands.** With Bash a session could read the checkout the benchmark runs from, hidden tests
-  included. Nothing points it there and its saved transcript would show it, but the copy alone does not prevent it.
+  included. With `-Isolate` (on in the workflow) each session runs as a user made for the run that can read only its
+  game copy ([token-benchmark.md](token-benchmark.md#isolation)); without it, on Windows or without root, nothing
+  prevents that but its saved transcript would show it.
 - **Eight tasks (tool) and five (game), three runs each.** That is a small sample. `-Introduce` measures how far a re-run can drift
   (resampling each task's sessions 2,000 times), and the scale's tolerance is set from it, not from the
   washing machine's 10%.

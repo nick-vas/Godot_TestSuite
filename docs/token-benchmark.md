@@ -30,6 +30,8 @@ CLI's raw JSON. `-Json` prints `summary.json` on stdout.
 | `-Claude` | The CLI to run (default `claude`); a `.ps1` runs with pwsh, which is how the self-test uses a stand-in |
 | `-WorkDir` | Where the sessions run (default: the repository root) |
 | `-Plugin` | Load this repository as a Claude Code plugin (`--plugin-dir`, and the `Skill` tool allowed), so its skills can trigger. Run the same spec with and without it to see what the skills change; rows and `summary.md` say which. In the workflow: the `plugin` input |
+| `-Isolate` | Run every session as a separate user that can read only its game copy ([Isolation](#isolation)); also `HYPERDOT_ISOLATE=1`. In the workflow: the `isolate` input, on by default |
+| `-GameSource`, `-Seed` | The private field test on a game of yours ([below](#the-private-field-test)) |
 
 ## The spec: `benchmark/token-benchmark.json`
 
@@ -74,7 +76,8 @@ a vague answer fails instead of passing on generic words.
 - **in a copy of the repository without the benchmark**: the tracked and untracked files, minus `benchmark/`, this page,
   `docs/label*`, `evals/` and their tests, deleted after the run. The spec holds every expected answer, and the results folder
   held earlier answers. `-WorkDir` runs the sessions elsewhere, as they are, with no copy;
-- profiles in an order that rotates with each repetition, so no profile always meets a cold prompt cache.
+- profiles in an order that rotates with each repetition, so no profile always meets a cold prompt cache;
+- with `-Isolate`, as a separate user that cannot read the checkout ([Isolation](#isolation)).
 
 ## The game programme: `benchmark/game-benchmark.json`
 
@@ -175,6 +178,95 @@ saves each session's prompt (`<profile>-<task>-r<n>.prompt.md`) for this.
 each configuration (Sonnet and Haiku, with and without the plugin) and fails before anything is spent if one is over
 its share. Then one job per configuration runs in parallel.
 
+## Isolation
+
+The copy without the benchmark keeps the test out of sight, but a session with Bash could still read the checkout the
+run started from, hidden tests and graders included. `-Isolate` (`benchmark/Isolation.ps1`; on in the workflow) closes
+that on Linux:
+
+- **A user made for the run** (`useradd`, `hyperdot-s<id>`) runs every session, through `runuser` as root or `sudo -n -u`
+  otherwise, and is removed at the end with everything it still had running.
+- **Its only folder is its game copy.** The runner's temporary folder moves into a run folder (mode 711: reachable by
+  name, not listable), so stage fixtures, field-test trials and the runner's files are not where the session user can
+  list them. A game copy is handed to the session user for its session (`chown`, mode 700) and taken back before
+  grading. The checkout loses its permissions for other users during the run (restored after), and the run stops if the
+  session user can still read `benchmark/`.
+- **What it may use**: Godot (a copy of its folder when the runner's is in a home the user cannot enter), the CLI (a
+  copy when it is a script), and with `-Plugin` the copy of the kit without the benchmark. Its `HOME` and `TMPDIR` are
+  fresh for every session.
+- **Its environment**: the CLI's credentials (`ANTHROPIC_*`, `CLAUDE_CODE_*`), proxy and certificate settings, locale,
+  `DISPLAY`, `DOTNET_ROOT`, `GODOT_BIN`, and any names in `HYPERDOT_ISOLATE_ENV`, passed by inheritance (never on a
+  command line, where other users could read them). Nothing else of the runner's: not its `HOME`, its Claude Code
+  settings, its NuGet cache or its coverage folder.
+- **After each session** every process of the session user is ended (one left running could watch the grading), links
+  out of the game and special files are deleted (the grader writes hidden tests into the game and must not write through
+  a link), and the game's `.git` from before the session is put back (the session's git settings could run commands when
+  the grader runs git; its work stays in the files and the diff).
+
+What it does not do: the grader still runs the session's code, as the runner, when it runs the game's tests; and on
+Windows, on macOS or without root or passwordless sudo, `-Isolate` warns and runs the sessions as before.
+
+`tests/Test-BenchmarkIsolation.ps1` runs the one-genre test programme with the stand-in, which tries to read
+`benchmark/`, a hidden test, the folder its game is in and the checkout: without isolation it can, with isolation it
+cannot, and the work is still graded. It also checks the credentials passed and the rest held back, Godot runnable,
+a process left running, a link planted where the hidden test goes, a git setting that runs a command, the user
+removed and the checkout's mode restored, through both `runuser` and `sudo`.
+
+## The private field test
+
+`-GameSource <folder>` runs generic tasks on a game of yours (`benchmark/FieldTest.ps1`, spec
+`benchmark/field-test.json`), in a copy, under every configuration of the spec (Sonnet and Haiku, with and without the
+plugin; `-Model` or `-Plugin` picks one). It reports numbers only: per template and configuration, the runs, passes,
+median tokens, cost and time. No file name, code, test name or text of the game or the sessions is kept: answers and
+diffs are not saved (`-SaveResponses` is refused), failure reasons become kinds ("the game's checks fail"), and nothing
+is committed (`benchmark/results/` is ignored by git).
+
+| Template | The session must | Applies when |
+|---|---|---|
+| `fix-mutant` | find and fix a bug the tool planted, tests untouched | the game has tests that catch a planted bug |
+| `write-tests` | write new tests that alone catch up to three planted bugs, code and existing tests untouched | the same |
+| `doctor-green` | make the kit's `doctor` pass without breaking the tests | `doctor` fails on the game as it is |
+| `bot-finish` | fix a planted bug only the playthrough bot notices | the game has a `playthrough.json` and such a bug is found |
+
+**Planting a bug generically.** A mutant flips one operator or changes one whole number in the game's own GDScript or
+C# (not tests, test projects, add-ons or build output): `<` and `<=`, `>` and `>=`, `==` and `!=`, `+` and `-`, `*` and
+`/`, `&&` and `||`, `and` and `or`, n and n+1. Operators count only with a space on each side, so C# generics, `->` and
+`=>` are left alone, and strings and comments are blanked before the search. The candidates are put in an order the
+seed fixes (`-Seed`, default the spec's 1) and tried in that order, each in a copy, with the kit's `test`, at most
+`mutantTrials` (12) times:
+
+- one a test framework (GUT, gdUnit4, `dotnet`, GoDotTest) fails on is caught by the tests: the first goes to
+  `fix-mutant`, the next three to `write-tests`;
+- one only the `playthrough` bot fails on goes to `bot-finish`;
+- one that breaks the build or the script check, or that nothing notices, is dropped.
+
+Every planted bug was shown to be found by the game's own checks, and the untouched game must pass them all first. For
+`write-tests` only the session's new test files judge the mutants, so copying nothing and adding a test that checks
+nothing fails. A template with nothing to work on is listed as not applicable, with the reason in general terms.
+
+**Running it on Windows**, in PowerShell 7 (`pwsh`), with Claude Code installed and logged in (`claude`, then
+`/login`; a subscription's usage, not a bill) and this repository cloned:
+
+```powershell
+cd C:\src\hyperdot                                           # your clone of the kit
+pwsh ci/godot/hyperdot.ps1 test -Project C:\games\mygame     # the game must be green first
+pwsh benchmark/Invoke-TokenBenchmark.ps1 -GameSource C:\games\mygame -DryRun     # what runs, and its estimated cost
+pwsh benchmark/Invoke-TokenBenchmark.ps1 -GameSource C:\games\mygame            # the run: about 1.80 USD by the cost model
+```
+
+- `-GameSource` is the game's folder: its `project.godot`, or a repository with one project in it (a C# solution
+  above the project is fine). In a git repository the copy holds what git tracks and what it would (not ignored files).
+- Godot is `GODOT_BIN` when it is set; otherwise the kit's `setup` installs the version the game asks for.
+- The run warns that it cannot isolate the sessions: on Windows they run as you, with Bash, in a copy of the game under
+  your temporary folder. Run it under a separate Windows account if your other files matter.
+- The summary is `benchmark/results/<UTC time>/field-test.md` (and `field-test.json`), also printed at the end of the
+  run. Paste it into the field-test table of [label.md](label.md); it says it is one owner's game, not part of the class.
+- On Linux with root or passwordless sudo, add `-Isolate`.
+
+`tests/Test-FieldTest.ps1` checks the planter (code only, a seed's fixed order) and runs the field test with the stand-in
+on copies of `examples/gdscript` and `examples/csharp`: good work passes every template that applies, bad work fails
+for the right kind of reason, `doctor-green` on a copy whose `doctor` fails, and nothing of the game in the report.
+
 ## Reading the numbers
 
 - **Tokens are all four kinds**: uncached input, cache writes, cache reads and output. A Claude Code session is mostly
@@ -250,6 +342,6 @@ and sessions that could read the spec. They are superseded by the runs above.
 
 ## Self-test
 
-`pwsh tests/Test-TokenBenchmark.ps1` runs the benchmark against `tests/token-benchmark/fake-claude.ps1`, a stand-in that
+`tests/Test-BenchmarkIsolation.ps1` and `tests/Test-FieldTest.ps1` are described above. `pwsh tests/Test-TokenBenchmark.ps1` runs the benchmark against `tests/token-benchmark/fake-claude.ps1`, a stand-in that
 prints the CLI's JSON shape: token counting, acceptance, a retry after output that is not JSON, the time limit, two steps
 resuming one session, the isolation arguments, the call limit and the reports. It calls no model.
