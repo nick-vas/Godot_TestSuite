@@ -81,3 +81,4 @@ if ($failures) {
     exit 1
 }
 Write-Host 'Detection self-test passed.' -ForegroundColor Green
+exit 0

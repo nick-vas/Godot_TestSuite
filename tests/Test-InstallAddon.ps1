@@ -54,3 +54,4 @@ if ($failures) {
     exit 1
 }
 Write-Host 'Install-Addon replaces an add-on in a project whose path holds [ and ]'
+exit 0

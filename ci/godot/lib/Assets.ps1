@@ -182,7 +182,7 @@ function Get-LicenceIdFromText([string]$Text) {
 function Get-LicenceCopyright([string]$Text) {
     foreach ($line in $Text -split "`r?`n") {
         if ($line -notmatch '^\s*Copyright\b(?!\s+(notice|and|owner|holder|license|licence|law|\(c\)\s*$))') { continue }
-        $holder = ($line -replace '^\s*Copyright\s*(\(c\)|\(C\)|©)?\s*', '').Trim()
+        $holder = ($line -replace '^\s*Copyright\s*(\(c\)|\(C\)|\u00A9)?\s*', '').Trim()
         if (-not $holder -or $holder -match '[<\[]') { continue }
         return $holder
     }

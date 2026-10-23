@@ -83,3 +83,4 @@ try {
 
 if ($failures.Count) { throw "$($failures.Count) context check(s) failed" }
 Write-Host 'context self-test passed'
+exit 0

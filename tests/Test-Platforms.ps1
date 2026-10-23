@@ -63,3 +63,4 @@ try {
 
 if ($failures.Count) { throw "$($failures.Count) platform check(s) failed" }
 Write-Host 'platforms self-test passed'
+exit 0

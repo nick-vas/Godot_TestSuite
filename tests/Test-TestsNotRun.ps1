@@ -89,3 +89,4 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 Write-Host 'found-but-not-run gdUnit4 tests fail the dotnet runner, a filter that skips them does not; healthy, partial and xUnit runs read as before'
+exit 0

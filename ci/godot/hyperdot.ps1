@@ -193,8 +193,10 @@ param(
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
     # plan -Do init: full (seven phases sized in weeks) or jam (a game jam of 2 to 9 days, sized in days).
+    # The flag is -Profile; the variable has another name because $PROFILE is PowerShell's own.
     [ValidateSet('full', 'jam')]
-    [string]$Profile = 'full',
+    [Alias('Profile')]
+    [string]$PlanProfile = 'full',
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
     [string]$Feature,
     # plan -Do link: a task's Trello card: its 24-hex id or the Trello connector's ARI (the plain id is stored).
@@ -635,7 +637,7 @@ switch ($Command) {
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
-    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $Profile }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $PlanProfile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }

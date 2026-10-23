@@ -107,3 +107,4 @@ Assert-True ($d -and $d.error.code -eq 'invalid-arguments') "a negative -MaxDraw
 
 if ($failures.Count) { throw "$($failures.Count) bench hotspot check(s) failed" }
 Write-Host 'bench hotspots self-test passed'
+exit 0

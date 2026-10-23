@@ -56,3 +56,4 @@ if ($failures) {
     exit 1
 }
 Write-Host 'Invoke-GodotRetried repeats a crashed import or export up to twice, deletes what the crash left, and never repeats a failure or a hang'
+exit 0
