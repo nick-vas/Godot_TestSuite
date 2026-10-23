@@ -6,6 +6,12 @@
   `load()` to the scene's first frame, and `-MaxLoadMs` fails a slower load (`bench-over-load-time`); `frameHistogram`
   puts every frame in a fixed bucket: 120, 60, 30 and 20 fps or better, and slower. A run over several limits names them
   all. `tests/bench-fixture/heavy.tscn` (a 300 ms `_ready`, 24 boxes with their own materials) checks each.
+- **`-GpuValidation`** for `bench`, `shot` and `export -Run`: Godot's `--gpu-validation` and `--accurate-breadcrumbs`,
+  and the run fails on the Vulkan validation layer's errors (`gpu-validation-errors`, each VUID in `gpuValidation`). A run
+  that could not be validated (Compatibility renderer, headless, no layer installed) fails with `no-gpu-validation`
+  instead of passing unchecked; `export -Run` launches the build with a window for it. `tests/Test-GpuValidation.ps1`
+  binds a float texture to an unsigned-integer image in a compute shader, which Godot lets through and the layer
+  reports as `VUID-vkCmdDispatch-format-07753`; it runs on Mesa's lavapipe in the web job.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

@@ -193,9 +193,9 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
   become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema
   version, minimum spec, open technical questions answered by ADRs; kept by `godot-architect`.
-- **`-GpuValidation`** for `shot`, `bench` and `export -Run`: pass `--gpu-validation` (and `--gpu-abort`,
-  `--accurate-breadcrumbs`), fail on validation errors with a new code. Needs a Vulkan-capable runner (a GitHub GPU
-  runner, or Mesa's lavapipe; neither checked).
+- **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
+  (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
+  the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
 - **A `bench` sweep helper** for particle counts and quality tiers (the skill shows the manual way with `-GameArgs`):
   one run per value, one `bench.csv` row each, a table of p99 against the value.
 - **`doctor`: duplicate files under `res://`, occluders with occlusion culling off, and a build size breakdown on

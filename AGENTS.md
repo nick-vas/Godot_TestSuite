@@ -88,6 +88,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-SceneCount.ps1` | `bench`'s and `audio`'s refusal of several scenes | - |
 | `Test-ShotChanged.ps1` | `shot -MaxChangedPercent`; scenes that share a file name get their own pictures | Godot, display |
 | `Test-BenchHotspots.ps1` | `bench`'s hotspots, load time, draw calls, frame-time histogram and their limits (`bench-fixture`) | Godot, display |
+| `Test-GpuValidation.ps1` | `-GpuValidation` for `bench`, `shot` and `export -Run` (`gpuvalidation-fixture`, a deliberate Vulkan misuse; canned logs) | Godot, display, Vulkan and its validation layer (`mesa-vulkan-drivers`, `vulkan-validationlayers`); the export part Godot's templates (`-NoExport` skips it); `-NoGodot` for the log reading |
 | `Test-MonoAudio.ps1` | the mono option measured in the engine (`mono-fixture`) | Godot |
 | `Test-Capture.ps1` | the skill's capture mode (`capture-fixture`, C#) | Godot, display |
 | `Test-Credits.ps1` | `credits` (`credits-fixture`) | Godot |

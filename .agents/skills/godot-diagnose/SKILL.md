@@ -70,8 +70,18 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json
 ## GPU crashes, hangs and wrong pictures
 
 From Adam Sawicki (AMD), "Make Your Game Friendly for Graphics Debugging and Optimization" (Digital Dragons 2019):
-validation layers belong in regular testing ("Use them in regular testing"), and a crash wants a safe mode. Godot 4.7.2
-flags (in `--help`; pass them to a game run with `-GameArgs` or on the command line):
+validation layers belong in regular testing ("Use them in regular testing"), and a crash wants a safe mode.
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -GpuValidation -Scene res://levels/Boss.tscn
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 export -Json -Quiet -Run -GpuValidation -Preset Windows
+```
+
+`-GpuValidation` (`bench`, `shot`, `export -Run`) runs with Godot's `--gpu-validation` and `--accurate-breadcrumbs` and
+fails with `gpu-validation-errors` on the layer's errors, each with its VUID in `gpuValidation.errors`. It needs Vulkan
+(Forward+ or Mobile) and the Khronos validation layer (Linux: `vulkan-validationlayers`, and `mesa-vulkan-drivers` for a
+software Vulkan without a GPU; Windows: the Vulkan SDK); a Compatibility project, a headless run or a missing layer fails
+with `no-gpu-validation` rather than passing unchecked. Godot 4.7.2 flags for your own runs (in `--help`):
 
 - `--gpu-validation` turns on the graphics API's validation layers, in release builds too; `--gpu-abort` (debug
   builds) stops at the first API usage error, which helps when the machine freezes.

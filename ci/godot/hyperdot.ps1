@@ -92,6 +92,10 @@ param(
     # bench: fail when the scene takes longer than this many milliseconds to load, from load() to its first frame drawn
     # (bench-over-load-time). 0: no limit.
     [double]$MaxLoadMs = 0,
+    # bench, shot, export -Run: turn on the graphics API's validation layers (Vulkan) and fail on their errors
+    # (gpu-validation-errors); a run that could not be validated (OpenGL, headless, no layer installed) fails with
+    # no-gpu-validation. export -Run then launches the build with a window instead of headless.
+    [switch]$GpuValidation,
     # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
     # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D. playtest: the heat maps' cell (0: playtest.json's, else
     # 2 m in 3D, 64 px in 2D).
@@ -500,8 +504,11 @@ function Invoke-ExportPresets {
         }
         $exports += $entry
         Set-JsonField exports $exports
-        if ($Run -and $preset.Platform -eq 'Web') { Test-WebExport $name $preset $dir }
-        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file }
+        if ($Run -and $preset.Platform -eq 'Web') {
+            if ($GpuValidation) { Write-CiLog "-GpuValidation: the browser renders '$name' with WebGL, which has no validation layers; not validated" }
+            Test-WebExport $name $preset $dir
+        }
+        elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file $entry }
     }
 }
 
@@ -531,19 +538,26 @@ function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
 }
 
 # Launches the exported game headless, as a player would get it, and fails on any engine error. This catches
-# what the editor hides: missing assets, code trimmed from the build, test-only dependencies.
-function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
+# what the editor hides: missing assets, code trimmed from the build, test-only dependencies. With -GpuValidation it runs
+# with a window instead, since a headless run draws nothing, and its validation is reported in the export's entry.
+function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File, $Entry) {
     if (-not (Test-CanRunPlatform $Platform)) {
         Write-CiLog "Can't launch the '$Name' build ($Platform) on this machine; skipped. Run export -Run on a matching OS."
         return
     }
     if (-not $IsWindows) { Invoke-Checked chmod @('+x', $File) }
-    Start-LogGroup "Run exported '$Name' ($Frames frames)"
+    $launch = if ($GpuValidation) {
+        Assert-Display 'export -Run -GpuValidation'
+        @('--audio-driver', 'Dummy') + @(Get-GpuValidationArgs -On) + @('--quit-after', "$Frames")
+    } else { @('--headless', '--quit-after', "$Frames") }
+    Start-LogGroup "Run exported '$Name' ($Frames frames$(if ($GpuValidation) { ', GPU validation' }))"
     $log = [System.IO.Path]::GetTempFileName()
-    $code = Invoke-Logged $File (@('--headless', '--quit-after', "$Frames") + $(if ($GameArgs) { @('--') + $GameArgs })) $log
+    $code = Invoke-Logged $File (@($launch) + $(if ($GameArgs) { @('--') + $GameArgs })) $log
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "The exported '$Name' build exited with $code" 'export-failed' }
-    Assert-GodotLogClean $log "The exported '$Name' build"
+    $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
+    if ($validation) { $Entry['gpuValidation'] = $validation.Report; Assert-GpuValidation $validation.Report "The exported '$Name' build" }
+    Assert-GodotLogClean $log "The exported '$Name' build" -Expected $(if ($validation) { $validation.Lines } else { @() })
     Write-CiLog "Exported '$Name' build ran $Frames frames without errors"
 }
 
@@ -592,12 +606,12 @@ switch ($Command) {
         Invoke-Setup; Invoke-Build
         Invoke-Bench -Info $info -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
             -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
-            -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs
+            -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation
     }
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation
     }
     'soak' {
         Invoke-Setup; Invoke-Build

@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://misuse.gd" id="1"]
+
+[sub_resource type="BoxMesh" id="1"]
+
+[node name="Misuse" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Box" type="MeshInstance3D" parent="."]
+mesh = SubResource("1")
+
+[node name="Camera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
+current = true

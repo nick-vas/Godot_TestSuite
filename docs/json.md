@@ -55,6 +55,8 @@ Branch on `error.code`; `message` can change.
 | `bench-over-load-time` | `bench -MaxLoadMs <n>`: the scene took more than n ms from `load()` to its first frame drawn (after `bench-over-budget` and `bench-over-draw-calls`) | `bench.loadMs`, `bench.loadBreakdownMs` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
+| `gpu-validation-errors` | `bench`, `shot` or `export -Run` with `-GpuValidation`: the graphics API's validation layer reported errors (Vulkan VUIDs such as `VUID-vkCmdDispatch-format-07753`); checked before the engine error check, which then leaves those lines out | `gpuValidation` (`exports[].gpuValidation` for `export`) |
+| `no-gpu-validation` | `-GpuValidation`, but nothing was validated: the project renders with OpenGL (the Compatibility renderer), the run was headless, or Vulkan's validation layer is not installed (Linux: `vulkan-validationlayers`; Windows, macOS: the Vulkan SDK) | `gpuValidation.driver`, `gpuValidation.layerLoaded` |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
 | `soak-unclean-stop` | `soak -RequireCleanStop`: the server did not quit with 0 within `-StopGraceSeconds` of SIGTERM | `soak.stop` |
@@ -217,7 +219,8 @@ groups the history by key (`recurringErrors`), after Activision's error buckets 
 The plugin's Stop hook and the `retro` skill read it.
 
 **export**: `exports[]`: `preset`, `platform`, `file`, `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
-folder's download size); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
+folder's download size), and with `-Run -GpuValidation`, for a build launched on this machine, `gpuValidation` (see below; the
+build then runs with a window instead of headless, and a Web build, drawn with WebGL, is not validated); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
 release folder), `errors[]`, `console[]` (up to 60 lines); with `-GameVersion`, `gameVersion`: `numbers` (`1.2.3`), `full` (`1.2.3-rc.1`)
 and `androidVersionCode` (major\*1,000,000 + minor\*1,000 + patch, `1002003`, set as `version/code` of the Android presets
@@ -252,6 +255,15 @@ frame); the files were imported by the build step, so this is a load from `.godo
 and `percent`; the frames add up to `frames`. A run capped by V-Sync jitters around its refresh interval, so at 60 Hz
 some frames land just over 16.67: read the histogram of an `-Uncapped` run for headroom. The same object is written to
 `bench-results/bench.json`, and a row is appended to `bench-results/bench.csv`.
+
+**gpuValidation** (`bench`, `shot` and, per export, `exports[].gpuValidation`, with `-GpuValidation`): `driver` (`vulkan`,
+`opengl3`, `d3d12`, `metal`, or `null` when nothing was drawn), `layerLoaded` (Vulkan: whether the loader loaded
+`VK_LAYER_KHRONOS_validation`; `null` for other drivers, whose logs do not say), `errorCount`, `warningCount` and
+`errors[]` (the first 20: `id`, the VUID or message number, or `null`; `message`, up to 600 characters). Messages matching
+`HYPERDOT_IGNORE_ERRORS` are left out. The runs get Godot's `--gpu-validation` and `--accurate-breadcrumbs` (a barrier
+between the GPU markers, so a device loss names the command that caused it); not `--gpu-abort`, which would stop at the
+first error, and which release builds ignore. Validation makes rendering much slower: `bench` numbers from such a run
+are not frame times to keep.
 
 **shot**: `shots[]` with `scene`, `file` (absolute path of the PNG, `<name>.png` after the scene, or after its path, `a_main.png`,
 when two scenes share a name), `width`, `height`, `locale` (`null` for the project's own,
