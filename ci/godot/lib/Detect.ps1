@@ -162,7 +162,7 @@ function Get-ProjectInfo {
     $unknown = @($selected | Where-Object { $_ -notin $valid })
     if ($unknown) {
         $hints = @(foreach ($u in $unknown) { $near = Get-ClosestName $u $valid; if ($near) { "'$u' is probably '$near'" } })
-        Stop-GodotCi "Unknown runner(s) $($unknown -join ', ')$(if ($hints) { " ($($hints -join ', '))" }); use $($valid -join ', ')"
+        Stop-GodotCi "Unknown runner(s) $($unknown -join ', ')$(if ($hints) { " ($($hints -join ', '))" }); use $($valid -join ', ')" 'invalid-arguments'
     }
 
     $name = if ($projectGodot -match '(?m)^config/name="(?<n>[^"]*)"') { $Matches.n } else { Split-Path $projectDir -Leaf }

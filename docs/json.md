@@ -21,7 +21,7 @@ in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
 | `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
-| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio` | Path of the full run log, `<Results>/godot-ci.log`. Search it; don't read it whole |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `godot-ci.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -39,7 +39,8 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit`, `invalid-arguments` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, a bad `GODOT_CI_TIMEOUT` or `GODOT_CI_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
@@ -55,7 +56,7 @@ Branch on `error.code`; `message` can change.
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `shot-off-palette` | `shot -MaxOffPalettePercent <n>`: more than n% of a picture is in colours off the palette in `docs/STYLE.md` | `shots[].palette` |
 | `no-palette` | `shot -MaxOffPalettePercent`: the project has no `docs/STYLE.md`, or its `## Palette` table has no `#RRGGBB` colours; checked before Godot starts | `palette.problem` |
-| `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; use a virtual display | - |
+| `no-display` | `bench` (without `-Headless`), `shot` or `audio -Mix` on Linux with no display server; start a virtual one (`Xvfb :99 &`, `export DISPLAY=:99`), not `xvfb-run`, which mixes stderr into stdout and breaks `-Json` | - |
 | `no-ffmpeg` | `audio` needs ffmpeg on the `PATH` | - |
 | `audio-failed` | `audio`: ffmpeg could not read a sound file, or Godot exited non-zero while recording the mix | `error.message` |
 | `audio-silent` | `audio -Mix`: the recording is silent (nothing played) | `audio.mix` |
@@ -190,7 +191,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot` and `audio` run also appends one line to `.godot/godot-ci-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak` and `credits` run also appends one line to `.godot/godot-ci-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.

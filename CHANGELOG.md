@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Fixes before 1.0. `bench` and `audio -Mix` split `-Scene` on commas as `shot` does and refuse several scenes with
+  `invalid-arguments` before any setup, instead of passing `a.tscn,b.tscn` on as one scene. The run log (`log`,
+  `godot-ci.log`) now sits with each command's own results: `bench-results`, `soak-results`, `audio-results`, and `shot`'s
+  `-Output`, not `test-results`. `no-display` advises starting Xvfb and setting `DISPLAY` (not `xvfb-run`, which breaks
+  `-Json`) and prints the kit's real command. `sfx` no longer counts `<project>-assets/...` as inside the project (no
+  `../` entry in `assets.json`). The PR summary comment pages through every comment, so a busy pull request gets its
+  summary updated instead of a new one per run. `Update-Versions.ps1` fails on a pinned file that is missing instead of
+  skipping it. Errors that fell back to `failed` now carry `export-failed` (an export with no `export_path`, a file not
+  created, an exported build exiting non-zero) or `invalid-arguments` (an unknown runner, a bad `GODOT_CI_TIMEOUT` or
+  `GODOT_CI_IGNORE_ERRORS`); `docs/json.md` lists `invalid-arguments` as a general code and says `soak` and `credits`
+  write the log and history line too. `textsize` and `layout` join the runners that collect no coverage. New self-tests:
+  `Test-SceneCount.ps1`, `Test-UpdatePins.ps1`, `Test-PrComment.ps1`; `Test-Sfx.ps1` and `Test-Audio.ps1` cover the path
+  check and the log folder.
 - Evals: the cases now run with `TMPDIR` on the runner's temp disk. Under `/tmp`, Claude Code's sandbox refused every
   write in a run's own folder, so no case could run Godot (run 6); with the change, Godot and GUT run (run 7).
   `fix-score-bug`'s `used-kit` grader now matches the kit called by a quoted path. `docs/research.md` records runs 6 and 7.
