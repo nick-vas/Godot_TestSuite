@@ -29,6 +29,15 @@ function Format-KitCommand([string]$Arguments) {
     return "pwsh $path $Arguments$project"
 }
 
+# Whether $Path is $Root or inside it. A plain StartsWith would count <root>-assets as inside <root>, so the root is compared
+# with a trailing separator. Windows and macOS file systems ignore case by default; Linux's does not.
+function Test-PathInside([string]$Path, [string]$Root) {
+    $full = ([System.IO.Path]::GetFullPath($Path) -replace '\\', '/').TrimEnd('/')
+    $base = ([System.IO.Path]::GetFullPath($Root) -replace '\\', '/').TrimEnd('/')
+    $comparison = if ($IsWindows -or $IsMacOS) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    return $full.Equals($base, $comparison) -or $full.StartsWith("$base/", $comparison)
+}
+
 # Every line of a run, the tools' output included, goes to one log file (godot-ci.log in the results folder). With -Quiet
 # the console shows only the kit's own [godot-ci] lines, so an agent reading the output pays for the verdict and not for
 # thousands of lines of engine and compiler output; the details stay one file away.
@@ -165,7 +174,7 @@ function Get-ProcessTimeout {
     if (-not $env:GODOT_CI_TIMEOUT) { return 1800 }
     $seconds = 0
     if (-not [int]::TryParse($env:GODOT_CI_TIMEOUT, [ref]$seconds) -or $seconds -lt 0) {
-        Stop-GodotCi "GODOT_CI_TIMEOUT must be a whole number of seconds: $env:GODOT_CI_TIMEOUT"
+        Stop-GodotCi "GODOT_CI_TIMEOUT must be a whole number of seconds: $env:GODOT_CI_TIMEOUT" 'invalid-arguments'
     }
     return $seconds
 }
@@ -284,7 +293,7 @@ function Get-IgnoredErrorsRegex([switch]$Lenient) {
         $valid = $true
         try { [void][regex]::new($env:GODOT_CI_IGNORE_ERRORS) } catch { $valid = $false }
         if ($valid) { $ignore += $env:GODOT_CI_IGNORE_ERRORS }
-        elseif (-not $Lenient) { Stop-GodotCi "GODOT_CI_IGNORE_ERRORS is not a valid regex: $env:GODOT_CI_IGNORE_ERRORS" }
+        elseif (-not $Lenient) { Stop-GodotCi "GODOT_CI_IGNORE_ERRORS is not a valid regex: $env:GODOT_CI_IGNORE_ERRORS" 'invalid-arguments' }
     }
     return ($ignore | ForEach-Object { "(?:$_)" }) -join '|'
 }
@@ -418,6 +427,15 @@ function Find-ProjectFiles {
             Where-Object { -not (Test-Path -LiteralPath (Join-Path $_.FullName '.gdignore')) } |
             ForEach-Object { $queue.Enqueue($_.FullName) }
     }
+}
+
+# A stored time as UTC. ConvertFrom-Json turns ISO 8601 strings into DateTime values, and PowerShell turns those back
+# into US-format text ("10/23/2026 05:57:27") that the PC's culture may not parse (day-first cultures fail on month 23),
+# so never round-trip a time through text: take the DateTime as it is, and parse strings with the invariant culture.
+function ConvertTo-UtcTime($Value) {
+    if ($Value -is [datetime]) { return $Value.ToUniversalTime() }
+    if ($Value -is [System.DateTimeOffset]) { return $Value.UtcDateTime }
+    return [datetime]::Parse([string]$Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal)
 }
 
 # res:// path of a file inside the project.

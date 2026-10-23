@@ -177,7 +177,7 @@ function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date)
     $current = $phases | Where-Object { -not $_.complete } | Select-Object -First 1
     $warnings = [System.Collections.Generic.List[string]]::new()
     if ($current -and $current.startedAt) {
-        $weeks = [math]::Round(($now - [datetime]::Parse($current.startedAt).ToUniversalTime()).TotalDays / 7, 1)
+        $weeks = [math]::Round(($now - (ConvertTo-UtcTime $current.startedAt)).TotalDays / 7, 1)
         $current['elapsedWeeks'] = $weeks
         if ($weeks -gt $current.timeboxWeeks) {
             $warnings.Add("Phase '$($current.name)' is $weeks weeks in, over its $($current.timeboxWeeks)-week timebox. Cut scope or kill; don't cut testing.")

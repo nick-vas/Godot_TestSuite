@@ -75,10 +75,19 @@ else {
     if ($entries.Count -ne 1 -or $entries[0]['licence'] -ne 'own' -or @($manifest['assets']).Count -ne 2) { $failures += "assets.json should gain one sounds/sfx/** entry: $($manifest | ConvertTo-Json -Depth 4 -Compress)" }
 }
 
+# A sibling folder whose name starts with the project's is outside it: no assets.json entry (once "../<name>-assets/sfx/**").
+$before = Get-Content -LiteralPath (Join-Path $project 'assets.json') -Raw
+$sibling = Invoke-Sfx @('-Sound', 'jump', '-Seed', '3', '-Output', "$project-assets/sfx")
+if (-not $sibling.ok) { $failures += "sfx into a sibling folder failed: $($sibling.error.message)" }
+elseif ($null -ne $sibling.sfx.assetsEntry -or (Get-Content -LiteralPath (Join-Path $project 'assets.json') -Raw) -ne $before) {
+    $failures += "a folder beside the project is not inside it: $($sibling.sfx.assetsEntry | ConvertTo-Json -Compress)"
+}
+Remove-Item -Recurse -Force "$project-assets" -ErrorAction SilentlyContinue
+
 $typo = Invoke-Sfx @('-Sound', 'jmup')
 if ($typo.ok -or $typo.error.code -ne 'invalid-arguments' -or $typo.error.message -notmatch "did you mean 'jump'") { $failures += "an unknown sound should be refused with a suggestion: $($typo.error.message)" }
 
 Remove-Item -Recurse -Force $project
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'sfx makes every preset as bfxr does, the same file from the same seed, 16-bit mono WAVs at the asked peak, distinct variations, .bfxr files and one assets.json entry'
+Write-Host 'sfx makes every preset as bfxr does, the same file from the same seed, 16-bit mono WAVs at the asked peak, distinct variations, .bfxr files and one assets.json entry, none for a folder outside the project'
 exit 0
