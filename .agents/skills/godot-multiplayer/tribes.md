@@ -23,12 +23,12 @@ The table of data kinds is in SKILL.md section 3.
   default 4), the rest wait their turn by priority, and give background data (end-of-match statistics) at most a share
   of each packet (Halo: Reach: 10%).
 - **Inputs.** TRIBES first resent every unacknowledged move in each packet: on a slow link a lost packet made the next
-  one bigger, which got lost too. TRIBES II capped it; Breakout sends each input in 3 packets.
+  one bigger, which got lost too. TRIBES II capped it; the C# example sends each input in 3 packets.
 - **Events in the state packets.** TRIBES builds guaranteed events on the same notify layer as ghosts: "if the
   Connection manager signals nondelivery then the events associated with the lost packet are simply pushed onto the
   head of the event queue for re transmission", and the receiver acts on guaranteed events in order. In Godot, a
   `Reliable` RPC and a `MultiplayerSynchronizer` or replicator are separate streams, so nothing orders an event against
-  the object it names. Breakout's `Net/EventStream.cs` writes events after the packet's ghosts, numbers the guaranteed
+  the object it names. The C# example's `Net/EventStream.cs` writes events after the packet's ghosts, numbers the guaranteed
   ones, sends one naming a ghost only once that ghost's creation is in the same packet or acknowledged
   (`GhostReplicator.AwaitingCreation`), and puts a lost packet's events back by number (pushing them onto the head in
   turn would swap the events of two packets lost in a row). The client applies a packet's ghosts first, then its events;

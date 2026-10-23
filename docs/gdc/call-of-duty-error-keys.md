@@ -41,8 +41,8 @@
   `Get-GodotErrorDetails` reads those lines too; `engineErrors[]` items gain `key` and, more often than before, `file`
   and `line`. A crash (`Program crashed with signal 11`) and a program stopped at the time limit are keys too
   (`Get-RunErrorKeys`).
-- Every history line (`.godot/godot-ci-history.jsonl`) records `commit` and `errorKeys`, from the run log
-  (`godot-ci.log`) and from soak's process logs (`Add-RunHistory`, `Set-EngineErrors`).
+- Every history line (`.godot/hypedot-history.jsonl`) records `commit` and `errorKeys`, from the run log
+  (`hypedot.log`) and from soak's process logs (`Add-RunHistory`, `Set-EngineErrors`).
 - Buckets: `status -Json` has `recurringErrors[]` (`Get-RecurringErrors` in `ci/godot/lib/Report.ps1`): per key the
   count, the failed runs, the first and last time and commit it was seen, and the commands. A warning names any error
   the latest failed run shares with runs at an earlier commit (`Get-OlderErrors`): it predates the change under test.
@@ -68,4 +68,4 @@
 - The fixture's smoke run prints the error as `Wave 7 spawned 21 ...` and `Wave 12 spawned 36 ...`: one key,
   `ERROR: Wave N spawned N enemies outside the arena at res://main.gd`. Its history line is 366 characters.
 - Reading the keys of a 100,000-line log takes about 0.36 s; passing runs of `examples/gdscript` and
-  `examples/breakout/game` print no error lines, so their `errorKeys` are empty.
+  `examples/csharp/game` print no error lines, so their `errorKeys` are empty.

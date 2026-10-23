@@ -30,11 +30,11 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Ai/Agreement.cs`: `SquadTurns.PickAttacker(target, members)`, one decision for
+- `examples/csharp/src/Example.Core/Ai/Agreement.cs`: `SquadTurns.PickAttacker(target, members)`, one decision for
   the squad, every distance measured from the target, exact ties to the lowest ID whatever the list order; and
   `AttackReach(Range, Margin)`, where "arrived" and "in range" are the same distance to the target, arrival
   `Margin` inside the range (in Godot, `TargetDesiredDistance`).
-- `examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`:
+- `examples/csharp/tests/Example.Core.Tests/AiTests.cs`:
   - `ExactlyOneSquadMemberAttacks`: 10,000 seeded squads of two or three at radii within 1 cm of each other, at the
     origin and at (100000, 100000). The squad's pick is always exactly one member and the truly closest one. Members
     deciding alone in their own transform's frame leave zero or two attackers in 2 squads near the origin and 3,384

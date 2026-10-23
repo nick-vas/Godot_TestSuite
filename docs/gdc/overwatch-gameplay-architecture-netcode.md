@@ -34,7 +34,7 @@
 
 ## What the kit took
 
-All in `examples/breakout/src/Breakout.Core/Net/Netcode.cs`, tested in `NetcodeTests.cs`; every option is off by
+All in `examples/csharp/src/Example.Core/Net/Netcode.cs`, tested in `NetcodeTests.cs`; every option is off by
 default, so earlier behaviour and tests are unchanged.
 
 - `Server.RepeatWhenStarved`: once a player has started, it is simulated every tick; a missing input is replaced by the
@@ -73,8 +73,8 @@ carrying 18.5 inputs a packet on average and 30 at most. Rewind cap of 250 ms: a
 
 ## Not taken
 
-- Extrapolating targets past the clamp and turning off hit-effect prediction above 220 ms: Breakout has no hit effects,
+- Extrapolating targets past the clamp and turning off hit-effect prediction above 220 ms: The C# example has no hit effects,
   and extrapolation is another change's subject (dead reckoning). The skill states both.
-- Rewinding only targets whose swept bounds the shot crosses: Breakout judges one target per shot.
-- Quantising Breakout's positions: client and server run the same build, so they already agree exactly.
+- Rewinding only targets whose swept bounds the shot crosses: The C# example judges one target per shot.
+- Quantising the C# example's positions: client and server run the same build, so they already agree exactly.
 - The ECS rules and deferred side effects: `godot-patterns` already has an event queue; Godot's scene tree is not an ECS.

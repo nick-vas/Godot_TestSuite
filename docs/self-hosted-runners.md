@@ -15,15 +15,15 @@ several on one machine by registering each in its own folder, never two in one f
 and export into the same project. Godot's import cache (`.godot/`) is removed with the checkout's `git clean`, so
 each job imports from scratch unless the action's import cache restores it.
 
-**`~/.godot-ci` persists.** Godot and the kit's tools stay in `~/.godot-ci` (`GODOT_TOOLS_DIR` moves it), the export
+**`~/.hypedot` persists.** Godot and the kit's tools stay in `~/.hypedot` (`GODOT_TOOLS_DIR` moves it), the export
 templates in Godot's own folder (`~/.local/share/godot/export_templates`, `%APPDATA%\Godot\export_templates`,
 `~/Library/Application Support/Godot/export_templates`), and NuGet packages in `~/.nuget/packages`. A second run finds
 Godot and its templates and does not download them, so the action's cache steps are redundant there: they still restore
 from and save to GitHub's cache over the network. Install the .NET 8 SDK on the machine itself (the kit's own install,
-in `~/.godot-ci/dotnet`, is only on the `PATH` of the job that installed it). A Godot you installed yourself works too: set
+in `~/.hypedot/dotnet`, is only on the `PATH` of the job that installed it). A Godot you installed yourself works too: set
 `GODOT_BIN` in the runner's environment (exports then need its templates in the folder above).
 
-**Disk clean-up.** Each Godot version and flavour (.NET or standard) adds a folder to `~/.godot-ci`, and each version's
+**Disk clean-up.** Each Godot version and flavour (.NET or standard) adds a folder to `~/.hypedot`, and each version's
 templates take about a gigabyte. Delete the folders of versions you no longer use; the next run that needs one downloads
 it again. Exports go to the job's temporary folder, which the runner empties after each job. An ephemeral runner
 (`./config.sh --ephemeral`, one job and then it unregisters) starts clean every time, and then the cache steps are useful

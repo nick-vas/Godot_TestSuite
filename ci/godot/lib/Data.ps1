@@ -16,7 +16,7 @@
 # "names" at the top level: proper nouns spelled one letter or two away from a canonical name, in the files given (a comic
 # and the game spelled the same character Belrysa and Belysra):
 #   "names": { "table": "characters", "field": "name", "files": ["dialogue/*.json", "translations/*.csv"], "allow": [] }
-# "kind": "responses" on a JSON table: rows of Breakout.Core's ResponseSystem (who, concept, criteria, lines, then,
+# "kind": "responses" on a JSON table: rows of Example.Core's ResponseSystem (who, concept, criteria, lines, then,
 # remember, once; ResponseTable.cs loads the same file). Its fields come predefined; it also fails criteria syntax (with the
 # column), a then naming a concept no rule has, voice files that do not exist, rules with the same who, concept and
 # criteria, and criteria that contradict each other; facts read but never remembered are warnings unless "facts" lists them:
@@ -59,8 +59,8 @@ function Test-ResponseName([string]$Text) {
     return $Text -cmatch '^[\p{L}_][\p{L}\p{Nd}_.\-]*\z'
 }
 
-# ResponseSystem's criteria, parsed exactly as CriteriaSyntax.Parse in Breakout.Core (ResponseRules.cs), which documents
-# the grammar; criteria-examples.json in Breakout.Core's tests holds the cases both must agree on. Returns Criteria (Key,
+# ResponseSystem's criteria, parsed exactly as CriteriaSyntax.Parse in Example.Core (ResponseRules.cs), which documents
+# the grammar; criteria-examples.json in Example.Core's tests holds the cases both must agree on. Returns Criteria (Key,
 # Op as = < <= > >= or !, Number, Name) and Error: "column N: reason", N 1-based in the whole text, or $null.
 function Read-ResponseCriteria([string]$Text) {
     $found = [System.Collections.Generic.List[object]]::new()

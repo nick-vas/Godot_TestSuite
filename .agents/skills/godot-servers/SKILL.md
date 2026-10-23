@@ -6,7 +6,7 @@ description: Use when a Godot game hosts dedicated servers or its own matchmaker
 # Dedicated servers and matchmaking (Godot 4.7, C#)
 
 What Google for Games' open-source Agones, Open Match, Quilkin and clean-chat (Apache-2.0) teach, without their cloud
-setup, as tested C# in `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Net/` (tests next to Breakout's other
+setup, as tested C# in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Net/` (tests next to the C# example's other
 tests). Netcode is `godot-multiplayer`; sources and measurements are `${CLAUDE_PLUGIN_ROOT}/docs/googleforgames.md`.
 
 ## 1. Stopping: SIGTERM
@@ -119,6 +119,6 @@ The refused client sees `ServerDisconnected`, not `ConnectionFailed`.
 
 ## 7. Prove it
 
-- Breakout's `ServerLifecycleTests`, `JoinTokenTests`, `MatchmakerTests` (a 2,000-player crowd: no ticket used twice)
+- The C# example's `ServerLifecycleTests`, `JoinTokenTests`, `MatchmakerTests` (a 2,000-player crowd: no ticket used twice)
   and `ChatGuardTests`.
 - `soak -RequireCleanStop` on the real server, and a junk flood with `soak -JunkPps`.

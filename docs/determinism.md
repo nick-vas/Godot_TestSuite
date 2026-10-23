@@ -1,6 +1,6 @@
 # Determinism: sources and measurements
 
-The research behind the `godot-determinism` skill and Breakout's `Determinism/Replay.cs` (`IDeterministic`,
+The research behind the `godot-determinism` skill and the C# example's `Determinism/Replay.cs` (`IDeterministic`,
 `DeterminismCheck`, `DeterministicRandom`), gathered on 2026-10-21. It draws on the .NET runtime source and issues,
 Microsoft and Godot documentation, Box2D, Jolt, GGPO and Factorio. Tests ran on Linux x86_64 (Intel Xeon 2.8 GHz with
 FMA, AVX2 and AVX-512F, 4 cores), .NET SDK 8.0.131 (runtime 8.0.31), Godot 4.7.2 mono and standard, and Godot 4.6.1
@@ -116,9 +116,9 @@ timer always on 60. With `--fixed-fps 60`: the sound had not finished after 200,
 after 100,000 ticks, 0.47 s after the engine started, 0.28 s of the sound had played), the animation always 61, tween and timer
 60. Hence the skill's rule: gameplay counts its own ticks.
 
-## Breakout's toolkit
+## The C# example's toolkit
 
-`examples/breakout/src/Breakout.Core/Determinism/Replay.cs` turns the above into code: `IDeterministic` (`Save`, `Load`,
+`examples/csharp/src/Example.Core/Determinism/Replay.cs` turns the above into code: `IDeterministic` (`Save`, `Load`,
 `Step`, `Checksum`), `DeterminismCheck.Record` (a checksum every `interval` ticks), `Verify` (the first checkpoint that
 differs), `SyncTest` (every tick, re-run the last `depth` ticks and compare; depth 7 in `RollbackTests`), `Fnv1a` (a hash that is the same in every process)
 and `DeterministicRandom` (xorshift64*, its whole state one `ulong`). `DeterminismTests.cs` runs a ball in 1/1000 px

@@ -12,7 +12,7 @@ approval, and, for kit changes, a measured result. Never write a new skill from 
 
 ## 1. Gather evidence (read, do not summarise from memory)
 
-- The run history: `.godot/godot-ci-history.jsonl` in the project. Error codes and failed runners that recur.
+- The run history: `.godot/hypedot-history.jsonl` in the project. Error codes and failed runners that recur.
 - This conversation: where the user corrected you, where you retried a command, where a fix was reverted.
 - Auto memory: `MEMORY.md` in this project's Claude Code memory folder, if it exists.
 - `git log --oneline -30` and reverted or amended work.
@@ -40,7 +40,7 @@ One multiple-choice question per kit candidate: the exact proposed text or diff,
 
 ## 5. Prove a kit change before proposing it
 
-Work in the kit clone (the folder above `ci/godot/godot-ci.ps1`; AGENTS.md names it). Never on `main`:
+Work in the kit clone (the folder above `ci/godot/hypedot.ps1`; AGENTS.md names it). Never on `main`:
 
 ```powershell
 git -C <kit> switch -c feature/<six random lowercase letters or digits> origin/main

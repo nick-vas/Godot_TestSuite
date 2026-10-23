@@ -42,12 +42,12 @@ their own.
 
 ### Setting each one up
 
-[`examples/breakout`](../examples/breakout) uses all of them at once, and
+[`examples/csharp`](../examples/csharp) uses all of them at once, and
 [`examples/gdscript`](../examples/gdscript) is the minimal GDScript setup. Versions that work with Godot
 4.7.2 and .NET 8:
 
 **gdUnit4Net**: add to the Godot project's csproj, write `[TestSuite]` classes and mark engine tests with
-`[RequireGodotRuntime]`. The suite writes the `.runsettings` (`GODOT_BIN`, `--headless`, a 3-minute limit on the adapter's in-Godot rebuild
+`[RequireGodotRuntime]`. The kit writes the `.runsettings` (`GODOT_BIN`, `--headless`, a 3-minute limit on the adapter's in-Godot rebuild
 instead of its 20 s default) for you. If that rebuild fails, the adapter runs none of its tests and still exits 0; the
 `dotnet` runner fails instead and names the cause (`gdUnit4 (tests not run)`).
 The adapter's first run also installs a runner scene and builds the project with `dotnet build`, under a fixed 30 s
@@ -64,9 +64,9 @@ gdUnit4Net writes a `gdunit4_testadapter_v5/` folder into the project; add it to
 
 **GoDotTest**: reference `Chickensoft.GoDotTest`. 2.0.49 is verified on Godot 4.7.2; older
 GoDotTest versions target older Godot minors. Add a small scene whose script calls `GoTest.RunTests(...)`, like
-[`GoDotTestRunner.cs`](../examples/breakout/game/test/godottest/GoDotTestRunner.cs); the suite finds it.
+[`GoDotTestRunner.cs`](../examples/csharp/game/test/godottest/GoDotTestRunner.cs); the kit finds it.
 
-**GUT**: just write `test_*.gd` scripts that extend `GutTest`. The suite installs GUT v9.4.0–v9.7.1 to
+**GUT**: just write `test_*.gd` scripts that extend `GutTest`. The kit installs GUT v9.4.0–v9.7.1 to
 match Godot 4.4–4.7; for other versions, commit `addons/gut` yourself.
 
 ### Keep tests out of release builds
@@ -87,16 +87,16 @@ exclude_filter="test/*, addons/gut/*, gdunit4_testadapter*/*"
 ## Project notes
 
 - If your `.sln` isn't next to `project.godot`, set `dotnet/project/solution_directory` in `project.godot`,
-  or exports fail with *"no solution file was found"*. The suite catches this; Godot alone exits 0 and
+  or exports fail with *"no solution file was found"*. The kit catches this; Godot alone exits 0 and
   exports without your C# code.
 - Builds, exports and smoke runs fail on any `ERROR:` or `SCRIPT ERROR:` Godot prints. A short list of
   engine-internal messages is ignored (`$KnownNoise` in [`lib/Common.ps1`](../ci/godot/lib/Common.ps1)). To
-  ignore more, set the `GODOT_CI_IGNORE_ERRORS` environment variable to a regex.
-- Every program the suite runs (Godot, dotnet, the setup scripts) is stopped, with its child processes, if it is still
+  ignore more, set the `HYPEDOT_IGNORE_ERRORS` environment variable to a regex.
+- Every program the kit runs (Godot, dotnet, the setup scripts) is stopped, with its child processes, if it is still
   running after 30 minutes. It then counts as a failure with exit code 124, and its log says so, so a deadlocked game or
-  an `await` that never resumes fails the run instead of stalling it. Set `GODOT_CI_TIMEOUT` to another number of
+  an `await` that never resumes fails the run instead of stalling it. Set `HYPEDOT_TIMEOUT` to another number of
   seconds (a little above a long bot run), or to `0` for no limit.
-- Godot 4.7.2 sometimes aborts (exit 134) while importing, mostly seen when the import cache is stale. The suite retries the import up to twice
+- Godot 4.7.2 sometimes aborts (exit 134) while importing, mostly seen when the import cache is stale. The kit retries the import up to twice
   on any exit code of 128 or more, never on ordinary failures, and reports `importRetried` in the JSON. It could not be reproduced on demand, so
   this is a mitigation, not a fix.
 - On Linux, if Microsoft's download servers are blocked (as in sandboxed cloud sessions), setup falls back
@@ -105,7 +105,7 @@ exclude_filter="test/*, addons/gut/*, gdunit4_testadapter*/*"
 ## How it fits together
 
 ```
-ci/godot/godot-ci.ps1               the entry point: detect -> setup -> build -> test / export
+ci/godot/hypedot.ps1               the entry point: detect -> setup -> build -> test / export
 ci/godot/lib/Common.ps1             logging, running programs, Godot log checks, file search
 ci/godot/lib/Setup.ps1              .NET SDK, Godot .NET editor, export templates, addons (GUT)
 ci/godot/lib/Detect.ps1             project, solution, Godot version, runners, GoDotTest scene, presets
@@ -124,10 +124,10 @@ ci/godot/tools/Palette.cs           PNG reader and CIEDE2000 palette check for s
 ci/godot/tools/Test-Skills.ps1      checks the agent skills (structure, budgets, real commands and versions)
 ci/godot/tools/Publish-PrComment.ps1  the pull request summary comment (workflow only)
 ci/godot/tools/Publish-Release.ps1    zips exports into a GitHub Release (workflow only)
-.github/actions/godot               composite action: detect, cache, run godot-ci.ps1, upload artifacts
+.github/actions/godot               composite action: detect, cache, run hypedot.ps1, upload artifacts
 .github/workflows/godot.yml         reusable workflow: test job, export jobs per preset, release job
 ```
 
-Everything goes through `godot-ci.ps1`, so a local run on Windows and a CI run on Linux do the same
+Everything goes through `hypedot.ps1`, so a local run on Windows and a CI run on Linux do the same
 thing. The workflow checks out its own repository at the exact commit you called it with
 (`job.workflow_repository` / `job.workflow_sha`), so pinning `@v1` or a SHA pins the script too.

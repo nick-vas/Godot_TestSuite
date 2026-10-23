@@ -35,11 +35,11 @@
 
 ## What the kit took, and where
 
-- `examples/breakout/src/Breakout.Core/Ai/Perception.cs`: `VisionPie` (half-angle, far, near; `Contains` casts no
+- `examples/csharp/src/Example.Core/Ai/Perception.cs`: `VisionPie` (half-angle, far, near; `Contains` casts no
   ray), `VisionSensor.CanSee` (shape and modifiers first, then one ray per sample point inside the shape, stopping at
   the first clear one; line of sight is a `LineOfSight` delegate), `VisionModifiers` (push returns a handle, pop
   removes only that entry, factors clamped to at most 1).
-- `examples/breakout/tests/Breakout.Core.Tests/AiTests.cs`: `PerceptionRejectsByShapeBeforeCastingRays` (over 80
+- `examples/csharp/tests/Example.Core.Tests/AiTests.cs`: `PerceptionRejectsByShapeBeforeCastingRays` (over 80
   random points and four edge cases outside the shape: 0 ray calls), `OneOccludedSampleDoesNotHideTheTarget` (head
   blocked: seen in 2 rays; all blocked: not seen in 3), `AFlashbangDoesNotUndoTheDesignersBlind` (also fog outliving
   a flashbang popped out of order), `ModifiersOnlyReduceSight`, `ABriefOcclusionDoesNotForgetTheTarget`. Each fails on

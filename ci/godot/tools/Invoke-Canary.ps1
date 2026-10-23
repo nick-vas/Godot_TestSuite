@@ -15,7 +15,7 @@ param(
     [string]$Root = (Join-Path $PSScriptRoot '../../..'),
     [string]$LatestFile,
     # Example projects every update must pass.
-    [string[]]$Projects = @('examples/gdscript', 'examples/breakout/game')
+    [string[]]$Projects = @('examples/gdscript', 'examples/csharp/game')
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
@@ -38,7 +38,7 @@ function Test-Updates([string[]]$Selected) {
     if (-not $skills.ok) { $problems += "skill validator: $(@($skills.findings | Where-Object level -eq 'error' | ForEach-Object message) -join '; ')" }
     foreach ($project in $Projects) {
         $results = Join-Path ([System.IO.Path]::GetTempPath()) "canary-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
-        $out = & pwsh -NoProfile -File (Join-Path $Root 'ci/godot/godot-ci.ps1') test -Json -Quiet -Project (Join-Path $Root $project) -Results $results 2>$null
+        $out = & pwsh -NoProfile -File (Join-Path $Root 'ci/godot/hypedot.ps1') test -Json -Quiet -Project (Join-Path $Root $project) -Results $results 2>$null
         $d = try { $out | ConvertFrom-Json } catch { $null }
         if (-not $d) { $problems += "${project}: no JSON result"; continue }
         if (-not $d.ok) {

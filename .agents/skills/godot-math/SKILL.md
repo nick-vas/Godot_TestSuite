@@ -122,7 +122,7 @@ f(1) = 1, applied before the lerp ("Math for Game Programmers: Fast and Funky 1D
 
 Never pick gravity first and tune a jump speed against it: retuning "floaty" then breaks every gap measured in the levels.
 Design the arc and derive both (Kyle Pittman, "Building a Better Jump", `${CLAUDE_PLUGIN_ROOT}/docs/gdc/building-a-better-jump.md`).
-Tested in `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Platformer/JumpArc.cs`:
+Tested in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Platformer/JumpArc.cs`:
 
 | Design (export these) | Launch speed v0 | Gravity g |
 |---|---|---|
@@ -139,7 +139,7 @@ Tested in `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Platformer/
   tick, high without (the usual `if (!IsOnFloor())`: 266.7 px in Godot 4.7.2). Move by the tick's average velocity;
   `JumpGravity.Advance` also splits the tick that passes the apex, so a heavier fall starts exactly there (switching on
   the next tick put a fourfold fall 16.6 px off). The wiring, input aside, is tested in
-  `examples/breakout/game/test/gdunit4/JumpArcWiringTest.cs`:
+  `examples/csharp/game/test/gdunit4/JumpArcWiringTest.cs`:
 
 ```csharp
 public override void _PhysicsProcess(double delta)

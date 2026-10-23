@@ -32,7 +32,7 @@ measurements: `${CLAUDE_PLUGIN_ROOT}/docs/mobile-web.md`.
 ```
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Runners layout -Json -Quiet
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Runners layout -Json -Quiet
 ```
 
 A UI designed at 1280x720 and shown on a portrait phone shrinks: a 64 px button became 21 dp. Design phone UI in
@@ -106,8 +106,8 @@ steps, `godot-ui-flows`), and check text at the smallest aspect ratio in each or
 - A finger that slides into another pad switches to it without lifting; one that drifts off every pad keeps its pad. An
   action stays held while any finger is on its pad. Release all on `NotificationApplicationPaused` and focus loss.
 - Fade the drawn buttons after a few seconds of play (never to zero); offer a pad-size setting; give screens under
-  7 inches (where the thumbs meet) a tighter layout. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Controls/TouchPads.cs`
-  (`DeadSpots` lists where a thumb's reach finds no pad) and Breakout's `Controls/TouchControls.cs`.
+  7 inches (where the thumbs meet) a tighter layout. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Controls/TouchPads.cs`
+  (`DeadSpots` lists where a thumb's reach finds no pad) and the C# example's `Controls/TouchControls.cs`.
 - Touch targets: 48 dp minimum (above). Xbox's accessibility guidelines ask for 15 mm on phones (`godot-ui-accessibility`).
   `ScreenGetDpi()` on Android is a bucket (160, 240, 320, 480...), so dp is exact and millimetres are approximate.
 
@@ -185,7 +185,7 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
   The run fails (`web-run-failed`) when the engine does not start, or on any page error, failed request or `ERROR` /
   `SCRIPT ERROR` line. Without the browser it fails with `no-browser`; `npx playwright install --with-deps firefox`
   installs one. `chrome` and `msedge` use the browsers installed on the machine. On a machine without a GPU (GitHub's
-  runners) headless Firefox has no WebGL 2 and fails at start: give it a window, `GODOT_CI_WEB_HEADED=1` with Xvfb running
+  runners) headless Firefox has no WebGL 2 and fails at start: give it a window, `HYPEDOT_WEB_HEADED=1` with Xvfb running
   (the kit's self-test does this).
 
 ## 8. Done means

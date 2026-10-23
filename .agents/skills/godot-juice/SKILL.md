@@ -74,7 +74,7 @@ public partial class ShakeCamera : Camera2D   // its parent or the follow code m
 
 In 3D the child camera gets `Rotation = new Vector3(pitch, yaw, roll) * shake` from three noise rows, and its `Position`
 stays where the pivot put it. A tested trauma and noise core:
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Feel/CameraShake.cs`. Smoothing a follow camera: `godot-math`.
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Feel/CameraShake.cs`. Smoothing a follow camera: `godot-math`.
 
 ## Make it checkable
 
@@ -106,7 +106,7 @@ stays where the pivot put it. A tested trauma and noise core:
    window, or never happened at all (the bot did not reach it).
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners juice
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners juice
 ```
 
 How it looks is a different question: screenshots and the style guide are `/look`.

@@ -63,7 +63,7 @@ public override void _Process(double delta) { if (Ready) SteamAPI.RunCallbacks()
 
 ## 4. Test without Steam
 
-Breakout's `Platform/` is the pattern: `IPlatformServices` (achievements, stats, leaderboard, rich presence) with
+The C# example's `Platform/` is the pattern: `IPlatformServices` (achievements, stats, leaderboard, rich presence) with
 `LocalPlatform`, a backend that keeps state in one JSON file written only by `StoreStats`, as Steam does. Unknown ids
 throw, so a misspelt achievement fails a test instead of never unlocking. Tests: an unlock survives a restart; nothing is
 kept without `StoreStats`; KeepBest; rich presence limits. The game's Steam backend implements the same interface; only

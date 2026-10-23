@@ -5,23 +5,23 @@ progress go to stderr. Exit code: 0 when `ok` is true, 1 otherwise. Parse stdout
 raw log.
 
 ```powershell
-pwsh -NoProfile -File ci/godot/godot-ci.ps1 test -Json 2>$null | ConvertFrom-Json
+pwsh -NoProfile -File ci/godot/hypedot.ps1 test -Json 2>$null | ConvertFrom-Json
 ```
 Add `-Quiet` when an agent reads the output: Godot's and dotnet's output then goes only to the run log (see `log`
 below) and stderr carries just the kit's own lines, about 1 KB instead of 7 to 16 KB per test run on the examples.
 
 Run it as a child process, as an agent does. The document is written to the process's standard output, so dot-sourcing or calling the script
-in-process (`& ./godot-ci.ps1`) will not capture it in a variable.
+in-process (`& ./hypedot.ps1`) will not capture it in a variable.
 
 ## Envelope
 
 | Field | Type | |
 |---|---|---|
-| `schema` | string | `godot-ci/1`. Fields are only ever added within a schema version |
+| `schema` | string | `hypedot/1`. Fields are only ever added within a schema version |
 | `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
-| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `godot-ci.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `hypedot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -39,7 +39,7 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, a bad `GODOT_CI_TIMEOUT` or `GODOT_CI_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, a bad `HYPEDOT_TIMEOUT` or `HYPEDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
@@ -80,7 +80,7 @@ Branch on `error.code`; `message` can change.
 codes; the Steamworks, trailer, tag and privacy checks are described in [steam.md](steam.md#kit-checks) and
 [store-and-legal.md](store-and-legal.md#kit-checks).
 
-**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the suite retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
+**build** (and `test`, `export`): `importRetried` (1 or 2) is present when Godot crashed during import and the kit retried; a crash is an exit code of 128 or more, or a negative one (a Windows crash such as -1073741819, an access violation); ordinary failures are never retried. On failure `diagnostics[]`: `file`, `line`, `column`, `code` (e.g. `CS1525`, or `NU1605` for a restore error, which has no line or column), `message`;
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
 under it), `line`, `key` (the error key, see the run history below).
 
@@ -191,7 +191,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak` and `credits` run also appends one line to `.godot/godot-ci-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak` and `credits` run also appends one line to `.godot/hypedot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
@@ -335,7 +335,7 @@ see [plan.md](plan.md#release-dates)).
   tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest test run passed).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
-- `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/godot-ci-history.jsonl`.
+- `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/hypedot-history.jsonl`.
 - `testDuration`: `runners` (the usual scope), `runs` and `medianSeconds` (the last 10 passing test runs of that scope without
   `-Filter`), `previousRuns` and `previousMedianSeconds` (the 10 before them), `budgetSeconds` (`testBudgetSeconds` in
   `plan.json`, or `null`). Medians are `null` with no such runs. A warning when the median is over the budget, or 1.5 times

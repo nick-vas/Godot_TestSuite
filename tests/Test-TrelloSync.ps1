@@ -10,7 +10,7 @@ param([switch]$Live, [switch]$KeepBoard)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$ci = Join-Path $root 'ci/godot/godot-ci.ps1'
+$ci = Join-Path $root 'ci/godot/hypedot.ps1'
 $dir = Join-Path ([IO.Path]::GetTempPath()) "trello-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {

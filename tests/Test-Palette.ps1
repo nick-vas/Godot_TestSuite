@@ -11,7 +11,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 foreach ($lib in 'Common', 'Palette') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
-$kit = Join-Path $root 'ci/godot/godot-ci.ps1'
+$kit = Join-Path $root 'ci/godot/hypedot.ps1'
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }

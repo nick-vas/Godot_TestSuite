@@ -104,9 +104,9 @@ not ship. Numbers in CSV cells are parsed with the invariant culture. One JUnit 
 
 ### Dialogue tables (`"kind": "responses"`)
 
-A JSON table of `"kind": "responses"` holds the rules of Breakout.Core's `ResponseSystem` (Valve's dialogue rule
+A JSON table of `"kind": "responses"` holds the rules of Example.Core's `ResponseSystem` (Valve's dialogue rule
 database, [valve.md](valve.md) item 48), one row per rule; `ResponseTable.Load` in
-`examples/breakout/src/Breakout.Core/Narrative/ResponseTable.cs` builds the rules from the same file, so what the runner
+`examples/csharp/src/Example.Core/Narrative/ResponseTable.cs` builds the rules from the same file, so what the runner
 passed is what the game loads:
 
 ```json
@@ -134,7 +134,7 @@ is drawn at random each time: one rule with all the lines says the same); and cr
 table's `facts` (those the game supplies: health, the event's facts) does not list is a warning, `fact-never-written`,
 with the near name (`gag_cooldow` for `gag_cooldown`). Lines are one language: translate them as keys through
 `godot-localization`, since the runner has no per-locale columns. `tests/data-fixture` has a broken table for each
-check, `examples/breakout/game/data/barks.json` a green one that `ResponseTableTests` plays.
+check, `examples/csharp/game/data/barks.json` a green one that `ResponseTableTests` plays.
 
 `"type": "criteria"` checks the same grammar in any table (quest conditions, unlock rules). The grammar, one for both
 parsers (`CriteriaSyntax` in `ResponseRules.cs`, `Read-ResponseCriteria` in `ci/godot/lib/Data.ps1`):
@@ -151,7 +151,7 @@ blank     = { " " | "\t" }
 
 `!key` passes when the fact is missing or 0; true is 1 and false 0; a name is a symbol, equal only to itself; `x<n` is
 the interval up to the double just below n. Errors name the 1-based column in the whole text. Both parsers run the 37
-cases of `examples/breakout/tests/Breakout.Core.Tests/criteria-examples.json` (`ResponseTableTests` in C#,
+cases of `examples/csharp/tests/Example.Core.Tests/criteria-examples.json` (`ResponseTableTests` in C#,
 `tests/Test-Data.ps1` in PowerShell) and must give the same criteria and the same message for every error.
 
 ## Placed objects in levels

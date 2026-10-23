@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **Renamed to Hypedot (breaking, no aliases).** The script is `ci/godot/hypedot.ps1`, the plugin `hypedot`, the
+  repository `nick-vas/hypedot`, the environment variables `HYPEDOT_TIMEOUT`, `HYPEDOT_IGNORE_ERRORS`,
+  `HYPEDOT_PLAYWRIGHT`, `HYPEDOT_STOP_GATE`, `HYPEDOT_WEB_HEADED` (`GODOT_BIN`, `GODOT_VERSION` and `GODOT_TOOLS_DIR` keep
+  their names), the log prefix `[hypedot]`, the run log `hypedot.log` and the JSON `schema` value `hypedot/1`. Error codes
+  keep their names. Old state moves once: `.godot/godot-ci-history.jsonl` to `.godot/hypedot-history.jsonl`, GUT's
+  `.godot-ci-version` stamp and `~/.godot-ci` on any run; on `init`, a game's `godot-ci.yml` workflow becomes `hypedot.yml`
+  calling `nick-vas/hypedot`, and `.claude/settings.json`'s `godot-agent-kit` plugin entry becomes `hypedot`. The C#
+  example is `examples/csharp` (`Example.sln`, `Example.Core`, project name "CSharp Example"), so it is no longer
+  confused with Breakout Roguelike.
 - Docs cleanup for 1.0. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a
   display), the `-Project` form throughout, 50 skills grouped by area, every page in `docs/` linked, what each command
   writes into a project, and a refreshed status (exports run, eval results). `docs/roadmap.md` keeps only what is open

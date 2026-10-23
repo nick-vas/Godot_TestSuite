@@ -10,9 +10,9 @@ Godot 4.7.2, Linux, both example projects, October 2026. Bytes, not tokens (roug
 | Run | stdout (the JSON) | stderr before `-Quiet` | stderr with `-Quiet` |
 |---|---:|---:|---:|
 | GDScript example, passing | 893 | 11,400 | 659 |
-| C# Breakout example, passing | 1,200 | 7,142 | 776 |
+| C# The C# example example, passing | 1,200 | 7,142 | 776 |
 | GDScript example, one failing test | 1,280 | 16,228 | 962 (failing script error), 794 (failing assertion) |
-| Breakout, one failing gdUnit4 test | 1,350 | n/a | 979 |
+| The C# example, one failing gdUnit4 test | 1,350 | n/a | 979 |
 
 Before this change a GUT failure came back as `"message": "failed", "line": null`; the reason and the line were only in
 the 16 KB log, so an agent had to read it. Now the JSON carries `message`, `file`, `line` and `details`, for example
@@ -27,7 +27,7 @@ the validator's 16 KB limit, and seven skills keep detail in side files that loa
 Two cases (`evals/`), one run per arm, in a container where the harness runs as root. There the eval sandbox mounts the
 workspace read-only, so neither arm could run Godot: both diagnosed and fixed from reading the code. Scores were equal
 (delta 0.00), and the with-plugin runs cost $0.09 and $0.10 against $0.08 and $0.09. The first run, before the prompt was
-fixed, scored 0.67 with the plugin and 1.00 without, at $0.06 and $0.08. These runs prove the suite works; they say
+fixed, scored 0.67 with the plugin and 1.00 without, at $0.06 and $0.08. These runs prove the kit works; they say
 nothing yet about the kit. Real numbers need a machine where the sandbox can write: the `Evals` workflow (a GitHub runner),
 or WSL2 or Linux as a normal user.
 
@@ -40,7 +40,7 @@ or WSL2 or Linux as a normal user.
 |---|---|---|
 | A subscription, locally | WSL2 or Linux as a normal user: `claude` and log in once (Pro or Max), unset `ANTHROPIC_API_KEY`, then the command in `.github/workflows/evals.yml` | The docs do not say how the login reaches each run's isolated home; try `--runs 1 --case fix-score-bug` first |
 | A subscription, on GitHub | `claude setup-token` makes a one-year token ([authentication](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token)); store it as the secret `CLAUDE_CODE_OAUTH_TOKEN` and run the `Evals` workflow by hand | The evals page names only API keys and cloud credentials for CI, so this is documented for Claude Code in Actions but not yet confirmed for evals. Subscription use is meant for ordinary individual use ([terms](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use)): occasional manual runs, never a schedule. A present `ANTHROPIC_API_KEY` wins over the token |
-| A local model | Ollama 0.14+ or llama.cpp's `llama-server` speak the Anthropic Messages API ([Ollama](https://docs.ollama.com/api/anthropic-compatibility), [llama.cpp](https://huggingface.co/blog/ggml-org/anthropic-messages-api-in-llamacpp)); `ANTHROPIC_BASE_URL=http://localhost:11434` | Anthropic does not support Claude Code on non-Claude models ([LLM gateway](https://code.claude.com/docs/en/llm-gateway)); eval runs inherit only an allowlist of variables, so the base URL may not reach them (untested); and the scores would measure another model, so they only show the suite works |
+| A local model | Ollama 0.14+ or llama.cpp's `llama-server` speak the Anthropic Messages API ([Ollama](https://docs.ollama.com/api/anthropic-compatibility), [llama.cpp](https://huggingface.co/blog/ggml-org/anthropic-messages-api-in-llamacpp)); `ANTHROPIC_BASE_URL=http://localhost:11434` | Anthropic does not support Claude Code on non-Claude models ([LLM gateway](https://code.claude.com/docs/en/llm-gateway)); eval runs inherit only an allowlist of variables, so the base URL may not reach them (untested); and the scores would measure another model, so they only show the kit works |
 
 First run with the token (2026-10-22, Claude Code 2.1.308): the eval stopped after one run with `401 Invalid bearer
 token` (`partialReason: auth_failed`), and the workflow, which ended with `exit 0`, showed green. Both workflows now
@@ -89,7 +89,7 @@ folder and `pwsh` could not start. Two results stand:
 | lost-in-level | 0.33 | 0.00 | The skill fired every time, but two of three answers left out the check: play it again with the minimap and markers off |
 
 `fix-score-bug`'s `used-kit` grader also failed runs that did call the kit: its pattern stopped at the quote in
-`pwsh "<path>/godot-ci.ps1" test -Json -Quiet`. It now allows a quote and space after the path.
+`pwsh "<path>/hypedot.ps1" test -Json -Quiet`. It now allows a quote and space after the path.
 
 Run 7 (2026-10-22, `explain-failure` only, 1 run per arm, $0.16, on the fix branch): with `TMPDIR` set to the runner's
 temp folder the cases' folders are made there, writes work, and both arms imported the project and ran GUT to the real

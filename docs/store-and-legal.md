@@ -78,7 +78,7 @@ Each uses only the rules above; where the sources give no number, the check repo
   by Debian-style names such as `Expat`) in Godot 4.7.2. The Godot logo is CC-BY-4.0; FreeType's licence asks binary
   releases to say they are based in part on the FreeType Team's work. The list covers every platform's components, not
   only what one export compiles in. `ci/godot/tools/notices.gd` dumps it for `credits`.
-- A Godot 4.7.2 C# Linux export (Breakout, 189 files in its data folder) contains no .NET licence or notices file. The
+- A Godot 4.7.2 C# Linux export (the C# example, 189 files in its data folder) contains no .NET licence or notices file. The
   runtime pack in the NuGet cache has `THIRD-PARTY-NOTICES.TXT`; `credits` appends it for C# games.
 - `doctor`'s store art and press kit checks on generated PNG and JPEG files of right and wrong sizes, the trailer check
   on videos ffmpeg makes during the test (H.264 and AAC at 1920x1080 and 30 fps pass; MPEG-4 and MP2 at 2560x1440,

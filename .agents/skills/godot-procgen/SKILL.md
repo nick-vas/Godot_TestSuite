@@ -107,7 +107,7 @@ public static string Expand(RandomNumberGenerator rng, Dictionary<string, string
 ```
 
 **Streaks and droughts** ("Dark Secrets of the RNG"), tested in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Procgen/Draws.cs` with `DrawsTests`. Whatever a die can roll,
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Procgen/Draws.cs` with `DrawsTests`. Whatever a die can roll,
 some player eventually gets: a die over seven pieces gave six in a row within 100,000 draws.
 
 - Where streaks hurt (the next piece, the next card), draw from a `ShuffleBag`: each item once per bag, then refill and
@@ -120,8 +120,8 @@ some player eventually gets: a die over seven pieces gave six in a row within 10
 ## Mazes of hand-made rooms
 
 Eldritch's recipe (one developer, about two weeks of tech and two of building levels): an abstract 3D maze, one hand-built
-module per cell, then spawns. The tested version is `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Procgen/`
-(`Maze.cs`, `ModuleKit.cs`, `Placement.cs`, plain .NET) with `examples/breakout/tests/Breakout.Core.Tests/ProcgenMazeTests.cs`.
+module per cell, then spawns. The tested version is `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Procgen/`
+(`Maze.cs`, `ModuleKit.cs`, `Placement.cs`, plain .NET) with `examples/csharp/tests/Example.Core.Tests/ProcgenMazeTests.cs`.
 
 - **Grow, then tune with three knobs.** Prim's algorithm: every room closed; open one; repeatedly pick an open room and
   open a wall into a closed neighbour. Growing from the newest room (`NewestPercent`) gives long twisty corridors, from any
@@ -181,11 +181,11 @@ time flipping between two); build the scene from the data after. Then check the 
   over-constrained by its rules or cannot occur, and is work no player sees (XCOM 2: a parcel needing both a facing and
   several driveways fitted one or two plots). The census flags it before it is built.
 - **Chances come out right**: roll each chance group over 10,000 seeds and assert the rate within
-  `Stats.BinomialTolerance(p, rolls, groups: n)` (Breakout's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
+  `Stats.BinomialTolerance(p, rolls, groups: n)` (the C# example's `Analytics/Stats.cs`), not a guessed one: +/- 1.5 points for a
   30% chance, failing a correct generator once in 1,000; more rolls to catch smaller errors (four times the rolls, half the tolerance).
-- **Map the expressive range**: pressing generate a few times shows a few levels (in Breakout's test, the kinds ten seeds
+- **Map the expressive range**: pressing generate a few times shows a few levels (in the C# example's test, the kinds ten seeds
   showed held 45% of 2,000 levels). Pick two soft goals from the GDD (leniency, linearity, path length, enemy density), give
-  each a fixed range, and map 1,000+ seeds with `ExpressiveRange.Map` (Breakout's `Procgen/ExpressiveRange.cs`): a 2D
+  each a fixed range, and map 1,000+ seeds with `ExpressiveRange.Map` (the C# example's `Procgen/ExpressiveRange.cs`): a 2D
   histogram. Write `ToCsv()` next to the test results for a heat map, log `Summary()`, and assert the occupied share and
   fullest-bin share as a baseline. When parameters change, compare maps (`Overlap`, `Unreached`), not means: the same chances
   on every segment put 31% of levels in one bin with the means almost unchanged; rolling each level's own danger and

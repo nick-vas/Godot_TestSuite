@@ -8,7 +8,7 @@ description: Use when a Godot game needs paths for many agents at once, fleeing,
 Godot's built-ins first, .NET's second, and a small tested helper for each gap. The textbook version of an algorithm is
 written to be read, not to run sixty times a second: the measurements below (.NET 8, Godot 4.7.2, 4 cores, Linux) are
 of TheAlgorithms/C-Sharp's implementations against the helpers in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/` (tests: `tests/Breakout.Core.Tests/AlgorithmsTests.cs`).
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/` (tests: `tests/Example.Core.Tests/AlgorithmsTests.cs`).
 
 ## 1. Licence before code
 

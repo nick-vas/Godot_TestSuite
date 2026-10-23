@@ -1,6 +1,6 @@
 # Save systems: sources and measurements
 
-The research behind the `godot-saves` skill and Breakout's `SaveStore`, gathered on 2026-10-21. It draws on the .NET 8
+The research behind the `godot-saves` skill and the C# example's `SaveStore`, gathered on 2026-10-21. It draws on the .NET 8
 runtime and Godot 4.7.2 source, their documentation, and platform documents (Steam, Xbox, Google Play). Tests ran on
 Linux (ext4, .NET 8.0, Godot 4.7.2 mono). Marks: **tested** means run here, **source** means read in the code,
 **doc** means stated by the vendor, and **unconfirmed** means plausible but not verified.
@@ -31,7 +31,7 @@ Linux (ext4, .NET 8.0, Godot 4.7.2 mono). Marks: **tested** means run here, **so
 | strace of three saves | `rename`, then per save `unlink(bak)`, `link(save, bak)`, `rename(tmp, save)`: the save is never absent on Linux |
 | `FileAccess.Open(path, WRITE)` in a game run | `openat(O_TRUNC)` on the save itself, no rename, no fsync |
 | A save envelope with a length and a SHA-256, truncated at every byte and with a bit flipped at every byte | 0 accepted |
-| Breakout's `SaveStore` under the same faults (`SaveStoreTests`) | Never loads wrong data, never throws; every crash state loads the right copy |
+| The C# example's `SaveStore` under the same faults (`SaveStoreTests`) | Never loads wrong data, never throws; every crash state loads the right copy |
 | `str_to_var` and `ResourceLoader.load` of a `.tres` with an embedded GDScript | The script ran on load |
 | `JsonSerializer.Serialize` with reflection disabled | `InvalidOperationException`, as on a trimmed build |
 

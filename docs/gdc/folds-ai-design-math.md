@@ -114,8 +114,8 @@ words; read the talks for the full argument.
 - Video: https://www.youtube.com/watch?v=J5qnnxFoBss
 - Taken: shuffle bags with the 2k edge case, pity timers with a hard cap, no clock seeds players can time (Urban Dead),
   child seeds from the index path (deep echoes). `.agents/skills/godot-procgen/SKILL.md` and a tested
-  `examples/breakout/src/Breakout.Core/Procgen/Draws.cs` (`ShuffleBag`, `PityRoll`) with
-  `examples/breakout/tests/Breakout.Core.Tests/DrawsTests.cs`.
+  `examples/csharp/src/Example.Core/Procgen/Draws.cs` (`ShuffleBag`, `PityRoll`) with
+  `examples/csharp/tests/Example.Core.Tests/DrawsTests.cs`.
 - Measured (`DrawsTests`, seeded): a die over 7 kinds gave 6 in a row in 100,000 draws; a bag with one copy each gave 2
   (k = 1, 2, 3 stay within 2k; the guard keeps them within k). A 1% drop: longest dry run 998 in 1,000,000 rolls; capped
   at 99 misses, 99 and a 1.58% rate; plus 0.1% a miss, 3.15%. Breaking the guard or the cap fails four tests.

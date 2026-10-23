@@ -34,12 +34,12 @@
 
 ## What the kit took, and where
 
-- `examples/breakout/src/Breakout.Core/Procgen/Maze.cs`: `Maze.Generate(MazeOptions, seed)` with `NewestPercent`,
+- `examples/csharp/src/Example.Core/Procgen/Maze.cs`: `Maze.Generate(MazeOptions, seed)` with `NewestPercent`,
   `GroundFirst`, `KnockOutPercent` and `SetPieces`, on `DeterministicRandom` (`Determinism/Replay.cs`), seed mixed by SplitMix64.
 - `Procgen/ModuleKit.cs`: `Rotate`, `Mirror`, `Canonical`, `TurnsToFit`, `Furnish` (theme election and fallback, set-piece
   modules), and `Census` (`Rows`, `PerMaze`, `Variants`, `Missing`, `Unused`).
 - `Procgen/Placement.cs`: `Role`, `Allows`, `Rooms` and `ResolveGroup`.
-- `examples/breakout/tests/Breakout.Core.Tests/ProcgenMazeTests.cs`: 15 tests; `.agents/skills/godot-procgen/SKILL.md`:
+- `examples/csharp/tests/Example.Core.Tests/ProcgenMazeTests.cs`: 15 tests; `.agents/skills/godot-procgen/SKILL.md`:
   a technique row, the "Mazes of hand-made rooms" section and an "Every piece can appear" test.
 - From XCOM 2: pieces that can never be placed are wasted work, so `Census.Unused` and a test that furnishes 1000 mazes and
   checks every other module was placed.

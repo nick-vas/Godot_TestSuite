@@ -6,9 +6,9 @@ description: Use when a Godot game has enemies, companions or opponents that dec
 # Game AI in Godot 4 (C#)
 
 Pick the simplest decision structure that holds, keep it in plain C# so it is tested without the engine, and wait for
-navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ai/`
+navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Ai/`
 (`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Aim.cs`, `Perception.cs`) with
-`examples/breakout/tests/Breakout.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
+`examples/csharp/tests/Example.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
 `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
 
 ## 1. Which structure
@@ -29,7 +29,7 @@ Left 4 Dead's director, `PacingDirector` (`docs/valve.md` 4).
 ## 2. Behaviour trees
 
 - Composites re-evaluate from the first child every tick, so a higher-priority branch interrupts at once, and the branch
-  it interrupts is told (`Abort`): stop the animation, release the cover point, clear the path. Breakout's `Selector` and
+  it interrupts is told (`Abort`): stop the animation, release the cover point, clear the path. The C# example's `Selector` and
   `Sequence` do this; a "passive" selector that only resumes the running child does not react.
 - Every long action handles abort. Abrupt aborts have side effects: a reload interrupted half-way needs a rule.
 - Keep leaves small and data in the context object, not a stringly-typed blackboard for everything.
@@ -166,7 +166,7 @@ closest?") stop agreeing once rounding enters: the agent twitches in place or th
 
 LimboAI (MIT; behaviour trees and a hierarchical state machine, with an editor and debugger) supports C# only in its
 engine-module build, which means a custom editor and export templates. Beehave (MIT) is GDScript only. For a C# game on
-stock Godot, plain C# classes like Breakout's are the portable choice.
+stock Godot, plain C# classes like the C# example's are the portable choice.
 
 ## 9. Prove it
 

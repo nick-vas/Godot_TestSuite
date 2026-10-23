@@ -1,4 +1,4 @@
-# Saves a PNG of each given scene after it has run for a few frames. Run by `godot-ci.ps1 shot`:
+# Saves a PNG of each given scene after it has run for a few frames. Run by `hypedot.ps1 shot`:
 #   godot --path <project> --resolution 1920x1080 -s <this file> -- --shot-scenes=res://a.tscn,res://b.tscn --shot-frames=60 --shot-dir=<abs dir>
 # It reads the viewport's own texture after the frame is drawn, so the picture has the window's real resolution (the movie
 # writer is tied to the startup window size). Headless runs draw nothing, so there is no picture: run it with a display.

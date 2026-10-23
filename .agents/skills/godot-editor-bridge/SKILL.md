@@ -10,7 +10,7 @@ Two tools, two jobs:
 | Job | Tool |
 |---|---|
 | **Author and inspect**: open scenes, edit nodes, read the scene tree, run the game, drive input, read live state, take screenshots | an editor MCP server (needs the editor open) |
-| **Verify**: build, run every test, export, launch the export, report as JSON | `godot-ci.ps1` (headless, reproducible, CI-safe) |
+| **Verify**: build, run every test, export, launch the export, report as JSON | `hypedot.ps1` (headless, reproducible, CI-safe) |
 
 The editor is what the user sees; the files on disk are what CI and the export see. Anything done through the bridge counts only
 once it is saved and `test -Json` agrees (`godot-verify-before-done`).
@@ -18,7 +18,7 @@ once it is saved and `test -Json` agrees (`godot-verify-before-done`).
 ## Setup
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 init -Agents -Mcp godot-mcp     # writes .mcp.json (adds only), prints the addon steps
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 init -Agents -Mcp godot-mcp     # writes .mcp.json (adds only), prints the addon steps
 ```
 Default server: **satelliteoflove/godot-mcp** (MIT; Godot 4.5+, Node 20+). Tools include `godot_scene`, `godot_node_read`/`godot_node_edit`,
 `godot_editor_read`/`godot_editor_edit` (run/stop, screenshots, editor errors), `godot_runtime_state`, `godot_game_time` (freeze and step

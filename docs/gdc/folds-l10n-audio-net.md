@@ -12,7 +12,7 @@ given when the transcript states or clearly implies them. Godot behaviour quoted
   no translation (the import only warns), a UTF-16 `.po` fails to load, a Big5 CSV imports U+FFFD, and a UTF-8 BOM is
   harmless; PowerShell read all of them correctly, so the runner passed tables the game could not use. The self-test
   failed with the checks disabled and passes with them.
-- `DeterminismTests.ARangeOfOneValueStillAdvancesTheGenerator` (Breakout.Core): fails when `DeterministicRandom.Next`
+- `DeterminismTests.ARangeOfOneValueStillAdvancesTheGenerator` (Example.Core): fails when `DeterministicRandom.Next`
   takes Spelunky 2's shortcut (`max <= 1 ? 0 : ...`), passes as shipped.
 
 ## The talks
@@ -129,5 +129,5 @@ Year not stated. https://www.youtube.com/watch?v=0M0xBMEuWdU
 John McDonald, Valve. Year not stated (after 2016 from context). https://www.youtube.com/watch?v=kTiP0zKF9bc
 - Taken (`godot-anti-cheat` section 7; `docs/anti-cheat.md`): evidence from server-recorded replays, 95% of the work;
   Trust Score as a soft measure for small teams; reviewers weighted by agreement with consensus; the base-rate formula,
-  recomputed (17% and 48%). The one-movement-packet-per-tick fix confirms Breakout's existing speed check.
+  recomputed (17% and 48%). The one-movement-packet-per-tick fix confirms the C# example's existing speed check.
 - Not taken: the deep-learning pipeline and its features (beyond an indie game's scale and data).

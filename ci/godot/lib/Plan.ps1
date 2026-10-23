@@ -30,7 +30,7 @@ function Test-PlanGate($Gate, $Info) {
         '^runner:(?<runner>[a-z0-9]+)$' { return @($Info.Runners) -contains $Matches.runner }
         '^ci$' {
             $files = @(Get-ChildItem -LiteralPath (Join-Path $root '.github/workflows') -File -ErrorAction SilentlyContinue)
-            return @($files | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'Godot_TestSuite/\.github/workflows/godot\.yml' }).Count -gt 0
+            return @($files | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(hypedot|Godot_TestSuite)/\.github/workflows/godot\.yml' }).Count -gt 0
         }
         '^file:(?<path>.+)$' {
             $path = $Matches.path
@@ -203,7 +203,7 @@ function Get-PlanState($Plan, $Info, [datetime]$Today = [datetime]::UtcNow.Date)
 function Write-PlanMarkdown($Plan, $State, [string]$Path) {
     $md = [System.Collections.Generic.List[string]]::new()
     $md.Add("# $($Plan.game ? $Plan.game : 'Game') plan"); $md.Add('')
-    $md.Add('<!-- Generated from plan.json by `godot-ci.ps1 plan`. Edit plan.json, not this file. -->')
+    $md.Add('<!-- Generated from plan.json by `hypedot.ps1 plan`. Edit plan.json, not this file. -->')
     if ($Plan.pitch) { $md.Add(''); $md.Add("> $($Plan.pitch)") }
     foreach ($phase in $State.phases) {
         $mark = $phase.complete ? 'done' : ($phase.id -eq $State.current.id ? 'current' : 'later')

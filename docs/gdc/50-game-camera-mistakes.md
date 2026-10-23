@@ -38,12 +38,12 @@
 - `.agents/skills/godot-camera/SKILL.md` (new): all of the above mapped to Godot 4.7.2, with a C# pivot node that casts
   whiskers and a behind ray with `IntersectRay`, uses `SpringArm3D` only as the sphere safety, and drives `OrbitCamera`.
   The snippet compiled against GodotSharp 4.7.2 and ran headless in a small scene with a wall.
-- `examples/breakout/src/Breakout.Core/Feel/OrbitCamera.cs`: `PitchRig` (distance and field of view from pitch, through the
+- `examples/csharp/src/Example.Core/Feel/OrbitCamera.cs`: `PitchRig` (distance and field of view from pitch, through the
   picture height at the avatar, so its screen size changes one way), `OrbitCamera` (yaw priority: player, avoidance,
   hint, auto-follow; squeeze; behind clearance; eased pitch limits; hint delay; velocity yaw with angle wrap; pivot lag
   limit; height held through jumps). Self-contained so a game can copy the one file (a Godot C# project has no implicit
   `using System`, so the first copy of it failed to build).
-- `examples/breakout/tests/Breakout.Core.Tests/OrbitCameraTests.cs`, 11 tests. Each of seven naive versions (field of
+- `examples/csharp/tests/Example.Core.Tests/OrbitCameraTests.cs`, 11 tests. Each of seven naive versions (field of
   view interpolated on its own, speed then clamp, no hint delay, summed yaw forces, no lag limit, vertical follow while
   airborne, no angle wrap) fails exactly the test written for it.
 - Stick curve and inversion were already `StickSettings` (`godot-input`); shake, bob and field-of-view settings were
@@ -64,7 +64,7 @@
 
 - Auto-pitch for cliffs and slopes, landing previews, hint framing (slide versus rotate), rule of thirds and the backtrack
   turn: they depend on the level's rays and the designer's targets, so they are rules in the skill, not tested code.
-- Cuts, the 180-degree rule and remapping the stick after a cut: rules only; Breakout has no 3D camera to exercise them.
+- Cuts, the 180-degree rule and remapping the stick after a cut: rules only; the C# example has no 3D camera to exercise them.
 - No runtime check (a flow that logs the camera per frame) yet: neither example has a third-person camera.
 - Doubt: one line says the field of view widens "transitioning to a bird's eye view" while describing looking at the sky;
   read as worm's eye, which matches the rest of the talk.

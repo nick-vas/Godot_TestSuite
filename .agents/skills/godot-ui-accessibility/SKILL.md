@@ -25,7 +25,7 @@ Guidelines (XAG) are stricter, plus what the Game Accessibility Guidelines add. 
   container guesses wrong. Grids do not loop. A linear menu loops from last to first only with a cue on the wrap, a
   sound unlike the step sound and a rumble; without one a player who cannot see never knows they are back at the top,
   so stop at the ends instead (Godot's own navigation does). Offer the setting (XAG 112). A short click on every focus
-  move lets the steps be counted. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/game/Controls/LinearMenu.cs`
+  move lets the steps be counted. Tested: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/Controls/LinearMenu.cs`
   (Karen Stevens, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/aaa-gaming-while-blind.md`).
 - The same items in the same order every time: nothing that appears only sometimes (an ad, a promotion, an event mode)
   shifts what follows and breaks the count of presses a blind player memorised. An unavailable item stays, disabled.
@@ -71,7 +71,7 @@ Layout bugs (blank labels, overflowing text, a game area stuck in a corner) are 
 runs: look at real frames, at the target resolution and at least one other aspect ratio, after every UI change.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
 ```
 
 Set a stretch mode first (`canvas_items` with `expand` for UI anchored to edges, `keep` for a fixed play area,
@@ -110,7 +110,7 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
 - Subtitle layout: bottom centre, in one place, inside a 5% safe margin; at most two lines of 38 characters (BBC; XAG 104
   allows 40), broken where the sense breaks; one sentence per subtitle; on screen long enough for 180 words a minute.
   Several at once: a new one enters at the bottom and pushes the oldest off the top, never a fixed row per speaker.
-  Tested splitting and reading time: `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Ui/Subtitles.cs`.
+  Tested splitting and reading time: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Ui/Subtitles.cs`.
 - The speaker's name in text, even when colour tells speakers apart. Every sound the player must react to (hazards and
   ordinary enemies too, not only bosses) as captions in brackets, short subject and verb ("[door slams]"), with an arrow
   for off-screen speakers and sounds. A story line outranks a combat bark and is never pushed off by one.
@@ -152,7 +152,7 @@ Godot 4.7 talks to screen readers through AccessKit; its own controls report the
   option is a graded slider (Grounded's spiders, down to a blob), since the trigger differs per person. Control prompts
   can stay on screen; saving works at any moment, so a hard part is never replayed.
 - A tested model (defaults, presets, `IsChanged`, reset; it saves only changed values, so a default improved in a patch
-  reaches players who never touched it): `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Settings/GameSettings.cs`.
+  reaches players who never touched it): `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Settings/GameSettings.cs`.
 
 ## Narrating the world (blind and low-vision players)
 
@@ -160,7 +160,7 @@ Screen readers read controls, not the world: describe objects, places and tutori
 on demand only (one assist action speaks what is focused and stops it), state then name then a short description, with
 music and effects ducked while it speaks and a positional cue at the object. Turn on `audio/general/text_to_speech`
 (`doctor` warns when it is off). Read [narration.md](narration.md) before building it; tested core:
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Access/Narration.cs`.
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Access/Narration.cs`.
 A turn-based or story game can aim to be playable with the screen off, a goal you can test: every state change has a
 sound or a spoken cue. Kenji Eno's Real Sound was made "for the blind" (*Untold History*).
 

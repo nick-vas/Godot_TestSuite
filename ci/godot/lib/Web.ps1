@@ -21,12 +21,12 @@ function Get-WebBuildSize([string]$Dir) {
     return [ordered]@{ files = $files; rawMb = [math]::Round($raw / 1MB, 2); gzipMb = [math]::Round($gzip / 1MB, 2) }
 }
 
-# The folder that holds the playwright package: GODOT_CI_PLAYWRIGHT, the global npm folder, or the kit's own copy
+# The folder that holds the playwright package: HYPEDOT_PLAYWRIGHT, the global npm folder, or the kit's own copy
 # (installed on first use, without browsers; `npx playwright install <browser>` adds those).
 function Find-Playwright {
-    if ($env:GODOT_CI_PLAYWRIGHT) {
-        if (Test-Path -LiteralPath (Join-Path $env:GODOT_CI_PLAYWRIGHT 'playwright')) { return $env:GODOT_CI_PLAYWRIGHT }
-        Stop-GodotCi "GODOT_CI_PLAYWRIGHT is set, but $env:GODOT_CI_PLAYWRIGHT has no playwright folder" 'no-browser'
+    if ($env:HYPEDOT_PLAYWRIGHT) {
+        if (Test-Path -LiteralPath (Join-Path $env:HYPEDOT_PLAYWRIGHT 'playwright')) { return $env:HYPEDOT_PLAYWRIGHT }
+        Stop-GodotCi "HYPEDOT_PLAYWRIGHT is set, but $env:HYPEDOT_PLAYWRIGHT has no playwright folder" 'no-browser'
     }
     if (-not (Get-Command node -ErrorAction SilentlyContinue) -or -not (Get-Command npm -ErrorAction SilentlyContinue)) {
         Stop-GodotCi 'export -Run of a Web preset needs Node.js (node and npm on the PATH)' 'no-browser'

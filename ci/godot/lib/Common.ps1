@@ -13,14 +13,14 @@ function Write-Console {
     Write-Host @arguments
 }
 
-function Write-CiLog([string]$Message) { Write-Console "[godot-ci] $Message" }
+function Write-CiLog([string]$Message) { Write-Console "[hypedot] $Message" }
 
 # Commands the kit suggests in its own output, written so they can be pasted as they are: the kit's real path, and
 # -Project when the project is not the current folder (the kit usually lives outside the game).
 $script:KitScript = $null
 $script:KitProject = $null
 function Format-KitCommand([string]$Arguments) {
-    $path = if ($script:KitScript) { $script:KitScript -replace '\\', '/' } else { 'godot-ci.ps1' }
+    $path = if ($script:KitScript) { $script:KitScript -replace '\\', '/' } else { 'hypedot.ps1' }
     if ($path -match '\s') { $path = "`"$path`"" }
     $project = ''
     if ($script:KitProject -and [System.IO.Path]::GetFullPath($script:KitProject).TrimEnd('\', '/') -ne $PWD.Path.TrimEnd('\', '/')) {
@@ -38,8 +38,8 @@ function Test-PathInside([string]$Path, [string]$Root) {
     return $full.Equals($base, $comparison) -or $full.StartsWith("$base/", $comparison)
 }
 
-# Every line of a run, the tools' output included, goes to one log file (godot-ci.log in the results folder). With -Quiet
-# the console shows only the kit's own [godot-ci] lines, so an agent reading the output pays for the verdict and not for
+# Every line of a run, the tools' output included, goes to one log file (hypedot.log in the results folder). With -Quiet
+# the console shows only the kit's own [hypedot] lines, so an agent reading the output pays for the verdict and not for
 # thousands of lines of engine and compiler output; the details stay one file away.
 $script:QuietMode = $false
 $script:RunLogWriter = $null
@@ -102,7 +102,7 @@ function Set-TestRunHistory($Scope, $Failing, [string[]]$FailedRunners, [System.
 
 function Add-RunHistory([bool]$Ok, [string]$Code) {
     if (-not $script:HistoryCommand) { return }
-    $file = Join-Path $script:HistoryProject '.godot/godot-ci-history.jsonl'
+    $file = Join-Path $script:HistoryProject '.godot/hypedot-history.jsonl'
     $entry = [ordered]@{
         time = (Get-Date).ToUniversalTime().ToString('o'); command = $script:HistoryCommand; ok = $Ok; code = $Code
         seconds = [math]::Round(((Get-Date) - $script:HistoryStart).TotalSeconds, 1)
@@ -117,7 +117,7 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
         $entry['commit'] = Get-HeadCommit $script:HistoryProject
         $entry['errorKeys'] = @(Get-RunErrorKeys @(Read-RunLogLines) @($script:RunErrorKeys))
     } catch {
-        Write-RunLog "[godot-ci] Could not read the run's error keys: $_"
+        Write-RunLog "[hypedot] Could not read the run's error keys: $_"
         if (-not $entry.Contains('errorKeys')) { $entry['errorKeys'] = @() }
     }
     try {
@@ -125,20 +125,20 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
         Add-Content -LiteralPath $file -Value ($entry | ConvertTo-Json -Compress -Depth 4) -Encoding utf8
     } catch {
         # History is a convenience; a read-only project must not fail the run.
-        Write-RunLog "[godot-ci] Could not record the run in ${file}: $_"
+        Write-RunLog "[hypedot] Could not record the run in ${file}: $_"
     }
     $script:HistoryCommand = $null
     $script:HistoryTestRun = $null
 }
 
-# -Json: stdout carries exactly one JSON document (schema "godot-ci/1"); every log line goes to stderr.
+# -Json: stdout carries exactly one JSON document (schema "hypedot/1"); every log line goes to stderr.
 # Functions add their part with Set-JsonField; the entry point prints the result at the end.
 $script:JsonMode = $false
 $script:JsonDoc = [ordered]@{}
 
 function Enable-JsonMode([string]$Command) {
     $script:JsonMode = $true
-    $script:JsonDoc = [ordered]@{ schema = 'godot-ci/1'; command = $Command; ok = $true }
+    $script:JsonDoc = [ordered]@{ schema = 'hypedot/1'; command = $Command; ok = $true }
 }
 function Set-JsonField([string]$Name, $Value) { if ($script:JsonMode) { $script:JsonDoc[$Name] = $Value } }
 function Write-JsonResult {
@@ -148,8 +148,8 @@ function Write-JsonResult {
 
 # Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
 function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
-    Write-Console "[godot-ci] ERROR: $Message" -ForegroundColor Red
-    if ($script:RunLogPath -and $script:QuietMode) { Write-Console "[godot-ci] Full log: $script:RunLogPath" }
+    Write-Console "[hypedot] ERROR: $Message" -ForegroundColor Red
+    if ($script:RunLogPath -and $script:QuietMode) { Write-Console "[hypedot] Full log: $script:RunLogPath" }
     Add-RunHistory $false $Code
     if ($script:JsonMode) {
         $script:JsonDoc['ok'] = $false
@@ -169,12 +169,12 @@ function Stop-LogGroup { if ($env:GITHUB_ACTIONS -and -not $script:QuietMode) { 
 # Runs a program, streaming its output (stdout and stderr) to the console (the run log only, with -Quiet) and, if given,
 # a log file. Returns the exit code instead of throwing, so callers decide what a failure means.
 # Seconds a program may run before it counts as hung (a deadlock, an await that never resumes). Without a limit a hung
-# Godot stalls a local run, and the agent waiting on it, forever. GODOT_CI_TIMEOUT overrides it; 0 turns it off.
+# Godot stalls a local run, and the agent waiting on it, forever. HYPEDOT_TIMEOUT overrides it; 0 turns it off.
 function Get-ProcessTimeout {
-    if (-not $env:GODOT_CI_TIMEOUT) { return 1800 }
+    if (-not $env:HYPEDOT_TIMEOUT) { return 1800 }
     $seconds = 0
-    if (-not [int]::TryParse($env:GODOT_CI_TIMEOUT, [ref]$seconds) -or $seconds -lt 0) {
-        Stop-GodotCi "GODOT_CI_TIMEOUT must be a whole number of seconds: $env:GODOT_CI_TIMEOUT" 'invalid-arguments'
+    if (-not [int]::TryParse($env:HYPEDOT_TIMEOUT, [ref]$seconds) -or $seconds -lt 0) {
+        Stop-GodotCi "HYPEDOT_TIMEOUT must be a whole number of seconds: $env:HYPEDOT_TIMEOUT" 'invalid-arguments'
     }
     return $seconds
 }
@@ -225,7 +225,7 @@ function Invoke-Logged {
         }
         if ($timedOut) {
             try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }
-            $message = "[godot-ci] $FilePath was still running after $timeout s and was stopped (raise GODOT_CI_TIMEOUT if it needs longer)"
+            $message = "[hypedot] $FilePath was still running after $timeout s and was stopped (raise HYPEDOT_TIMEOUT if it needs longer)"
             if ($writer) { $writer.WriteLine($message) }
             Write-Console $message -ForegroundColor Red
         }
@@ -266,11 +266,35 @@ function Invoke-Checked {
 
 function Get-ToolsDir {
     if ($env:GODOT_TOOLS_DIR) { return $env:GODOT_TOOLS_DIR }
-    return Join-Path $HOME '.godot-ci'
+    $dir = Join-Path $HOME '.hypedot'
+    # Before Hypedot the downloads lived in ~/.godot-ci: moved once, so Godot and .NET are not fetched again.
+    $old = Join-Path $HOME '.godot-ci'
+    if (-not (Test-Path -LiteralPath $dir) -and (Test-Path -LiteralPath $old)) {
+        Move-Item -LiteralPath $old -Destination $dir
+        Write-CiLog "Moved $old to $dir (the kit is now Hypedot)"
+    }
+    return $dir
+}
+
+# Before Hypedot the kit kept a game's run history and its GUT stamp under godot-ci names. Each is moved once to its new
+# name, so the Stop hook, status and the failure delta keep the history, and an installed GUT stays the kit's own.
+function Move-OldKitState([string]$ProjectDir) {
+    $renames = @(
+        @('.godot/godot-ci-history.jsonl', '.godot/hypedot-history.jsonl'),
+        @('addons/gut/.godot-ci-version', 'addons/gut/.hypedot-version')
+    )
+    foreach ($rename in $renames) {
+        $old = Join-Path $ProjectDir $rename[0]
+        $new = Join-Path $ProjectDir $rename[1]
+        if ((Test-Path -LiteralPath $old) -and -not (Test-Path -LiteralPath $new)) {
+            Move-Item -LiteralPath $old -Destination $new
+            Write-CiLog "Moved $($rename[0]) to $($rename[1]) (the kit is now Hypedot)"
+        }
+    }
 }
 
 # Engine-internal messages that say nothing about the project. Extend per project with the
-# GODOT_CI_IGNORE_ERRORS environment variable (a regex).
+# HYPEDOT_IGNORE_ERRORS environment variable (a regex).
 $script:KnownNoise = @(
     # The Android export plugin can read editor settings during headless shutdown (timing-dependent).
     'EditorSettings not instantiated yet when getting setting',
@@ -285,15 +309,15 @@ $script:KnownNoise = @(
 
 $script:GodotErrorPattern = '^\s*(SCRIPT ERROR|SHADER ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
 
-# One regex for the error lines to leave out: the known noise and GODOT_CI_IGNORE_ERRORS. An invalid GODOT_CI_IGNORE_ERRORS
+# One regex for the error lines to leave out: the known noise and HYPEDOT_IGNORE_ERRORS. An invalid HYPEDOT_IGNORE_ERRORS
 # stops the run; -Lenient leaves it out instead (for the run history, which must never stop a run).
 function Get-IgnoredErrorsRegex([switch]$Lenient) {
     $ignore = @($script:KnownNoise)
-    if ($env:GODOT_CI_IGNORE_ERRORS) {
+    if ($env:HYPEDOT_IGNORE_ERRORS) {
         $valid = $true
-        try { [void][regex]::new($env:GODOT_CI_IGNORE_ERRORS) } catch { $valid = $false }
-        if ($valid) { $ignore += $env:GODOT_CI_IGNORE_ERRORS }
-        elseif (-not $Lenient) { Stop-GodotCi "GODOT_CI_IGNORE_ERRORS is not a valid regex: $env:GODOT_CI_IGNORE_ERRORS" 'invalid-arguments' }
+        try { [void][regex]::new($env:HYPEDOT_IGNORE_ERRORS) } catch { $valid = $false }
+        if ($valid) { $ignore += $env:HYPEDOT_IGNORE_ERRORS }
+        elseif (-not $Lenient) { Stop-GodotCi "HYPEDOT_IGNORE_ERRORS is not a valid regex: $env:HYPEDOT_IGNORE_ERRORS" 'invalid-arguments' }
     }
     return ($ignore | ForEach-Object { "(?:$_)" }) -join '|'
 }
@@ -382,7 +406,7 @@ function Get-RunErrorKeys([string[]]$Lines, [string[]]$Extra = @(), [int]$Cap = 
             if ($details[$i].File -or -not $located.Contains($details[$i].Key)) { $key = $details[$i].Key }
         } elseif ($line -match 'Program crashed with signal (?<s>\d+)') {
             $key = "Program crashed with signal $($Matches.s)"
-        } elseif ($line -match '^\[godot-ci\] (?<p>.+) was still running after \d+ s and was stopped') {
+        } elseif ($line -match '^\[hypedot\] (?<p>.+) was still running after \d+ s and was stopped') {
             $key = "$(Split-Path -Leaf $Matches.p) was still running at the time limit and was stopped"
         }
         if ($key -and $seen.Add($key)) { $keys.Add($key) }
@@ -402,10 +426,10 @@ function Set-EngineErrors([object[]]$Details) {
 function Assert-GodotLogClean([string]$LogFile, [string]$What, [string[]]$Expected = @()) {
     $errors = @(Get-GodotLogErrors $LogFile | Where-Object { $_.Trim() -notin $Expected })
     if ($errors.Count -gt 0) {
-        Write-Console '[godot-ci] Godot reported errors:' -ForegroundColor Red
+        Write-Console '[hypedot] Godot reported errors:' -ForegroundColor Red
         $errors | Select-Object -First 30 | ForEach-Object { Write-Console "  $_" }
         Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $LogFile) | Where-Object { $_.Text -notin $Expected })
-        Stop-GodotCi "$What produced errors (set GODOT_CI_IGNORE_ERRORS to ignore a known message)" 'engine-errors'
+        Stop-GodotCi "$What produced errors (set HYPEDOT_IGNORE_ERRORS to ignore a known message)" 'engine-errors'
     }
 }
 
@@ -500,7 +524,7 @@ function Get-FailureLocation([string]$Text) {
 }
 
 # Edits (insert, delete, substitute, swap two neighbours) between two names, ignoring case; anything above $Max comes back
-# as $Max + 1. The same measure as Breakout.Core's Suggest.Distance (docs/algorithms.md).
+# as $Max + 1. The same measure as Example.Core's Suggest.Distance (docs/algorithms.md).
 function Get-EditDistance([string]$A, [string]$B, [int]$Max = 1000) {
     $A = $A.ToUpperInvariant(); $B = $B.ToUpperInvariant()
     $Max = [Math]::Min($Max, [Math]::Max($A.Length, $B.Length))

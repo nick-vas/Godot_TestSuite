@@ -141,7 +141,7 @@ The FMOD compressor's own defaults are 2.5:1, 20 ms attack and 200 ms release.
   side is (L+R)/2: a hard-panned sound loses 6 dB per side (3 dB of power), and stereo effects that rely on phase (wide
   reverbs, some synth pads) thin out or vanish; listen to the mix in mono before release. With `pan_pullout` 0.5 the
   left-only tone measured 0.263/0.088, a partial narrowing.
-- **Voice budgets.** `VoiceBudget` in Breakout.Core: per category a cap (a new voice steals that category's oldest) and a
+- **Voice budgets.** `VoiceBudget` in Example.Core: per category a cap (a new voice steals that category's oldest) and a
   priority (at the total cap, a new voice steals the oldest voice of the lowest priority below its own; equal or higher
   priorities are never taken), and protected categories that are never stolen and are refused when full. A 5,000-request
   storm in its tests never exceeds any cap and never steals dialogue.

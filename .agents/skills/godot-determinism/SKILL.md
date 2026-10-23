@@ -37,7 +37,7 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
 - `Dictionary` and `HashSet` order depends on the history of adds and removes. Iterate a sorted list of ids.
 - `System.Random(seed)` repeated across runs, but Microsoft does not promise it across .NET versions, and its state
   cannot be saved, which rules out rollback. Use a generator whose state lives in the simulation state:
-  Breakout's `DeterministicRandom` (xorshift64*, `State` is a `ulong`) or Godot's `RandomNumberGenerator` (`Seed`, `State`).
+  The C# example's `DeterministicRandom` (xorshift64*, `State` is a `ulong`) or Godot's `RandomNumberGenerator` (`Seed`, `State`).
 - Never in the simulation: `DateTime.Now`, `Time.GetTicksMsec()`, `GD.Randf()`, `GD.Randi()`, `delta` from `_Process`,
   static mutable fields, threads and `Parallel` (their order varies), `async` continuations.
 - Nor engine completion signals: `AudioStreamPlayer.Finished`, `AnimationPlayer.AnimationFinished`, `Tween.Finished`.
@@ -64,7 +64,7 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
 
 ## 4. Integers and fixed-point
 
-- Integers are exact on every platform and as fast as floats. Breakout's determinism tests use positions and
+- Integers are exact on every platform and as fast as floats. The C# example's determinism tests use positions and
   velocities in thousandths of a pixel.
 - `(long)Math.Sqrt((double)x)` is exact for `x` below 2^52, so integer distance checks stay deterministic; better,
   compare squared distances.
@@ -74,7 +74,7 @@ sources: `${CLAUDE_PLUGIN_ROOT}/docs/determinism.md`.
   lookup tables and integer angles (0 to 65535).
 - Convert tunables to fixed-point once at load, from invariant-culture text.
 
-## 5. The toolkit (Breakout.Core, `Determinism/Replay.cs`)
+## 5. The toolkit (Example.Core, `Determinism/Replay.cs`)
 
 ```csharp
 public interface IDeterministic<TState, TInput>
@@ -142,7 +142,7 @@ Divergence? d = InputLog.Load(path).Play(sim, toTick: n);   // null, or the firs
 
 ## 7. Time rewind
 
-Braid's rules (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/rewind-in-braid.md`), built as Breakout's `RewindLog` (`Determinism/Rewind.cs`):
+Braid's rules (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/rewind-in-braid.md`), built as the C# example's `RewindLog` (`Determinism/Rewind.cs`):
 
 - Record the state, every frame, always. Input replays break across builds; reversible simulation doubles the
   gameplay code and cannot jump 10,000 frames back; dropped or interpolated frames are inexact, and in a puzzle game an

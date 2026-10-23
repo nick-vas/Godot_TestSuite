@@ -19,7 +19,7 @@ function New-Project([string]$Name) {
 }
 
 function Get-DoctorMessages([string]$Dir) {
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') doctor -Project $Dir -Json 2>$null
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') doctor -Project $Dir -Json 2>$null
     return @(($json | Out-String | ConvertFrom-Json).checks | ForEach-Object message)
 }
 

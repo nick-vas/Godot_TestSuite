@@ -43,10 +43,10 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Net/Replication.cs`: `GhostReplicator.MaxOverridesPerPacket` (default 4). Before,
+- `examples/csharp/src/Example.Core/Net/Replication.cs`: `GhostReplicator.MaxOverridesPerPacket` (default 4). Before,
   every creation and deletion went ahead of priority order with no limit. Now at most that many jump the queue in a
   packet; the rest compete by priority (with the existing ageing), so they still arrive.
-- `examples/breakout/tests/Breakout.Core.Tests/ReplicationTests.cs`: `ABurstOfNewObjectsDoesNotSilenceTheOpponent`.
+- `examples/csharp/tests/Example.Core.Tests/ReplicationTests.cs`: `ABurstOfNewObjectsDoesNotSilenceTheOpponent`.
 - `.agents/skills/godot-multiplayer/SKILL.md` section 3: the cap and the 10% share; predict the look and let the host
   decide; ask where the lag is hidden; shorten a host-side wind-up by the round trip; warp the logic and blend the look.
 
@@ -66,8 +66,8 @@ which its own waiting puts it first again.
 
 ## Not taken
 
-- An age threshold that turns any overdue object into an override ("panic"): Breakout's replicator raises priority by
+- An age threshold that turns any overdue object into an override ("panic"): The C# example's replicator raises priority by
   waiting instead, and the cap covers what jumps the queue.
-- A 10% byte share in code: Breakout has no bulk background channel; the skill states the rule.
+- A 10% byte share in code: The C# example has no bulk background channel; the skill states the rule.
 - Reach's bandwidth profiler and perceived-lag button, host selection and host migration: tooling and services beyond
   what the kit tests.

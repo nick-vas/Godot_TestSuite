@@ -7,7 +7,7 @@ ones); the pull requests and `CHANGELOG.md` are the record of what was built. Th
 
 | Phase | State |
 |---|---|
-| 1. Self-improvement | Built: the plugin, `retro`, the run history (`.godot/godot-ci-history.jsonl`), the weekly canary (Fridays 18:47 UTC), `kit-review`, and the ten agent-efficiency items in [research.md](research.md). Evals: run 7, the first where the sandbox could run Godot, scored `explain-failure` 1.00 with and without the plugin (1 run per arm); run 6 stands for `review-publishing-deal` (1.00 against 0.78) and `lost-in-level` (0.33 against 0.00). Open: below |
+| 1. Self-improvement | Built: the plugin, `retro`, the run history (`.godot/hypedot-history.jsonl`), the weekly canary (Fridays 18:47 UTC), `kit-review`, and the ten agent-efficiency items in [research.md](research.md). Evals: run 7, the first where the sandbox could run Godot, scored `explain-failure` 1.00 with and without the plugin (1 run per arm); run 6 stands for `review-publishing-deal` (1.00 against 0.78) and `lost-in-level` (0.33 against 0.00). Open: below |
 | 2. `/game` | Built: `status`, the GDD format and feature tags, plan links to features and cards, the `game` and `weekly-review` skills. Open: below |
 | 3. Architecture | Built: the `architecture` runner in `test` (warnings by default), the `godot-patterns` skill, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
 | 4. Look and feel | Built: `shot -Baseline`, `shot`'s palette check against `docs/STYLE.md` (`-MaxOffPalettePercent`), the `juice` runner and `juice.json`, the style guide template, the `look` and `godot-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with the owner, and its first `juice.json` |
@@ -31,18 +31,17 @@ interface, and ships as 1.0 once these steps are done, in this order. Each step 
 2. **Cleanup.** Merge or cut overlapping skills and docs (focused skills beat many big ones); clear finished roadmap
    items; fix stale counts. Done so far: five skill merges (55 to 50), this page cut to what is open, and
    `docs/strategies.md` folded into [What was decided](#what-was-decided).
-3. **Rename, clean break.** Repository `nick-vas/Godot_TestSuite` to `nick-vas/hypedot` (the owner renames it in GitHub's
-   settings once the code is ready), plugin `godot-agent-kit` to `hypedot`, `ci/godot/godot-ci.ps1` to `hypedot.ps1`,
-   `GODOT_CI_*` variables and the history and state file names, every doc and skill. No aliases. Error codes keep their
-   names (they are API). The README says the project is not affiliated with the Godot Foundation. The C# example
-   `examples/breakout` (its `Breakout.Core` now holds every tested helper, and its name clashes with Breakout Roguelike)
-   gets a new name; options put to the owner on 2026-10-23: `examples/csharp` beside `examples/gdscript`, `testbed`,
-   `reference-cs`/`reference-gd`, or keep it.
+3. **Rename, clean break.** Done in code: plugin `hypedot`, `ci/godot/hypedot.ps1`, `HYPEDOT_*` variables, the `[hypedot]`
+   log prefix, the `hypedot/1` JSON schema, `.godot/hypedot-history.jsonl`, `~/.hypedot`, and `examples/csharp` (was
+   `examples/breakout`, whose name clashed with Breakout Roguelike). No aliases; error codes keep their names. Old state
+   moves once: the history file, the GUT stamp and `~/.godot-ci` on any run; a game's workflow file and plugin entry on
+   `init`. Left to the owner: renaming the repository `nick-vas/Godot_TestSuite` to `nick-vas/hypedot` in GitHub's
+   settings when the rename pull request merges (the code already calls the new name).
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
-   (costs money: confirm first) and `bench` on Breakout.
+   (costs money: confirm first) and `bench` on the C# example.
 6. **Retro** over all of the above.
-7. **Release 1.0**: changelog, version, tag `v1.0.0`, a start-here page for working on a game (first use: Breakout
+7. **Release 1.0**: changelog, version, tag `v1.0.0`, a start-here page for working on a game (first use: The C# example
    Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat with the kit cloned beside it).
 
 Notes from the question round still open, each to be fixed, built or written down before 1.0 (numbers as first agreed):
@@ -60,6 +59,7 @@ Notes from the question round still open, each to be fixed, built or written dow
 | 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
 | 14 | `/game` reports tests, not design or technical problems | `/game` adds a short design and architecture review |
 | 15 | Checking for the Steam Deck takes four commands | One Deck check: `textsize`, `layout`, `shot` at 1280x800 and `bench` with a Deck budget, one verdict |
+| 16 | Nothing records what `/game` asked the verifier and architect, or what they answered | One line per handoff in `.godot/` (time, subagent, what was checked, verdict, commit), last 200 kept, never committed; `status`, `/game` and `/retro` read it. Proposed 2026-10-23 |
 
 ### Trello
 
@@ -104,7 +104,7 @@ Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
 ## Principles that keep it future-proof
 
 1. **Facts in the CLI, judgement in Claude.** Anything that can be computed (tests, gates, git stats, bench numbers) is a
-   `godot-ci.ps1` command with `-Json` output. Anything that needs judgement (is this feature done, is this screen readable)
+   `hypedot.ps1` command with `-Json` output. Anything that needs judgement (is this feature done, is this screen readable)
    is a skill, slash command or subagent that reads that JSON. The CLI survives model changes; the skills are cheap to rewrite.
 2. **Ship as a Claude Code plugin.** Skills, subagents and the Stop hook load from this repository as a plugin and are
    updated with `/plugin update`. The game keeps only what is about the game: `AGENTS.md`, `docs/GDD.md`,
@@ -162,22 +162,22 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **A `placement` runner, or placement checks in C#.** `templates/placement_check.gd` is GDScript run from a GUT test; a
   runner could read each limit from a script constant named in a `placement.json`.
 - **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
-  Breakout's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
+  The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
 - **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
   Godot, templates, PowerShell and .NET, refreshed by the canary. Tag the kit's releases and keep a moving `v1` tag (no
   tags exist yet; `init` still writes `@main`).
 - **Keeping aseprite-mcp's pins current.** `init` pins a commit and MCP SDK 1.30.0 (`docs/mcp.md`); the canary does not
   track git pins.
 
-In the example game (Breakout):
+In the example game (the C# example):
 
 - `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random`; `godot-game-ai` says to pass a seeded
   `RandomNumberGenerator` or `DeterministicRandom`. Take `DeterministicRandom` (or an interface over it).
 - `GhostReplicator`: packed bits per group instead of 4 bytes a value, and a client-set `LinkBudget` checked in
   `ReplicationTests` (never more than the client asked for).
 - A `DifficultyDirector` with slow, bounded steps and hysteresis, tested so it never flips every attempt.
-- A GDScript or gdUnit4 test in `examples/breakout/game` pinning the maths book's 3D yaw sign and cross-product area
-  (Breakout.Core's `System.Numerics` has other conventions).
+- A GDScript or gdUnit4 test in `examples/csharp/game` pinning the maths book's 3D yaw sign and cross-product area
+  (Example.Core's `System.Numerics` has other conventions).
 - Playtest telemetry in a real level: nothing raises `PlaytestTracker`'s events yet, and there is no file sink for
   playtest builds and no GDScript tracker.
 - A Steam backend behind `IPlatformServices` (GodotSteam's add-on or Steamworks.NET.AnyCPU 2026.164.4 both load in 4.7.2).
@@ -191,7 +191,7 @@ In the skills:
 - Light and shadow limits on phones in `godot-mobile-web`: Compatibility's (8 per object, 32 renderable) were checked; the
   Mobile renderer's per-object limit was not found in 4.7.2's settings.
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
-  a copy of Breakout on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
+  a copy of the C# example on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
 - Untold lesson 30 (commissioning a composer) in `godot-audio`, and Lars Liden's "Artificial Stupidity" cited in
   `godot-game-ai`; both skills are at their size limit, so each needs a cut first.
 - Smaller design prompts not yet placed: saving as a difficulty lever, pressure against stalling, sinks players want,

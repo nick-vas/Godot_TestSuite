@@ -36,7 +36,7 @@ then polished); aim for a realistic bar, not smoke and mirrors; judge the result
 - `ci/godot/templates/plan.json`, vertical-slice phase:
   - `slice.debt`, automatic (`file:docs/TECH-DEBT.md`): each hacked, stubbed, slice-only or unstarted system with its cost at the
     size of the whole game, and the total the developer accepts.
-  - `slice.budget`, manual: the frame budget is met by `godot-ci.ps1 bench -Scene <busiest scene> -BudgetMs <budget>` on a scene
+  - `slice.budget`, manual: the frame budget is met by `hypedot.ps1 bench -Scene <busiest scene> -BudgetMs <budget>` on a scene
     filled as the finished game will be, not on showcase assets.
   - `slice.verdict` reworded: PROCEED only for the intended experience (not a feature list or a tech demo), with core gameplay
     settled and the debt within what was accepted; otherwise more slice time.
@@ -44,7 +44,7 @@ then polished); aim for a realistic bar, not smoke and mirrors; judge the result
 - `.agents/skills/godot-game-plan/SKILL.md`: why the gates exist, and that plans made before them lack them.
 - `docs/plan.md`: the phase table and a rule under "Rules baked into the gates".
 - `tests/Test-Plan.ps1`: on a fresh plan, `slice.debt` is open, turns done when the file exists, and `plan -Do done` refuses
-  it (`auto-gate`); `slice.budget` is manual and its quoted flags are real `godot-ci.ps1` parameters; every gate id the planning
+  it (`auto-gate`); `slice.budget` is manual and its quoted flags are real `hypedot.ps1` parameters; every gate id the planning
   skill names exists. With the old template it fails 5 of its checks.
 
 ## What it did not take, and why

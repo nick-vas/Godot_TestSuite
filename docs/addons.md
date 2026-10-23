@@ -83,7 +83,7 @@ terrain.AsGodotObject().Call("set_show_region_grid", true);`).
 | [Terrain3D](https://github.com/TokisanGames/Terrain3D) | 4,383 | MIT | v1.0.2 (2026-10-17, "4.4 through 4.7") | Yes | `ClassDB`/`Call` | Large editable 3D terrain; its Web libraries are release-only |
 | [Dialogue Manager](https://github.com/nathanhoad/godot_dialogue_manager) | 3,935 | MIT | v4.1.0 (2026-09-04, "for Godot 4.7") | Yes | Wrapper: `DialogueManager.ShowDialogueBalloon(...)` | Branching dialogue as text |
 | [ProtonScatter](https://codeberg.org/hungryproton/proton_scatter) | 3,017 (GitHub mirror) | MIT; bundled textures are not redistributable | "4.0" (2023) | Not stated | Editor tool | Scattering props and foliage |
-| [Beehave](https://github.com/bitbrain/beehave) | 3,307 | MIT | v2.9.3 (2026-08-18, "latest Godot 4.7") | Yes | GDScript only | Behaviour trees in GDScript; C# games use `Breakout.Core/Ai` patterns or LimboAI |
+| [Beehave](https://github.com/bitbrain/beehave) | 3,307 | MIT | v2.9.3 (2026-08-18, "latest Godot 4.7") | Yes | GDScript only | Behaviour trees in GDScript; C# games use `Example.Core/Ai` patterns or LimboAI |
 | [GUT](https://github.com/bitwes/Gut) | 2,764 | MIT | 9.7.1 (2026-07-10) | Yes | GDScript tests | The kit's GDScript test runner |
 | [Heightmap terrain](https://github.com/Zylann/godot_heightmap_plugin) | 2,283 | MIT | No releases | 4.6+ | `Call` | Terrain without native libraries (Web) |
 | [Debug Draw 3D](https://github.com/DmitriySalnikov/godot_debug_draw_3d) | 1,074 | MIT | 1.7.3 (2026-04-04) | `compatibility_minimum` 4.4.1 | Yes | 3D debug shapes (`godot-debug-tools`) |

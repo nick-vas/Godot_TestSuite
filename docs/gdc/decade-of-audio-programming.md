@@ -30,10 +30,10 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Audio/VoiceLimiter.cs`: `TryStart(kind, position, nowMs)` returns an integer
+- `examples/csharp/src/Example.Core/Audio/VoiceLimiter.cs`: `TryStart(kind, position, nowMs)` returns an integer
   handle or a refusal (`Crowded`, `TooMany`, `Cooldown`, `UnknownKind`). Each kind has a `VoiceRule`: max within radius,
   radius, max total, and a cooldown that applies within the radius. Handles are never 0 and never reused; `Release` is
-  safe to repeat. Tests: `examples/breakout/tests/Breakout.Core.Tests/VoiceLimiterTests.cs`. Each of these breaks fails
+  safe to repeat. Tests: `examples/csharp/tests/Example.Core.Tests/VoiceLimiterTests.cs`. Each of these breaks fails
   at least one test: counting every voice of a kind instead of those within the radius, dropping the cooldown, throwing
   on a second `Release`, reusing handles.
 - `.agents/skills/godot-audio/SKILL.md` section 3: the max-within-radius rule with its source, integer handles rather than

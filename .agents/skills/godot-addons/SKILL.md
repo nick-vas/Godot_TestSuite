@@ -20,7 +20,7 @@ was measured on Godot 4.7.2.
 - In a C# game, prefer add-ons that ship a C# wrapper (Phantom Camera, Dialogue Manager). Others are reached through
   `ClassDB.Instantiate("Terrain3D")` and `.Call(...)`, with no compile-time checking: wrap each in one small typed
   class of your own, so a renamed method breaks one file.
-- GDScript-only add-ons (Beehave) do not fit a C# game's tests. The kit's `Breakout.Core/Ai` patterns are plain C#.
+- GDScript-only add-ons (Beehave) do not fit a C# game's tests. The kit's `Example.Core/Ai` patterns are plain C#.
 
 ## 2. Install
 
@@ -31,7 +31,7 @@ was measured on Godot 4.7.2.
 3. Exclude test and editor add-ons from every export preset (`addons/gut/*`, `addons/gdUnit4/*`,
    `addons/godot-git-plugin/*`).
 4. Add an `assets.json` entry for `addons/<name>/**` with its licence, so `credits` ships the notice (`godot-asset-pipeline`).
-5. Run `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 doctor -Json` and fix every add-on line.
+5. Run `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 doctor -Json` and fix every add-on line.
 
 ## 3. Why an add-on works in the editor but not in the export
 

@@ -82,12 +82,12 @@ values. Ease pitch into its limits (never straight up or down) instead of stoppi
 ## 7. Wire it in Godot
 
 `OrbitCamera` does the math and ships tested in
-`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Feel/OrbitCamera.cs` (System.Numerics, no Godot types): copy
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Feel/OrbitCamera.cs` (System.Numerics, no Godot types): copy
 that one file into the game. The rays are the game's:
 
 ```csharp
 using Godot;
-using Breakout.Core.Feel;
+using Example.Core.Feel;
 using N = System.Numerics;
 
 public partial class ThirdPersonCamera : Node3D   // the pivot; a SpringArm3D child holds the Camera3D

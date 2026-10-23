@@ -38,10 +38,10 @@
   the run it was compared with. Each `runnerResults[].failures[]` item has `new`. The console prints one line:
   "N new, M still failing, K fixed". This is the talk's subject line for an agent: the failure it just caused comes
   first. Code: `Get-FailureIds`, `Get-FailureDelta`, `Get-FailureNewFlag` and `Format-FailureDelta` in
-  `ci/godot/lib/Report.ps1`; `Invoke-Tests` in `ci/godot/godot-ci.ps1`.
+  `ci/godot/lib/Report.ps1`; `Invoke-Tests` in `ci/godot/hypedot.ps1`.
 - A failure's id is `<runner>|<test name>`, without the message, which can hold numbers that change between runs. This is
   the same reason the talk strips line numbers.
-- Each `test` line in `.godot/godot-ci-history.jsonl` now records the run's `scope` (runners and `-Filter`) and up to 200
+- Each `test` line in `.godot/hypedot-history.jsonl` now records the run's `scope` (runners and `-Filter`) and up to 200
   failing ids (`Set-TestRunHistory`/`Add-RunHistory` in `ci/godot/lib/Common.ps1`). Only a run with the same scope is
   compared, so a filtered run never reports the tests it skipped as fixed. On the first run there is nothing to
   compare with: `comparedWith` and the lists are `null`, so no failure claims to be new without a baseline.
@@ -55,8 +55,8 @@
 - Last five results and the change list for each failure: the history file has the runs, and an agent knows its own
   change. A per-test streak in `status` could come later.
 - Running twice to check determinism, and grouping crashes without line numbers: already in `godot-determinism`
-  (`DeterminismCheck`) and Breakout.Core's `CrashFingerprint`.
-- Per-test time limits: the kit limits each program (`GODOT_CI_TIMEOUT`), not each test.
+  (`DeterminismCheck`) and Example.Core's `CrashFingerprint`.
+- Per-test time limits: the kit limits each program (`HYPEDOT_TIMEOUT`), not each test.
 - End-of-replay screenshots: `shot -Baseline` already compares screenshots; a playthrough runner is still on the roadmap.
 
 ## Measured

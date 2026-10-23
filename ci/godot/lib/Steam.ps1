@@ -141,7 +141,7 @@ function Get-SteamCodeNames([string]$ProjectDir) {
     return $found
 }
 
-# A list of names as Steamworks takes them: letters, digits and underscores, each once (Breakout's PlatformCatalog rule).
+# A list of names as Steamworks takes them: letters, digits and underscores, each once (the C# example's PlatformCatalog rule).
 function Test-SteamApiNames([object[]]$Names, [string]$Kind) {
     $problems = [System.Collections.Generic.List[string]]::new()
     $seen = [System.Collections.Generic.HashSet[string]]::new()

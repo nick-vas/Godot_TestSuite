@@ -39,11 +39,11 @@ equation below and in `Aim.cs` was derived for the kit from what he describes, t
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Ai/Aim.cs`: `Aim.InterceptTime` / `Aim.Lead` (Vector2 and Vector3; the
+- `examples/csharp/src/Example.Core/Ai/Aim.cs`: `Aim.InterceptTime` / `Aim.Lead` (Vector2 and Vector3; the
   quadratic `(V·V - s²) t² + 2 (D·V) t + D·D = 0` with the `a = 0` branch and a cancellation-free root form),
   `Aim.LaunchAngle` (low and high arcs), `Aim.Ballistic` with `BallisticSettings` (the three knobs plus 2.5 m and 70
   degrees), `Aim.MaxRangeUnderCeiling` (R = 4h / tan of the angle), `Aim.Scatter` (cone and tilt) and `VelocityHistory`.
-- `examples/breakout/tests/Breakout.Core.Tests/AimTests.cs`: shots flown at 60 Hz against seeded random targets, the
+- `examples/csharp/tests/Example.Core.Tests/AimTests.cs`: shots flown at 60 Hz against seeded random targets, the
   edge cases (still, equal speed, faster, out of range, the edge of reach) and the ballistic and scatter checks.
 - `.agents/skills/godot-game-ai/SKILL.md`, "Aiming projectiles": the method, fallbacks and when to miss deliberately.
 

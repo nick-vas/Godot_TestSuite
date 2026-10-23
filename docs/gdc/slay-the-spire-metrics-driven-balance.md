@@ -32,14 +32,14 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Analytics/BalanceReport.cs`: from run records (session, difficulty, floor
+- `examples/csharp/src/Example.Core/Analytics/BalanceReport.cs`: from run records (session, difficulty, floor
   reached, won, the choices shown and taken), per option and per difficulty: offers, pick rate, runs that took it, their
   win rate, and `FloorMatchedLift` (each taking run's result minus the win rate of all runs that reached the floor where
   it was first taken, averaged). Every rate also comes weighted per session (each session counts once).
-- `examples/breakout/src/Breakout.Core/Telemetry/RunSummary.cs`: Breakout's `run_end` analytics event (floor, result,
+- `examples/csharp/src/Example.Core/Telemetry/RunSummary.cs`: The C# example's `run_end` analytics event (floor, result,
   difficulty, the floor each upgrade was first taken on), privacy-checked by `TelemetrySchema`, sent by
   `game/Main.cs` when the last ball is lost, and read back from sent batches by `RunSummary.FromBatch`.
-- `examples/breakout/tests/Breakout.Core.Tests/BalanceReportTests.cs`: the three traps, the refusal of choices above the
+- `examples/csharp/tests/Example.Core.Tests/BalanceReportTests.cs`: the three traps, the refusal of choices above the
   floor reached, and the event's consent and round trip.
 - `godot-automation-hooks`, "Reading balance from run data"; `godot-telemetry` §5 points at it.
 
@@ -59,7 +59,7 @@ difficulties pooled.
 - Per-player weighting: the kit's telemetry has no player id by design (`godot-telemetry`), so a session stands in for a
   player; a player who launches often still counts several times.
 - Intervals on the lift: the counts are reported instead, and a decision goes through `Stats` (`three-statistical-tests.md`).
-- A pick in Breakout: it gives each floor's reward without a choice, so its pick rates are all 1; the event and the
+- A pick in the C# example: it gives each floor's reward without a choice, so its pick rates are all 1; the event and the
   report carry what a game with choices needs.
 - Feedback bots, Discord, beta branches, the weekly cadence and watching streams: process advice with no code to test.
 - Daily seeds from the date: `godot-procgen` already derives every seed from one run seed.

@@ -66,7 +66,7 @@ $enum = Test-DataValue 'comon' @{ enum = @('common', 'rare') } $false
 if ($enum -ne "is 'comon', not one of: common, rare; did you mean 'common'?") { $failures += "an enum typo should be suggested: $enum" }
 foreach ($pair in @(@('jmup', 'jump', 1), @('kitten', 'sitting', 3), @('ca', 'abc', 3), @('', 'abc', 3), @('JUMP', 'jump', 0))) {
     $d = Get-EditDistance $pair[0] $pair[1]
-    if ($d -ne $pair[2]) { $failures += "Get-EditDistance '$($pair[0])' '$($pair[1])' is $d, not $($pair[2]) (Breakout.Core's Suggest.Distance agrees with $($pair[2]))" }
+    if ($d -ne $pair[2]) { $failures += "Get-EditDistance '$($pair[0])' '$($pair[1])' is $d, not $($pair[2]) (Example.Core's Suggest.Distance agrees with $($pair[2]))" }
 }
 if (Get-ClosestName 'fly' @('die')) { $failures += "'fly' should suggest nothing for 'die'" }
 # A long chain of prerequisites closed into one cycle: found, without recursion, and shortened in the message.
@@ -87,8 +87,8 @@ $wantWarnings = @("fact 'gag_cooldow' is read by 'gag', but no rule remembers it
 if (($warned['table barks'] -join ' | ') -ne ($wantWarnings -join ' | ')) { $failures += "barks should warn only: $($wantWarnings -join ' | ')`n  got: $($warned['table barks'] -join ' | ')" }
 if (@($warned['table radio']).Count) { $failures += "radio reads seen_witch, which barks remembers: $($warned['table radio'] -join ' | ')" }
 
-# One criteria grammar: the cases Breakout.Core's ResponseTableTests also runs against CriteriaSyntax.Parse in C#.
-$examplesFile = Join-Path $root 'examples/breakout/tests/Breakout.Core.Tests/criteria-examples.json'
+# One criteria grammar: the cases Example.Core's ResponseTableTests also runs against CriteriaSyntax.Parse in C#.
+$examplesFile = Join-Path $root 'examples/csharp/tests/Example.Core.Tests/criteria-examples.json'
 $examples = @(Get-Content -LiteralPath $examplesFile -Raw | ConvertFrom-Json -AsHashtable)
 if ($examples.Count -lt 30) { $failures += "criteria-examples.json has $($examples.Count) cases" }
 foreach ($example in $examples) {
@@ -129,9 +129,9 @@ if ($clean) { $failures += "the clean project reported: $(($clean | ForEach-Obje
 $cleanWarnings = @(foreach ($case in $cleanCases) { if ($case.Contains('Warnings')) { foreach ($w in $case['Warnings']) { $w['message'] } } })
 if ($cleanWarnings) { $failures += "the clean project warned: $($cleanWarnings -join ' | ')" }
 if (-not ($cleanCases | Where-Object { $_.Name -eq 'table talk' })) { $failures += 'the clean project has no responses table checked' }
-# Breakout's own dialogue table (loaded by ResponseTable in its C# tests) is green too.
-$breakout = @(Get-DataCases (Join-Path $root 'examples/breakout/game') | Where-Object { $_.Failure -or ($_.Contains('Warnings') -and @($_['Warnings']).Count) })
-if ($breakout) { $failures += "examples/breakout/game/data.json reported: $(($breakout | ForEach-Object { "$($_.Name): $($_.Failure) $(if ($_.Contains('Warnings')) { @($_['Warnings'] | ForEach-Object { $_['message'] }) -join ' | ' })" }) -join ' | ')" }
+# The C# example's own dialogue table (loaded by ResponseTable in its C# tests) is green too.
+$breakout = @(Get-DataCases (Join-Path $root 'examples/csharp/game') | Where-Object { $_.Failure -or ($_.Contains('Warnings') -and @($_['Warnings']).Count) })
+if ($breakout) { $failures += "examples/csharp/game/data.json reported: $(($breakout | ForEach-Object { "$($_.Name): $($_.Failure) $(if ($_.Contains('Warnings')) { @($_['Warnings'] | ForEach-Object { $_['message'] }) -join ' | ' })" }) -join ' | ')" }
 
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
 Write-Host 'data reports duplicates, missing and unknown fields, types, ranges, enums and broken references (with the near name when there is one), prerequisite cycles, puzzle levels without one solution sentence or a purpose, dialogue rules (criteria syntax as in C#, follow-ups, voice files, ties, contradictions, facts never written), and nothing on a clean project'

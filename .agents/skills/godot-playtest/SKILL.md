@@ -73,10 +73,10 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
 - The schema is ready: `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/playtest-events.json` (any language), and in C#
   `PlaytestEvents.Definitions(levels)` added to the game's `TelemetrySchema`, with `PlaytestTracker` raising the events
   from the player's position each frame and calls such as `Progress()`, `ItemFound(id)`, `Died(checkpoint)`,
-  `PuzzleSolved(id)` and `EndLevel(result)` (`${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Telemetry/Playtest.cs`,
+  `PuzzleSolved(id)` and `EndLevel(result)` (`${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Telemetry/Playtest.cs`,
   tested with a fake clock). Do not write a parallel event system.
 - Playtest builds write each batch to a file; collect the testers' files in one folder, then
-  `godot-ci.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
+  `hypedot.ps1 playtest -Sessions playtests/sessions -Json`: per level the median level time, deaths and stalls per
   session, the share who found each item, and a PNG heat map per event type (`playtest.json` lays one over a level
   screenshot from `shot`). Open the maps, put the table in `docs/playtests/<date>.md`, and compare one build's folder with
   the next. Sessions from different builds go in different folders.
@@ -85,7 +85,7 @@ passes. A heat map of deaths and stalls over all testers beats any single replay
 
 A soft-lock is a state the player can reach from which the goal cannot be reached: a key spent on the wrong door, ammo
 shot at the wrong wall, the only box lost in a pit, a one-way drop taken before the key. Testers find them late and by
-luck. `${CLAUDE_PLUGIN_ROOT}/examples/breakout/src/Breakout.Core/Level/SoftLock.cs` tries every order instead (tests:
+luck. `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Level/SoftLock.cs` tries every order instead (tests:
 `SoftLockTests.cs`). Write the level down as areas, passages (`oneWay`, `needs` an item held, `uses` items once),
 one-time pickups, supplies that top an item back up, items that `canBeLost`, and goals; then, in the game's own tests:
 

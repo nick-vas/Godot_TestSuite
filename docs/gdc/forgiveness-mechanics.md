@@ -31,16 +31,16 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Platformer/Forgiveness.cs`: `CoyoteTimer`, `InputBuffer` and `JumpForgiveness`
+- `examples/csharp/src/Example.Core/Platformer/Forgiveness.cs`: `CoyoteTimer`, `InputBuffer` and `JumpForgiveness`
   (both windows; a jump spends both), `HoldToConfirm` (restart), `FallThrough` (the two reset rules), `Contact.Resolve`
   (stomp box before harm circle). Windows are physics ticks: 0.1 s = 6, 0.2 s = 12, 0.3 s = 18 at the kit's 60 Hz
   (`Sim.TickRate`); `Forgiveness.Ticks` converts for other rates.
-- `examples/breakout/tests/Breakout.Core.Tests/ForgivenessTests.cs`: 20 tests, each window to the tick (coyote: 6th
+- `examples/csharp/tests/Example.Core.Tests/ForgivenessTests.cs`: 20 tests, each window to the tick (coyote: 6th
   airborne tick jumps, 7th does not; buffer: 12 ticks before landing jumps on the landing tick, 13 does not; restart:
   fires once on the 18th held tick, never for 17 or for ten 10-tick squeezes; fall-through: 12th grounded tick). 19
   naive variants (a plain bool, windows one tick short or long, nothing spent after a jump, harm checked first, a
   square harm box, and others) each fail at least one test.
-- `examples/breakout/game/test/gdunit4/ForgivenessWiringTest.cs`: the wiring on a real `CharacterBody2D` in Godot
+- `examples/csharp/game/test/gdunit4/ForgivenessWiringTest.cs`: the wiring on a real `CharacterBody2D` in Godot
   4.7.2. Dropped 300 px at the default gravity, the body lands on physics tick 48; a press sent after tick 42 shows in
   `IsActionJustPressed` on tick 43 and jumps on tick 48, once. With `IsActionPressed` instead, or without the buffer,
   the tests fail.

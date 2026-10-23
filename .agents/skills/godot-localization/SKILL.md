@@ -59,7 +59,7 @@ forms than the language needs), keys in `tr`/`Tr`/`TrN`/`atr` calls that no tabl
 that are not UTF-8, characters no font has (`missing glyphs`, section 6), and the remaps and voice of section 4:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Runners l10n -Json -Quiet
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Runners l10n -Json -Quiet
 ```
 
 **Length limits**, set before translation starts from the box each text must fit, live in CSV columns Godot's import skips
@@ -95,7 +95,7 @@ as two code points, or an emoji sequence, is one; line breaks are not counted. P
 ## 5. The gate: screens fit and draw
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Scene res://ui/Menu.tscn -Resolution 1920x1080 -Locale de,ar,ja -Pseudo -Json -Quiet
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Scene res://ui/Menu.tscn -Resolution 1920x1080 -Locale de,ar,ja -Pseudo -Json -Quiet
 ```
 
 Each scene is taken again in each language (`Menu.de.png`), and `-Pseudo` adds a pass that is accented, 40% longer and

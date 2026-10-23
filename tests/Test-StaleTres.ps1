@@ -4,7 +4,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/godot-ci.ps1') test -Project (Join-Path $PSScriptRoot 'tres-fixture') -Runners validate -Json 2>$null
+$json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') test -Project (Join-Path $PSScriptRoot 'tres-fixture') -Runners validate -Json 2>$null
 $result = $json | Out-String | ConvertFrom-Json
 $run = @($result.runnerResults)[0]
 $failed = @($run.failures | ForEach-Object { "$($_.file): $($_.message)" })

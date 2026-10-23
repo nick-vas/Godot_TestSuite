@@ -36,11 +36,11 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Determinism/InputLog.cs`: `InputFrame` (32 buttons and four quantised axes),
+- `examples/csharp/src/Example.Core/Determinism/InputLog.cs`: `InputFrame` (32 buttons and four quantised axes),
   `InputLogHeader` (seed, build id, `Rules`, options, checksum interval) and `InputLog` (`Record` and `Play` on the
   existing `IDeterministic`, one-byte checksums, `Take` to keep recording after a skip, `Save` written atomically and
   thread-safe for an error handler, run-length streams per button and per axis under zlib).
-- `examples/breakout/tests/Breakout.Core.Tests/DeterminismTests.cs`: `TheInputLogRoundTrips`,
+- `examples/csharp/tests/Example.Core.Tests/DeterminismTests.cs`: `TheInputLogRoundTrips`,
   `TenMinutesOfInputFitInAFewKilobytes`, `SkipToFrameReachesTheSameChecksum`,
   `AnOldLogPlaysUnderTheRulesItWasRecordedWith`, `CosmeticRandomDrawsDoNotChangeTheReplay`.
 - `.agents/skills/godot-determinism/SKILL.md`: completion signals and random streams (section 2), the always-on log,
@@ -62,7 +62,7 @@
 - Event streams and per-frame deltas: the kit's simulation has a fixed tick, and clicks and pointer positions fit
   buttons and axes. The talk's reference source file was not available.
 - The Godot wiring (saving from `NotificationWMCloseRequest` and a `Logger`, the two flags) is described in the skills
-  and not run in Breakout, whose `Main` is not an `IDeterministic` simulation.
+  and not run in the C# example, whose `Main` is not an `IDeterministic` simulation.
 - Logging and diffing desyncs, chained playthroughs and pool-size measurement: already covered in spirit by the
   skill's desync workflow, or game-specific.
 - The 1 to 8 KB figure is the talk's, for its own game and length of play; the kit's synthetic input is busier.

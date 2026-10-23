@@ -1,13 +1,13 @@
 #!/usr/bin/env pwsh
 # Self-test of the plan's gates on a fresh plan: slice.debt and prototype.trailer are automatic and turn true when
 # docs/TECH-DEBT.md and docs/TRAILER.md exist (and `plan -Do done` refuses them), slice.budget is manual and names a real
-# `bench` command, the trailer template asks what its gate says, and every gate id, template and godot-ci.ps1 flag that
+# `bench` command, the trailer template asks what its gate says, and every gate id, template and hypedot.ps1 flag that
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
 # cannot be kept, and `plan -Json` reports it. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$ci = Join-Path $root 'ci/godot/godot-ci.ps1'
+$ci = Join-Path $root 'ci/godot/hypedot.ps1'
 $templates = Join-Path $root 'ci/godot/templates'
 $dir = Join-Path ([IO.Path]::GetTempPath()) "plan-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $failures = [System.Collections.Generic.List[string]]::new()
@@ -21,14 +21,14 @@ function Invoke-PlanJson([string[]]$Arguments) {
 $template = Get-Content -LiteralPath (Join-Path $templates 'plan.json') -Raw | ConvertFrom-Json -Depth 10
 $gateIds = @(foreach ($phase in $template.phases) { foreach ($gate in $phase.gates) { $gate.id } })
 
-# Flags quoted after "godot-ci.ps1 <command>" in a gate's text must be parameters of the script.
+# Flags quoted after "hypedot.ps1 <command>" in a gate's text must be parameters of the script.
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($ci, [ref]$null, [ref]$null)
 $parameters = @($ast.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
 foreach ($phase in $template.phases) {
     foreach ($gate in $phase.gates) {
-        foreach ($quote in [regex]::Matches($gate.text, 'godot-ci\.ps1 \w+(?<rest>[^:;,)]*)')) {
+        foreach ($quote in [regex]::Matches($gate.text, 'hypedot\.ps1 \w+(?<rest>[^:;,)]*)')) {
             foreach ($flag in [regex]::Matches($quote.Groups['rest'].Value, '(?<=\s)-(?<name>[A-Za-z]+)')) {
-                Assert-True ($flag.Groups['name'].Value -in $parameters) "$($gate.id) quotes -$($flag.Groups['name'].Value), a godot-ci.ps1 parameter"
+                Assert-True ($flag.Groups['name'].Value -in $parameters) "$($gate.id) quotes -$($flag.Groups['name'].Value), a hypedot.ps1 parameter"
             }
         }
     }

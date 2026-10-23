@@ -134,7 +134,7 @@ Hold every level to this with a `levels` table for the `data` runner (`godot-dat
 
 A level fails with no `solution` or an empty one, with a second sentence (`.`, `!` or `?` followed by more words, so write
 no abbreviations), or with a `purpose` or `kind` not in the list. Run it alone with
-`pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners data`. The `mechanics` column also shows which pairs of mechanics
+`pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners data`. The `mechanics` column also shows which pairs of mechanics
 no level combines yet.
 
 ## 7. Levels players find their way in

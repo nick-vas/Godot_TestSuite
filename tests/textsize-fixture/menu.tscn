@@ -9,7 +9,7 @@ anchor_bottom = 1.0
 [node name="Title" type="Label" parent="."]
 layout_mode = 0
 theme_override_font_sizes/font_size = 40
-text = "Breakout"
+text = "the C# example"
 
 [node name="Play" type="Button" parent="."]
 layout_mode = 0

@@ -34,12 +34,12 @@ each extra variant adds to the false-positive rate (two treatments: 1 - 0.95² =
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Analytics/Stats.cs`: `WelchTTest`, `PairedTTest`, `RelativeRisk` (Katz log
+- `examples/csharp/src/Example.Core/Analytics/Stats.cs`: `WelchTTest`, `PairedTTest`, `RelativeRisk` (Katz log
   interval), `ProportionDifference` (Wald interval, pooled z p-value), `MannWhitney` (exact without ties up to 50 values,
   else normal with tie and continuity corrections), each returning the effect, its interval, a two-tailed p and
   `IsResult` (false when the interval straddles no effect); and `BinomialTolerance` for "a chance comes out right".
   .NET only; t and normal distributions from the incomplete beta and gamma functions.
-- `examples/breakout/tests/Breakout.Core.Tests/StatsTests.cs`: the talk's monocle numbers; Student's own sleep data for
+- `examples/csharp/tests/Example.Core.Tests/StatsTests.cs`: the talk's monocle numbers; Student's own sleep data for
   Welch, paired and Mann-Whitney (R's values: unpaired p 0.0794 with an interval straddling zero, paired p 0.00283);
   exact Mann-Whitney against counting all 1,716 splits; textbook t quantiles; false-positive rates under no difference.
 - `godot-automation-hooks`: "Comparing two versions" (which test, fix the threshold first, two-tailed, read the interval,

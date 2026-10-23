@@ -32,12 +32,12 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Net/Rollback.cs`: `RollbackSession` over `IDeterministic` and two players'
+- `examples/csharp/src/Example.Core/Net/Rollback.cs`: `RollbackSession` over `IDeterministic` and two players'
   `FrameInputs`, with `RollbackSettings` (InputDelay 3, MaxRollback 7, threshold 1.5 frames, 2 ms stretch: the talk's
   numbers), predict-last-input, `SavePolicy.EveryFrame` / `ConfirmedFrame` with buffer-exhaustion rollbacks, a net
   pause beyond the window, frame-advantage time sync, `Stats`, confirmed checksums and inputs for replays.
 - `Determinism/Replay.cs`: `DeterminismCheck.SyncTest(sim, inputs, depth)`; depth 1 is the old behaviour.
-- `examples/breakout/tests/Breakout.Core.Tests/RollbackTests.cs`: two peers over `SimulatedLink` in simulated time.
+- `examples/csharp/tests/Example.Core.Tests/RollbackTests.cs`: two peers over `SimulatedLink` in simulated time.
 - Skills: `godot-multiplayer` section 5, `godot-determinism` sections 5 and 6. Numbers: `docs/multiplayer.md`.
 
 Kit choices, not the talk's: GGPO's latency-free advantage estimate (half the difference of both sides' "my frame minus

@@ -35,12 +35,12 @@
 
 ## What the kit took
 
-- `examples/breakout/src/Breakout.Core/Settings/GameSettings.cs`: a plain C# settings model built on the save's existing
+- `examples/csharp/src/Example.Core/Settings/GameSettings.cs`: a plain C# settings model built on the save's existing
   `settings` object (`BreakoutSave`, v3). Each setting has one definition with a default and every category it is listed in;
   presets set several keys; `IsChanged(key)` compares with the default, so setting a value back clears the mark; `Reset`,
   `ResetAll`, `IsPresetApplied`. Only changed values are saved, so a default improved in a patch reaches players who never
   touched it. Controls stay in the game's `InputBindings`, which already has its own file and reset.
-- `examples/breakout/tests/Breakout.Core.Tests/GameSettingsTests.cs`, 11 tests: the vision preset marks exactly its two keys;
+- `examples/csharp/tests/Example.Core.Tests/GameSettingsTests.cs`, 11 tests: the vision preset marks exactly its two keys;
   every preset changes at least two; reset clears; a setting on two pages is one object with one value and defining it twice
   is refused; only changed values are saved and load back marked; the shipped v3 golden save loads; a hand-edited file loads
   what it can. Checked against naive versions: a "was ever set" mark fails 2 tests, saving every value fails 2, allowing two
@@ -54,7 +54,7 @@
 
 ## What it did not take, and why
 
-- A flow proving a setting is reachable from both categories in Breakout: Breakout has no settings menu or any `Control`
+- A flow proving a setting is reachable from both categories in the C# example: The C# example has no settings menu or any `Control`
   scene, so the flow would test a menu written only for it. The one-value property is tested in the model instead.
 - The 24-point body minimum: points in their Maya-based pipeline do not convert to the kit's rule, which stays XAG 101's
   body height in pixels (26 px console, 18 px PC at 1080p).

@@ -26,7 +26,7 @@ jobs:
       # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       # The eval sandbox cannot read the home directory, so Godot is installed outside it.
-      GODOT_TOOLS_DIR: /opt/godot-ci
+      GODOT_TOOLS_DIR: /opt/hypedot
     steps:
       - uses: actions/checkout@v7
       - name: Eval sandbox, Claude Code and Godot
@@ -55,7 +55,7 @@ jobs:
           npm install -g @anthropic-ai/claude-code
           sudo mkdir -p $env:GODOT_TOOLS_DIR; sudo chown $env:USER $env:GODOT_TOOLS_DIR
           # Installs Godot and GUT into the example the cases copy, so runs need no download.
-          ./ci/godot/godot-ci.ps1 build -Project examples/gdscript
+          ./ci/godot/hypedot.ps1 build -Project examples/gdscript
           $godot = Get-ChildItem $env:GODOT_TOOLS_DIR -Recurse -File -Filter 'Godot_v*_linux.x86_64' | Select-Object -First 1
           "EVAL_GODOT_BIN=$($godot.FullName)" >> $env:GITHUB_ENV
       # One small request first: a token that is malformed or revoked fails here, by name, instead of as a run of 0 scores.

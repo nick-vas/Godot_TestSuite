@@ -36,7 +36,7 @@
 
 ## What the kit took
 
-- `test -Retry <n>` (0 to 5, default 0) in `ci/godot/godot-ci.ps1`. A runner that failed is run again, up to n times.
+- `test -Retry <n>` (0 to 5, default 0) in `ci/godot/hypedot.ps1`. A runner that failed is run again, up to n times.
   Any test that failed in an earlier attempt but passed in the last one is **flaky**. The run passes, but every flaky
   test is listed in `flaky[]`, in the runner's entry, in `summary.md`, in the console ("FLAKY ...") and in the history
   line. The talk had green builds keep that record; here an agent cannot miss it either. Code:
@@ -80,4 +80,4 @@
   takes 8.4 to 9.3 s and passes, with the test in `flaky[]`. So one retry of the GUT runner adds about 2 to 3 s here.
   A history line is 280 to 300 characters.
 - On the examples, `-Retry 1` changes nothing when everything passes: `examples/gdscript` passed 5/5 runners and
-  `examples/breakout/game` passed 7/7 (393 dotnet tests), each with `attempts` 1.
+  `examples/csharp/game` passed 7/7 (393 dotnet tests), each with `attempts` 1.

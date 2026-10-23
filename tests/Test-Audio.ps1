@@ -5,7 +5,7 @@ param([switch]$Mix)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$ci = Join-Path $root 'ci/godot/godot-ci.ps1'
+$ci = Join-Path $root 'ci/godot/hypedot.ps1'
 $game = Join-Path ([System.IO.Path]::GetTempPath()) "audio-fixture-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
 Copy-Item -Recurse (Join-Path $PSScriptRoot 'audio-fixture') $game
 $failures = @()
@@ -68,7 +68,7 @@ $work = "$game-cwd"
 New-Item -ItemType Directory -Force $work | Out-Null
 Push-Location $work
 try { $d = Invoke-Kit @('audio') } finally { Pop-Location }
-$expectedLog = Join-Path $work 'audio-results/godot-ci.log'
+$expectedLog = Join-Path $work 'audio-results/hypedot.log'
 if (-not $d.ok) { $failures += "audio without -Results failed: $($d.error.message)" }
 elseif ($d.log -ne $expectedLog -or -not (Test-Path -LiteralPath $expectedLog) -or (Test-Path -LiteralPath (Join-Path $work 'test-results'))) {
     $failures += "the run log should be $expectedLog, next to audio's results, and test-results should not be made; log is $($d.log)"
