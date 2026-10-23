@@ -153,4 +153,5 @@ jobs:
     with:
       project: ${{ matrix.project }}
 ```
-Artifacts and PR comments are per game (named after `config/name`), so they don't collide.
+Artifacts and PR comments are per game (named after `config/name`), so they don't collide. A test results artifact also
+names the `runners` input when it is set, so two jobs that test one game with different runners keep apart.

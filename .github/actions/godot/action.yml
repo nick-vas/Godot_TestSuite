@@ -200,12 +200,14 @@ runs:
       run: |
         $results = Join-Path $env:RUNNER_TEMP 'godot-test-results'
         $output = Join-Path $env:RUNNER_TEMP 'godot-build'
-        # Unique per OS and project, so matrix and monorepo callers don't collide.
+        # Unique per OS and project, so matrix and monorepo callers don't collide; runners picked by hand are named too,
+        # so two jobs that test one project with different runners do not upload the same artifact name (which fails).
         $preset = if ($env:PRESET) { $env:PRESET } else { 'all' }
+        $picked = if ($env:RUNNERS) { '-' + ($env:RUNNERS -replace '[^A-Za-z0-9._-]+', '-').Trim('-') } else { '' }
         @(
           "results=$results"
           "output=$output"
-          "artifact=$env:NAME-$env:RUNNER_OS"
+          "artifact=$env:NAME-$env:RUNNER_OS$picked"
           "export-artifact=$env:NAME-$(($preset -replace '[^A-Za-z0-9._-]+', '-').Trim('-'))"
         ) >> $env:GITHUB_OUTPUT
         if ($env:COMMAND -eq 'export') { "build-path=$output" >> $env:GITHUB_OUTPUT }
