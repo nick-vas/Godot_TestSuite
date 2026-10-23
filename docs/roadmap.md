@@ -68,23 +68,15 @@ Notes from the question round still open, each to be fixed, built or written dow
 |---|---|---|
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
-| 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
 
 ### Trello
 
 - **Live run.** `tests/Test-TrelloSync.ps1 -Live` (the Trello sync workflow) waits for the repository secrets
   `TRELLO_KEY` and `TRELLO_TOKEN`; postponed by the owner on 2026-10-23. The mock run passes in the self-test.
 
-Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
-
-- `plan -Do move` and `plan -Do link` accept only the kit's column ids (`backlog`, `design`, `todo`, `doing`, `verify`,
-  `done`) and reject the board's list names, such as "To Do".
-- `plan -Do add` checks `-Column` against those ids only, not against the board's lists.
-- A card a person adds on the board gets no plan task; `plan -Do sync` only creates cards for tasks and moves tasks.
-- `plan -Do sync` changes a task's `column` but never its `boardColumn`.
-- There is no command to delete a task (`plan -Do` takes `status`, `init`, `done`, `add`, `move`, `sync` and `link`).
-- The Trello connector returns card ids as ARIs, while the kit stores plain 24-hex card ids (`cardId`) and `sync`
-  matches cards by them, so `/game` must store the plain id.
+The six bugs the connector test found (list names as columns, cards added on the board, `boardColumn`, removing a
+task, ARI card ids) are fixed and pass against the mock; the live run should also cover importing a card and archiving
+a removed task's card, which only the mock has seen.
 
 ## What was decided
 
@@ -168,9 +160,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
   folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
   refreshed by `Invoke-Canary.ps1`.
-- **Plan gates for what is now prose:** `concept.risks` (`docs/RISKS.md`), an optional `concept.budget`, and
-  `beta.placeholders`. Each needs `plan.json`, `tests/Test-Plan.ps1` and `docs/json.md` if the output changes.
-- **`plan -Do init -Profile jam`:** a plan sized in days with the jam gates (`Plan.ps1`, `Test-Plan.ps1`).
 - **First-session steps as stubs.** `status` reads only the GDD's pitch and features; the first-session steps could
   become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema

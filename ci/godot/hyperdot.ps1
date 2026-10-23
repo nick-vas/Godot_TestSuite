@@ -177,23 +177,27 @@ param(
     [switch]$Agents,
     # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
     [switch]$Plugin,
-    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), add (a task: -Title),
-    # move (a task to -Column: -Id), sync (with a Trello -Board), link (a task to a GDD -Feature or a Trello -Card: -Id).
-    [ValidateSet('status', 'init', 'done', 'add', 'move', 'sync', 'link')]
+    # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
+    # move (a task to -Column: -Id), remove (delete a task: -Id), sync (with a Trello -Board), link (a task to a GDD
+    # -Feature or a Trello -Card: -Id).
+    [ValidateSet('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
-    # plan -Do done: the gate to mark, e.g. prototype.loop. plan -Do move: the task id.
+    # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id.
     [string]$Id,
     # plan -Do add: the task title.
     [string]$Title,
-    # plan -Do add|move: backlog, design, todo, doing, verify or done.
+    # plan -Do add|move|link: backlog, design, todo, doing, verify or done, or the board list one maps to ("To Do").
     [string]$Column,
-    # plan -Do sync: the Trello board id or short link (needs TRELLO_KEY and TRELLO_TOKEN).
+    # plan -Do sync|link: the Trello board id, short link, board URL or Trello connector ARI (sync needs TRELLO_KEY and TRELLO_TOKEN).
     [string]$Board,
     # plan -Do init: the game's name (default: config/name).
     [string]$Game,
+    # plan -Do init: full (seven phases sized in weeks) or jam (a game jam of 2 to 9 days, sized in days).
+    [ValidateSet('full', 'jam')]
+    [string]$Profile = 'full',
     # plan -Do add|link: the GDD feature a task delivers, e.g. F3.
     [string]$Feature,
-    # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
+    # plan -Do link: a task's Trello card: its 24-hex id or the Trello connector's ARI (the plain id is stored).
     [string]$Card,
     # status -Handoff <subagent> -Checked <what> -Verdict <answer>: record one subagent handoff in the project's handoff log
     # (.godot/hyperdot-handoffs.jsonl, the newest 200 kept) instead of reporting; status reads the log back as handoffs[].
@@ -631,7 +635,7 @@ switch ($Command) {
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
-    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }
+    'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card $Profile }
     'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }

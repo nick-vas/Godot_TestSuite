@@ -1,0 +1,106 @@
+{
+  "schema": "godot-plan/1",
+  "profile": "jam",
+  "game": "",
+  "pitch": "",
+  "testBudgetSeconds": 300,
+  "wipLimit": 1,
+  "phases": [
+    {
+      "id": "jam-concept",
+      "name": "Theme and core feel",
+      "timeboxDays": 1,
+      "goal": "Answer 'browser build?', write the jam design document, and prove the riskiest feel with plain shapes. Days are for a 7-day jam: scale timeboxDays to yours.",
+      "gates": [
+        {
+          "id": "jam.platform",
+          "text": "'Browser build?' answered before anything else: Godot 4.7 cannot export C# to the Web, so a browser jam is made in GDScript",
+          "check": "manual"
+        },
+        {
+          "id": "jam.gdd",
+          "text": "Jam design document written (docs/GDD.md from ci/godot/templates/GDD-jam.md): the pitch and how it uses the theme, the 30-second loop with win and lose, the must-haves and a cut list",
+          "check": "file:docs/GDD.md"
+        },
+        {
+          "id": "jam.feel",
+          "text": "The riskiest part, usually the feel of the core action, proven with plain shapes",
+          "check": "manual"
+        }
+      ]
+    },
+    {
+      "id": "jam-loop",
+      "name": "Loop",
+      "timeboxDays": 1,
+      "goal": "The loop playable from start to win or lose.",
+      "gates": [
+        {
+          "id": "jam.loop",
+          "text": "The loop is playable from the main scene, with a way to win and a way to lose",
+          "check": "manual"
+        },
+        {
+          "id": "jam.tests",
+          "text": "A test framework runs (hyperdot detect lists a test runner), so each must-have gets its test",
+          "check": "tests"
+        }
+      ]
+    },
+    {
+      "id": "jam-build",
+      "name": "Must-haves",
+      "timeboxDays": 3,
+      "goal": "Every must-have, one at a time, each with its test; then the cut list in order. Unsure whether a feature fits? It does not.",
+      "gates": [
+        {
+          "id": "jam.musthaves",
+          "text": "Every must-have works and has a test tagged GDD:F<n>; nothing from the cut list started before they all did",
+          "check": "manual"
+        },
+        {
+          "id": "jam.credits",
+          "text": "Every asset made by someone else is in assets.json with its source and licence, and the credits are built from it (hyperdot.ps1 credits)",
+          "check": "file:THIRD-PARTY-NOTICES.txt"
+        }
+      ]
+    },
+    {
+      "id": "jam-ship",
+      "name": "Export and submit",
+      "timeboxDays": 2,
+      "goal": "The second to last day exports to the jam's platform and launches it; the last day is fixes only, and the game goes in with time to spare.",
+      "gates": [
+        {
+          "id": "jam.export",
+          "text": "Exported to the jam's platform and launched (hyperdot.ps1 export -Run), and a private upload to the jam site works",
+          "check": "preset"
+        },
+        {
+          "id": "jam.fixes",
+          "text": "The last day was fixes only: no new features",
+          "check": "manual"
+        },
+        {
+          "id": "jam.submit",
+          "text": "Submitted an hour or more before the deadline: the build the jam page links to is the one launched with export -Run, and the controls, the goal and the credits are on the page and in the game",
+          "check": "manual"
+        }
+      ]
+    },
+    {
+      "id": "jam-after",
+      "name": "After the jam",
+      "timeboxDays": 3,
+      "goal": "Keep what the jam taught, while the players' comments are fresh.",
+      "gates": [
+        {
+          "id": "jam.retro",
+          "text": "Retrospective written (docs/RETRO.md): what players said, what to keep for the next jam or a bigger game, what to stop",
+          "check": "file:docs/RETRO.md"
+        }
+      ]
+    }
+  ],
+  "tasks": []
+}

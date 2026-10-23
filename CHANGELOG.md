@@ -80,6 +80,32 @@
   instead of passing unchecked; `export -Run` launches the build with a window for it. `tests/Test-GpuValidation.ps1`
   binds a float texture to an unsigned-integer image in a compute shader, which Godot lets through and the layer
   reports as `VUID-vkCmdDispatch-format-07753`; it runs on Mesa's lavapipe in the web job.
+- **Plan tasks and Trello: the six bugs from the connector test.**
+  - `plan -Do move`, `add` and `link` take a board list's name as `-Column` ("To Do", "testing", "Done" with an emoji),
+    case-insensitive and by prefix as sync matches lists, as well as the column id; `plan.json` stores the id. A name
+    that is neither fails with `invalid-arguments` and lists both.
+  - `plan -Do remove -Id <task>` deletes a task. Its id is never given again (`lastTaskNumber`), and its card goes on
+    `trello.toArchive`, which the next `plan -Do sync` archives (`sync.archived`); with the Trello connector, `/game`
+    archives it itself from the returned `task.cardId`.
+  - A card a person adds on the board becomes a task in its list's column on `plan -Do sync` (`sync.imported`). A card
+    the kit made for a task no task links now (`plan task <id>` in its description) is reported, not imported.
+  - `plan -Do sync` records the board's column (`boardColumn`) of a task it moves; the self-test now checks it.
+  - `-Card` takes the Trello connector's ARI (`ari:cloud:trello::card/workspace/<workspace>/<card>`) and stores the
+    plain 24-hex id; `sync` fixes an ARI an older plan stored; a card URL is refused. `-Board` also takes a board URL or
+    ARI.
+  - `move`, `remove` and `link` return `task` with `-Json`, like `add`.
+- **`plan -Do reopen -Id <gate>`** opens a manual gate marked done again, without editing `plan.json` (note 13). An
+  automatic gate is refused with `auto-gate`: it opens by itself when the project stops meeting it.
+- **Plan gates for what was prose.** `concept.risks` wants `docs/RISKS.md`; `concept.budget` (`docs/BUDGET.md`) is the
+  first optional gate (`"optional": true`: listed while open, with `optional` in `nextActions[]`, but it does not hold
+  its phase back); `beta.placeholders` uses a new check, `placeholders`, met when no `assets.json` entry has
+  `"placeholder": true` and the Placeholders table of `docs/TECH-DEBT.md` has no row (open while neither file exists).
+  `file:<path>` checks now want a file with something in it (or a folder): an empty file no longer meets a gate. A plan
+  made before keeps its gates (plan.json is the game's); `godot-game-plan` offers to add them.
+- **`plan -Do init -Profile jam`**: a plan for a game jam of 2 to 9 days (`ci/godot/templates/plan-jam.json`), five
+  phases sized in days (`timeboxDays`, for a 7-day jam) with the gates of `GDD-jam.md`'s day table (`jam.platform`
+  first: "browser build?"). `plan -Json` gives `timeboxDays` and `elapsedDays` beside the weeks, PLAN.md sizes jam
+  phases in days, and a jam phase over its timebox warns in days.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

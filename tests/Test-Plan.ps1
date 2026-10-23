@@ -6,7 +6,10 @@
 # cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
 # count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
 # warning in `status`. `init` never overwrites an existing test/test_example.gd, and pins its workflow at `@v1`; with
-# -Plugin it writes docs/kit-notes.md once. No Godot needed.
+# -Plugin it writes docs/kit-notes.md once. concept.risks wants a non-empty docs/RISKS.md, the optional concept.budget
+# does not hold its phase back, beta.placeholders reads assets.json and the Placeholders table of docs/TECH-DEBT.md, and
+# `plan -Do reopen` opens a manual gate again. `plan -Do init -Profile jam` writes the jam plan, sized in days. No Godot
+# needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -22,12 +25,14 @@ function Invoke-PlanJson([string[]]$Arguments) {
 }
 
 $template = Get-Content -LiteralPath (Join-Path $templates 'plan.json') -Raw | ConvertFrom-Json -Depth 10
-$gateIds = @(foreach ($phase in $template.phases) { foreach ($gate in $phase.gates) { $gate.id } })
+$jamTemplate = Get-Content -LiteralPath (Join-Path $templates 'plan-jam.json') -Raw | ConvertFrom-Json -Depth 10
+$gateIds = @(foreach ($phase in @($template.phases) + @($jamTemplate.phases)) { foreach ($gate in $phase.gates) { $gate.id } })
+Assert-True (@($gateIds | Group-Object | Where-Object Count -gt 1).Count -eq 0) 'gate ids are unique across the full and jam templates'
 
 # Flags quoted after "hyperdot.ps1 <command>" in a gate's text must be parameters of the script.
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($ci, [ref]$null, [ref]$null)
 $parameters = @($ast.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
-foreach ($phase in $template.phases) {
+foreach ($phase in @($template.phases) + @($jamTemplate.phases)) {
     foreach ($gate in $phase.gates) {
         foreach ($quote in [regex]::Matches($gate.text, 'hyperdot\.ps1 \w+(?<rest>[^:;,)]*)')) {
             foreach ($flag in [regex]::Matches($quote.Groups['rest'].Value, '(?<=\s)-(?<name>[A-Za-z]+)')) {
@@ -40,7 +45,7 @@ foreach ($phase in $template.phases) {
 # Gate ids any skill names exist in the template (plan.json is copied once, so a renamed gate would strand them).
 foreach ($skillFile in @(Get-ChildItem -LiteralPath (Join-Path $root '.agents/skills') -Filter 'SKILL.md' -Recurse)) {
     $skill = Get-Content -LiteralPath $skillFile.FullName -Raw
-    foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post)\.[a-z0-9]+)`')) {
+    foreach ($quoted in [regex]::Matches($skill, '`(?<id>(concept|prototype|slice|production|beta|launch|post|jam)\.[a-z0-9]+)`')) {
         Assert-True ($quoted.Groups['id'].Value -in $gateIds) "$($skillFile.Directory.Name) names gate $($quoted.Groups['id'].Value), which plan.json has"
     }
 }
@@ -117,6 +122,28 @@ try {
 
     $fresh = Get-Content -LiteralPath $planPath -Raw
 
+    # The concept phase: concept.risks wants a docs/RISKS.md with something in it (an empty file is not a risk log), and
+    # the optional concept.budget does not hold the phase back.
+    $d = Invoke-PlanJson @()
+    $risks = @($d.nextActions) | Where-Object id -eq 'concept.risks'
+    $budgetGate = @($d.nextActions) | Where-Object id -eq 'concept.budget'
+    Assert-True ($d.ok -and $d.currentPhase.id -eq 'concept' -and $risks -and $risks.auto -and $risks.check -eq 'file:docs/RISKS.md' -and -not $risks.optional) 'concept.risks is open and checked automatically from docs/RISKS.md'
+    Assert-True ($budgetGate -and $budgetGate.optional -eq $true -and $budgetGate.check -eq 'file:docs/BUDGET.md') 'concept.budget is optional and checked from docs/BUDGET.md'
+    New-Item -ItemType Directory -Force (Join-Path $dir 'docs') | Out-Null
+    Set-Content -LiteralPath (Join-Path $dir 'docs/RISKS.md') -Value "  `n"
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and 'concept.risks' -in @($d.nextActions | ForEach-Object id)) 'an empty docs/RISKS.md leaves concept.risks open'
+    Set-Content -LiteralPath (Join-Path $dir 'docs/RISKS.md') -Value "| Risk | Likelihood | Impact | Retired by |`n|---|---|---|---|`n| Netcode never built | high | high | prototype week 2 |"
+    Set-Content -LiteralPath (Join-Path $dir 'docs/GDD.md') -Value "# Plan Fixture`n"
+    foreach ($gate in 'concept.scope', 'concept.decisions', 'concept.market', 'concept.name', 'concept.kill') { Invoke-PlanJson @('-Do', 'done', '-Id', $gate) | Out-Null }
+    $d = Invoke-PlanJson @()
+    $concept = @($d.phases) | Where-Object id -eq 'concept'
+    Assert-True ($d.ok -and $concept.complete -and $d.currentPhase.id -eq 'prototype') "with every other concept gate met, the open concept.budget does not hold the phase back: $(if ($d.ok) { $d.currentPhase.id } else { $d.error.message })"
+    $refused = Invoke-PlanJson @('-Do', 'done', '-Id', 'concept.risks')
+    Assert-True (-not $refused.ok -and $refused.error.code -eq 'auto-gate') 'plan -Do done refuses concept.risks (auto-gate)'
+    Remove-Item -LiteralPath (Join-Path $dir 'docs') -Recurse -Force
+    Set-Content -LiteralPath $planPath -Value $fresh -Encoding utf8
+
     # The prototype phase: concept dropped from this copy, so the prototype is the current phase.
     $plan = $fresh | ConvertFrom-Json -Depth 10
     $plan.phases = @($plan.phases | Where-Object id -eq 'prototype')
@@ -168,6 +195,20 @@ try {
     $d = Invoke-PlanJson @('-Do', 'done', '-Id', 'slice.budget')
     Assert-True ($d.ok -and 'slice.budget' -notin @($d.nextActions | ForEach-Object id)) 'slice.budget is marked done by hand'
 
+    # plan -Do reopen undoes done for a manual gate; an automatic gate, an unknown gate and a missing -Id are refused.
+    $d = Invoke-PlanJson @('-Do', 'reopen', '-Id', 'slice.budget')
+    Assert-True ($d.ok -and 'slice.budget' -in @($d.nextActions | ForEach-Object id)) 'plan -Do reopen opens slice.budget again'
+    $gate = @((Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json).phases.gates | Where-Object id -eq 'slice.budget')[0]
+    Assert-True (-not $gate.PSObject.Properties['done']) 'and plan.json no longer marks it done'
+    $d = Invoke-PlanJson @('-Do', 'reopen', '-Id', 'slice.budget')
+    Assert-True ($d.ok -and 'slice.budget' -in @($d.nextActions | ForEach-Object id)) 'reopening an open gate changes nothing'
+    foreach ($case in @(@('slice.debt', 'auto-gate'), @('no.such.gate', 'unknown-gate'), @('', 'invalid-arguments'))) {
+        $refused = Invoke-PlanJson @('-Do', 'reopen', '-Id', $case[0])
+        Assert-True (-not $refused.ok -and $refused.error.code -eq $case[1]) "plan -Do reopen -Id '$($case[0])' fails with $($case[1]): $(if (-not $refused.ok) { $refused.error.code })"
+    }
+    $d = Invoke-PlanJson @('-Do', 'done', '-Id', 'slice.budget')
+    Assert-True ($d.ok -and 'slice.budget' -notin @($d.nextActions | ForEach-Object id)) 'and it can be marked done again'
+
     # plan -Json reports the release timeline; five days out with no other date, the app fee is flagged and the date locked.
     Assert-True ($null -eq $d.release) 'a plan without a release date reports no release'
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json -Depth 10
@@ -187,8 +228,62 @@ try {
     Set-Content -LiteralPath (Join-Path $dir 'test_paddle.gd') -Value "extends GutTest`n`nfunc test_paddle():`n`tassert_true(true)`n"
     $d = Invoke-PlanJson @()
     Assert-True ($d.ok -and 'slice.tests' -notin @($d.nextActions | ForEach-Object id)) 'slice.tests is done once a GUT test exists'
+
+    # beta.placeholders: open while nothing says what is left (no TECH-DEBT.md, no assets.json), while the Placeholders
+    # table of docs/TECH-DEBT.md has a row, or while an assets.json entry is "placeholder": true.
+    $plan = $fresh | ConvertFrom-Json -Depth 10
+    $plan.phases = @($plan.phases | Where-Object id -eq 'alpha-beta')
+    $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planPath -Encoding utf8
+    Remove-Item -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Force
+    $placeholderOpen = { param($Doc) $Doc.ok -and 'beta.placeholders' -in @($Doc.nextActions | ForEach-Object id) }
+    $d = Invoke-PlanJson @()
+    $gate = @($d.nextActions) | Where-Object id -eq 'beta.placeholders'
+    Assert-True ((& $placeholderOpen $d) -and $gate.auto -and $gate.check -eq 'placeholders') 'beta.placeholders is automatic and open with neither docs/TECH-DEBT.md nor assets.json'
+    $debtText = (Get-Content -LiteralPath (Join-Path $templates 'TECH-DEBT.md') -Raw).Replace('{{GAME}}', 'Plan Fixture')
+    Set-Content -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Value $debtText
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and -not (& $placeholderOpen $d)) 'the template TECH-DEBT.md, whose Placeholders table is empty, meets beta.placeholders'
+    $withRow = $debtText.Replace("|---|---|---|---|`n| | | | |", "|---|---|---|---|`n| art/boss.png | the final boss sprite | me | M3 |").Replace("|---|---|---|---|`r`n| | | | |", "|---|---|---|---|`r`n| art/boss.png | the final boss sprite | me | M3 |")
+    Set-Content -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Value $withRow
+    $d = Invoke-PlanJson @()
+    Assert-True ($withRow -ne $debtText -and (& $placeholderOpen $d)) 'a row in the Placeholders table opens it'
+    Set-Content -LiteralPath (Join-Path $dir 'docs/TECH-DEBT.md') -Value $debtText
+    Set-Content -LiteralPath (Join-Path $dir 'assets.json') -Value '{ "assets": [ { "path": "art/boss.png", "source": "own", "licence": "proprietary", "placeholder": true } ] }'
+    $d = Invoke-PlanJson @()
+    Assert-True (& $placeholderOpen $d) 'an assets.json entry marked "placeholder": true opens it'
+    Set-Content -LiteralPath (Join-Path $dir 'assets.json') -Value '{ "assets": [ { "path": "art/boss.png", "source": "own", "licence": "proprietary", "placeholder": false } ] }'
+    $d = Invoke-PlanJson @()
+    Assert-True ($d.ok -and -not (& $placeholderOpen $d)) 'with "placeholder": false it is met again'
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# plan -Do init -Profile jam: phases sized in days, with the jam's gates; a day over the timebox warns in days.
+$jam = Join-Path ([IO.Path]::GetTempPath()) "plan-jam-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force $jam | Out-Null
+    Set-Content -LiteralPath (Join-Path $jam 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Jam""`n"
+    $d = pwsh -NoProfile -File $ci plan -Do init -Profile jam -Json -Project $jam 2>$null | ConvertFrom-Json
+    $jamPath = Join-Path $jam 'plan/plan.json'
+    $jamPlan = Get-Content -LiteralPath $jamPath -Raw | ConvertFrom-Json -Depth 10
+    Assert-True ($d.ok -and $jamPlan.profile -eq 'jam' -and $jamPlan.game -eq 'Jam') 'plan -Do init -Profile jam writes a jam plan'
+    $days = @($jamPlan.phases | ForEach-Object { if ($_.PSObject.Properties['timeboxDays']) { [double]$_.timeboxDays } })
+    Assert-True ($days.Count -eq @($jamPlan.phases).Count -and @($jamPlan.phases | Where-Object { $_.PSObject.Properties['timeboxWeeks'] }).Count -eq 0) "every jam phase is sized in days: $($days -join ', ')"
+    $sum = ($days | Select-Object -First 4 | Measure-Object -Sum).Sum
+    Assert-True ($sum -ge 2 -and $sum -le 9) "the jam itself (all but the last phase) fits a 2- to 9-day jam: $sum days"
+    $d = pwsh -NoProfile -File $ci plan -Json -Project $jam 2>$null | ConvertFrom-Json
+    $ids = @($d.nextActions | ForEach-Object id)
+    Assert-True ($d.ok -and $d.currentPhase.id -eq 'jam-concept' -and $d.currentPhase.timeboxDays -eq 1 -and $null -ne $d.currentPhase.elapsedDays) "the jam starts in jam-concept, 1 day: $(if ($d.ok) { $d.currentPhase | ConvertTo-Json -Compress } else { $d.error.message })"
+    Assert-True ($ids.Count -gt 0 -and $ids[0] -eq 'jam.platform' -and 'jam.gdd' -in $ids) "'browser build?' comes first, then the jam GDD: $($ids -join ', ')"
+    Assert-True ((Get-Content -LiteralPath (Join-Path $jam 'plan/PLAN.md') -Raw) -match '## Theme and core feel \(current, 1 day\)') 'PLAN.md sizes the phase in days'
+    $jamPlan.phases[0].startedAt = [datetime]::UtcNow.AddDays(-2).ToString('o')
+    $jamPlan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $jamPath -Encoding utf8
+    $d = pwsh -NoProfile -File $ci plan -Json -Project $jam 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok -and @($d.warnings | Where-Object { $_ -match "is 2 days in, over its 1-day timebox" }).Count -eq 1) "two days into a one-day phase warns in days: $($d.warnings -join ' | ')"
+    $d = pwsh -NoProfile -File $ci plan -Do init -Json -Project $jam 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok -and (Get-Content -LiteralPath $jamPath -Raw | ConvertFrom-Json).profile -eq 'jam') 'init again leaves the jam plan as it is'
+} finally {
+    Remove-Item -LiteralPath $jam -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # A day-first culture (Greek here) must read the phase's start time back: it once failed with "String '10/23/2026

@@ -376,14 +376,14 @@ help does not know, or a name given to another command, fails with `invalid-argu
 
 **flows** is a runner like the others: it appears in `runnerResults[]`; each failure's `name` is the flow file and `message` is `step N (<step>): <reason>`.
 
-**plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`), `nextActions[]`
-(`id`, `text`, `auto`, `check`), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
+**plan**: `plan` (path), `currentPhase` (`id`, `name`, `goal`, `timeboxWeeks`, `elapsedWeeks`, `timeboxDays`, `elapsedDays`; a jam plan sizes phases in days, the other plan in weeks, and both are given), `nextActions[]`
+(`id`, `text`, `auto`, `check`, `optional`: an open optional gate does not hold the phase back), `phases[]` (`id`, `name`, `complete`, `gatesDone`, `gatesTotal`), `board`
 (tasks per column), `tasks[]` (`id`, `title`, `column`, `phase`, `feature`, `cardId`, `boardColumn`), `trelloBoard`,
 `release` (`null` until plan.json's `release.date` is set: `date`, `daysLeft`, `businessDaysLeft`, `dateLocked`,
 `deadlines` with `steamFee`, `comingSoon`, `buildReview`, `dateLock`, and `storePageReview` and `demoReview` when
 `release.comingSoon` and `release.nextFest` are set; all yyyy-MM-dd), `warnings[]` (release timeline warnings included;
 see [plan.md](plan.md#release-dates)).
-`plan -Do add` also returns `task`; `plan -Do sync` (experimental) returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `warnings`).
+`plan -Do add`, `move`, `remove` and `link` also return `task` (as in `tasks[]`; for `remove`, the task removed, whose `cardId` the Trello connector should archive); `plan -Do sync` (experimental) returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `imported` (tasks added for cards a person added on the board), `archived` (cards of removed tasks archived), `warnings`).
 
 **status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
 reporting: one line in `.godot/hyperdot-handoffs.jsonl` (`time`, `subagent`, `checked`, `verdict`, `commit`; each text on

@@ -65,10 +65,11 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Topic` | | `help`: the command, skill or subagent whose page to show; also the second word, `help shot` |
 | `-Json` | off | One JSON document on stdout, logs on stderr ([json.md](json.md)) |
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
-| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
-| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board (experimental); `link -Column` the card's list, `link -Board` the plan's board |
+| `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `reopen -Id <gate>`, `add`, `move -Id <task> -Column`, `remove -Id <task>`, `sync`, `link` |
+| `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column (an id or the board list it maps to, such as "To Do"); `sync` Trello board (experimental; id, short link, URL or ARI); `link -Column` the card's list, `link -Board` the plan's board |
+| `-Profile` | `full` | `plan -Do init`: `jam` writes a plan for a game jam of 2 to 9 days, sized in days (`ci/godot/templates/plan-jam.json`) instead of the seven phases |
 | `-Handoff`, `-Checked`, `-Verdict` | | `status`: record one subagent handoff (the subagent's name, what it checked, its verdict) in `.godot/hyperdot-handoffs.jsonl` instead of reporting; the newest 200 are kept and `status` returns them as `handoffs[]` ([json.md](json.md)) |
-| `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
+| `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id (24 hex, or the Trello connector's ARI; the plain id is stored) |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |

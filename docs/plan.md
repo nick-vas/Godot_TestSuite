@@ -1,7 +1,7 @@
 # A-to-Z plan for a solo developer
 
 `hyperdot.ps1 plan` tracks a game from first idea to post-launch as seven phases with gates. This page explains
-where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init | status | done -Id <gate>`,
+where the pipeline comes from and why the gates are what they are. Commands: `plan -Do init [-Profile jam] | status | done -Id <gate> | reopen -Id <gate>`, tasks with `add | move | remove | link | sync`,
 all with `-Json` (see [json.md](json.md)).
 
 ## Where it comes from
@@ -33,16 +33,24 @@ Three inputs, cross-referenced:
 
 | # | Phase | Weeks* | Question it answers | Automatic gates |
 |---|---|---|---|---|
-| 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists |
+| 1 | Concept | 2 | What is it, and what is it not? | `docs/GDD.md` exists; `docs/RISKS.md` written; `docs/BUDGET.md` (optional) |
 | 2 | Prototype | 4 | Is the core loop fun? | CI workflow wired; `docs/TRAILER.md` exists; `docs/DECISIONS.md` has the verdict |
 | 3 | Vertical slice | 8 | Can I build and ship one polished piece? | a test runner detected; an export preset exists; `docs/TECH-DEBT.md` exists |
 | 4 | Production | 24 | Can I build the rest as playable milestones? | `docs/MILESTONES.md` exists |
-| 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | tests green |
+| 5 | Alpha and beta | 8 | Is it stable, fair, accessible? | no placeholders left; tests green |
 | 6 | Release candidate and launch | 4 | Does a clean export run, and can players find it? | export preset |
 | 7 | Post-launch | 8 | What do players hit, and what next? | `docs/RETRO.md` exists |
 
 \*Defaults for about 10 hours a week; the slice gate re-sizes the rest from measured velocity. Edit `timeboxWeeks`, add or
-remove gates freely: `plan.json` is yours after `init`.
+remove gates freely: `plan.json` is yours after `init`. A manual gate marked done too early opens again with
+`plan -Do reopen -Id <gate>`; an automatic gate opens by itself when the project stops meeting it.
+
+Automatic checks: `tests` (a test framework's runner is detected), `ci` (a workflow calls the kit's), `preset` (an export
+preset exists), `runner:<name>` (that runner is set up), `file:<path>` (a folder, or a file that is not empty: an empty
+`docs/RISKS.md` is not a risk log; the path is looked up from the repository root, then the Godot project) and
+`placeholders` (nothing is left as a placeholder: no `assets.json` entry has `"placeholder": true` and the Placeholders
+table of `docs/TECH-DEBT.md` has no row; with neither file, nothing says what is left, so it stays open). A gate with
+`"optional": true` (`concept.budget`) is listed while open but does not hold its phase back.
 
 ## Rules baked into the gates
 
@@ -69,9 +77,14 @@ Day-to-day work lives in `plan.json` `tasks`, edited with commands so an agent c
 ```powershell
 pwsh ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
 pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
+pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column "To Do"    # a board list name works too
+pwsh ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # delete a task
 ```
 
 Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo` To Do, `doing` Doing, `verify` Testing, `done` Done.
+`-Column` (in `add`, `move` and `link`) takes a column id or the name of the board list it maps to, case-insensitive and by
+prefix as sync matches lists, so `"to do"` and `"Done 🎉"` work; `plan.json` always stores the id. `remove` deletes a task;
+a removed task's id is never given again (`lastTaskNumber`), and its card is archived by the next sync (`trello.toArchive`).
 
 **Trello sync** (`plan -Do sync -Board <id or short link>`) is **experimental**: it has met only a stand-in Trello so far
 (the live run waits, and the open bugs are under Trello in [roadmap.md](roadmap.md#trello)), and it uses API keys, not the
@@ -81,7 +94,13 @@ Trello connector. It keeps the plan the source of truth and uses Trello as the p
 - a task you moved in the plan (`plan -Do move`) moves its card. Each task records the list its card was in at the last
   sync (`boardColumn`), so a card in another list was moved on the board, and a card still in that list follows the task;
 - a card that is gone (archived or deleted) is reported and left alone;
-- it never imports cards you created on the board, and never deletes anything.
+- a card you added on the board, in a list the plan maps, becomes a task in that column (in the current phase). A card
+  whose description starts `plan task <id>` was made by the kit for a task that no task links now: it is reported, not imported;
+- the card of a task removed with `plan -Do remove` is archived; nothing is ever deleted.
+
+Card ids are stored as Trello's plain 24-hex ids. The Trello connector gives ARIs (`ari:cloud:trello::card/workspace/<workspace id>/<card id>`):
+`plan -Do link -Card` takes one and stores the id at its end, and sync fixes an ARI an older plan stored. `-Board` takes a
+board id, a short link, a board URL (its short link is kept) or a board ARI (its id is kept).
 
 Set `TRELLO_KEY` and `TRELLO_TOKEN` in the environment: on https://trello.com/power-ups/admin, make a Power-Up (any
 name), open its API key page and copy the key (32 hex characters), then use the Token link beside it. They are sent in a request header, never in a URL,
@@ -150,18 +169,23 @@ manual-only on purpose: a scheduled prompt can start only skills Claude is allow
 
 ## Jam mode, risks, money and exit criteria
 
-`godot-game-plan` also covers what has no gate yet (planned gates are listed in [roadmap.md](roadmap.md)):
-- **Jam mode:** a jam of 2 to 9 days uses `ci/godot/templates/GDD-jam.md` and its day table instead of the seven
-  phases. The first question is "browser build?": Godot 4.7 refuses to export C# to the Web
+`godot-game-plan` also covers what the gates only point to:
+- **Jam mode:** a jam of 2 to 9 days starts with `plan -Do init -Profile jam` (`ci/godot/templates/plan-jam.json`):
+  five phases sized in days (`timeboxDays`) for a 7-day jam, from the day table of `ci/godot/templates/GDD-jam.md`:
+  theme and core feel (1), loop (1), must-haves (3), export and submit (2), then 3 days after the jam for the
+  retrospective. Scale `timeboxDays` to the jam; an overrun warns in days. Its gates (`jam.*`) follow the day table:
+  `jam.platform` first, `jam.gdd`, `jam.feel`, `jam.loop`, `jam.tests`, `jam.musthaves`, `jam.credits`, `jam.export`,
+  `jam.fixes`, `jam.submit`, `jam.retro`. The first question is "browser build?": Godot 4.7 refuses to export C# to the Web
   ([mobile-web.md](mobile-web.md), measured: "Exporting to Web is currently not supported in Godot 4 when using
   C#/.NET"), so a browser jam is made in GDScript.
-- **A risk log** at the concept stage (`docs/RISKS.md`): the top five risks with likelihood, impact, and how and when each
-  is retired; a system the developer has never built is one.
-- **Budget and runway** as categories the user fills in (people, outsourcing, workspace, software, licences, events,
-  marketing, ratings, taxes; cash, payouts, funding), the business model, and the fairness rule (never sell an
-  advantage over other players).
-- **Sharper alpha and beta exit:** a placeholders table in `docs/TECH-DEBT.md`, bug classes A and B, a statement of
-  completion at alpha, and a release plan at beta. The marketing cadence and the release ladder are in `godot-store-page`.
+- **A risk log** at the concept stage (`docs/RISKS.md`, gate `concept.risks`): the top five risks with likelihood,
+  impact, and how and when each is retired; a system the developer has never built is one.
+- **Budget and runway** (`docs/BUDGET.md`, the optional gate `concept.budget`) as categories the user fills in (people,
+  outsourcing, workspace, software, licences, events, marketing, ratings, taxes; cash, payouts, funding), the business
+  model, and the fairness rule (never sell an advantage over other players).
+- **Sharper alpha and beta exit:** a placeholders table in `docs/TECH-DEBT.md` and `"placeholder": true` entries in
+  `assets.json`, both empty for `beta.placeholders`; bug classes A and B, a statement of completion at alpha, and a
+  release plan at beta. The marketing cadence and the release ladder are in `godot-store-page`.
 
 ## Not covered (yet)
 

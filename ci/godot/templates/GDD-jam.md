@@ -1,7 +1,8 @@
 # {{GAME}}: jam design document
 
 <!-- The game-jam profile of GDD.md: days, not weeks, and under three pages. Copy it to docs/GDD.md; `status` reads the
-     "### F<number>" features the same way. Unsure whether a feature fits? It does not: put it under "Cut list". -->
+     "### F<number>" features the same way, and `plan -Do init -Profile jam` turns the day table into plan gates. Unsure
+     whether a feature fits? It does not: put it under "Cut list". -->
 
 ## Pitch
 

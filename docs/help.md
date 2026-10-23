@@ -65,9 +65,11 @@ Code plugin instead of copying skills. It never overwrites a file and is safe to
 The game's plan from concept to post-launch: the current phase, its gates, tasks and what to do next.
 
     hyperdot.ps1 plan -Json
-    hyperdot.ps1 plan -Do init | done -Id <gate> | add -Title <text> [-Feature F3] | move -Id <task> -Column doing | link | sync -Board <id>
+    hyperdot.ps1 plan -Do init [-Profile jam] | done -Id <gate> | reopen -Id <gate> | add -Title <text> [-Feature F3]
+    hyperdot.ps1 plan -Do move -Id <task> -Column doing | remove -Id <task> | link | sync -Board <id>
 
-The plan is plan/plan.json. move refuses doing past the work-in-progress limit. sync (Trello, with TRELLO_KEY and
+The plan is plan/plan.json; -Profile jam sizes it in days for a game jam. -Column takes a column id or the board list
+it maps to ("To Do"). move refuses doing past the work-in-progress limit. sync (Trello, with TRELLO_KEY and
 TRELLO_TOKEN) is experimental. More: docs/plan.md.
 
 ### bench

@@ -12,6 +12,7 @@ and warns on timebox overruns. Genre-independent.
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do init -Game "My Game"     # once; never overwrites
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Json                        # where am I, what is next
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do done -Id concept.scope   # mark a manual gate (you or the user decides, not the agent)
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do reopen -Id concept.scope # undo it, never by editing plan.json
 ```
 
 | Phase | Weeks | Exit gate in one line |
@@ -29,21 +30,22 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 ## How an agent uses it
 
 1. Start every session with `plan -Json`. Work only on `nextActions` of `currentPhase`.
-2. `check` is `manual` or automatic (`tests`: a test framework runner, `ci`, `preset`, `file:<path>`, `runner:<name>`: that
-   runner is set up). Automatic gates turn true when the project makes them true; do the work, not the checkbox.
-   `plan -Do done` refuses automatic gates.
+2. `check` is `manual` or automatic (`tests`: a test framework runner, `ci`, `preset`, `file:<path>`: a file that is not
+   empty, `runner:<name>`: that runner is set up, `placeholders`: none left). Automatic gates turn true when the project
+   makes them true; do the work, not the checkbox. `plan -Do done` refuses automatic gates. An `optional` gate does not hold its phase back.
 3. Manual gates (the playtest happened, the verdict) need the user's word. Ask; do not mark them yourself.
 4. When `warnings` reports an overrun: propose cutting scope from the "could" tier; never cut testing or the gate.
 5. Work items are `tasks` in plan.json, edited with commands, not by hand:
    ```powershell
    pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Feature F1 -Column todo   # -Feature: the GDD feature it delivers
    pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # a task that is no longer wanted
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
-   "tests green" (`godot-verify-before-done`), not "a person reviewed it".
+   "tests green" (`godot-verify-before-done`), not "a person reviewed it". `-Column` also takes the board list's name ("To Do").
 6. Trello is optional and experimental (tested only against a mock); plan.json stays the source of truth. With the Trello connector, `/game` keeps the board in step
    (the `game` skill). Without it, `plan -Do sync -Board <id or short link>` creates a card per new task, pulls back cards
-   the user dragged and moves the cards of tasks moved with `plan -Do move`; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
+   the user dragged, adds a task for each card the user added, archives the cards of removed tasks and moves the cards of tasks moved with `plan -Do move`; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
    prefix: Backlog, Design, To Do, Doing, Testing, Done.
 7. `status -Json` is the whole picture in one call: GDD features with their tagged tests, the plan, latest runs, git
    activity. The user asks for `/game` to see it judged and written to `plan/STATUS.md`.
@@ -98,13 +100,13 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 
 ## Concept: risks, money and the business model
 
-- **Risk log** (`docs/RISKS.md`, at `concept.scope`): the top five risks, each with likelihood, impact, how it is retired
+- **Risk log** (`docs/RISKS.md`, gate `concept.risks`): the top five risks, each with likelihood, impact, how it is retired
   and by when. Every system the developer has never built counts as one; the riskiest is prototyped first.
 - **Comparable games** (`concept.market`): a teardown of each of the three, as in `godot-game-design` section 4.
 - **Business model:** name it (premium, demo plus full game, free with ads, free to play) and what is sold. Never sell
   an advantage over another player, or a shortcut past what a learning game teaches; no energy timers or roulettes.
   Paid random items, timed offers and daily rewards raise the age rating (`godot-legal` section 1).
-- **Budget and runway** (optional for a hobby game): the categories, filled in by the user, never guessed. Costs:
+- **Budget and runway** (`docs/BUDGET.md`, the optional gate `concept.budget`; skip it for a hobby game): the categories, filled in by the user, never guessed. Costs:
   people, outsourcing (art, music, trailer), workspace (rent, power, internet, insurance), monthly software and
   services, per-project licences, events (date, cost, go or no-go), marketing (one-off and monthly), age ratings per
   region, taxes. Income: cash on hand, store payouts and when they arrive, funding (savings, a publisher, platform funds,
@@ -115,7 +117,8 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 ## Alpha and beta: exit criteria
 
 - **Placeholders are listed** in `docs/TECH-DEBT.md` (its Placeholders table): every stand-in asset or text, labelled
-  in the game, with what replaces it and by which milestone.
+  in the game, with what replaces it and by which milestone; a stand-in asset is also `"placeholder": true` in
+  `assets.json`. `beta.placeholders` is met when both are empty.
 - **Bug classes:** A blocks finishing the game, crashes or loses data; B is major and seen by most players. Alpha and
   beta both play to the end with no undeclared A or B bug (`godot-playtest` triage uses the same classes).
 - **`beta.alpha`** comes with a statement of completion in `docs/MILESTONES.md`: each missing feature and the build it
@@ -127,7 +130,8 @@ ideas come back years later (*Untold History*, `${CLAUDE_PLUGIN_ROOT}/docs/studi
 
 ## Jam mode (2 to 9 days)
 
-Use `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md` as `docs/GDD.md`; its day table replaces the seven phases.
+Start with `plan -Do init -Profile jam`: phases sized in days, for a 7-day jam (scale `timeboxDays` to yours), with
+gates from the day table of `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/GDD-jam.md`, which becomes `docs/GDD.md` (`jam.gdd`).
 Ask "browser build?" before anything else: Godot 4.7 stops a C# Web export ("Exporting to Web is currently not supported
 in Godot 4 when using C#/.NET", `godot-mobile-web`), so a browser jam is made in GDScript. Day 1 proves the riskiest feel
 with plain shapes; day 2 has the loop with win and lose; the day before the end exports to the jam's platform and

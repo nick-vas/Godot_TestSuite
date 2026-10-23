@@ -75,7 +75,12 @@ try {
     $audio = Copy-Example 'audio'
     Assert-Code 'no-ffmpeg' @('audio', '-Project', $audio, '-Results', (Join-Path $temp 'audio-results')) @{ PATH = (New-Item -ItemType Directory -Force (Join-Path $temp 'bin') | ForEach-Object FullName) }
 
-    if ($NoGodot) { return }
+    # The checks below need Godot. Leaving here skips the failure count at the end, so count first.
+    if ($NoGodot) {
+        if ($failures.Count) { throw "$($failures.Count) error code check(s) failed" }
+        Write-Host 'Error code self-test passed (-NoGodot: the Godot checks were not run)'
+        return
+    }
 
     # --- Godot ---
     Assert-Code 'no-coverage' @('test', '-Project', (Copy-Example 'nocov'), '-Runners', 'gut', '-MinCoverage', '50')
