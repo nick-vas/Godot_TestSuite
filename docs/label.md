@@ -80,6 +80,10 @@ label says why.
 
 A is 95% or more, B 90%, C 85%, D 75%, E 65%, F 50%, and G below 50%.
 
+The record is a lower bound. A self-test that loads a library file and calls its functions in its own process (the
+architecture rules, the data checks, the localization parsers) tests them without the kit seeing it. The tested class
+counts only what a run of `hyperdot.ps1` reaches. The jobs that call the reusable workflow do not record either.
+
 **Secondary values** printed on the label, like water use and programme duration on a washing machine:
 
 - the share of answers that pass;
