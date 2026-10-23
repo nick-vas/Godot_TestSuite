@@ -34,16 +34,22 @@ $broken = New-Project 'broken'
 Set-Content -LiteralPath (Join-Path $broken 'art/boss.png') "version https://git-lfs.github.com/spec/v1`noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`nsize 12345`n" -NoNewline
 [System.IO.File]::WriteAllBytes((Join-Path $broken 'release.keystore'), [byte[]](1, 2, 3))
 [System.IO.File]::WriteAllBytes((Join-Path $broken 'local.p12'), [byte[]](1, 2, 3))   # not committed: fine
+# A key in a folder with a non-ASCII name, which git quotes when it prints it ("cl\303\251s/..."); the name is written as
+# code so this file stays ASCII.
+$accented = 'cl' + [char]0xE9 + 's'
+New-Item -ItemType Directory -Force (Join-Path $broken $accented) | Out-Null
+[System.IO.File]::WriteAllBytes((Join-Path $broken "$accented/upload.keystore"), [byte[]](1, 2, 3))
 if (-not $IsWindows) {
     Set-Content -LiteralPath (Join-Path $broken 'art/aux.txt') 'reserved'
     Set-Content -LiteralPath (Join-Path $broken 'art/Hero.png') 'twin'
 }
 Set-Content -LiteralPath (Join-Path $broken 'level.tscn') "[gd_scene format=3]`n`n[ext_resource type=`"Texture2D`" path=`"res://Art/hero.png`" id=`"1`"]`n`n[node name=`"Level`" type=`"Node2D`"]`n"
-& git -C $broken add -- release.keystore
+& git -C $broken add -- release.keystore "$accented/upload.keystore"
 $messages = Get-DoctorMessages $broken
 $expect = @(
     'Git LFS pointer files instead of assets \(LFS was not pulled\): art/boss\.png$'
-    'Signing keys or login files are committed: release\.keystore$'
+    'Signing keys or login files are committed: .*release\.keystore'
+    "Signing keys or login files are committed: .*$accented/upload\.keystore"
     'res:// paths whose case differs from the file.*res://Art/hero\.png \(the file is res://art/hero\.png, in level\.tscn\)'
 )
 if (-not $IsWindows) {
