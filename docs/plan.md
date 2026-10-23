@@ -123,7 +123,9 @@ pitch and the features.
 `status -Json` reads all of that, plus the plan, the latest runs, git activity and an inventory of the project, without
 judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging; start every session with it:
 1. the first time, it drafts the GDD from the code and confirms it with you section by section;
-2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`;
+2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`, with a short design and
+   architecture review: at most five problems with their evidence (features that serve no kind of fun, scope drift,
+   `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on);
 3. it adds a plan task (`plan -Do add -Feature F3`) for each feature that is not proven;
 4. through the Trello connector (experimental), it creates and moves cards. A card you moved since the last run keeps your column: each task
    records the list its card was in (`plan -Do link -Column`), so a card that is somewhere else was moved by you;

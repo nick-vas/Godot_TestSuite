@@ -129,7 +129,7 @@ separate, headless tool.
 |---|---|---|
 | **Know the project** | `detect -Json` | project, Godot version, solution, test runners, export presets |
 | **Find misconfiguration** | `doctor -Json` | checks with a fix each: missing `solution_directory`, tests in release builds, dead GUT files, add-ons, store art |
-| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs and git activity |
+| **See where the game is** | `status -Json`, `/game` | GDD features with their tagged tests, plan, runs, git activity and subagent handoffs; `/game` adds a short design and architecture review |
 | **Drive the live editor** | `init -Mcp godot-mcp` | registers an editor-bridge MCP server; `-McpDiagnostics` adds GDScript checks and the game console |
 
 ### Test and verify

@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **`/game` reviews design and architecture.** Besides the feature marks, `plan/STATUS.md` gets a "Review" section: at
+  most five design and architecture problems with their evidence (features that serve no kind of fun, scope drift,
+  `architecture` warnings, autoloads no decision covers, subagent verdicts nobody acted on).
 - **Handoff log.** `status -Handoff <subagent> -Checked <what> -Verdict <answer>` appends one line (time, subagent,
   what was checked, verdict, commit) to `.godot/hyperdot-handoffs.jsonl`, keeping the newest 200; `status` returns the 20
   newest as `handoffs[]`. Both subagents record their handoff before replying, and `/game` and `/retro` read the log.
