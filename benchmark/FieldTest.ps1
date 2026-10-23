@@ -106,6 +106,8 @@ function Get-MutantCandidates([string]$Root) {
             if ($trimmed -match '^(func|static func|class|signal|enum)\b' -or $trimmed -match '^@') { continue }
             $pattern = if ($csharp) { '(?<=\s)(<=|>=|==|!=|&&|\|\||<|>|\+|-|\*|/)(?=\s)|(?<![\w.])\d+(?![\w.])' } else { '(?<=\s)(<=|>=|==|!=|and|or|<|>|\+|-|\*|/)(?=\s)|(?<![\w.])\d+(?![\w.])' }
             foreach ($m in [regex]::Matches($code, $pattern)) {
+                # Hashes, seeds and masks are not the numbers a game's rules are made of.
+                if ($m.Value -match '^\d{10,}$') { continue }
                 $replace = if ($m.Value -match '^\d+$') { [string]([long]$m.Value + 1) } else { $script:MutantSwaps[$m.Value] }
                 $changed = $line.Substring(0, $m.Index) + $replace + $line.Substring($m.Index + $m.Length)
                 $find = $line; $to = $changed
