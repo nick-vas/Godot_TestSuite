@@ -61,11 +61,15 @@ function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter
 
 # One case per file from tools/validate.gd's markers; errors printed between a file's markers fail it.
 function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate') {
-    $cases = @(); $current = $null; $buffer = @(); $outside = @()
-    foreach ($raw in Get-Content -LiteralPath $LogFile) {
-        $line = $raw -replace "`e\[[0-9;]*m", ''
+    $cases = @(); $current = $null; $buffer = @(); $outside = @(); $since = @()
+    $lines = @(Get-Content -LiteralPath $LogFile | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    # Godot 4.5+: validate.gd's logger prints each file's errors on stdout before its end marker ("@@validate error").
+    # stderr reaches the log out of order with stdout, so its lines between a file's markers may be another file's: then
+    # only the logger's lines are the file's, and stderr counts as outside any file.
+    $logged = @($lines | Where-Object { $_.StartsWith("@@$Marker error ") }).Count -gt 0
+    foreach ($line in $lines) {
         if ($line -match "^@@$Marker begin (?<path>.+)`$") {
-            $current = $Matches.path; $buffer = @()
+            $current = $Matches.path; $buffer = @(); $since = @()
         } elseif ($current -and $line.StartsWith("@@$Marker end $current ")) {
             # Matched by the known path rather than a regex: paths may contain spaces.
             $status = $line.Substring("@@$Marker end $current ".Length)
@@ -74,13 +78,22 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
             $cases += @{ Name = $current; Failure = ($problems -join "`n") }
             $current = $null
         } elseif ($current) {
-            $buffer += ($line -replace "^@@$Marker error ", '')
+            $since += $line
+            if ($line.StartsWith("@@$Marker error ")) { $buffer += $line.Substring("@@$Marker error ".Length) }
+            elseif ($logged) { $outside += $line }
+            else { $buffer += $line }
         } else {
             $outside += $line
         }
     }
-    # Errors before the first file (autoloads, project settings) belong to the project as a whole, unless a file already
-    # reported the same error (stderr can reach the log ahead of that file's markers).
+    # A file whose end marker never came stopped Godot (a crash, OS.crash, a time-out): it fails, with what was printed
+    # after its begin marker, rather than being left out.
+    if ($current) {
+        $crash = @($since | Where-Object { $_ -match 'Program crashed with signal|was still running after' } | ForEach-Object { $_.Trim() })
+        $cases += @{ Name = $current; Failure = (@("Godot stopped while checking this file") + $crash + @(Select-GodotErrors $since)) -join "`n" }
+    }
+    # Errors outside any file (before the first: autoloads, project settings; with the logger, all of stderr) belong to the
+    # project as a whole, unless a file already reported the same error (stderr can reach the log away from its file's markers).
     $reported = ($cases | ForEach-Object { $_.Failure }) -join "`n"
     $startup = @(Select-GodotErrors $outside | Where-Object { -not $reported.Contains(($_ -replace '^\s*(SHADER ERROR|SCRIPT ERROR|ERROR):\s*', '').Trim()) })
     if ($startup.Count -gt 0) { $cases += @{ Name = 'project startup'; Failure = ($startup -join "`n") } }
