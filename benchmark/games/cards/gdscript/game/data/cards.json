@@ -1,0 +1,13 @@
+[
+  { "id": "ember_mote", "name": "CARD_EMBER_MOTE", "kind": "wisp", "cost": 1, "power": 1, "guard": 2 },
+  { "id": "reed_hound", "name": "CARD_REED_HOUND", "kind": "wisp", "cost": 2, "power": 2, "guard": 3 },
+  { "id": "glow_imp", "name": "CARD_GLOW_IMP", "kind": "wisp", "cost": 2, "power": 3, "guard": 1 },
+  { "id": "bog_warden", "name": "CARD_BOG_WARDEN", "kind": "wisp", "cost": 3, "power": 1, "guard": 6 },
+  { "id": "fen_stalker", "name": "CARD_FEN_STALKER", "kind": "wisp", "cost": 4, "power": 4, "guard": 3 },
+  { "id": "lantern_heron", "name": "CARD_LANTERN_HERON", "kind": "wisp", "cost": 5, "power": 5, "guard": 5 },
+  { "id": "flare", "name": "CARD_FLARE", "kind": "rite", "cost": 2, "effect": "bolt", "amount": 3 },
+  { "id": "mending_oil", "name": "CARD_MENDING_OIL", "kind": "rite", "cost": 2, "effect": "mend", "amount": 4 },
+  { "id": "marsh_insight", "name": "CARD_MARSH_INSIGHT", "kind": "rite", "cost": 1, "effect": "draw", "amount": 2 },
+  { "id": "douse", "name": "CARD_DOUSE", "kind": "rite", "cost": 3, "effect": "douse", "amount": 4 },
+  { "id": "rekindle", "name": "CARD_REKINDLE", "kind": "rite", "cost": 2, "effect": "rekindle", "amount": 1 }
+]

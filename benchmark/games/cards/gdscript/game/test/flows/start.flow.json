@@ -1,0 +1,17 @@
+{
+  "name": "Play on the menu opens the rival select, and the first rival starts a duel there",
+  "scene": "res://main.tscn",
+  "seed": 1,
+  "steps": [
+    { "assert": { "node": "Menu", "prop": "visible", "equals": true } },
+    { "press": "Menu/StartButton" },
+    { "assert": { "node": "RivalSelect", "exists": true } },
+    { "assert": { "node": "RivalSelect/Box/Grid/Rival1Button", "prop": "disabled", "equals": false } },
+    { "press": "RivalSelect/Box/Grid/Rival1Button" },
+    { "wait": 2 },
+    { "assert": { "node": "Game", "exists": true } },
+    { "assert": { "node": "RivalSelect", "exists": false } },
+    { "assert": { "node": "Game", "prop": "rival", "equals": 1 } },
+    { "assert": { "node": "Game/HUD/RivalLabel", "prop": "text", "equals": "Tallow the Novice" } }
+  ]
+}

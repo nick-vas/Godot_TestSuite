@@ -1,0 +1,270 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://game/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://game/table.gd" id="2_table"]
+[ext_resource type="Script" path="res://game/pause_menu.gd" id="3_pause"]
+[ext_resource type="Script" path="res://game/result_menu.gd" id="4_result"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/blip_select-5.wav" id="5_play"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/hit_hurt-5.wav" id="6_hit"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/explosion-5.wav" id="7_fall"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/powerup-5.wav" id="8_win"]
+[ext_resource type="Texture2D" path="res://art/lantern.png" id="9_lantern"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="Lanterns" type="Node2D" parent="."]
+
+[node name="RivalLantern" type="Sprite2D" parent="Lanterns"]
+position = Vector2(1060, 205)
+texture = ExtResource("9_lantern")
+
+[node name="PlayerLantern" type="Sprite2D" parent="Lanterns"]
+position = Vector2(220, 385)
+texture = ExtResource("9_lantern")
+
+[node name="Table" type="Node2D" parent="."]
+script = ExtResource("2_table")
+
+[node name="SfxPlay" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_play")
+volume_db = -6.0
+
+[node name="SfxHit" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_hit")
+
+[node name="SfxFall" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_fall")
+volume_db = -4.0
+
+[node name="SfxWin" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_win")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Flash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="RivalLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 14.0
+offset_right = 540.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 26
+text = "Rival"
+
+[node name="RivalLight" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 56.0
+offset_right = 540.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 22
+text = "Light: 12"
+
+[node name="TurnLabel" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 100.0
+offset_right = 300.0
+offset_bottom = 134.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 22
+text = "Turn 1: Draw"
+horizontal_alignment = 1
+
+[node name="PlayerLight" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 456.0
+offset_right = 360.0
+offset_bottom = 490.0
+theme_override_font_sizes/font_size = 22
+text = "Light: 20"
+
+[node name="KindlingLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 494.0
+offset_right = 360.0
+offset_bottom = 528.0
+theme_override_font_sizes/font_size = 22
+text = "Kindling: 1 / 1"
+
+[node name="EndTurnButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -356.0
+offset_top = 340.0
+offset_right = -140.0
+offset_bottom = 428.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 24
+text = "End turn"
+
+[node name="PauseButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -276.0
+offset_top = 12.0
+offset_right = -140.0
+offset_bottom = 100.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Pause"
+
+[node name="Hand" type="HBoxContainer" parent="HUD"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -570.0
+offset_top = -192.0
+offset_right = 570.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+visible = false
+script = ExtResource("3_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Title" type="Label" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -190.0
+offset_right = 240.0
+offset_bottom = -130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="QuitButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 20.0
+offset_right = 180.0
+offset_bottom = 116.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Quit to menu"
+
+[node name="ResultMenu" type="CanvasLayer" parent="."]
+layer = 5
+visible = false
+script = ExtResource("4_result")
+
+[node name="Dim" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Panel" type="ColorRect" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -260.0
+offset_right = 310.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.09, 0.11, 0.1, 0.96)
+
+[node name="Box" type="VBoxContainer" parent="ResultMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -230.0
+offset_right = 280.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 44
+text = "Victory"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="MessageLabel" type="Label" parent="ResultMenu/Box"]
+theme_override_font_sizes/font_size = 22
+text = "The rival's light is out."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NextButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Next rival"
+
+[node name="RematchButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Rematch"
+
+[node name="MenuButton" type="Button" parent="ResultMenu/Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Back to menu"

@@ -1,0 +1,18 @@
+{
+  "name": "The player's turn: a card from the hand, End turn, the rival's turn, and the player's next Main phase",
+  "scene": "res://game/game.tscn",
+  "seed": 3,
+  "steps": [
+    { "wait_until": { "node": ".", "prop": "phase", "equals": "Main" }, "timeout": 60 },
+    { "assert": { "node": ".", "prop": "active", "equals": 0 } },
+    { "assert": { "node": "HUD/KindlingLabel", "prop": "text", "equals": "Kindling: 1 / 1" } },
+    { "assert": { "node": "HUD/Hand/Card3", "prop": "disabled", "equals": false } },
+    { "press": "HUD/Hand/Card3" },
+    { "assert": { "node": "HUD/KindlingLabel", "prop": "text", "equals": "Kindling: 0 / 1" } },
+    { "press": "HUD/EndTurnButton" },
+    { "wait_until": { "node": ".", "prop": "active", "equals": 1 }, "timeout": 120 },
+    { "wait_until": { "node": ".", "prop": "turn", "equals": 3 }, "timeout": 600 },
+    { "wait_until": { "node": ".", "prop": "phase", "equals": "Main" }, "timeout": 60 },
+    { "assert": { "node": "HUD/KindlingLabel", "prop": "text", "equals": "Kindling: 2 / 2" } }
+  ]
+}

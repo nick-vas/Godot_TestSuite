@@ -1,0 +1,34 @@
+{
+  "frames": 1800,
+  "args": [
+    "--autoplay",
+    "--seed=1",
+    "--no-save"
+  ],
+  "rules": [
+    {
+      "event": "card_played",
+      "feedback": [
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "keeper_hit",
+      "feedback": [
+        "flash",
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "wisp_fell",
+      "feedback": [
+        "pop",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}
