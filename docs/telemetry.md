@@ -66,8 +66,15 @@ other event: analytics, recorded only after the player agrees, numbers and fixed
   size, the 120 s, 30 s and 10 s and the radius are `PlaytestOptions`. Positions are rounded to hundredths and clamped to
   a million units. Its detectors are tested with a fake clock in `PlaytestTests`. The skill's "deaths" is one `death`
   event per death, so it can carry its position.
-- For a playtest build, a sink that writes each batch to a file (`user://playtest/<session>.json`) is enough; collect the
-  files from the testers' machines into one folder.
+- For a playtest build, a sink that writes each batch to a file is enough: `PlaytestFileSink` appends one line a batch to
+  `user://playtests/<session>.jsonl`; collect the files from the testers' machines into one folder.
+- GDScript games: [`examples/gdscript/playtest/playtest_tracker.gd`](../examples/gdscript/playtest/playtest_tracker.gd) is
+  the same tracker with the consent rule and the file writer in one class (`set_consent`, `start_level`, `move`,
+  `progress`, `item_found`, `died`, `hint_requested`, `puzzle_solved`, `left_puzzle`, `end_level`, `flush`). Refusing
+  consent drops the queue and deletes the files the session wrote; `start_level` refuses a level id the game did not
+  list. Its GUT tests, `test/test_playtest_tracker.gd`, repeat `PlaytestTests` with a fake clock and check every event it
+  writes against `playtest-events.json`. Copy both into the game. A file it wrote was read by `hyperdot.ps1 playtest`
+  with no event left out (2026-10-23, Godot 4.7.2).
 
 `hyperdot.ps1 playtest -Sessions <folder>` reads that folder (`.json`: a batch or an array of batches; `.jsonl`: one batch a
 line) and writes `playtest-results/`: per level, the median level time, deaths and stalls per session (sessions without

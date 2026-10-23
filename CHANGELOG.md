@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **A GDScript playtest tracker** (`examples/gdscript/playtest/playtest_tracker.gd`): the C# example's `PlaytestTracker`,
+  its consent rule and `PlaytestFileSink` in one class. It raises the seven events of `templates/playtest-events.json`
+  from the player's position and the game's calls, records nothing before the player agrees, and `flush()` appends one
+  batch a line to `user://playtests/<session>.jsonl`; refusing consent deletes those files. Ten GUT tests
+  (`test/test_playtest_tracker.gd`) repeat the C# cases with a fake clock and check every event against the template;
+  `godot-playtest` and `docs/telemetry.md` point to it (the latter also had the sink's folder wrong).
 - **Two installs of one Godot take turns.** Runs on one machine installing the same Godot (parallel jobs, two agent
   sessions) used to share the download's `.part` file and could start a half-unpacked editor. `setup` now holds a lock
   file per Godot build while it downloads and unpacks, unpacks beside the final folder and renames it into place (a run
