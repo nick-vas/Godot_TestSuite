@@ -13,9 +13,11 @@
     <path d="M124 220 C200 198 312 198 388 220 L342 410 C292 432 220 432 170 410 Z" fill="#4f9ee8"/>
     <path d="M164 234 C204 220 244 224 252 246 C246 280 204 288 170 274 Z" fill="#8cc4f5"/>
     <path d="M348 234 C308 220 268 224 260 246 C266 280 308 288 342 274 Z" fill="#8cc4f5"/>
-    <path d="M176 270 C204 282 236 278 248 258 M336 270 C308 282 276 278 264 258" fill="none" stroke="#3b7fc4" stroke-width="6"/>
     <path d="M256 236 V280" fill="none" stroke-width="6"/>
-    <path d="M150 288 L168 296 M154 306 L170 312 M158 324 L172 328 M362 288 L344 296 M358 306 L342 312 M354 324 L340 328" fill="none" stroke-width="5"/>
+    <rect x="172" y="294" width="30" height="18" rx="7" fill="#8cc4f5" transform="rotate(-24 187 303)"/>
+    <rect x="178" y="322" width="28" height="18" rx="7" fill="#8cc4f5" transform="rotate(-24 192 331)"/>
+    <rect x="310" y="294" width="30" height="18" rx="7" fill="#8cc4f5" transform="rotate(24 325 303)"/>
+    <rect x="306" y="322" width="28" height="18" rx="7" fill="#8cc4f5" transform="rotate(24 320 331)"/>
     <rect x="222" y="286" width="30" height="20" rx="7" fill="#8cc4f5"/><rect x="260" y="286" width="30" height="20" rx="7" fill="#8cc4f5"/>
     <rect x="223" y="310" width="29" height="20" rx="7" fill="#8cc4f5"/><rect x="260" y="310" width="29" height="20" rx="7" fill="#8cc4f5"/>
     <rect x="225" y="334" width="27" height="20" rx="7" fill="#8cc4f5"/><rect x="260" y="334" width="27" height="20" rx="7" fill="#8cc4f5"/>
