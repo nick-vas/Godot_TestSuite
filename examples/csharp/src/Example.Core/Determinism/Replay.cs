@@ -110,4 +110,7 @@ public struct DeterministicRandom(ulong seed)
     /// <summary>0 &lt;= value &lt; <paramref name="max"/>, from integers only. Always one draw, even when max is 1: a
     /// shortcut that skips it puts one machine a draw behind the others.</summary>
     public int Next(int max) => (int)(NextULong() % (ulong)max);
+
+    /// <summary>0 &lt;= value &lt; 1, from the top 53 bits of one draw: the same double on every machine.</summary>
+    public double NextDouble() => (NextULong() >> 11) * (1.0 / (1UL << 53));
 }

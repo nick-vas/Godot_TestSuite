@@ -1,3 +1,4 @@
+using Example.Core.Determinism;
 using System.Diagnostics;
 using System.Numerics;
 using Example.Core.Ai;
@@ -253,9 +254,9 @@ public sealed class AiTests
         Vector2 Wander(int seed)
         {
             var agent = new SteeringAgent();
-            var rng = new Random(seed);
+            var rng = new DeterministicRandom((ulong)seed);
             float angle = 0;
-            for (int i = 0; i < 300; i++) agent.Step(Steering.Wander(agent, ref angle, rng), 1 / 60f);
+            for (int i = 0; i < 300; i++) agent.Step(Steering.Wander(agent, ref angle, ref rng), 1 / 60f);
             return agent.Position;
         }
         Assert.Equal(Wander(5), Wander(5));

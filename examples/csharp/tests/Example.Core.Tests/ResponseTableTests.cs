@@ -1,3 +1,4 @@
+using Example.Core.Determinism;
 using System.Text.Json;
 using Example.Core.Narrative;
 using Xunit;
@@ -52,7 +53,7 @@ public sealed class ResponseTableTests
         var s = new Symbols();
         var rules = ResponseTable.Load(File.ReadAllText(Copied("barks.json")), s);
         Assert.InRange(rules.Count, 5, 8);
-        var system = new ResponseSystem(rules, s, seed: 1);
+        var system = new ResponseSystem(rules, s, new DeterministicRandom(1));
         var ana = new Speaker("ana");
         var ben = new Speaker("ben");
 

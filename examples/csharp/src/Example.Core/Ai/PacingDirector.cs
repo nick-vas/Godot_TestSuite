@@ -1,3 +1,5 @@
+using Example.Core.Determinism;
+
 namespace Example.Core.Ai;
 
 /// <summary>
@@ -79,21 +81,25 @@ public sealed record PacingOptions
 /// Left 4 Dead's adaptive dramatic pacing: the team's intensity (the highest of its players) drives four phases, and the
 /// phase decides what may spawn. It changes when threats come, never how strong they are: "Amplitude (difficulty) is
 /// not changed, frequency (pacing) is". Boss encounters are outside it ("Overall pacing affected too much if they are
-/// missing"): spawn them on their own schedule and do not ask the director. Seeded, so a run replays exactly.
+/// missing"): spawn them on their own schedule and do not ask the director. Its generator is a <see cref="DeterministicRandom"/>
+/// the game seeds from the run seed, so a run replays exactly and <see cref="RandomState"/> can go in a save.
 /// </summary>
 public sealed class PacingDirector
 {
     readonly PacingOptions _options;
-    readonly Random _random;
+    DeterministicRandom _random;
     float _phaseTime;
     float _phaseLength;
     float _travelled;
 
-    public PacingDirector(int seed, PacingOptions? options = null)
+    public PacingDirector(DeterministicRandom random, PacingOptions? options = null)
     {
         _options = options ?? new PacingOptions();
-        _random = new Random(seed);
+        _random = random;
     }
+
+    /// <summary>The generator's state now: save it with the phase, and restore it with <c>new DeterministicRandom(state)</c>.</summary>
+    public ulong RandomState => _random.State;
 
     public PacingPhase Phase { get; private set; } = PacingPhase.BuildUp;
 

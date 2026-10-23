@@ -219,8 +219,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 In the example game (the C# example):
 
-- `Steering.Wander`, `PacingDirector` and `ResponseRules` take `System.Random`; `godot-game-ai` says to pass a seeded
-  `RandomNumberGenerator` or `DeterministicRandom`. Take `DeterministicRandom` (or an interface over it).
 - `GhostReplicator`: packed bits per group instead of 4 bytes a value, and a client-set `LinkBudget` checked in
   `ReplicationTests` (never more than the client asked for).
 - A `DifficultyDirector` with slow, bounded steps and hysteresis, tested so it never flips every attempt.

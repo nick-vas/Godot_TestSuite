@@ -1,3 +1,5 @@
+using Example.Core.Determinism;
+
 namespace Example.Core.Narrative;
 
 /// <summary>
@@ -238,12 +240,13 @@ public sealed class ResponseSystem
 {
     readonly Dictionary<string, List<Rule>> _byConcept = new(StringComparer.Ordinal);
     readonly HashSet<Rule> _spent = new();
-    readonly Random _random;
+    DeterministicRandom _random;
 
-    public ResponseSystem(IEnumerable<Rule> rules, Symbols symbols, int seed = 0)
+    /// <param name="random">Draws ties and takes; seed it from the run seed so the same run says the same lines.</param>
+    public ResponseSystem(IEnumerable<Rule> rules, Symbols symbols, DeterministicRandom? random = null)
     {
         Symbols = symbols;
-        _random = new Random(seed);
+        _random = random ?? new DeterministicRandom(0);
         foreach (var rule in rules)
         {
             if (rule.Lines.Count == 0) throw new ArgumentException($"rule '{rule.Name}' has no lines");
