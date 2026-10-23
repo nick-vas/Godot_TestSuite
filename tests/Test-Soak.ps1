@@ -1,11 +1,19 @@
 #!/usr/bin/env pwsh
 # Self-test of `soak` on tests/soak-fixture (GDScript, ENet on localhost): a healthy run passes, a server that never frees
 # memory fails as soak-leak, one that quits early fails as soak-failed. Needs Godot (GODOT_BIN, or the kit installs it).
+# First, without Godot: metric values in Godot's own formats are read whole, and those that are not numbers are listed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 $fixture = Join-Path $PSScriptRoot 'soak-fixture'
 $failures = @()
+
+foreach ($lib in 'Common', 'Soak') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+$parsed = ConvertFrom-SoakMetrics @('[soak] metric rtt_ms 1e-07', '[soak] metric bytes 3000000000000000000000.0', '[soak] metric delta -2.5',
+    '[soak] metric version 1.2.3', '[soak] metric ratio inf', 'noise')
+$read = @($parsed.Metrics.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value.ToString([cultureinfo]::InvariantCulture))" }) -join ' '
+if ($read -ne 'rtt_ms=1E-07 bytes=3E+21 delta=-2.5') { $failures += "metric values should be read whole: $read" }
+if ((@($parsed.Unparsed) -join ' | ') -ne '[soak] metric version 1.2.3 | [soak] metric ratio inf') { $failures += "values that are not numbers should be listed: $(@($parsed.Unparsed) -join ' | ')" }
 
 function Invoke-Soak([string[]]$Extra, [string]$Project = $fixture) {
     $results = Join-Path ([System.IO.Path]::GetTempPath()) "soak-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
