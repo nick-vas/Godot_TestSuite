@@ -21,7 +21,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label, one class per programme ([docs/label.md](docs/label.md)).
   Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
   the sessions must not be able to recognise the test.
-- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
+- `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow; `ci/gitlab/` the GitLab CI
+  template (`hyperdot.gitlab-ci.yml`, untested on GitLab) and `Invoke-Hyperdot.ps1`, its run step.
 - `examples/csharp` (C#, every framework) and `examples/gdscript` (GUT): the integration fixtures.
 - `docs/` per-topic documentation; `docs/json.md` is the output contract; `docs/help.md` is the text of `help` and `/kit`
   (a new command, skill or subagent needs an entry there).
@@ -112,6 +113,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TrelloSync.ps1` | `plan -Do sync` against a stand-in Trello (local moves, custom lists, a failure halfway, an unreachable API, an empty board, cards added on the board, removed tasks, list names as columns, connector ARIs); `-Live` against the real one | `-Live`: `TRELLO_KEY`, `TRELLO_TOKEN` |
 | `Test-Playtest.ps1` | `playtest`'s report and heat maps (`playtest-fixture`, synthetic sessions) | - |
 | `Test-BuildSize.ps1` | `export -Json`'s size breakdown: a synthetic pack read as a file, embedded and zipped; a real Linux export of a copy of `examples/gdscript` | Godot's templates; `-NoGodot` for the synthetic part |
+| `Test-GitLabTemplate.ps1` | the GitLab CI template: parsed, held to GitLab's keywords, its report paths matched against the kit's JUnit (TRX converted) and Cobertura files, its variables against the action's inputs | - |
 | `Test-GameVersion.ps1` | `export -GameVersion auto`, Android version codes, download names (temporary git repositories) | git |
 | `Test-UpdatePins.ps1` | `Update-Versions.ps1`: a missing pinned file fails, fixture pins move with Godot, GUT stays with its Godot minor, a new minor with its GUT release and a package update rewrite every pin and keep the skills valid; the canary's exit checks and pairing, aseprite-mcp's pins tried through a stand-in uvx, the add-on status refresh (copies of the repository) | - |
 | `Test-PrComment.ps1` | the PR comment's paging, ignoring others' marker comments, the push-only coverage baseline (a stand-in GitHub API on 127.0.0.1) | - |

@@ -1,0 +1,102 @@
+# Hyperdot on GitLab CI: build, test and export a Godot 4 project (GDScript or C#) with ci/godot/hyperdot.ps1, the same
+# steps as the GitHub action (.github/actions/godot): set up Godot (and .NET for C#), test, export.
+#
+# Untested on GitLab: written against GitLab's documented keywords and checked by tests/Test-GitLabTemplate.ps1 (it parses
+# this file, checks its keys and that the report paths match what the kit writes), never run on a GitLab runner.
+#
+# In a game's .gitlab-ci.yml:
+#
+#   include:
+#     - remote: https://raw.githubusercontent.com/nick-vas/hyperdot/v1/ci/gitlab/hyperdot.gitlab-ci.yml
+#   variables:
+#     HYPERDOT_PROJECT: game          # the folder with project.godot, if not the only one
+#
+# hyperdot-test runs in the test stage on every pipeline; hyperdot-export in the deploy stage on the default branch and on
+# tags. Both run in Microsoft's .NET 8 SDK image, which already has PowerShell 7 and git; the kit downloads Godot (the .NET
+# build for C# projects) and, for exports, its templates, cached in .hyperdot-cache/. Test results reach merge requests as
+# JUnit (every runner's, dotnet's TRX converted: test-results/junit/) and coverage as Cobertura. Extend .hyperdot for jobs
+# of your own, such as one export per preset. docs/usage.md, "GitLab CI", has the details.
+
+variables:
+  # The kit, cloned outside the checkout. Set HYPERDOT_KIT to a folder that holds it (a submodule) to skip the clone.
+  HYPERDOT_REPO: "https://github.com/nick-vas/hyperdot.git"
+  HYPERDOT_REF: "v1"
+  HYPERDOT_KIT: "/tmp/hyperdot"
+  # The GitHub action's inputs, as variables (empty: detected). See ci/gitlab/Invoke-Hyperdot.ps1.
+  HYPERDOT_PROJECT: ""
+  HYPERDOT_GODOT_VERSION: ""
+  HYPERDOT_RUNNERS: ""
+  HYPERDOT_FILTER: ""
+  HYPERDOT_RETRY: "0"
+  HYPERDOT_COVERAGE: "false"
+  HYPERDOT_MIN_COVERAGE: "0"
+  HYPERDOT_PRESET: ""
+  HYPERDOT_RUN_EXPORTS: "false"
+  HYPERDOT_GAME_VERSION: ""
+  # Godot, its export templates and NuGet packages go inside the checkout, the only place GitLab caches; the folder gets
+  # a .gdignore so Godot neither imports nor exports it.
+  GODOT_TOOLS_DIR: "$CI_PROJECT_DIR/.hyperdot-cache/tools"
+  XDG_DATA_HOME: "$CI_PROJECT_DIR/.hyperdot-cache/data"
+  NUGET_PACKAGES: "$CI_PROJECT_DIR/.hyperdot-cache/nuget"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+.hyperdot:
+  image: "mcr.microsoft.com/dotnet/sdk:8.0"
+  before_script:
+    - mkdir -p "$CI_PROJECT_DIR/.hyperdot-cache" && touch "$CI_PROJECT_DIR/.hyperdot-cache/.gdignore"
+    - test -f "$HYPERDOT_KIT/ci/godot/hyperdot.ps1" || git clone --depth 1 --branch "$HYPERDOT_REF" "$HYPERDOT_REPO" "$HYPERDOT_KIT"
+  cache:
+    - key: "hyperdot-tools"
+      paths:
+        - ".hyperdot-cache/tools/"
+        - ".hyperdot-cache/nuget/"
+      # Saved even when the tests fail, as the action does: a red branch would otherwise download Godot every time. The
+      # kit unpacks Godot beside its final folder and renames it into place, so a cancelled job caches no half install.
+      when: "always"
+
+hyperdot-test:
+  extends: ".hyperdot"
+  stage: "test"
+  script:
+    - pwsh -NoProfile -File "$HYPERDOT_KIT/ci/gitlab/Invoke-Hyperdot.ps1" test
+  # The kit's log line "Coverage: Line coverage: 85.2% -> ..." (with HYPERDOT_COVERAGE or HYPERDOT_MIN_COVERAGE).
+  coverage: '/Line coverage: \d+(?:\.\d+)?%/'
+  artifacts:
+    when: "always"
+    expire_in: "14 days"
+    paths:
+      - "test-results/"
+    reports:
+      junit:
+        - "test-results/junit/*.junit.xml"
+      coverage_report:
+        coverage_format: "cobertura"
+        path: "test-results/*/coverage/*.cobertura.xml"
+
+hyperdot-export:
+  extends: ".hyperdot"
+  stage: "deploy"
+  variables:
+    # HYPERDOT_GAME_VERSION: auto reads the nearest v* tag and the commits since it: the whole history.
+    GIT_DEPTH: "0"
+  script:
+    - pwsh -NoProfile -File "$HYPERDOT_KIT/ci/gitlab/Invoke-Hyperdot.ps1" export
+  cache:
+    - key: "hyperdot-tools"
+      paths:
+        - ".hyperdot-cache/tools/"
+        - ".hyperdot-cache/nuget/"
+      when: "always"
+    - key: "hyperdot-templates"
+      paths:
+        - ".hyperdot-cache/data/godot/export_templates/"
+      when: "on_success"
+  artifacts:
+    name: "$CI_PROJECT_NAME-$CI_COMMIT_REF_SLUG"
+    expire_in: "14 days"
+    paths:
+      - "build/"
+  rules:
+    - if: "$CI_COMMIT_TAG"
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"

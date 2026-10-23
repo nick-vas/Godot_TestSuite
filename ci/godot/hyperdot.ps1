@@ -386,6 +386,9 @@ function Invoke-Tests {
     })
     $percent = if ($collect) { Merge-Coverage $resultsDir } else { $null }
     Write-RunSummary $resultsDir $info $runs $percent $MinCoverage
+    # The same results as JUnit only, in one folder, for CI systems such as GitLab (ci/gitlab/hyperdot.gitlab-ci.yml).
+    $junitDir = Export-JUnitReports $resultsDir @($runs | ForEach-Object Runner)
+    if ($junitDir) { Set-JsonField junitDir $junitDir }
     # Which failures this run added, kept or fixed, against the last run with the same runners and -Filter.
     $scope = Get-TestScope $info.Runners $Filter
     $failing = Get-FailureIds $runs

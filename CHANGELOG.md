@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **GitLab CI template** (`ci/gitlab/hyperdot.gitlab-ci.yml`, untested on GitLab): `hyperdot-test` and `hyperdot-export`
+  jobs, the GitHub action's steps and inputs as `HYPERDOT_*` variables (`ci/gitlab/Invoke-Hyperdot.ps1`), in the .NET 8
+  SDK image, with Godot, NuGet and templates cached inside the checkout. Test results reach merge requests through
+  `artifacts:reports:junit` and coverage through `coverage_report` (Cobertura). For it, `test` now also writes every
+  runner's results as JUnit into `<results>/junit/` (`dotnet`'s and `gdunit4`'s TRX converted; `junitDir` in `-Json`).
+  `tests/Test-GitLabTemplate.ps1` parses the template, holds it to GitLab's keywords and matches its report paths against
+  what the kit writes. Docs: `docs/usage.md`, "GitLab CI".
 - **`bench -Sweep <name>=<v1,v2,...>`:** one bench per value, the game getting `--<name>=<value>` after `-GameArgs`, one
   `bench.csv` row each (labelled `<-Label> <name>=<value>`) and a table of p99, p50, fps, draw calls and load time against the
   value in the log and in `-Json` (`sweep`). A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked

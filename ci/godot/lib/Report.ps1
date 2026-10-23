@@ -170,7 +170,7 @@ function Resolve-FailureDetail($Failure, [string[]]$LogLines) {
 }
 
 # JUnit for runners without their own report. Each case: @{ Name = ...; Failure = '' or the reason }, and optionally
-# Skipped = the reason a case could not run.
+# Skipped = the reason a case could not run, ClassName (default: the suite) and Time (seconds).
 function Write-JUnitCases([string]$Path, [string]$Suite, [object[]]$Cases) {
     $e = { param($t) [System.Security.SecurityElement]::Escape([string]$t) }
     $failed = @($Cases | Where-Object { $_.Failure }).Count
@@ -178,7 +178,10 @@ function Write-JUnitCases([string]$Path, [string]$Suite, [object[]]$Cases) {
     $xml.Add('<?xml version="1.0" encoding="UTF-8"?>')
     $xml.Add("<testsuites><testsuite name=""$(& $e $Suite)"" tests=""$($Cases.Count)"" failures=""$failed"">")
     foreach ($case in $Cases) {
-        $xml.Add("  <testcase classname=""$(& $e $Suite)"" name=""$(& $e $case.Name)"">")
+        $dict = $case -is [System.Collections.IDictionary]
+        $class = if ($dict -and $case['ClassName']) { $case['ClassName'] } else { $Suite }
+        $time = if ($dict -and $null -ne $case['Time']) { ' time="{0}"' -f ([double]$case['Time']).ToString('0.###', [cultureinfo]::InvariantCulture) } else { '' }
+        $xml.Add("  <testcase classname=""$(& $e $class)"" name=""$(& $e $case.Name)""$time>")
         if ($case.Failure) {
             $xml.Add("    <failure message=""$(& $e ($case.Failure -split "`n")[0])"">$(& $e $case.Failure)</failure>")
         } elseif ($case -is [System.Collections.IDictionary] -and $case['Skipped']) {
@@ -192,6 +195,63 @@ function Write-JUnitCases([string]$Path, [string]$Suite, [object[]]$Cases) {
 
 function Write-SingleCaseJUnit([string]$Path, [string]$Name, [bool]$Passed, [string]$Message) {
     Write-JUnitCases $Path $Name @(@{ Name = $Name; Failure = $(if ($Passed) { '' } else { $Message }) })
+}
+
+# Every runner's results as JUnit in one folder, <results>/junit/<runner>-<file>.junit.xml, for CI systems that read
+# JUnit only (GitLab's artifacts:reports:junit): the runners' own JUnit copied, and dotnet's and gdUnit4's TRX converted.
+# Failed attempts kept for -Retry (<runner>.attemptN) and coverage folders are left out. Returns the folder, or $null.
+function Export-JUnitReports([string]$ResultsDir, [string[]]$Runners) {
+    $target = Join-Path $ResultsDir 'junit'
+    $written = 0
+    foreach ($runner in $Runners) {
+        $dir = Join-Path $ResultsDir $runner
+        if (-not (Test-Path -LiteralPath $dir -PathType Container)) { continue }
+        $base = (Get-Item -LiteralPath $dir).FullName.TrimEnd('\', '/').Length
+        foreach ($file in @(Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $_.FullName.Substring($base) -notmatch '[\\/](coverage|In)[\\/]' })) {
+            $stem = [System.IO.Path]::GetFileNameWithoutExtension($file.Name) -replace '\.junit$', ''
+            $name = ConvertTo-SafeName $(if ($stem.StartsWith($runner)) { $stem } else { "$runner-$stem" })
+            if ($file.Name.EndsWith('.junit.xml')) {
+                New-Item -ItemType Directory -Force $target | Out-Null
+                Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $target "$name.junit.xml") -Force
+                $written++
+            } elseif ($file.Extension -eq '.trx') {
+                New-Item -ItemType Directory -Force $target | Out-Null
+                try { ConvertFrom-TrxToJUnit $file.FullName (Join-Path $target "$name.junit.xml") $runner; $written++ }
+                catch { Write-CiLog "Could not convert $($file.FullName) to JUnit: $_" }
+            }
+        }
+    }
+    return $(if ($written) { $target } else { $null })
+}
+
+# A TRX file (dotnet test, gdUnit4Net) as JUnit: one case per result (rows of data-driven tests each), with the test's
+# class, its time, and the failure's message and stack trace.
+function ConvertFrom-TrxToJUnit([string]$TrxPath, [string]$JUnitPath, [string]$Suite) {
+    [xml]$doc = Get-Content -LiteralPath $TrxPath -Raw
+    $ns = [System.Xml.XmlNamespaceManager]::new($doc.NameTable)
+    $ns.AddNamespace('t', 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010')
+    $classes = @{}
+    foreach ($test in $doc.SelectNodes('/t:TestRun/t:TestDefinitions/t:UnitTest', $ns)) {
+        $method = $test.SelectSingleNode('t:TestMethod', $ns)
+        if ($method) { $classes[$test.GetAttribute('id')] = $method.GetAttribute('className') }
+    }
+    $cases = @(foreach ($top in $doc.SelectNodes('/t:TestRun/t:Results/t:UnitTestResult', $ns)) {
+        $inner = $top.SelectNodes('t:InnerResults/t:UnitTestResult', $ns)
+        foreach ($result in $(if ($inner.Count -gt 0) { $inner } else { @($top) })) {
+            $id = $result.GetAttribute('testId'); if (-not $id) { $id = $top.GetAttribute('testId') }
+            $duration = [timespan]::Zero
+            $time = if ([timespan]::TryParse($result.GetAttribute('duration'), [cultureinfo]::InvariantCulture, [ref]$duration)) { $duration.TotalSeconds } else { $null }
+            $case = [ordered]@{ Name = $result.GetAttribute('testName'); Failure = ''; ClassName = $(if ($classes.ContainsKey($id)) { $classes[$id] } else { $Suite }); Time = $time }
+            $outcome = $result.GetAttribute('outcome')
+            if ($outcome -in 'Failed', 'Error', 'Timeout', 'Aborted') {
+                $message = $result.SelectSingleNode('t:Output/t:ErrorInfo/t:Message', $ns)
+                $stack = $result.SelectSingleNode('t:Output/t:ErrorInfo/t:StackTrace', $ns)
+                $case.Failure = (@($(if ($message) { $message.InnerText.Trim() } else { $outcome }), $(if ($stack) { $stack.InnerText.Trim() })) | Where-Object { $_ }) -join "`n"
+            } elseif ($outcome -ne 'Passed') { $case['Skipped'] = $outcome }
+            $case
+        }
+    })
+    Write-JUnitCases $JUnitPath $Suite $cases
 }
 
 # Chickensoft GoDotTest prints results to the console only; turn its log into JUnit.

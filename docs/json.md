@@ -97,7 +97,9 @@ codes; the Steamworks, trailer, tag and privacy checks are described in [steam.m
 or `engineErrors[]`: `message`, `file` (`res://...` when Godot named one, on the line or in the `at:`/backtrace lines
 under it), `line`, `key` (the error key, see the run history below).
 
-**test**: `resultsDir`, `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
+**test**: `resultsDir`, `junitDir` (every runner's results as JUnit, `<results>/junit/<runner>-<file>.junit.xml`: JUnit
+copied, TRX converted, failed `-Retry` attempts left out; for CI systems such as GitLab; absent when no runner wrote a
+report), `coverage` (`linePercent`, `minimum`), `runnerResults[]`:
 
 ```json
 { "runner": "gut", "ok": false, "total": 3, "passed": 2, "failed": 1, "skipped": 0,
