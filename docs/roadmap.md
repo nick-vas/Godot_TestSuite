@@ -169,8 +169,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows
   (Vulkan SDK layer), D3D12 (Godot's debug-layer messages are read by the same pattern as Vulkan's debug-utils ones, from
   the source, never seen in a log) and Metal; on D3D12 and Metal `layerLoaded` is `null` because their logs do not say.
-- **A `bench` sweep helper** for particle counts and quality tiers (the skill shows the manual way with `-GameArgs`):
-  one run per value, one `bench.csv` row each, a table of p99 against the value.
 - **Placement checks in C#.** The `placement` runner reads its limits from GDScript constants only: Godot returns no
   constants for a C# script (`get_script_constant_map()` on the C# example's `Main.cs`, 4.7.2 mono, was empty), so a C#
   game writes the numbers in `placement.json`. Reading them from C# needs a parser or a small `[Tool]` node that

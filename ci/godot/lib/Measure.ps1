@@ -32,7 +32,7 @@ function Get-WindowArgs([string]$Resolution, [switch]$Uncapped, [int]$MaxFps) {
 function Invoke-Bench {
     param($Info, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
         [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell,
-        [double]$MaxDrawCalls, [double]$MaxLoadMs, [switch]$GpuValidation)
+        [double]$MaxDrawCalls, [double]$MaxLoadMs, [switch]$GpuValidation, [string]$RunName = '')
     if ($HotspotCell -lt 0) { Stop-GodotCi "-HotspotCell must be a size above 0 (or 0 for the default), not $HotspotCell" 'invalid-arguments' }
     if ($MaxDrawCalls -lt 0) { Stop-GodotCi "-MaxDrawCalls must be 0 (no limit) or more, not $MaxDrawCalls" 'invalid-arguments' }
     if ($MaxLoadMs -lt 0) { Stop-GodotCi "-MaxLoadMs must be 0 (no limit) or more, not $MaxLoadMs" 'invalid-arguments' }
@@ -44,23 +44,25 @@ function Invoke-Bench {
         $(if ($HotspotCell -gt 0) { "--bench-cell=$HotspotCell" }) + @(Split-GameArgs $GameArgs)
 
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
-    $log = Join-Path $ResultsDir 'bench.log'
+    # A sweep keeps each run's log and result apart: bench.<run>.log, bench.<run>.json.
+    $stem = if ($RunName) { "bench.$RunName" } else { 'bench' }
+    $log = Join-Path $ResultsDir "$stem.log"
     Start-LogGroup "Benchmark $(if ($Scene) { $Scene } else { 'main scene' }) for $Seconds s after $Warmup s warm-up"
     $code = Invoke-Logged $env:GODOT_BIN (@($engine) + @('-s', $tool, '--') + @($user)) $log
     Stop-LogGroup
     if ($code -ne 0) { Stop-GodotCi "Godot exited with $code during the benchmark" 'bench-failed' }
     $line = Get-Content -LiteralPath $log | Where-Object { $_ -match '^@@bench ' } | Select-Object -Last 1
-    if (-not $line) { Stop-GodotCi 'The benchmark printed no result; see bench.log' 'bench-failed' }
+    if (-not $line) { Stop-GodotCi "The benchmark printed no result; see $stem.log" 'bench-failed' }
     $result = ($line -replace '^@@bench ', '') | ConvertFrom-Json -AsHashtable
     if ($result.ContainsKey('error')) { Stop-GodotCi "Benchmark: $($result.error)" 'bench-failed' }
     # No frame measured: no numbers, and nothing to hold against -BudgetMs, so the run is not a pass.
-    if ($result.frames -le 0) { Stop-GodotCi "The benchmark measured no frames in $Seconds s; see bench.log" 'bench-failed' }
+    if ($result.frames -le 0) { Stop-GodotCi "The benchmark measured no frames in $Seconds s; see $stem.log" 'bench-failed' }
 
     $result['label'] = $Label
     $result['budgetMs'] = $BudgetMs
     $result['maxDrawCalls'] = $MaxDrawCalls
     $result['maxLoadMs'] = $MaxLoadMs
-    $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir 'bench.json') -Encoding utf8
+    $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir "$stem.json") -Encoding utf8
     Add-BenchCsvRow (Join-Path $ResultsDir 'bench.csv') $result
     Set-JsonField bench $result
 
@@ -92,6 +94,79 @@ function Invoke-Bench {
         if ($MaxLoadMs -gt 0 -and $result.loadMs -gt $MaxLoadMs) { @{ code = 'bench-over-load-time'; text = "the scene took $($result.loadMs) ms to load, over -MaxLoadMs $MaxLoadMs" } }
     )
     if ($over.Count -gt 0) { Stop-GodotCi (@($over | ForEach-Object { $_.text }) -join '; ') $over[0].code }
+}
+
+# bench -Sweep <name>=<v1,v2,...>: the parameter and its values, or a stop (invalid-arguments). -Sweep a=1,2 arrives as
+# @('a=1', '2') from PowerShell and as 'a=1,2' through pwsh -File: joined with commas first.
+function ConvertFrom-BenchSweep([string[]]$Sweep) {
+    $text = (@($Sweep | ForEach-Object { "$_".Trim() } | Where-Object { $_ }) -join ',')
+    if ($text -notmatch '^(?<name>[A-Za-z][A-Za-z0-9_-]*)=(?<values>.+)$') {
+        Stop-GodotCi "-Sweep takes <name>=<value1>,<value2>,..., e.g. -Sweep particles=100,1000,10000 (the game gets --particles=100 and so on), not '$text'" 'invalid-arguments'
+    }
+    $name = $Matches.name
+    if ($name -like 'bench-*') { Stop-GodotCi "-Sweep $name would clash with bench's own --bench-* flags; name the game's flag" 'invalid-arguments' }
+    $values = @($Matches.values -split ',' | ForEach-Object { $_.Trim() })
+    if (@($values | Where-Object { -not $_ -or $_ -match '\s' }).Count -gt 0) { Stop-GodotCi "-Sweep $name has an empty value or one with spaces: '$($Matches.values)'" 'invalid-arguments' }
+    $twice = @($values | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
+    if ($twice) { Stop-GodotCi "-Sweep $name names $($twice -join ', ') more than once" 'invalid-arguments' }
+    return [pscustomobject]@{ Name = $name; Values = $values }
+}
+
+# One bench per value of -Sweep, the game getting --<name>=<value> after -GameArgs, labelled "<-Label> <name>=<value>":
+# one bench.csv row each, bench.<name>-<value>.json and .log, and the sweep's table in the JSON. A value whose run goes over
+# -BudgetMs, -MaxDrawCalls or -MaxLoadMs is marked, not a failure: finding where it crosses is the point. A run that
+# cannot be measured (Godot fails, engine errors, no frames) fails the sweep (bench-sweep-failed) after every value ran.
+function Invoke-BenchSweep {
+    param($Info, $Sweep, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
+        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell,
+        [double]$MaxDrawCalls, [double]$MaxLoadMs, [switch]$GpuValidation)
+    $limitCodes = 'bench-over-budget', 'bench-over-draw-calls', 'bench-over-load-time'
+    $rows = [System.Collections.Generic.List[object]]::new()
+    foreach ($value in $Sweep.Values) {
+        $runName = ConvertTo-SafeName "$($Sweep.Name)-$value"
+        $runLabel = (@($Label, "$($Sweep.Name)=$value") | Where-Object { $_ }) -join ' '
+        $row = [ordered]@{ value = $value; label = $runLabel; ok = $true; withinLimits = $true; code = $null; message = $null
+            p50Ms = $null; p99Ms = $null; maxMs = $null; fpsAvg = $null; low1 = $null; drawCallsAvg = $null; loadMs = $null
+            result = (Join-Path $ResultsDir "bench.$runName.json") }
+        Write-CiLog "Sweep $($Sweep.Name)=${value}"
+        $script:CatchStops = $true
+        try {
+            Invoke-Bench -Info $Info -Scene $Scene -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps `
+                -Headless:$Headless -BudgetMs $BudgetMs -Label $runLabel -GameArgs (@($GameArgs) + @("--$($Sweep.Name)=$value")) -HotspotCell $HotspotCell `
+                -ResultsDir $ResultsDir -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs -GpuValidation:$GpuValidation -RunName $runName
+        } catch {
+            $row.code = if ($_.Exception.Data.Contains('HyperdotCode')) { $_.Exception.Data['HyperdotCode'] } else { 'unexpected-error' }
+            $row.message = $_.Exception.Message
+            if ($row.code -in $limitCodes) { $row.withinLimits = $false } else { $row.ok = $false }
+        } finally { $script:CatchStops = $false }
+        if (Test-Path -LiteralPath $row.result) {
+            $r = Get-Content -LiteralPath $row.result -Raw | ConvertFrom-Json
+            $row.p50Ms = $r.frameMs.p50; $row.p99Ms = $r.frameMs.p99; $row.maxMs = $r.frameMs.max; $row.fpsAvg = $r.fps.avg
+            $row.low1 = $r.fps.low1; $row.drawCallsAvg = $r.drawCalls.avg; $row.loadMs = $r.loadMs
+        } else { $row.result = $null }
+        # An over-limit run that then also printed engine errors is a failed run.
+        if (-not $row.ok) { $row.withinLimits = $false }
+        $rows.Add($row)
+    }
+    # The sweep's own table replaces the last run's bench object.
+    if ($script:JsonMode -and $script:JsonDoc.Contains('bench')) { $script:JsonDoc.Remove('bench') }
+    $within = @($rows | Where-Object { $_.ok -and $_.withinLimits } | ForEach-Object value)
+    $lastWithin = $null
+    foreach ($row in $rows) { if ($row.ok -and $row.withinLimits) { $lastWithin = $row.value } else { break } }
+    Set-JsonField sweep ([ordered]@{ name = $Sweep.Name; values = @($Sweep.Values); budgetMs = $BudgetMs; maxDrawCalls = $MaxDrawCalls; maxLoadMs = $MaxLoadMs
+        rows = $rows.ToArray(); withinLimits = $within; lastWithinLimits = $lastWithin })
+    $width = [math]::Max(5, (@($Sweep.Values | ForEach-Object Length) | Measure-Object -Maximum).Maximum)
+    Write-CiLog ("{0}  {1,8}  {2,8}  {3,8}  {4,10}  {5}" -f $Sweep.Name.PadRight($width), 'p99 ms', 'p50 ms', 'avg fps', 'draw calls', 'result')
+    foreach ($row in $rows) {
+        $verdict = if (-not $row.ok) { "FAILED ($($row.code))" } elseif (-not $row.withinLimits) { "over ($($row.code))" } else { 'ok' }
+        Write-CiLog ("{0}  {1,8}  {2,8}  {3,8}  {4,10}  {5}" -f "$($row.value)".PadRight($width), $row.p99Ms, $row.p50Ms, $row.fpsAvg, $row.drawCallsAvg, $verdict)
+    }
+    $failed = @($rows | Where-Object { -not $_.ok })
+    if ($failed.Count -gt 0) {
+        Stop-GodotCi "bench -Sweep: $(@($failed | ForEach-Object { "$($Sweep.Name)=$($_.value) failed ($($_.code)): $($_.message)" }) -join '; ') (see sweep.rows)" 'bench-sweep-failed'
+    }
+    $limits = if ($BudgetMs -gt 0 -or $MaxDrawCalls -gt 0 -or $MaxLoadMs -gt 0) { "; within the limits up to $($Sweep.Name)=$(if ($null -ne $lastWithin) { $lastWithin } else { 'none' })" } else { '' }
+    Write-CiLog "Swept $($Sweep.Name) over $($rows.Count) value(s)$limits"
 }
 
 # --gpu-validation turns on the graphics API's validation layers (Vulkan's Khronos layer, D3D12's debug layer), which check

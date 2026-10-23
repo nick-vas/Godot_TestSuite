@@ -27,6 +27,8 @@ for the `godot-verifier` subagent, which returns the numbers without the logs. `
 
 - **Benchmark the worst case**, not the menu: the heaviest scene with the most on screen. Give the game a flag for it
   (`--stress`: a boss that never dies, every effect on) and pass it with `-GameArgs` (`godot-automation-hooks`).
+- **Sweep one knob** to find where it crosses the budget: `bench -Sweep enemies=10,50,200 -BudgetMs 16.7` runs once per
+  value with `--enemies=<n>`, one CSV row each; `sweep.lastWithinLimits` is the last value under the budget.
 - **Uncapped, then capped.** `-Uncapped` (V-Sync off) shows the headroom; `-MaxFps 60` or V-Sync on shows whether pacing is stable.
 - **Skip the warm-up** (`-Warmup`); first frames compile shaders and fill caches.
 - **Use a display.** Without `-Headless`, frames are really drawn. `-Headless` measures CPU time only (draw calls 0) and is what CI can run.

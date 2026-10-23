@@ -443,6 +443,9 @@ jobs:
       - name: bench names the slow place (hotspots by camera position)
         shell: pwsh
         run: ./tests/Test-BenchHotspots.ps1
+      - name: bench -Sweep runs once per value and marks the values over the budget
+        shell: pwsh
+        run: ./tests/Test-BenchSweep.ps1
       - name: shot
         shell: pwsh
         run: |

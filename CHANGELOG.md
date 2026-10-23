@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **`bench -Sweep <name>=<v1,v2,...>`:** one bench per value, the game getting `--<name>=<value>` after `-GameArgs`, one
+  `bench.csv` row each (labelled `<-Label> <name>=<value>`) and a table of p99, p50, fps, draw calls and load time against the
+  value in the log and in `-Json` (`sweep`). A value over `-BudgetMs`, `-MaxDrawCalls` or `-MaxLoadMs` is marked
+  (`withinLimits`, `lastWithinLimits`), not a failure; a run that cannot be measured fails the sweep with the new code
+  `bench-sweep-failed` after every value ran. `godot-performance` and `godot-shaders-vfx` use it for particle counts and
+  quality tiers. Self-test: `tests/Test-BenchSweep.ps1` (`bench-fixture/sweep.tscn`, headless).
 - **Known-status list for add-ons** (`ci/godot/addons-status.json`): `doctor` warns about Godot Jolt on Godot 4.7,
   godot-steam-audio (archived), Godot-PerfBullets (Godot 4.1 and 4.2) and py4godot (a prototype), found by their folder
   in any letter case or, renamed, by their `.gdextension` file name and `entry_symbol`. Each name was confirmed from the
