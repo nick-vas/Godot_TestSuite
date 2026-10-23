@@ -159,11 +159,12 @@ public sealed class PlaytestTests
     public void TheKitsTemplateDescribesTheSameEvents()
     {
         // ci/godot/templates/playtest-events.json is what hyperdot.ps1 playtest reads sessions with, and what a game in
-        // another language copies: it must say exactly what PlaytestEvents does.
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "ci", "godot", "templates", "playtest-events.json"))) dir = dir.Parent;
-        Assert.True(dir != null, "ci/godot/templates/playtest-events.json was not found above " + AppContext.BaseDirectory);
-        var template = JsonNode.Parse(File.ReadAllText(Path.Combine(dir!.FullName, "ci", "godot", "templates", "playtest-events.json")))!;
+        // another language copies: it must say exactly what PlaytestEvents does. The csproj copies it next to the tests
+        // while the example sits in the kit; a game copied from the example finds the kit above it (ci/godot), or, with no
+        // kit there, has nothing to compare with.
+        var path = TemplatePath();
+        if (path == null) return;
+        var template = JsonNode.Parse(File.ReadAllText(path))!;
         Assert.Equal(PlaytestEvents.Version, template["version"]!.GetValue<int>());
         var events = template["events"]!.AsObject();
         var definitions = PlaytestEvents.Definitions(new[] { "hub" });
@@ -200,5 +201,18 @@ public sealed class PlaytestTests
                 }
             }
         }
+    }
+
+    // The copy beside the tests, else the kit's file in a ci/godot above them, else null.
+    private static string? TemplatePath()
+    {
+        var copy = Path.Combine(AppContext.BaseDirectory, "playtest-events.json");
+        if (File.Exists(copy)) return copy;
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+        {
+            var path = Path.Combine(dir.FullName, "ci", "godot", "templates", "playtest-events.json");
+            if (File.Exists(path)) return path;
+        }
+        return null;
     }
 }

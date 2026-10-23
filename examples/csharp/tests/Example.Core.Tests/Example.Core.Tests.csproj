@@ -21,4 +21,9 @@
     <None Include="criteria-examples.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../game/data/barks.json" Link="barks.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup Condition="Exists('../../../../ci/godot/templates/playtest-events.json')">
+    <!-- The kit's playtest schema, for PlaytestTests, while the example sits in the kit; a game copied out of it builds
+         without it. -->
+    <None Include="../../../../ci/godot/templates/playtest-events.json" Link="playtest-events.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
