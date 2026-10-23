@@ -112,6 +112,13 @@ try {
     Assert-Code 'preset-not-found' @('export', '-Project', $presets, '-Preset', 'Nope')
     Assert-Code 'export-failed' @('export', '-Project', $presets, '-Preset', 'Windows')
     Assert-Code 'no-asset-manifest' @('credits', '-Project', (Copy-Example 'credits'))
+    # A project.godot Godot cannot parse: the import exits with 1.
+    $unparsable = New-Item -ItemType Directory -Force (Join-Path $temp 'unparsable') | ForEach-Object FullName
+    Set-Content -LiteralPath (Join-Path $unparsable 'project.godot') -Value "[application`nconfig/name=`"x`""
+    Assert-Code 'import-failed' @('build', '-Project', $unparsable)
+    # export -Run of a Web preset with no Playwright where HYPERDOT_PLAYWRIGHT points (the export itself needs the templates).
+    $web = Copy-Example 'web' 'tests/web-fixture'
+    Assert-Code 'no-browser' @('export', '-Project', $web, '-Preset', 'Web', '-Run') @{ HYPERDOT_PLAYWRIGHT = (New-Item -ItemType Directory -Force (Join-Path $temp 'no-playwright') | ForEach-Object FullName) }
     $badWav = Copy-Example 'badwav'
     New-Item -ItemType Directory -Force (Join-Path $badWav 'sounds') | Out-Null
     Set-Content -LiteralPath (Join-Path $badWav 'sounds/broken.wav') -Value 'not a sound'
