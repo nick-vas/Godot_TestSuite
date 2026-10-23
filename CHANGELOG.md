@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- **The staged programme's first pilot** (min tier, 32 sessions, $1.89; `benchmark/PLAN.md`): five of the eight arcade
+  GDScript tasks were solved by every configuration, Haiku's fix-playthrough sessions ran out of time (the template now
+  allows 1800 s), the plugin used about twice the tokens again, and `cost-model.json` now holds the measured costs. The
+  arcade explain-failure task asked for a bare `2`, which the prompt's `Godot 4.7.2` already contains, so the runner
+  refused every tier holding it; its number terms now skip digits after a point, and `tests/Test-GameProgramme.ps1`
+  first runs the runner's dry run on the programme, which catches such a task before any grading.
 - **Design prompts placed.** `godot-progression` section 6: saving as a difficulty lever, pressure against stalling,
   sinks players want, fixed costs as a share of wealth, and charges on limited-use items shown, each ending in a number
   a test holds. A camera cost checklist in `godot-camera`, asked for by the `concept.decisions` gate. A premise in five

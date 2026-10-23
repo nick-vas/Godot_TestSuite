@@ -168,8 +168,8 @@
         "mustInclude": [
           "test_one_hit_costs_one_life",
           "re:test_rules\\.gd\\D{0,40}\\b13\\b",
-          "2",
-          "3"
+          "re:(?<![\\d.])2(?!\\d)",
+          "re:(?<![\\d.])3(?!\\d)"
         ]
       },
       "reference": "solutions/prototype/explain-failure"

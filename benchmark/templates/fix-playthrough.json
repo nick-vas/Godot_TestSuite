@@ -6,5 +6,8 @@
   "expected": {
     "maxWords": 220
   },
-  "suite": true
+  "suite": true,
+  "limits": {
+    "timeoutSeconds": 1800
+  }
 }

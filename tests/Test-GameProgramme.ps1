@@ -46,6 +46,17 @@ if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN -PathTyp
 $spec = Read-JsonFile $SpecPath
 if (-not $spec.Contains('programme')) { throw "$SpecPath is not a staged programme" }
 
+# The runner checks every task before it spends anything (a required term that the prompt already holds passes by
+# echoing the question): a programme it would refuse fails here, before any grading. Its widest tier selects them all.
+$widest = @($spec.programme.tiers.Keys | Where-Object { $spec.programme.tiers[$_].cells -eq '*' } | Select-Object -Last 1)
+if ($widest.Count) {
+    $dry = @('-NoProfile', '-File', (Join-Path $root 'benchmark/Invoke-TokenBenchmark.ps1'), '-SpecPath', $SpecPath, '-Tier', $widest[0], '-Repeat', '1', '-DryRun')
+    foreach ($pair in @(@('-Genre', $Genre), @('-Stage', $Stage), @('-Language', $Language))) { if ($pair[1]) { $dry += @($pair[0], ($pair[1] -join ',')) } }
+    $dryOut = & (Get-Process -Id $PID).Path @dry 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "The runner refuses this programme:`n$(($dryOut | Out-String).Trim())" }
+    Write-Host "ok     the runner accepts the programme (a dry run of its $($widest[0]) tier)"
+}
+
 # Grades a fresh workspace of the task after laying $Overlay over it; returns the reasons it fails.
 function Test-Variant($TaskSpec, [string]$Overlay) {
     $game = New-GameWorkspace $spec $TaskSpec $root

@@ -1,18 +1,18 @@
 {
-  "note": "What one session is expected to cost (Claude Code's own figure), for the runner's estimate and the tiers' ceilings. Until the staged programme's pilot measures them: task sessions from benchmark/PLAN.md's assumptions (the game pilot at c190ddc measured $0.054 and $0.078 for Sonnet without and with the plugin, $0.005 and $0.007 for Haiku, on easier tasks), milestones about ten times a task.",
+  "note": "What one session is expected to cost (Claude Code's own figure), for the runner's estimate and the tiers' ceilings. Task sessions: the staged programme's min-tier pilot (2026-10-23, benchmark/PLAN.md) measured median costs of $0.077, $0.121, $0.011 and $0.017 (Sonnet, Sonnet with the plugin, Haiku, Haiku with the plugin); these are those plus a quarter. Milestones are still about ten times a Sonnet task, until a run measures them.",
   "fallbackUsd": 0.5,
   "sessions": [
     {
       "model": "sonnet",
       "plugin": false,
       "kind": "task",
-      "usd": 0.15
+      "usd": 0.1
     },
     {
       "model": "sonnet",
       "plugin": true,
       "kind": "task",
-      "usd": 0.25
+      "usd": 0.15
     },
     {
       "model": "haiku",
@@ -24,7 +24,7 @@
       "model": "haiku",
       "plugin": true,
       "kind": "task",
-      "usd": 0.025
+      "usd": 0.02
     },
     {
       "model": "sonnet",

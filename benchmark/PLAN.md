@@ -20,6 +20,37 @@ The owner's decisions (2026-10-23) and the design that follows from them. The pi
   hook, which makes every session that changed code run the whole suite before it may finish. That is worth paying only
   when it catches something. The staged programme has to contain things for it to catch.
 
+## The staged programme's first pilot
+
+The min tier on 2026-10-23 (token-benchmark run 29, commit de84416): arcade, GDScript, the first two tasks of each
+stage, one run per task and configuration, 32 sessions for $1.89 (the runner estimated $3.52).
+
+| Task | Sonnet | Sonnet + plugin | Haiku | Haiku + plugin |
+|---|---|---|---|---|
+| prototype fix-bug | pass | pass | pass | pass |
+| prototype write-tests | pass | pass | fail (missed the hp mutant) | pass |
+| alpha add-content | pass | pass | pass | pass |
+| alpha fix-architecture | pass | fail (hidden score-label test) | pass | pass |
+| beta fix-playthrough | fail (246 words, limit 220) | pass | timed out twice | timed out twice |
+| beta add-feedback | pass | pass | pass | pass |
+| release fix-export | pass | pass | pass | pass |
+| release fix-store | pass | pass | pass | pass |
+| **Median tokens per session** | 123k | 239k | 315k | 562k |
+| **Cost** | $0.71 | $0.99 | $0.08 | $0.11 |
+
+- **Difficulty.** Five of the eight tasks were solved by every configuration, so by the rule in section 2 they measure
+  only cost. One run per configuration cannot apply the rule, though: it is applied on the mid tier (three runs), and
+  the four tasks per stage not piloted yet (explain-failure, add-feature, migrate-save, the pause bug, translations,
+  performance, the settings flow, cut-version) go into that run too. Hardening candidates if they stay easy: the
+  prototype fix-bug, add-content, add-feedback and both release tasks.
+- **Time.** Haiku's fix-playthrough sessions used their whole 900 s twice (each check runs the bot through five levels),
+  so the template now allows 1800 s. Sonnet with the plugin solved it in 68 s; without it, Sonnet fixed it in 660 s but
+  wrote 26 words too many, the verbosity seen in the tool programme.
+- **The plugin.** About twice the tokens again (1.9 times for Sonnet, 1.8 for Haiku) and the same pass count for Sonnet
+  (one task won, one lost); for Haiku it turned the write-tests failure into a pass. Too few runs to call either way.
+- **Cost model.** Median sessions cost $0.077 (Sonnet), $0.121 (Sonnet + plugin), $0.011 (Haiku) and $0.017 (Haiku +
+  plugin); `cost-model.json` now uses these with a quarter added, so estimates stay above spend.
+
 ## Decisions
 
 | Question | Decision |

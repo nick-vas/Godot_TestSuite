@@ -171,8 +171,8 @@
         "mustInclude": [
           "One_hit_costs_one_life",
           "re:RulesTest\\.cs\\D{0,40}\\b21\\b",
-          "2",
-          "3"
+          "re:(?<![\\d.])2(?!\\d)",
+          "re:(?<![\\d.])3(?!\\d)"
         ]
       },
       "reference": "solutions/prototype/explain-failure",
