@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **First-session steps as stubs.** `status -Json` lists the GDD's "First session, step by step" as
+  `gdd.firstSession[]` (`S1`... from each step's number), with the flows, tests and `playthrough.json` tagged `GDD:S<n>`
+  that play it and the `*.stub.json` files that only stub it; a confirmed GDD warns about steps with neither, and about
+  tags for steps it lacks. Stubs never count as a feature's tests. `/game` writes the stubs
+  (`test/flows/first_session_s<n>.stub.json` and `playthrough.stub.json`, which no runner plays, so a run stays green)
+  and a task per step; starting the task turns the stub into a failing `.flow.json` first. `playthrough.json` may name
+  the steps it plays in `"covers"`. Self-test: `tests/Test-Plan.ps1`.
 - **A GDScript playtest tracker** (`examples/gdscript/playtest/playtest_tracker.gd`): the C# example's `PlaytestTracker`,
   its consent rule and `PlaytestFileSink` in one class. It raises the seven events of `templates/playtest-events.json`
   from the player's position and the game's calls, records nothing before the player agrees, and `flush()` appends one

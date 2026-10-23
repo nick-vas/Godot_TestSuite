@@ -8,8 +8,8 @@
 # warning in `status`. `init` never overwrites an existing test/test_example.gd, and pins its workflow at `@v1`; with
 # -Plugin it writes docs/kit-notes.md once. concept.risks wants a non-empty docs/RISKS.md, the optional concept.budget
 # does not hold its phase back, beta.placeholders reads assets.json and the Placeholders table of docs/TECH-DEBT.md, and
-# `plan -Do reopen` opens a manual gate again. `plan -Do init -Profile jam` writes the jam plan, sized in days. No Godot
-# needed.
+# `plan -Do reopen` opens a manual gate again. `plan -Do init -Profile jam` writes the jam plan, sized in days. `status`
+# lists the GDD's first-session steps with the flows and stubs tagged GDD:S<n>. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -350,6 +350,37 @@ try {
     Assert-True ((Get-Content -LiteralPath $notes -Raw) -match 'a note' -and @($again.steps | Where-Object { $_.message -match 'kit-notes\.md exists' }).Count -eq 1) 'a second init keeps the notes'
 } finally {
     Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# status reads the GDD's first session: each numbered step is S<n>; a GDD:S<n> tag in a flow or playthrough.json plays it,
+# one in a *.stub.json only stubs it (and a stub never counts as a feature's test); steps with neither, and tags for a step
+# the GDD lacks, are warnings once the GDD is confirmed.
+$session = Join-Path ([IO.Path]::GetTempPath()) "plan-session-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force (Join-Path $session 'docs'), (Join-Path $session 'test/flows') | Out-Null
+    Set-Content -LiteralPath (Join-Path $session 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Session""`n"
+    $gddText = (Get-Content -LiteralPath (Join-Path $templates 'GDD.md') -Raw).Replace('{{GAME}}', 'Session') -replace '(?s)<!-- Status: draft\..*?-->', ''
+    $gddText = $gddText -replace '(?ms)^1\. The player starts the game and sees\.\.\.\r?\n2\. The player presses\.\.\.\r?\n3\.\r?\n',
+        "1. The title screen shows Play and Quit.`n2. Play starts level 1 with the hero at the door.`n3. Reaching the exit shows the score.`n"
+    Set-Content -LiteralPath (Join-Path $session 'docs/GDD.md') -Value $gddText
+    Set-Content -LiteralPath (Join-Path $session 'test/flows/title.flow.json') -Value '{ "name": "GDD:S1 the title screen", "scene": "res://title.tscn", "steps": [] }'
+    Set-Content -LiteralPath (Join-Path $session 'test/flows/first_session_s2.stub.json') -Value "{ `"name`": `"GDD:S2 GDD:F1 level 1 starts`",`n  `"scene`": `"res://title.tscn`", `"steps`": [] }"
+    Set-Content -LiteralPath (Join-Path $session 'playthrough.stub.json') -Value '{ "covers": ["GDD:S2", "GDD:S7"], "expect": ["[Run] ending reached"] }'
+    $s = pwsh -NoProfile -File $ci status -Json -Project $session 2>$null | ConvertFrom-Json
+    $steps = @($s.gdd.firstSession)
+    Assert-True ($s.ok -and -not $s.gdd.draft -and ($steps.id -join ',') -eq 'S1,S2,S3' -and $steps[1].text -eq 'Play starts level 1 with the hero at the door.') "status lists the GDD's first-session steps: $(@($steps | ForEach-Object { "$($_.id)=$($_.text)" }) -join ' | ')"
+    Assert-True (@($steps[0].tests).Count -eq 1 -and $steps[0].tests[0].file -eq 'test/flows/title.flow.json' -and @($steps[0].stubs).Count -eq 0) 'a flow tagged GDD:S1 plays step S1'
+    Assert-True (@($steps[1].tests).Count -eq 0 -and (@($steps[1].stubs.file) -join ',') -eq 'playthrough.stub.json,test/flows/first_session_s2.stub.json') "S2 has only stubs: $(@($steps[1].stubs.file) -join ',')"
+    $f1 = @($s.features | Where-Object id -eq 'F1')
+    Assert-True ($f1.Count -eq 1 -and @($f1[0].taggedTests).Count -eq 0) 'a stub tagged GDD:F1 is not a test of F1'
+    Assert-True (@($s.warnings | Where-Object { $_ -match '^First-session step\(s\) S3 have no flow' }).Count -eq 1) "a step with neither is a warning: $($s.warnings -join ' | ')"
+    Assert-True (@($s.warnings | Where-Object { $_ -match 'GDD:S7 is tagged' }).Count -eq 1 -and @($s.warnings | Where-Object { $_ -match 'GDD:S\d is tagged in tests but not in the GDD' }).Count -eq 0) 'a tag for a step the GDD lacks is a warning of its own'
+    # A draft GDD (the template as copied) lists the template's two example steps and warns about none of them.
+    Set-Content -LiteralPath (Join-Path $session 'docs/GDD.md') -Value (Get-Content -LiteralPath (Join-Path $templates 'GDD.md') -Raw)
+    $s = pwsh -NoProfile -File $ci status -Json -Project $session 2>$null | ConvertFrom-Json
+    Assert-True ($s.gdd.draft -and @($s.gdd.firstSession).Count -eq 2 -and @($s.warnings | Where-Object { $_ -match '^First-session' }).Count -eq 0) "a draft GDD's steps are listed without warnings: $(@($s.gdd.firstSession).Count)"
+} finally {
+    Remove-Item -LiteralPath $session -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }

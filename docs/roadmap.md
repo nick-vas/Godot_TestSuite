@@ -160,8 +160,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
   folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
   refreshed by `Invoke-Canary.ps1`.
-- **First-session steps as stubs.** `status` reads only the GDD's pitch and features; the first-session steps could
-  become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema
   version, minimum spec, open technical questions answered by ADRs; kept by `godot-architect`.
 - **`-GpuValidation` beyond Vulkan on Linux.** Tested with Mesa's lavapipe under Xvfb only. Not run: a real GPU, Windows

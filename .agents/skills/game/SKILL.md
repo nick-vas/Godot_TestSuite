@@ -36,6 +36,21 @@ other sections only when the user wants them. Write each answer in before the ne
 Ask once whether to tag existing tests: a `GDD:F<n>` comment on each test that checks a feature's "Done when", so
 `status` can find the proof next time.
 
+### First-session stubs
+
+`gdd.firstSession` lists the GDD's first-session steps (`S1`, `S2`...), each with the `tests` and `stubs` tagged
+`GDD:S<n>`. Once the GDD is confirmed, write a stub for each step that has neither:
+
+- `test/flows/first_session_s<n>.stub.json`: a flow in the `godot-ui-flows` format, `"name": "GDD:S<n> <the step>"`,
+  `scene` the main scene, and as `steps` what the step says the player does and sees, as far as the node paths exist.
+- One `playthrough.stub.json` beside `project.godot`: `"covers"` lists every step's `GDD:S<n>`, `"expect"` one log line
+  a step's milestone prints (`"[Run] S3 exit reached"`), the ending last (the `playthrough` runner's format).
+
+No runner plays a `.stub.json`, so stubs never turn a run red. Each stubbed step gets a task
+(`plan -Do add -Title "S2 <step> - flow" -Column backlog`). Starting it renames the stub to `.flow.json`, finishes it and
+watches it fail before the code (`godot-test-loop`); `playthrough.stub.json` becomes `playthrough.json` once the game's
+`--autoplay` bot exists (`godot-automation-hooks`).
+
 ## 3. Assess every feature
 
 | Mark | Meaning | Evidence to cite |

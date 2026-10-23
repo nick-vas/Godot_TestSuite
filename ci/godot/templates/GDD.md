@@ -48,7 +48,9 @@ they start again.
 3.
 
 Each step says what the player sees and does, up to quitting. Keep every step observable: tests turn the steps into UI
-flows (`*.flow.json`) and into the `playthrough` runner's milestones.
+flows (`*.flow.json`) and into the `playthrough` runner's milestones. Step 3 is `S3`: the flow, test or stub that plays
+it is tagged `GDD:S3`, and `status` lists which steps are played and which are only stubbed. Renumbering steps means
+retagging them.
 
 ## World rules
 

@@ -57,8 +57,13 @@ function Read-Gdd([string]$Path) {
         }
     }
     $pitch = [regex]::Match($text, '(?ms)^## Pitch\s*\r?\n\s*(?<p>[^\r\n#].*?)\s*$').Groups['p'].Value
+    # "## First session, step by step": each numbered step is S<number>, the id a flow, test or stub tags as GDD:S<n>.
+    $session = [regex]::Match($text, '(?ms)^## First session[^\r\n]*\r?\n(?<s>.*?)(?=^## |\z)').Groups['s'].Value
+    $steps = @(foreach ($m in [regex]::Matches($session, '(?m)^[ \t]*(?<n>\d+)\.[ \t]+(?<t>\S[^\r\n]*?)[ \t]*\r?$')) {
+        [ordered]@{ id = "S$($m.Groups['n'].Value)"; text = $m.Groups['t'].Value }
+    })
     return [ordered]@{
-        path = $Path; draft = ($text -match '(?i)Status:\s*draft'); pitch = $pitch
+        path = $Path; draft = ($text -match '(?i)Status:\s*draft'); pitch = $pitch; firstSession = $steps
         features = @($features | ForEach-Object { $_.doneWhen = @($_.doneWhen); $_ })
     }
 }
@@ -83,19 +88,21 @@ function Get-Decisions($Info) {
     })
 }
 
-# Tests, flows and code that name a feature with a GDD:F<n> tag.
+# Tests, flows and code that name a feature (GDD:F<n>) or a first-session step (GDD:S<n>). Stubs (*.stub.json: a flow or
+# playthrough.json not written yet, which no runner plays) are marked stub, so they never count as tests.
 function Find-FeatureTags($Info) {
     $root = if ($Info.Solution) { Split-Path $Info.Solution } else { $Info.ProjectDir }
     $tags = @{}
-    foreach ($filter in '*.gd', '*.cs', '*.flow.json') {
+    foreach ($filter in '*.gd', '*.cs', '*.flow.json', 'playthrough.json', '*.stub.json') {
         foreach ($file in @(Find-ProjectFiles -Root $root -Filter $filter)) {
             $n = 0
             foreach ($line in Get-Content -LiteralPath $file.FullName) {
                 $n++
-                foreach ($m in [regex]::Matches($line, '\bGDD:(F\d+)\b')) {
+                foreach ($m in [regex]::Matches($line, '\bGDD:([FS]\d+)\b')) {
                     $id = $m.Groups[1].Value
                     if (-not $tags.ContainsKey($id)) { $tags[$id] = [System.Collections.Generic.List[object]]::new() }
-                    $tags[$id].Add([ordered]@{ file = ([System.IO.Path]::GetRelativePath($root, $file.FullName) -replace '\\', '/'); line = $n })
+                    $tags[$id].Add([ordered]@{ file = ([System.IO.Path]::GetRelativePath($root, $file.FullName) -replace '\\', '/'); line = $n
+                        stub = $file.Name.EndsWith('.stub.json', [StringComparison]::OrdinalIgnoreCase) })
                 }
             }
         }
@@ -268,12 +275,12 @@ function Invoke-Status($Info) {
         }
     }
 
-    $features = @()
+    $features = @(); $firstSession = @()
     if ($gdd) {
         if ($gdd.draft) { $warnings.Add("$gddPath is still a draft; confirm it with the user before measuring progress against it") }
         $ids = @($gdd.features | ForEach-Object id)
         $features = @(foreach ($f in $gdd.features) {
-            $tagged = $tags.Contains($f.id) ? @($tags[$f.id]) : @()
+            $tagged = $tags.Contains($f.id) ? @($tags[$f.id] | Where-Object { -not $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } }) : @()
             $linked = @($tasks | Where-Object { $_.feature -eq $f.id })
             $passing = $tagged.Count -gt 0 -and $lastFullTest -and $lastFullTest.ok
             if ($plan -and $linked.Count -eq 0 -and $f.priority -ne "won't" -and -not $passing) { $warnings.Add("$($f.id) $($f.title) has no plan task") }
@@ -287,7 +294,22 @@ function Invoke-Status($Info) {
                 # Evidence only: tagged tests exist and the latest full test run passed. Whether that proves the feature is /game's call.
                 testedAndPassing = [bool]$passing }
         })
-        foreach ($id in $tags.Keys | Where-Object { $_ -notin $ids }) { $warnings.Add("GDD:$id is tagged in tests but not in the GDD") }
+        foreach ($id in $tags.Keys | Where-Object { $_ -like 'F*' -and $_ -notin $ids }) { $warnings.Add("GDD:$id is tagged in tests but not in the GDD") }
+        # The first session, step by step: which steps a flow, test or playthrough.json plays, and which only have a stub.
+        $stepIds = @($gdd.firstSession | ForEach-Object id)
+        $firstSession = @(foreach ($s in $gdd.firstSession) {
+            $found = $tags.Contains($s.id) ? @($tags[$s.id]) : @()
+            [ordered]@{ id = $s.id; text = $s.text
+                tests = @($found | Where-Object { -not $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } })
+                stubs = @($found | Where-Object { $_.stub } | ForEach-Object { [ordered]@{ file = $_.file; line = $_.line } }) }
+        })
+        foreach ($id in $tags.Keys | Where-Object { $_ -like 'S*' -and $_ -notin $stepIds }) {
+            $warnings.Add("GDD:$id is tagged in tests but the GDD's first session has no step $($id.Substring(1))")
+        }
+        $bare = @($firstSession | Where-Object { $_.tests.Count -eq 0 -and $_.stubs.Count -eq 0 } | ForEach-Object id)
+        if (-not $gdd.draft -and $bare.Count) {
+            $warnings.Add("First-session step(s) $($bare -join ', ') have no flow, test or stub tagged GDD:S<n>: /game writes stubs from the GDD's steps")
+        }
         foreach ($t in $tasks | Where-Object { $_.feature -and $_.feature -notin $ids }) { $warnings.Add("Task $($t.id) points at $($t.feature), which is not in the GDD") }
     }
     if ($lastTest -and -not $lastTest.ok) { $warnings.Add("The latest test run failed ($($lastTest.code), $(Format-RunTime $lastTest.time))") }
@@ -331,7 +353,8 @@ function Invoke-Status($Info) {
     [array]::Reverse($allHandoffs)
     $handoffs = @($allHandoffs | Select-Object -First 20)
 
-    Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count } : $null)
+    Set-JsonField gdd ($gdd ? [ordered]@{ path = $gdd.path; draft = $gdd.draft; pitch = $gdd.pitch; featureCount = $features.Count
+        firstSession = $firstSession } : $null)
     Set-JsonField features $features
     Set-JsonField plan $plan
     Set-JsonField decisions $decisions
@@ -353,6 +376,11 @@ function Invoke-Status($Info) {
         Write-Console ''
         if ($gdd) {
             Write-Console "GDD: $($gdd.path)$(if ($gdd.draft) { ' (draft)' })"
+            if ($firstSession) {
+                $played = @($firstSession | Where-Object { $_.tests.Count -gt 0 }).Count
+                $stubbed = @($firstSession | Where-Object { $_.tests.Count -eq 0 -and $_.stubs.Count -gt 0 }).Count
+                Write-Console "  First session: $($firstSession.Count) step(s), $played played by a test, $stubbed only stubbed"
+            }
             foreach ($f in $features) {
                 $mark = if ($f.testedAndPassing) { 'tested' } elseif ($f.taggedTests.Count -gt 0) { 'tagged' } else { '      ' }
                 Write-Console ("  {0} {1,-4} {2,-8} {3}" -f $mark, $f.id, ($f.priority ? $f.priority : ''), $f.title)

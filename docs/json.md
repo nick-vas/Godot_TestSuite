@@ -398,9 +398,13 @@ on another command fail with `invalid-arguments`, before anything is written. `.
 in `.gitignore`).
 
 **status** (read-only; it never fails on what it finds):
-- `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
+- `gdd`: `path`, `draft`, `pitch`, `featureCount`, `firstSession[]`, or `null` when the project has no `docs/GDD.md`.
+  `firstSession[]` holds the numbered steps of its "First session, step by step" section: `id` (`S1`... from the step's
+  number), `text`, `tests[]` (`file`, `line` of each `GDD:S<n>` tag in tests, flows, code and `playthrough.json`) and
+  `stubs[]` (the same in `*.stub.json` files, flows or a `playthrough.json` not written yet, which no runner plays). A
+  confirmed GDD (not a draft) warns about steps with neither; a `GDD:S<n>` tag for a step the GDD lacks also warns.
 - `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
-  tests, flows and code), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest full test run passed: every runner of the project, no `-Filter`).
+  tests, flows, code and `playthrough.json`; stubs do not count), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest full test run passed: every runner of the project, no `-Filter`).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan, or with one `plan` would refuse as `invalid-plan` (a warning says why).
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/hyperdot-history.jsonl`.

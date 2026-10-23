@@ -302,6 +302,9 @@ every text in `expect` must appear in a log line, in that order, the ending last
 `smoke` passes a bot that is stuck in the first room; this fails it and names the last milestone it reached. The game may
 quit by itself after the ending. The plan gate `production.playthrough` is checked as `runner:playthrough`: met once the
 runner is set up, so every CI run enforces it. `tests/playthrough-fixture` is a minimal example (`-GameArgs --stuck` fails).
+Other keys are ignored by the runner; `"covers": ["GDD:S1", "GDD:S2"]` names the GDD's first-session steps it plays, which
+`status` reads (`gdd.firstSession`). `/game` writes a `playthrough.stub.json` with the steps before the game has a bot;
+no runner reads a `.stub.json`, and it becomes `playthrough.json` once `--autoplay` exists.
 
 **The `l10n` runner** is picked when the project has translation CSVs (imported as translations, or a first header cell
 `keys` or `key`), `.po` files or translation remaps. It has seven cases, all but the last without Godot: `duplicate keys` (the same key
