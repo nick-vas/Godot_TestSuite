@@ -49,6 +49,11 @@ Data tables and the `data` runner are `godot-data`; seeded loot generation is `g
   more than its share.
 - **Stats over aim in a hybrid.** Hellgate removed "the necessity for players to have pixel-perfect aiming skills"; test
   with a bot that aims badly. Shooter players at its show missed the loot entirely: make the other genre's systems loud.
+- **Adaptive difficulty moves slowly.** Changed after every attempt from that attempt alone, it chases noise: a player
+  who wins half the time sees it go up, down, up. Judge a window of attempts, hold inside a dead band, move one bounded
+  step and start the window again: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Ai/DifficultyDirector.cs`
+  (`DifficultyDirectorTests`: 20 changes in 600 simulated attempts, where moving on every result made 500). It scales
+  enemies; players can see and override it.
 
 ## 3. Add up the path
 

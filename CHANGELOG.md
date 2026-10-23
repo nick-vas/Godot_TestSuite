@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **`DifficultyDirector` in the C# example** (`Ai/DifficultyDirector.cs`): dynamic difficulty from a window of attempts,
+  with a dead band, one bounded step at a time and the window emptied after each change, so two changes are always a
+  window apart. In 600 simulated attempts it changed 20 times where moving on every result changed 500 times and
+  reversed 311. `godot-progression` points to it.
 - **The C# example's replicator packs bits and keeps to the client's rate.** `GhostFormat` gives each state group of
   `GhostReplicator` its own width (a ghost's creation: 14 bytes against 27 at 4 bytes a value) and `GhostReceiver`
   reads the packed payload; a value too wide for its group throws before anything is marked sent. `LinkBudget` holds

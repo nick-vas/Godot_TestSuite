@@ -219,7 +219,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 In the example game (the C# example):
 
-- A `DifficultyDirector` with slow, bounded steps and hysteresis, tested so it never flips every attempt.
 - A GDScript or gdUnit4 test in `examples/csharp/game` pinning the maths book's 3D yaw sign and cross-product area
   (Example.Core's `System.Numerics` has other conventions).
 - Playtest telemetry in a real level: nothing raises `PlaytestTracker`'s events yet, and there is no file sink for
