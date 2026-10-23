@@ -10,6 +10,12 @@ pwsh -NoProfile -File ci/godot/hyperdot.ps1 test -Json 2>$null | ConvertFrom-Jso
 Add `-Quiet` when an agent reads the output: Godot's and dotnet's output then goes only to the run log (see `log`
 below) and stderr carries just the kit's own lines, about 1 KB instead of 7 to 16 KB per test run on the examples.
 
+One exception: arguments PowerShell rejects before the script starts print no JSON. That is a command not in the
+`command` list below, a value outside a parameter's set or range (`-Do`, `-Mcp`, `-Retry` above 5), an unknown flag, or a value of the wrong
+type (`-Retry abc`). Then stdout is empty, the exit code is 1 and stderr says which argument was wrong; treat an empty
+stdout with exit code 1 as such an error. Values the kit checks itself (an unknown runner, a misspelt sound, a bad
+environment variable) give `invalid-arguments` in JSON as usual.
+
 Run it as a child process, as an agent does. The document is written to the process's standard output, so dot-sourcing or calling the script
 in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 
@@ -68,8 +74,8 @@ Branch on `error.code`; `message` can change.
 | `invalid-playtest-config` | `playtest`: `playtest.json` is not valid (an unknown setting, a bad cell, plane or bounds, an image without bounds or missing), a level's screenshot is not a PNG it can read (8-bit, not interlaced), or a level's grid would exceed 2048 cells a side | `error.message` |
 | `shallow-checkout` | `export -GameVersion auto` in a shallow clone, which has neither the tags nor the commits to count (actions/checkout fetches one commit unless `fetch-depth: 0`); checked before Godot is set up. No version is guessed | `error.message` |
 | `download-failed` | Godot or its export templates could not be downloaded after four attempts (an HTTP error, no network): the network or the server, not the project; retry later | `error.message` (the URL and the last error) |
-| `unexpected-error` | Anything else (bad path, missing tool) | `error.message` |
-| `failed` | Generic failure without a specific code | `error.message` |
+| `unexpected-error` | An error the kit did not expect, such as a `-Project` folder that does not exist, a file it cannot read, or a bug in the kit | `error.message` |
+| `failed` | A failure with no code of its own: no `project.godot` in the project folder, a program not found (the .NET SDK, a tool on the `PATH`), an add-on or runner set-up that is missing or misnamed, a tool that exited non-zero | `error.message` |
 
 ## Per command
 
