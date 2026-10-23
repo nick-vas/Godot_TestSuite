@@ -9,6 +9,8 @@
 - **Coverage counts the reusable workflow's jobs.** `godot.yml` takes a `kit-coverage` input (for the self-test only):
   its test and export jobs then record what the kit ran and upload it, and the self-test's `coverage` job adds the
   `zero-config`, `csharp` and `explicit-runners` jobs to its count.
+- **Precision qualifiers in `godot-shaders-vfx`:** when `lowp` and `mediump` help on phones, what must stay `highp`, and
+  a quoted shader using all three that `tests/Test-SkillShaders.ps1` compiles.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

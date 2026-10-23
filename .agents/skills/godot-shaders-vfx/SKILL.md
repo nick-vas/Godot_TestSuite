@@ -106,6 +106,22 @@ In the Compatibility renderer colours above 1.0 are clamped, so an edge or rim c
   without the effect, at the target resolution (`-Resolution 1920x1080`), and compare. Fill-rate bound when a small window is
   much faster than a large one.
 - `Viewport.DebugDraw = Viewport.DebugDrawEnum.Overdraw` shows where layers pile up.
+- Precision qualifiers (`lowp`, `mediump`, usually 16 bits, `highp`, the default 32) can speed up fragment maths on
+  phones; desktop GPUs mostly ignore them. Colour maths survives 16 bits; positions, UVs on large textures and `TIME`
+  (it runs to an hour before it wraps) do not. Some mobile drivers misbehave with them, so add them only where `bench`
+  on the device shows a gain:
+
+```glsl
+shader_type canvas_item;
+
+uniform lowp vec4 tint : source_color = vec4(1.0);
+
+void fragment() {
+	mediump vec4 base = texture(TEXTURE, UV) * COLOR;  // colour: fine in 16 bits
+	highp float wave = sin(TIME * 2.0 + UV.x * 6.283);  // TIME grows: keep it at full precision
+	COLOR = vec4(base.rgb * tint.rgb * (0.9 + 0.1 * wave), base.a);
+}
+```
 
 ## 4. Particles
 

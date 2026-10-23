@@ -231,8 +231,7 @@ In the skills:
 
 - An XR skill (Godot's OpenXR: locomotion and comfort, hands, throwing from peak hand speed, one-controller play), from
   Half-Life: Alyx's commentary; needs an XR fixture to check its claims.
-- Shader precision qualifiers (`lowp`, `mediump`, `highp`) in `godot-shaders-vfx`, quoted so `tests/Test-SkillShaders.ps1`
-  compiles them.
+
 - Light and shadow limits on phones in `godot-mobile-web`: Compatibility's (8 per object, 32 renderable) were checked; the
   Mobile renderer's per-object limit was not found in 4.7.2's settings.
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
