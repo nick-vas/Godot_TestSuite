@@ -20,6 +20,7 @@ function Assert-True([bool]$Condition, [string]$What) {
 }
 function Invoke-Bench([string[]]$Arguments) {
     $results = Join-Path ([IO.Path]::GetTempPath()) "bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $script:LastResults = $results
     $out = pwsh -NoProfile -File $kit bench -Json -Quiet -Project $fixture -Results $results @Arguments 2>$null
     $json = if ($out) { $out | ConvertFrom-Json } else { $null }
     if (-not $json -or -not $json.ok) {
@@ -52,6 +53,10 @@ $hitches = @($b.hitches)
 Assert-True ($hitches.Count -gt 0 -and @($hitches | Where-Object { @($_.pos).Count -ne 3 }).Count -eq 0) "every hitch carries the camera position ($($hitches.Count) hitches)"
 $inside = @($hitches | Where-Object { $_.pos[0] -gt 40.5 -and $_.pos[0] -lt 59.5 })
 Assert-True (@($inside | Where-Object { $_.ms -le 25 }).Count -eq 0) "hitches placed in the slow stretch took over 25 ms ($($inside.Count) of them)"
+# The slow stretch alone is about 160 hitches (4 s of 25 ms frames): the log stops at 50, the count does not, and the
+# CSV row reports the count.
+$csvRow = @(Import-Csv -LiteralPath (Join-Path $script:LastResults 'bench.csv')) | Select-Object -Last 1
+Assert-True ($hitches.Count -eq 50 -and $b.hitchCount -gt 100 -and [int]$csvRow.hitches -eq $b.hitchCount) "hitchCount counts every hitch, not the 50 logged: $($b.hitchCount) counted, $($hitches.Count) logged, CSV $($csvRow.hitches)"
 
 # 2D: the screen centre under a Camera2D, in 512 px cells by default. The slow stretch, 400 to 600 px, straddles the cells
 # around 256 and 768, and is enough of either one's frames to set its p99.

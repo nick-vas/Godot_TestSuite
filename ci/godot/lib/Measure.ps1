@@ -50,6 +50,8 @@ function Invoke-Bench {
     if (-not $line) { Stop-GodotCi 'The benchmark printed no result; see bench.log' 'bench-failed' }
     $result = ($line -replace '^@@bench ', '') | ConvertFrom-Json -AsHashtable
     if ($result.ContainsKey('error')) { Stop-GodotCi "Benchmark: $($result.error)" 'bench-failed' }
+    # No frame measured: no numbers, and nothing to hold against -BudgetMs, so the run is not a pass.
+    if ($result.frames -le 0) { Stop-GodotCi "The benchmark measured no frames in $Seconds s; see bench.log" 'bench-failed' }
 
     $result['label'] = $Label
     $result['budgetMs'] = $BudgetMs
@@ -58,7 +60,7 @@ function Invoke-Bench {
     Set-JsonField bench $result
 
     $summary = "{0} frames: avg {1} fps, 1% low {2}, 0.1% low {3}, p99 {4} ms, max {5} ms, {6} frame(s) over 33 ms, {7} hitch(es)" -f
-        $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, @($result.hitches).Count
+        $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, $result.hitchCount
     Write-CiLog $summary
     if ($result.display -eq 'headless') { Write-CiLog 'Headless: nothing was drawn, so these are CPU timings only' }
     if ($result.camera -eq 'none') {
@@ -85,7 +87,7 @@ function Add-BenchCsvRow([string]$Path, $Result) {
         renderer = $Result.renderer; vsync = $Result.vsync; maxFps = $Result.maxFps; display = $Result.display
         frames = $Result.frames; fpsAvg = $Result.fps.avg; low1 = $Result.fps.low1; low01 = $Result.fps.low01
         p50Ms = $Result.frameMs.p50; p99Ms = $Result.frameMs.p99; maxMs = $Result.frameMs.max
-        over20ms = $Result.over20ms; over33ms = $Result.over33ms; hitches = @($Result.hitches).Count
+        over20ms = $Result.over20ms; over33ms = $Result.over33ms; hitches = $Result.hitchCount
         drawCallsAvg = $Result.drawCalls.avg; customMonitorDeltas = $monitors
     }
     $exists = Test-Path -LiteralPath $Path

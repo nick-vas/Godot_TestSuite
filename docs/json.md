@@ -39,13 +39,13 @@ Branch on `error.code`; `message` can change.
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
-| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
+| `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown runner, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench` or `audio -Mix`, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
 | `trello-credentials`, `trello-error`, `trello-list-missing` | `plan -Do sync` could not reach or map the board | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
-| `bench-failed` | `bench` could not load the scene, Godot exited non-zero, or no result was printed | `error.message` |
+| `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
 | `soak-leak` | `soak`: a process's memory grew faster than `-MaxGrowthMbPerHour` | `soak.processes[].memoryMb` |
@@ -227,8 +227,8 @@ After a tag the numbers are its major.minor.patch (missing ones 0, a fourth one 
 Android version code leaves the count out, so builds between two tags share one: tag each build you upload to a store.
 
 **bench**: `bench` with `scene`, `frames`, `fps` (`avg`, `low1`, `low01`: 1% and 0.1% lows), `frameMs` (`avg`, `p50`, `p90`, `p99`,
-`max`), `over20ms`, `over33ms`, `hitches[]` (`t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
-`null` without one; a hitch is a frame longer than twice the median and over 8.33 ms), `hitchThresholdMs`, `camera` (`3d`, `2d` or
+`max`), `over20ms`, `over33ms`, `hitches[]` (the first 50; `t` seconds into the run, `ms`, `pos`: where the camera was, `[x, y, z]` or `[x, y]`,
+`null` without one; a hitch is a frame longer than twice the median and over 8.33 ms), `hitchCount` (all of them), `hitchThresholdMs`, `camera` (`3d`, `2d` or
 `none`: the root viewport's active camera in most frames; for `2d` the place is the centre of the screen), `hotspotCell` (the grid
 cell, aligned to the origin, in metres or pixels, `-HotspotCell`, default 10 in 3D and 512 in 2D; 0 without a camera), `hotspots[]` (where it is slow: the
 10 cells of camera positions with the worst p99 frame time, worst first, each with `centre`, `frames`, `p99Ms`, `maxMs`; empty

@@ -549,6 +549,10 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+# A bench of no time measures no frames, and audio -Mix would pass Godot --quit-after 0, which never quits.
+if (($Command -eq 'bench' -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
+    Stop-GodotCi "-Seconds must be above 0 for $Command, not $Seconds" 'invalid-arguments'
+}
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
 # credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
 $commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results' }
