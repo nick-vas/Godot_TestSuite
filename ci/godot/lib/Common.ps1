@@ -530,8 +530,10 @@ function Get-DotnetDiagnostics([string]$LogFile) {
 
 # Where a failure happened: the first .cs/.gd location with a line number in the text, as an absolute path (C# stack
 # traces) or a res:// path (Godot backtraces). Frames inside addons/ (GUT, gdUnit4) are the framework, not the failure.
+# A .NET frame's path ("in C:\Users\Jane Doe\game\Test.cs:line 12") may hold spaces, so after " in " the path runs to
+# the first .cs:line N.
 function Get-FailureLocation([string]$Text) {
-    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
+    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|(?<=\bin )(?<file>(?:[A-Za-z]:[\\/]|/)[^:\r\n]+?\.cs):line (?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
     foreach ($m in [regex]::Matches($Text, $pattern)) {
         if ($m.Groups['res'].Success) {
             if ($m.Groups['res'].Value -like 'addons/*') { continue }

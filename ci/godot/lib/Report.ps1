@@ -76,8 +76,10 @@ function Write-Annotation([string]$Runner, $Failure) {
 # that reports no tests at all fails, so a misconfigured runner can't pass silently.
 function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode, [bool]$Filtered = $false) {
     $totals = New-TestTotals
+    # Matched below the results folder only: a parent folder named coverage must not hide every result.
+    $base = (Get-Item -LiteralPath $ResultsDir).FullName.TrimEnd('\', '/').Length
     $files = Get-ChildItem -LiteralPath $ResultsDir -Recurse -File |
-        Where-Object { $_.FullName -notmatch '[\\/]coverage[\\/]' }
+        Where-Object { $_.FullName.Substring($base) -notmatch '[\\/]coverage[\\/]' }
     foreach ($file in $files) {
         try {
             if ($file.Name.EndsWith('.junit.xml')) { Read-JUnit $file.FullName $totals }
@@ -233,8 +235,9 @@ function ConvertFrom-GoDotTestLog([string]$LogFile, [string]$JUnitFile) {
 
 # One coverage report across runners: <results>/coverage/index.html (+ the job summary on GitHub).
 function Merge-Coverage([string]$ResultsDir) {
+    $base = (Get-Item -LiteralPath $ResultsDir).FullName.TrimEnd('\', '/').Length
     $reports = @(Get-ChildItem -LiteralPath $ResultsDir -Recurse -File -Filter '*.cobertura.xml' |
-        Where-Object { $_.FullName -notmatch '[\\/]In[\\/]|\.attempt\d+[\\/]' })   # <runner>.attempt1/: a failed attempt kept for -Retry
+        Where-Object { $_.FullName.Substring($base) -notmatch '[\\/]In[\\/]|\.attempt\d+[\\/]' })   # <runner>.attempt1/: a failed attempt kept for -Retry
     if ($reports.Count -eq 0) { Write-CiLog 'No coverage data was produced'; return $null }
     $target = Join-Path $ResultsDir 'coverage'
     $tool = Get-DotnetTool 'dotnet-reportgenerator-globaltool' 'reportgenerator'

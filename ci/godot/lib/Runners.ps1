@@ -208,8 +208,10 @@ function Invoke-TestRunner {
     if ($Coverage) {
         $coverageDir = Join-Path $ResultsDir 'coverage'
         New-Item -ItemType Directory -Force $coverageDir | Out-Null
+        # Matched below the results folder only, as in Write-TestSummary.
+        $base = (Get-Item -LiteralPath $ResultsDir).FullName.TrimEnd('\', '/').Length
         Get-ChildItem -LiteralPath $ResultsDir -Recurse -File -Filter 'coverage.cobertura.xml' |
-            Where-Object { $_.FullName -notmatch '[\\/](coverage|In)[\\/]' } |
+            Where-Object { $_.FullName.Substring($base) -notmatch '[\\/](coverage|In)[\\/]' } |
             ForEach-Object { Move-Item -LiteralPath $_.FullName (Join-Path $coverageDir "$Runner-$($_.Directory.Name).cobertura.xml") }
     }
 

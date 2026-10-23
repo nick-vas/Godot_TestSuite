@@ -59,6 +59,27 @@ try {
     Move-Item (Join-Path $dir 'xunit.trx') $runner
     $summary = Write-TestSummary 'dotnet' $runner 0 2>$null
     if ($summary.Ok) { $failures += 'the dotnet runner should fail when found tests never ran, even with exit code 0' }
+
+    # Results below a folder named coverage (a checkout in ~/coverage) are still read: only a coverage folder inside the
+    # results counts. A failure's path with spaces (C:\Users\Jane Doe) still gives its file and line.
+    $nested = Join-Path $dir 'coverage/My Game/test-results/dotnet'
+    New-Item -ItemType Directory -Force -Path $nested | Out-Null
+    $trace = 'at Game.Tests.ScoreTest.Hit() in /home/jane/My Game/test/ScoreTest.cs:line 12'
+    Set-Content -LiteralPath (Join-Path $nested 'spaces.trx') -Encoding utf8 -Value @"
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results><UnitTestResult testName="Game.Tests.ScoreTest.Ok" outcome="Passed" /><UnitTestResult testName="Game.Tests.ScoreTest.Hit" outcome="Failed"><Output><ErrorInfo><Message>Expected 2 but was 1</Message><StackTrace>$trace</StackTrace></ErrorInfo></Output></UnitTestResult></Results>
+</TestRun>
+"@
+    $summary = Write-TestSummary 'dotnet' $nested 1 2>$null
+    if ($summary.Total -ne 2) { $failures += "results below a parent folder named coverage should be read, got $($summary.Total) results" }
+    elseif ("$($summary.Failures[0].File):$($summary.Failures[0].Line)" -ne '/home/jane/My Game/test/ScoreTest.cs:12') {
+        $failures += "a stack trace path with spaces should give its file and line, got '$($summary.Failures[0].File):$($summary.Failures[0].Line)'"
+    }
+    foreach ($trace in 'at A.B() in C:\Users\Jane Doe\game\test\ScoreTest.cs:line 7', 'at A.B() in /home/jane/game/ScoreTest.cs:line 7') {
+        $at = Get-FailureLocation $trace
+        if (-not $at -or $at.Line -ne 7 -or $at.File -notlike '*ScoreTest.cs') { $failures += "no file and line in: $trace" }
+    }
 } finally {
     Remove-Item -Recurse -Force -LiteralPath $dir -ErrorAction SilentlyContinue
 }
