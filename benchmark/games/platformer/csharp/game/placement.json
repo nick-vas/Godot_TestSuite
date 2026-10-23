@@ -1,0 +1,6 @@
+{
+  "levels": ["res://levels"],
+  "limits": {
+    "reach": 2.8375
+  }
+}

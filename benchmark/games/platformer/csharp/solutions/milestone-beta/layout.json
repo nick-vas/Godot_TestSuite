@@ -1,0 +1,4 @@
+{
+  "scenes": ["res://main.tscn", "res://game/game.tscn"],
+  "profiles": ["phone_landscape", "ultrawide"]
+}

@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **The platformer in C#.** Glowmoss Ridge now has its C# version (`benchmark/games/platformer/csharp/`), written from
+  the language-neutral contract in its `DESIGN.md`: the same level scenes, scene tree, node names, data files, flows,
+  bot and juice runs and log lines, with 34 gdUnit4 tests in place of the GUT ones and a Linux export only. Its four
+  stages carry the same tasks and milestones as the GDScript version, each with hidden checks in C# and a reference
+  solution, most with a decoy; all pass `tests/Test-GameProgramme.ps1 -Genre platformer -Language csharp`. The
+  `placement` runner reads limits from GDScript constants only, so the C# game writes the climber's reach into
+  `placement.json` as a number; `DESIGN.md`'s "As built" records this and the port's other choices.
 - **Blind review and the judge's calibration.** `benchmark/Invoke-SideBySide.ps1 -ReviewOut` writes the pairs the judge
   sees for a person instead (A and B in a seeded order, nothing naming the plugin, the key kept apart);
   `benchmark/review-page.html` shows them and keeps the owner's verdicts in its own store; `benchmark/Get-JudgeAgreement.ps1`

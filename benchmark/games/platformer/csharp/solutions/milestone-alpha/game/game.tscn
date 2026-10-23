@@ -1,0 +1,188 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://game/Game.cs" id="1_game"]
+[ext_resource type="Script" path="res://game/CameraRig.cs" id="2_camera"]
+[ext_resource type="Script" path="res://game/Player.cs" id="3_player"]
+[ext_resource type="Script" path="res://game/PauseMenu.cs" id="4_pause"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/jump-1.wav" id="5_jump"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/pickup_coin-1.wav" id="6_moss"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/explosion-3.wav" id="7_stomp"]
+[ext_resource type="AudioStream" path="res://sounds/sfx/hit_hurt-1.wav" id="8_hurt"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_body"]
+size = Vector3(0.8, 1, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_coat"]
+shading_mode = 0
+albedo_color = Color(0.93, 0.55, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+material = SubResource("StandardMaterial3D_coat")
+size = Vector3(0.8, 1, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lamp"]
+shading_mode = 0
+albedo_color = Color(1, 0.92, 0.55, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_lamp"]
+material = SubResource("StandardMaterial3D_lamp")
+radius = 0.15
+height = 0.3
+
+[node name="Game" type="Node3D"]
+script = ExtResource("1_game")
+
+[node name="Camera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 20)
+projection = 1
+current = true
+size = 12.0
+far = 60.0
+script = ExtResource("2_camera")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+axis_lock_linear_z = true
+floor_snap_length = 0.2
+script = ExtResource("3_player")
+
+[node name="Shape" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_body")
+
+[node name="Body" type="MeshInstance3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="Lamp" type="MeshInstance3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 1.15, 0.35)
+mesh = SubResource("SphereMesh_lamp")
+
+[node name="Effects" type="Node3D" parent="."]
+
+[node name="SfxJump" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_jump")
+volume_db = -10.0
+
+[node name="SfxMoss" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_moss")
+volume_db = -4.0
+
+[node name="SfxStomp" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_stomp")
+
+[node name="SfxHurt" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_hurt")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Flash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="LevelLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 20.0
+offset_right = 520.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 24
+text = "Level 1"
+
+[node name="MossLabel" type="Label" parent="HUD"]
+offset_left = 140.0
+offset_top = 60.0
+offset_right = 420.0
+offset_bottom = 100.0
+pivot_offset = Vector2(0, 20)
+theme_override_font_sizes/font_size = 26
+text = "Glowmoss: 0"
+
+[node name="HeartsLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -460.0
+offset_top = 20.0
+offset_right = -140.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 26
+text = "Hearts: 3"
+horizontal_alignment = 2
+
+[node name="PauseButton" type="Button" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -70.0
+offset_top = 12.0
+offset_right = 70.0
+offset_bottom = 104.0
+grow_horizontal = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Pause"
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+layer = 10
+visible = false
+script = ExtResource("4_pause")
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Title" type="Label" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -190.0
+offset_right = 240.0
+offset_bottom = -130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="QuitButton" type="Button" parent="PauseMenu"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 20.0
+offset_right = 180.0
+offset_bottom = 116.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Quit to menu"

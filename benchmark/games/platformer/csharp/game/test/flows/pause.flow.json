@@ -1,0 +1,13 @@
+{
+  "name": "The pause button opens the pause menu and Resume closes it",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 5 },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": false } },
+    { "press": "HUD/PauseButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": true } },
+    { "press": "PauseMenu/ResumeButton" },
+    { "assert": { "node": "PauseMenu", "prop": "visible", "equals": false } }
+  ]
+}

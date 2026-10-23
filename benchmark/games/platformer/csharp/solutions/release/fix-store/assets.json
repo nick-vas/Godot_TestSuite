@@ -1,0 +1,6 @@
+{
+  "assets": [
+    { "path": "level/**", "source": "own: shapes built from Godot meshes for this game", "licence": "proprietary" },
+    { "path": "sounds/**", "source": "generated with hyperdot sfx (bfxr synth)", "licence": "proprietary" }
+  ]
+}

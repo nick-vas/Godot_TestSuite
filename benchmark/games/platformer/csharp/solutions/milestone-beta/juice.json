@@ -1,0 +1,36 @@
+{
+  "frames": 900,
+  "args": [
+    "--autoplay",
+    "--seed=1",
+    "--no-save",
+    "--level=5"
+  ],
+  "rules": [
+    {
+      "event": "moss_collected",
+      "feedback": [
+        "pop",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "beetle_stomped",
+      "feedback": [
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    },
+    {
+      "event": "player_hurt",
+      "feedback": [
+        "flash",
+        "shake",
+        "sfx"
+      ],
+      "withinMs": 100
+    }
+  ]
+}

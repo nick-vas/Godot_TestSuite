@@ -1,0 +1,92 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://level/Level.cs" id="1_level"]
+[ext_resource type="PackedScene" path="res://level/platform.tscn" id="2_platform"]
+[ext_resource type="PackedScene" path="res://level/moss.tscn" id="3_moss"]
+[ext_resource type="PackedScene" path="res://level/beacon.tscn" id="7_beacon"]
+[ext_resource type="PackedScene" path="res://level/beetle.tscn" id="4_beetle"]
+[ext_resource type="PackedScene" path="res://level/checkpoint.tscn" id="6_checkpoint"]
+
+[node name="Level4" type="Node3D"]
+script = ExtResource("1_level")
+
+[node name="Start" type="Marker3D" parent="."]
+position = Vector3(1, 0, 0)
+
+[node name="Platforms" type="Node3D" parent="."]
+
+[node name="Platform1" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(4, -0.5, 0)
+size = Vector3(12, 1, 2)
+
+[node name="Platform2" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(14.25, -0.2, 0)
+size = Vector3(3.5, 1.6, 2)
+
+[node name="Platform3" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(20.25, -0.2, 0)
+size = Vector3(3.5, 1.6, 2)
+
+[node name="Platform4" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(26.25, -0.2, 0)
+size = Vector3(3.5, 1.6, 2)
+
+[node name="Platform5" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(37.25, -0.5, 0)
+size = Vector3(13.5, 1, 2)
+
+[node name="Platform6" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(48.25, 0, 0)
+size = Vector3(3.5, 2, 2)
+
+[node name="Platform7" parent="Platforms" instance=ExtResource("2_platform")]
+position = Vector3(58, -0.5, 0)
+size = Vector3(12, 1, 2)
+
+[node name="Moss" type="Node3D" parent="."]
+
+[node name="Moss1" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(3, 1.2, 0)
+
+[node name="Moss2" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(14, 2.8, 0)
+
+[node name="Moss3" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(20, 2, 0)
+
+[node name="Moss4" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(26, 2.8, 0)
+
+[node name="Moss5" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(34, 1, 0)
+
+[node name="Moss6" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(41, 2, 0)
+
+[node name="Moss7" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(48, 2.6, 0)
+
+[node name="Moss8" parent="Moss" instance=ExtResource("3_moss")]
+position = Vector3(56, 1.2, 0)
+
+[node name="Beetles" type="Node3D" parent="."]
+
+[node name="Beetle1" parent="Beetles" instance=ExtResource("4_beetle")]
+position = Vector3(7, 0, 0)
+kind = "runner"
+patrol = 2.5
+
+[node name="Beetle2" parent="Beetles" instance=ExtResource("4_beetle")]
+position = Vector3(37, 0, 0)
+kind = "runner"
+patrol = 3
+
+[node name="Thorns" type="Node3D" parent="."]
+
+[node name="Checkpoints" type="Node3D" parent="."]
+
+[node name="Checkpoint1" parent="Checkpoints" instance=ExtResource("6_checkpoint")]
+position = Vector3(32, 0, -0.6)
+
+[node name="Beacon" parent="." instance=ExtResource("7_beacon")]
+position = Vector3(61, 0, -0.5)

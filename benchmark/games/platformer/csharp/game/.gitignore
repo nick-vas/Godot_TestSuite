@@ -1,0 +1,8 @@
+.godot/
+bin/
+obj/
+build/
+test-results/
+gdunit4_testadapter*/
+addons/gut/
+*.translation

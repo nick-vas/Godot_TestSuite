@@ -2,8 +2,8 @@
 
 The second genre of the staged game programme (`benchmark/PLAN.md`). It exercises what a platformer needs from the kit:
 movement feel (coyote time, the jump buffer, a short hop), the camera, `placement_check.gd` (the `placement` runner) and
-physics that do not depend on the tick rate. One game, written twice: `gdscript/` now, `csharp/` later from this design.
-Both must behave the same, use the same data files, level scenes, scene tree, node names and log lines, and pass the same
+physics that do not depend on the tick rate. One game, written twice: `gdscript/` and `csharp/`, the port written from
+this design. Both behave the same, use the same data files, level scenes, scene tree, node names and log lines, and pass the same
 flows. Only the code and the test framework differ: GUT for GDScript, gdUnit4 (run by the kit's `gdunit4` runner) for C#.
 
 Everything here is made up for the benchmark. The art is flat-coloured boxes and spheres built from Godot's meshes. The
@@ -176,7 +176,7 @@ that the earlier one lacks or has otherwise.
 
 ## As built
 
-Choices made where the design was open, for the C# port to follow.
+Choices made where the design was open; the C# port follows them, and its own choices come after.
 
 - **3D, seen from the side**, not 2D: `placement_check.gd` checks only 3D nodes. The camera is orthographic (size 12 m,
   the height of the view), and the platforms are pillars down to y = -1, so a gap reads as a gap.
@@ -200,3 +200,28 @@ Choices made where the design was open, for the C# port to follow.
 - **A bot run waits for its sounds** as the arcade's does; the engine's leak lines at exit are noise the kit ignores.
 - **Store art** is five screenshots captured under Xvfb at 1920x1080 and capsules cut from a capture without the HUD,
   with the title drawn by ffmpeg.
+
+### C#
+
+- **Names:** `Game` keeps the snake_case `level`, `state` and `start_level` the flows read, as the arcade's does. The
+  level pieces' exported properties keep the keys the level scenes use (`size` and `color` on `Platform`, `kind` and
+  `patrol` on `Beetle`, `size` on `Thorns`), so the five level scenes are the GDScript ones but for their script paths.
+  The rest is C#'s own case: `Movement.Step`, `Movement.Reach`, `Rules.ReachCheckpoint`, `Levels.Level(number)` (a
+  `LevelRow`, or null), `Game.SpawnDust`, `CameraRig.HalfExtents`, `Player.Place`.
+- **Placement:** `placement.json` holds the reach as the number 2.8375, since the `placement` runner reads limits from
+  GDScript constants only (`docs/roadmap.md`, "Placement checks in C#"). `Movement.Reach` works out the same number,
+  and grading stays equivalent: the Beacon Crest task keeps both `scripts/Movement.cs` and `placement.json` unchanged,
+  and its hidden test reads `Movement.Reach`.
+- **Engine-light parts:** `Rules.Stomp(points)` takes the beetle's points, so Rules needs no node. `BeetleRow` has its
+  own file, because the prototype has beetles but no `Levels`. `SaveStore` takes a file path (Main passes
+  `user://save.json`, globalised) and uses `System.Text.Json`, as the arcade's does, so its tests use temporary files.
+- **A level's children are found on first use**, not in `_Ready`, so a test can read a level scene it has not added to
+  the tree, as the GDScript tests read `@onready` ones they have.
+- **Tests:** gdUnit4 suites in `test/*Test.cs` (34, the GUT tests one for one), run by the kit's `dotnet` runner, and
+  `gdunit4` for the mutants. Those that need scenes are `[RequireGodotRuntime]`, load them with `ISceneRunner` and
+  wait whole physics ticks (the tree's `physics_frame` signal), as GUT's `wait_physics_frames` does, because the game
+  counts in ticks. The hidden tests keep their own copy of that wait, so they need nothing of the game's test folder.
+- **The explain-failure test** is `Each_moss_is_worth_ten_points`, `test/RulesTest.cs` line 35.
+- **Export:** Linux only (Godot 4.7 cannot export C# to the Web), so the planted export defect adds `data/*` to that
+  preset's `exclude_filter="test/*"`. `THIRD-PARTY-NOTICES.txt` comes from `credits` on the C# game, with the .NET
+  runtime's notices; the store art, docs, data, translations, sounds and flows are the GDScript version's files.

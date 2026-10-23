@@ -1,0 +1,197 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "main.tscn",
+    "ui",
+    "scripts/Levels.cs",
+    "scripts/SaveStore.cs",
+    "scripts/LaunchOptions.cs",
+    "scripts/TextFormat.cs",
+    "game/Bot.cs",
+    "game/PauseMenu.cs",
+    "game/Dust.cs",
+    "level/Thorns.cs",
+    "level/thorns.tscn",
+    "level/checkpoint.tscn",
+    "levels/level_2.tscn",
+    "levels/level_3.tscn",
+    "levels/level_4.tscn",
+    "levels/level_5.tscn",
+    "data",
+    "data.json",
+    "i18n",
+    "sounds",
+    "plan",
+    "docs",
+    "playthrough.json",
+    "juice.json",
+    "textsize.json",
+    "layout.json",
+    "architecture.json",
+    "placement.json",
+    "assets.json",
+    "test/flows",
+    "test/JumpFeelTest.cs",
+    "test/RulesCheckpointsTest.cs",
+    "test/LevelsTest.cs",
+    "test/SaveStoreTest.cs",
+    "test/LaunchOptionsTest.cs",
+    "test/GameTest.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "run/main_scene=\"res://main.tscn\"",
+      "replace": "run/main_scene=\"res://game/game.tscn\""
+    },
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.1.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "[internationalization]\n\nlocale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")\n\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Rules.cs",
+      "find": "/// Hearts, invulnerability, glowmoss, checkpoints and what touching things does",
+      "replace": "/// Hearts, invulnerability, glowmoss and what touching things does"
+    },
+    {
+      "file": "scripts/Rules.cs",
+      "find": "    private Vector3 _checkpoint = Vector3.Zero;\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/Rules.cs",
+      "find": "    /// <summary>A level begins at start: hearts full, no checkpoint reached yet.</summary>\n    public void StartLevel(Vector3 start)\n    {\n        Hearts = _maxHearts;\n        Invulnerable = 0f;\n        _checkpoint = start;\n    }\n",
+      "replace": "    /// <summary>A level begins at start: hearts full.</summary>\n    public void StartLevel(Vector3 start)\n    {\n        Hearts = _maxHearts;\n        Invulnerable = 0f;\n    }\n"
+    },
+    {
+      "file": "scripts/Rules.cs",
+      "find": "then a respawn at RespawnPoint().",
+      "replace": "then a respawn at the start."
+    },
+    {
+      "file": "scripts/Rules.cs",
+      "find": "    }\n\n    /// <summary>A checkpoint touched at a place: kept when it is further along the level (by x) than the last one.</summary>\n    public bool ReachCheckpoint(Vector3 at)\n    {\n        if (at.X <= _checkpoint.X)\n            return false;\n        _checkpoint = at;\n        return true;\n    }\n\n    /// <summary>Where the climber comes back after a fall: the furthest checkpoint reached, or the level's start.</summary>\n    public Vector3 RespawnPoint() => _checkpoint;\n}\n",
+      "replace": "    }\n}\n"
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "a jump pressed just after running off a ledge does nothing, though the game is meant to forgive a press up to a tenth of a second late"
+      },
+      "edits": [
+        {
+          "file": "scripts/Movement.cs",
+          "find": "        if (_buffer > 0f && _coyote > 0f)",
+          "replace": "        if (_buffer > 0f && OnFloor)"
+        }
+      ],
+      "unchanged": [
+        "test/MovementTest.cs"
+      ],
+      "hidden": [
+        "hidden/HiddenCoyoteTest.cs"
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "Movement class (scripts/Movement.cs: running, the jump, coyote time and the jump buffer)",
+        "file": "test/JumpFeelTest.cs",
+        "rules": "a jump pressed up to a tenth of a second after running off a ledge still jumps and one pressed later does not, a press up to 0.2 seconds before landing jumps on landing and an earlier one is forgotten, one press is one jump (no second jump in mid-air), letting go of jump early gives a lower hop than holding it, and a held jump peaks at the same height at 30, 60 and 120 ticks a second",
+        "code": "scripts/Movement.cs"
+      },
+      "unchanged": [
+        "scripts/Movement.cs"
+      ],
+      "mutantTests": [
+        "test/JumpFeelTest.cs"
+      ],
+      "mutants": [
+        {
+          "name": "coyote time is ignored",
+          "file": "scripts/Movement.cs",
+          "find": "_coyote = CoyoteTime;",
+          "replace": "_coyote = delta;"
+        },
+        {
+          "name": "the jump buffer forgets at once",
+          "file": "scripts/Movement.cs",
+          "find": "_buffer = Mathf.Max(_buffer - delta, 0f);",
+          "replace": "_buffer = 0f;"
+        },
+        {
+          "name": "a press can jump twice",
+          "file": "scripts/Movement.cs",
+          "find": "            _coyote = 0f;\n            _buffer = 0f;\n",
+          "replace": "            _buffer = 0f;\n"
+        },
+        {
+          "name": "letting go early does not cut the jump",
+          "file": "scripts/Movement.cs",
+          "find": "_velocity.Y *= JumpCut;",
+          "replace": "_velocity.Y *= 1f;"
+        },
+        {
+          "name": "gravity per tick, not per second",
+          "file": "scripts/Movement.cs",
+          "find": "_velocity.Y - Gravity * delta",
+          "replace": "_velocity.Y - Gravity / 60f"
+        }
+      ],
+      "reference": "solutions/prototype/write-tests"
+    },
+    {
+      "template": "add-feature",
+      "vars": {
+        "feature": "checkpoints: Rules (scripts/Rules.cs) gets bool ReachCheckpoint(Vector3 at), which keeps at and returns true when it is further along the level (a larger X) than the last checkpoint, and false otherwise, and Vector3 RespawnPoint(), the furthest checkpoint reached, or the start given to StartLevel() before any; StartLevel() forgets the last level's checkpoint"
+      },
+      "hidden": [
+        "hidden/HiddenCheckpointsTest.cs"
+      ],
+      "reference": "solutions/prototype/add-feature"
+    },
+    {
+      "template": "explain-failure",
+      "edits": [
+        {
+          "file": "test/RulesTest.cs",
+          "find": "        for (int i = 0; i < 3; i++)\n",
+          "replace": "        for (int i = 0; i < 4; i++)\n"
+        }
+      ],
+      "unchanged": [
+        "scripts/Rules.cs",
+        "scripts/Movement.cs",
+        "game/Game.cs",
+        "test/RulesTest.cs",
+        "test/MovementTest.cs"
+      ],
+      "expected": {
+        "mustInclude": [
+          "Each_moss_is_worth_ten_points",
+          "re:RulesTest\\.cs\\D{0,40}\\b35\\b",
+          "re:(?<![\\d.])30(?!\\d)",
+          "re:(?<![\\d.])40(?!\\d)"
+        ]
+      },
+      "reference": "solutions/prototype/explain-failure"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Level 4 can be chosen and starts with its beacon in place",
+  "scene": "res://game/game.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 },
+    { "call": ".", "method": "start_level", "args": [4] },
+    { "wait": 2 },
+    { "assert": { "node": ".", "prop": "level", "equals": 4 } },
+    { "assert": { "node": "Level/Beacon", "exists": true } },
+    { "assert": { "node": ".", "prop": "state", "equals": "playing" } },
+    { "assert": { "node": "HUD/LevelLabel", "prop": "text", "contains": "4" } }
+  ]
+}

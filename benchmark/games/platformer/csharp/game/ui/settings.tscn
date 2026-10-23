@@ -1,0 +1,60 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/Settings.cs" id="1_settings"]
+
+[node name="Settings" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+
+[node name="Box" type="VBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -300.0
+offset_right = 260.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Box"]
+theme_override_font_sizes/font_size = 44
+text = "Settings"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="VolumeLabel" type="Label" parent="Box"]
+theme_override_font_sizes/font_size = 24
+text = "Volume"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="VolumeSlider" type="HSlider" parent="Box"]
+custom_minimum_size = Vector2(0, 88)
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="LanguageLabel" type="Label" parent="Box"]
+theme_override_font_sizes/font_size = 24
+text = "Language"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Languages" type="HBoxContainer" parent="Box"]
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BackButton" type="Button" parent="Box"]
+custom_minimum_size = Vector2(0, 88)
+theme_override_font_sizes/font_size = 28
+text = "Back"
+

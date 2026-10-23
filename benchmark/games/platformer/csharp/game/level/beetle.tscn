@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://level/Beetle.cs" id="1_beetle"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_shell"]
+size = Vector3(0.9, 0.6, 0.8)
+
+[node name="Beetle" type="Node3D"]
+script = ExtResource("1_beetle")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_shell")
