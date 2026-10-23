@@ -32,8 +32,9 @@ param(
     [ValidateRange(1, 10000)][int]$MaxCalls = 0,
     # The Claude Code CLI: a program on PATH or a path; a .ps1 runs with pwsh (the self-test's stand-in).
     [string]$Claude = 'claude',
-    # The folder the sessions run in. Default: the repository root.
-    [string]$WorkDir = (Split-Path $PSScriptRoot -Parent),
+    # The folder the sessions run in. Default: a copy of the repository without the benchmark (its spec holds the
+    # expected answers), made for the run and deleted after it.
+    [string]$WorkDir,
     # Load this repository as a Claude Code plugin (its skills) in every session; run once with and once without to
     # see what the skills change. Rows and the summary say which.
     [switch]$Plugin,
@@ -63,7 +64,15 @@ function Read-BenchmarkSpec([string]$Path) {
         if ($ids.ContainsKey($item.id)) { throw "Id '$($item.id)' is used twice" }
         $ids[$item.id] = $true
     }
-    foreach ($t in $spec.tasks) { if (-not $t.Contains('prompt') -or -not $t.prompt) { throw "Task '$($t.id)' has no prompt" } }
+    foreach ($t in $spec.tasks) {
+        if (-not $t.Contains('prompt') -or -not $t.prompt) { throw "Task '$($t.id)' has no prompt" }
+        if (-not $t.Contains('category') -or -not $t.category) { throw "Task '$($t.id)' has no category" }
+        # A required term the prompt already holds is passed by echoing the question.
+        $terms = @(if ($t.Contains('expected') -and $t.expected) { foreach ($k in 'mustInclude', 'mustAdd') { if ($t.expected.Contains($k)) { $t.expected[$k] } } })
+        foreach ($term in $terms) {
+            if (Test-BenchmarkTerm "$($t.title) $($t.prompt)" $term) { throw "Task '$($t.id)' requires '$term', which its own prompt or title contains" }
+        }
+    }
     return $spec
 }
 
@@ -77,7 +86,7 @@ function Get-ClaudeArguments($Spec, $ProfileSpec, [string]$SessionId, [int]$Step
     if ($Plugin) { $arguments.Add('Skill') }
     $arguments.Add('--disallowedTools'); foreach ($tool in 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch', 'Task', 'Agent') { $arguments.Add($tool) }
     if ($ProfileSpec.Contains('effort')) { $arguments.Add('--effort'); $arguments.Add($ProfileSpec.effort) }
-    if ($Plugin) { $arguments.Add('--plugin-dir'); $arguments.Add((Split-Path $PSScriptRoot -Parent)) }
+    if ($Plugin) { $arguments.Add('--plugin-dir'); $arguments.Add($WorkDir) }
     if ($ProfileSpec.Contains('appendSystemPrompt')) { $arguments.Add('--append-system-prompt'); $arguments.Add($ProfileSpec.appendSystemPrompt) }
     if ($StepIndex -eq 0) {
         $arguments.Add('--session-id'); $arguments.Add($SessionId)
@@ -136,14 +145,17 @@ function Invoke-ClaudeProcess([string]$Program, [string[]]$Arguments, [string]$P
 }
 
 function ConvertFrom-ClaudeOutput($Run) {
-    $result = [ordered]@{ ok = $false; problem = $null; text = ''; input = 0; cacheWrite = 0; cacheRead = 0; output = 0; costUsd = 0.0
+    $result = [ordered]@{ ok = $false; problem = $null; infrastructure = $false; spendKnown = $true; text = ''; input = 0; cacheWrite = 0; cacheRead = 0; output = 0; costUsd = 0.0
         turns = 0; ttftMs = $null; model = ''; raw = $null }
-    if ($Run.TimedOut) { $result.problem = 'timed out'; return $result }
+    # Infrastructure problems (no answer came back at all) are retried; a session that ran out of turns or budget is a
+    # result, kept as it is. A session stopped at the time limit reported nothing, so its spend is unknown.
+    if ($Run.TimedOut) { $result.problem = 'timed out'; $result.infrastructure = $true; $result.spendKnown = $false; return $result }
     $doc = $null
     try { $doc = $Run.Stdout | ConvertFrom-Json -AsHashtable } catch { $doc = $null }
     if ($doc -isnot [System.Collections.IDictionary]) {
         $said = (($Run.Stdout + ' ' + $Run.Stderr) -replace '\s+', ' ').Trim()
         $result.problem = "not JSON (exit $($Run.ExitCode)): $($said.Substring(0, [Math]::Min(200, $said.Length)))"
+        $result.infrastructure = $true; $result.spendKnown = $false
         return $result
     }
     $result.raw = $doc
@@ -160,25 +172,37 @@ function ConvertFrom-ClaudeOutput($Run) {
     if ($isError -or $Run.ExitCode -ne 0) {
         $subtype = if ($doc.Contains('subtype')) { $doc.subtype } else { 'error' }
         $result.problem = "claude reported $subtype (exit $($Run.ExitCode))"
+        $result.infrastructure = $subtype -notmatch '^error_max_(turns|budget)'
         return $result
     }
     $result.ok = $true
     return $result
 }
 
+# Whether a required term is in a text: a whole word ("CI" is not found in "specific"), ignoring case; an edge that is a
+# letter or digit must not touch another, so "test_" still finds test_score. "re:" starts a regular expression.
+function Test-BenchmarkTerm([string]$Text, [string]$Term) {
+    if ($Term.StartsWith('re:')) { return [regex]::IsMatch($Text, $Term.Substring(3), 'IgnoreCase') }
+    $pattern = $(if ($Term -match '^[A-Za-z0-9]') { '(?<![A-Za-z0-9])' }) + [regex]::Escape($Term) + $(if ($Term -match '[A-Za-z0-9]$') { '(?![A-Za-z0-9])' })
+    return [regex]::IsMatch($Text, $pattern, 'IgnoreCase')
+}
+
 function Test-BenchmarkAnswer([string]$Text, $Expected) {
     $reasons = [System.Collections.Generic.List[string]]::new()
     if (-not $Text.Trim()) { $reasons.Add('empty answer') }
     if ($Expected) {
-        foreach ($word in @(if ($Expected.Contains('mustInclude')) { $Expected.mustInclude })) {
-            if ($Text.IndexOf([string]$word, [StringComparison]::OrdinalIgnoreCase) -lt 0) { $reasons.Add("missing '$word'") }
+        foreach ($term in @(if ($Expected.Contains('mustInclude')) { $Expected.mustInclude })) {
+            if (-not (Test-BenchmarkTerm $Text $term)) { $reasons.Add("missing '$term'") }
         }
-        # A forbidden word is looked for in the answer's code blocks when it has any: a note saying "no Write-Output" is
-        # not a use of it.
-        $blocks = @([regex]::Matches($Text, '(?s)```[^\n]*\n(.*?)```') | ForEach-Object { $_.Groups[1].Value })
-        $code = if ($blocks.Count -gt 0) { $blocks -join "`n" } else { $Text }
-        foreach ($word in @(if ($Expected.Contains('forbid')) { $Expected.forbid })) {
-            if ($code.IndexOf([string]$word, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $reasons.Add("contains '$word'") }
+        # A term a diff must add: on a line it adds ('+', not the '+++' header), not on a context line it leaves alone.
+        $added = (@($Text -split "`n" | Where-Object { $_ -match '^\+(?!\+\+)' }) -join "`n")
+        foreach ($term in @(if ($Expected.Contains('mustAdd')) { $Expected.mustAdd })) {
+            if (-not (Test-BenchmarkTerm $added $term)) { $reasons.Add("does not add '$term'") }
+        }
+        # A forbidden command counts where a statement starts (a line, or after | ; { ( = &), inside code blocks or not:
+        # a note saying "no `Write-Output`" is not a use of it, and a decoy code block cannot hide one outside it.
+        foreach ($term in @(if ($Expected.Contains('forbid')) { $Expected.forbid })) {
+            if ([regex]::IsMatch($Text, "(?im)(^|[|;{(=&])[ \t]*$([regex]::Escape($term))(?![\w-])")) { $reasons.Add("uses '$term'") }
         }
         $words = @($Text -split '\s+' | Where-Object { $_ }).Count
         if ($Expected.Contains('maxWords') -and $words -gt [int]$Expected.maxWords) { $reasons.Add("$words words, limit $($Expected.maxWords)") }
@@ -205,7 +229,7 @@ function Get-Median([double[]]$Values) {
 function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, [string]$ModelName, [string]$ResponseDir) {
     $prompts = Get-StepPrompts $ProfileSpec $TaskSpec
     $totals = [ordered]@{ input = 0L; cacheWrite = 0L; cacheRead = 0L; output = 0L; costUsd = 0.0; turns = 0; durationMs = 0 }
-    $attempt = 0; $final = $null; $firstTtft = $null; $models = [System.Collections.Generic.HashSet[string]]::new()
+    $attempt = 0; $final = $null; $firstTtft = $null; $spendKnown = $true; $models = [System.Collections.Generic.HashSet[string]]::new()
     while ($true) {
         $sessionId = [guid]::NewGuid().ToString()
         $final = $null
@@ -217,6 +241,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
             $totals.durationMs += $run.ElapsedMs
             if ($null -eq $firstTtft -and $null -ne $parsed.ttftMs) { $firstTtft = $parsed.ttftMs }
             if ($parsed.model) { [void]$models.Add($parsed.model) }
+            if (-not $parsed.spendKnown) { $spendKnown = $false }
             $final = $parsed
             if ($ResponseDir) {
                 $name = "$($ProfileSpec.id)-$($TaskSpec.id)-r$Repetition-a$attempt-s$step"
@@ -225,7 +250,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
             }
             if (-not $parsed.ok) { break }
         }
-        if ($final.ok -or $attempt -ge [int]$Spec.retries) { break }
+        if ($final.ok -or -not $final.infrastructure -or $attempt -ge [int]$Spec.retries) { break }
         Write-BenchLog "  $($ProfileSpec.id) $($TaskSpec.id) #$Repetition failed ($($final.problem)); retrying"
         $attempt++
     }
@@ -233,7 +258,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
     return [pscustomobject][ordered]@{
         profile = $ProfileSpec.id; task = $TaskSpec.id; category = $TaskSpec.category; repetition = $Repetition; plugin = [bool]$Plugin
         model = (@($models) | Sort-Object) -join '+'; success = ($final.ok -and @($reasons).Count -eq 0); retries = $attempt
-        steps = $prompts.Count; turns = $totals.turns
+        steps = $prompts.Count; turns = $totals.turns; infrastructure = [bool]$final.infrastructure; spendKnown = $spendKnown
         tokensInput = $totals.input; tokensCacheWrite = $totals.cacheWrite; tokensCacheRead = $totals.cacheRead; tokensOutput = $totals.output
         tokensTotal = $totals.input + $totals.cacheWrite + $totals.cacheRead + $totals.output
         costUsd = [Math]::Round($totals.costUsd, 6); durationMs = $totals.durationMs; ttftMs = $firstTtft
@@ -246,19 +271,21 @@ function Get-BenchmarkSummary([object[]]$AllRows, [string[]]$ProfileOrder, [stri
         $group = @($AllRows | Where-Object profile -eq $id)
         if ($group.Count -eq 0) { continue }
         $successes = @($group | Where-Object success).Count
-        $tokens = [double[]]@($group | ForEach-Object tokensTotal)
+        $known = @($group | Where-Object spendKnown)
+        $tokens = [double[]]@($known | ForEach-Object tokensTotal)
         $cost = ($group | Measure-Object costUsd -Sum).Sum
         [ordered]@{
             profile = $id; runs = $group.Count; successRate = [Math]::Round(100.0 * $successes / $group.Count, 1)
             medianTokensTotal = Get-Median $tokens; p90TokensTotal = Get-Percentile $tokens 90
-            medianTokensOutput = Get-Median ([double[]]@($group | ForEach-Object tokensOutput))
-            medianTurns = Get-Median ([double[]]@($group | ForEach-Object turns))
-            medianCostUsd = [Math]::Round((Get-Median ([double[]]@($group | ForEach-Object costUsd))), 6)
+            medianTokensOutput = Get-Median ([double[]]@($known | ForEach-Object tokensOutput))
+            medianTurns = Get-Median ([double[]]@($known | ForEach-Object turns))
+            medianCostUsd = [Math]::Round([double](Get-Median ([double[]]@($known | ForEach-Object costUsd))), 6)
             totalCostUsd = [Math]::Round($cost, 6)
             successesPerDollar = if ($cost -gt 0) { [Math]::Round($successes / $cost, 2) } else { $null }
             successesPer1kTokens = [Math]::Round(1000.0 * $successes / [Math]::Max(1, ($group | Measure-Object tokensTotal -Sum).Sum), 5)
             medianDurationMs = Get-Median ([double[]]@($group | ForEach-Object durationMs))
             retries = ($group | Measure-Object retries -Sum).Sum
+            spendUnknown = $group.Count - $known.Count
         }
     }
     $cells = foreach ($taskId in $TaskOrder) {
@@ -278,19 +305,43 @@ function Format-BenchmarkMarkdown($Summary, $Meta) {
     $md = [System.Collections.Generic.List[string]]::new()
     $md.Add("# Token benchmark $($Meta.runId)"); $md.Add('')
     $md.Add("Model $($Meta.models), $($Meta.repeat) run(s) per task and profile, $($Meta.calls) session(s), CLI $($Meta.claudeVersion), $(if ($Meta.plugin) { 'with this repository loaded as a plugin (its skills)' } else { 'without the plugin' }).")
-    $md.Add('Tokens include cache reads and writes; cost is Claude Code''s own figure.'); $md.Add('')
-    $md.Add('| Profile | Runs | Success % | Median tokens | P90 tokens | Median output | Median turns | Median cost | Total cost | Successes per $ | Median time (s) |')
-    $md.Add('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
+    $md.Add('Tokens include cache reads and writes; cost is Claude Code''s own figure. Medians leave out sessions stopped at the time limit, whose spend is unknown (the "Unknown" column).'); $md.Add('')
+    $md.Add('| Profile | Runs | Success % | Median tokens | P90 tokens | Median output | Median turns | Median cost | Total cost | Successes per $ | Median time (s) | Retries | Unknown |')
+    $md.Add('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
     foreach ($p in $Summary.profiles) {
         $md.Add(('| {0} | {1} | {2} | {3:N0} | {4:N0} | {5:N0} | {6} | ${7:N4} | ${8:N4} | {9} | {10:N1} |' -f $p.profile, $p.runs, $p.successRate,
             $p.medianTokensTotal, $p.p90TokensTotal, $p.medianTokensOutput, $p.medianTurns, $p.medianCostUsd, $p.totalCostUsd,
-            $(if ($null -ne $p.successesPerDollar) { $p.successesPerDollar } else { '-' }), ($p.medianDurationMs / 1000)))
+            $(if ($null -ne $p.successesPerDollar) { $p.successesPerDollar } else { '-' }), ($p.medianDurationMs / 1000)) + (' {0} | {1} |' -f $p.retries, $p.spendUnknown))
     }
     $md.Add(''); $md.Add('| Task | Profile | Successes | Median tokens | Median cost | Failures |'); $md.Add('|---|---|---:|---:|---:|---|')
     foreach ($c in $Summary.cells) {
         $md.Add(('| {0} | {1} | {2}/{3} | {4:N0} | ${5:N4} | {6} |' -f $c.task, $c.profile, $c.successes, $c.runs, $c.medianTokensTotal, $c.medianCostUsd, ($c.failures -replace '\|', '/')))
     }
     return ($md -join "`n") + "`n"
+}
+
+# Paths a session must not see: the spec holds every expected answer, results hold earlier answers, and the label and its
+# tests quote both. The EU label forbids a product that recognises its test; here the test cannot be read at all.
+$script:HiddenFromSessions = @('benchmark/', 'docs/token-benchmark.md', 'docs/label.md', 'docs/label/', 'tests/Test-TokenBenchmark.ps1',
+    'tests/token-benchmark/', 'tests/Test-HyperdotLabel.ps1', 'tests/label-fixture/', '.github/workflows/token-benchmark.yml')
+
+# A copy of the repository's files (tracked and untracked, not ignored) without those paths, for the sessions to run in.
+function New-BenchmarkWorkspace([string]$RepoRoot) {
+    $target = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-bench-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $files = @(git -C $RepoRoot ls-files -co --exclude-standard 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $files.Count -eq 0) {
+        $files = @(Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Force | Where-Object { $_.FullName -notmatch '[\\/]\.git([\\/]|$)' } |
+                ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName) -replace '\\', '/' })
+    }
+    foreach ($file in $files) {
+        if (@($script:HiddenFromSessions | Where-Object { $file -eq $_.TrimEnd('/') -or $file.StartsWith($_) }).Count) { continue }
+        $from = Join-Path $RepoRoot $file
+        if (-not (Test-Path -LiteralPath $from -PathType Leaf)) { continue }
+        $to = Join-Path $target $file
+        New-Item -ItemType Directory -Force -Path (Split-Path $to) | Out-Null
+        Copy-Item -LiteralPath $from -Destination $to
+    }
+    return $target
 }
 
 # ---- Run ----
@@ -308,6 +359,8 @@ $modelName = if ($Model) { $Model } else { $spec.model }
 $limit = if ($MaxCalls -gt 0) { $MaxCalls } else { [int]$spec.maxCalls }
 $calls = 0
 foreach ($p in $profiles) { $calls += (Get-StepPrompts $p $tasks[0]).Count * $tasks.Count * $repeatCount }
+# The limit holds even if every session is retried.
+$worstCase = $calls * (1 + [int]$spec.retries)
 
 Write-BenchLog "$($profiles.Count) profile(s) x $($tasks.Count) task(s) x $repeatCount run(s) = $calls session(s) (more with retries), model $modelName$(if ($Plugin) { ', with the plugin' })"
 if ($DryRun) {
@@ -318,8 +371,10 @@ if ($DryRun) {
     if ($Json) { [ordered]@{ dryRun = $true; calls = $calls; limit = $limit } | ConvertTo-Json -Compress }
     exit 0
 }
-if ($calls -gt $limit) { throw "$calls sessions is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
+if ($worstCase -gt $limit) { throw "$calls sessions, $worstCase with retries, is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
 
+$ownWorkspace = -not $WorkDir
+if ($ownWorkspace) { $WorkDir = New-BenchmarkWorkspace (Split-Path $PSScriptRoot -Parent); Write-BenchLog "Sessions run in $WorkDir, a copy without the benchmark" }
 $runId = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
 $runDir = Join-Path $OutputDir $runId
 New-Item -ItemType Directory -Force $runDir | Out-Null
@@ -327,15 +382,21 @@ $responseDir = if ($SaveResponses) { New-Item -ItemType Directory -Force (Join-P
 $claudeVersion = try { (Invoke-ClaudeProcess $Claude @('--version') '' 30 $WorkDir).Stdout.Trim() } catch { 'unknown' }
 
 $rows = [System.Collections.Generic.List[object]]::new()
+try {
 for ($r = 1; $r -le $repeatCount; $r++) {
+    # The profile that runs first meets a cold prompt cache; rotating the order each repetition spreads that cost.
+    $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
     foreach ($t in $tasks) {
-        foreach ($p in $profiles) {
+        foreach ($p in $order) {
             $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
             $rows.Add($row)
             Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
                 $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
         }
     }
+}
+} finally {
+    if ($ownWorkspace) { Remove-Item -LiteralPath $WorkDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
 $summary = Get-BenchmarkSummary $rows.ToArray() @($profiles.id) @($tasks.id)
@@ -348,3 +409,7 @@ $document | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $runDi
 Format-BenchmarkMarkdown $summary $meta | Set-Content -LiteralPath (Join-Path $runDir 'summary.md') -Encoding utf8 -NoNewline
 Write-BenchLog "Results: $runDir"
 if ($Json) { $document | ConvertTo-Json -Depth 6 -Compress }
+# A session that never produced an answer to grade (the network, a rate limit, the time limit) makes the run incomplete.
+$ungraded = @($rows | Where-Object infrastructure)
+if ($ungraded.Count) { Write-BenchLog "$($ungraded.Count) session(s) produced no answer to grade, even after retrying: the run is incomplete"; exit 1 }
+exit 0

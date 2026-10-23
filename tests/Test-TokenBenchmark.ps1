@@ -1,6 +1,7 @@
 # Self-test for benchmark/Invoke-TokenBenchmark.ps1 against a fake Claude Code CLI (tests/token-benchmark/fake-claude.ps1):
-# token counting with cache reads and writes, acceptance checks, retries, the time limit, steps that resume one session,
-# the isolation arguments, the call limit and the reports. Calls no model and costs nothing.
+# token counting with cache reads and writes, the grader, retries only for answers that never came, the time limit, steps
+# that resume one session, the isolation arguments and the copy the sessions run in, the call limit and the reports.
+# Calls no model and costs nothing.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
@@ -17,14 +18,17 @@ $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
 }
-function Invoke-Bench([string[]]$Arguments) {
-    $out = & pwsh -NoProfile -File $bench -SpecPath $spec -Claude $fake -OutputDir (Join-Path $work 'results') -WorkDir $root -Json @Arguments 2>$null
-    return [pscustomobject]@{ Code = $LASTEXITCODE; Json = $(if ($LASTEXITCODE -eq 0 -and $out) { ($out | Select-Object -Last 1) | ConvertFrom-Json }) }
+function Invoke-Bench([string[]]$Arguments, [switch]$OwnWorkspace) {
+    $where = if ($OwnWorkspace) { @() } else { @('-WorkDir', $root) }
+    $out = & pwsh -NoProfile -File $bench -SpecPath $spec -Claude $fake -OutputDir (Join-Path $work 'results') -Json @where @Arguments 2>$null
+    $code = $LASTEXITCODE
+    $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
+    return [pscustomobject]@{ Code = $code; Json = $(if ($doc) { $doc | ConvertFrom-Json }) }
 }
 
 try {
     $dry = Invoke-Bench @('-DryRun')
-    Assert-True ($dry.Code -eq 0 -and $dry.Json.calls -eq 32) "dry run counts 32 sessions (4 tasks x 2 runs x 1 + 1 + 2 steps)"
+    Assert-True ($dry.Code -eq 0 -and $dry.Json.calls -eq 40) "dry run counts 40 sessions (5 tasks x 2 runs x 1 + 1 + 2 steps)"
     Assert-True (-not (Test-Path -LiteralPath $env:FAKE_CLAUDE_LOG)) 'dry run calls nothing'
 
     $tooMany = Invoke-Bench @('-MaxCalls', '5')
@@ -51,6 +55,14 @@ try {
     Assert-True (@($flaky | Where-Object { $_.success -and $_.retries -eq 1 }).Count -eq 6) 'output that is not JSON is retried once, then passes'
 
     $calls = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG | ForEach-Object { $_ | ConvertFrom-Json })
+    $firstOfGood = @($calls | Where-Object { $_.prompt -match 'ANSWER-GOOD' -and $_.args -notcontains '--resume' })
+    $profileOf = { param($c) if ($c.args -contains '--append-system-prompt') { 'P2' } elseif ($c.prompt -match 'Plan first') { 'P3' } else { 'P1' } }
+    Assert-True ($firstOfGood.Count -eq 6 -and (& $profileOf $firstOfGood[0]) -eq 'P1' -and (& $profileOf $firstOfGood[3]) -eq 'P2') 'the profile that runs first changes with each repetition (a cold cache is shared out)'
+
+    $turnsRun = Invoke-Bench @('-TaskId', 'T-TURNS', '-ProfileId', 'P1-plain', '-Repeat', '1')
+    $turnsRow = @(Get-Content -LiteralPath (Join-Path $turnsRun.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]
+    Assert-True ($turnsRun.Code -eq 0 -and -not $turnsRow.success -and $turnsRow.retries -eq 0 -and $turnsRow.tokensTotal -eq 6043 -and $turnsRow.reasons -match 'error_max_turns') 'running out of turns is a result: not retried, failed, its tokens counted'
+
     Assert-True (@($calls | Where-Object { $_.args -notcontains '--strict-mcp-config' }).Count -eq 0) 'every session skips the user''s MCP servers'
     Assert-True (@($calls | Where-Object { $_.args -contains 'Bash' -and [Array]::IndexOf($_.args, '--disallowedTools') -lt 0 }).Count -eq 0) 'no session may run Bash or edit'
     Assert-True (@($calls | Where-Object { $_.sessionEnv }).Count -eq 0) 'the parent session id does not reach the benchmark sessions'
@@ -82,19 +94,44 @@ try {
     $pluginRow = @(Get-Content -LiteralPath (Join-Path $withPlugin.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]
     Assert-True ($pluginRow.plugin -eq $true -and $withPlugin.Json.meta.plugin -eq $true -and (Get-Content -LiteralPath (Join-Path $withPlugin.Json.folder 'summary.md') -Raw) -match 'loaded as a plugin') 'rows and the summary say the plugin was loaded'
 
-    # Forbidden words count in an answer's code, not in its notes about the code.
+    # The grader, on answers built to fool it (the adversarial review's cases).
     $parsed = [System.Management.Automation.Language.Parser]::ParseFile($bench, [ref]$null, [ref]$null)
-    $grader = $parsed.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Test-BenchmarkAnswer' }, $true)
-    . ([scriptblock]::Create($grader.Extent.Text))
+    foreach ($name in 'Test-BenchmarkTerm', 'Test-BenchmarkAnswer') {
+        $fn = $parsed.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
+        . ([scriptblock]::Create($fn.Extent.Text))
+    }
     $fence = '`' * 3
-    $rule = @{ forbid = @('Write-Output') }
-    Assert-True ((Test-BenchmarkAnswer "${fence}powershell`nfunction Get-X { 1 }`n${fence}`nNo Write-Output: the value is returned." $rule).Count -eq 0) 'a forbidden word in the notes beside the code passes'
-    Assert-True ((Test-BenchmarkAnswer "${fence}powershell`nWrite-Output 1`n${fence}" $rule) -contains "contains 'Write-Output'") 'a forbidden word in the code fails'
-    Assert-True ((Test-BenchmarkAnswer 'Use Write-Output here.' $rule) -contains "contains 'Write-Output'") 'without code blocks the whole answer counts'
+    $rule = @{ forbid = @('Write-Output', 'echo') }
+    Assert-True ((Test-BenchmarkAnswer "${fence}powershell`nfunction Get-X { 1 }`n${fence}`nNo ``Write-Output``: the value is returned." $rule).Count -eq 0) 'a forbidden command named in a note passes'
+    Assert-True ((Test-BenchmarkAnswer "${fence}powershell`n    Write-Output 1`n${fence}" $rule) -contains "uses 'Write-Output'") 'a forbidden command in the code fails'
+    Assert-True ((Test-BenchmarkAnswer "${fence}`nfunction Get-X { 1 }`n${fence}`nfunction Get-Y {`n    Get-Thing | echo`n}" $rule) -contains "uses 'echo'") 'a decoy code block does not hide one written outside it, nor an alias'
+    Assert-True ((Test-BenchmarkAnswer 'It is specific to this repository.' @{ mustInclude = @('CI') }) -contains "missing 'CI'") '"CI" is not found inside "specific"'
+    Assert-True ((Test-BenchmarkAnswer 'Runs on CI, every push.' @{ mustInclude = @('CI') }).Count -eq 0) 'a whole word is found'
+    Assert-True ((Test-BenchmarkAnswer 'see test/test_score.gd' @{ mustInclude = @('test_') }).Count -eq 0) 'a term ending in _ still finds a prefix'
+    Assert-True ((Test-BenchmarkAnswer 'Keep the context scoped.' @{ mustInclude = @('re:\bscop(e|ed)\b') }).Count -eq 0) 'a re: term is a regular expression'
+    $diff = "--- a/x.ps1`n+++ b/x.ps1`n@@ -1 +1 @@`n     [ValidateSet('a')]`n-    [int]`$n`n+    [int]`$m"
+    $added = @{ mustAdd = @('re:\[Validate[A-Za-z]+\(') }
+    Assert-True ((Test-BenchmarkAnswer $diff $added) -contains "does not add '$($added.mustAdd[0])'") 'a term on an unchanged context line of a diff is not an addition'
+    Assert-True ((Test-BenchmarkAnswer ($diff + "`n+    [ValidateRange(1, 9)]") $added).Count -eq 0) 'a term on an added line is'
+    Assert-True ((Test-BenchmarkAnswer '+ ValidateRange' @{ mustInclude = @('Validate') }) -contains "missing 'Validate'") 'a plain term is a whole word, not a prefix'
+    $echoSpec = Join-Path $work 'echo-spec.json'
+    $echo = Get-Content -LiteralPath $spec -Raw | ConvertFrom-Json -AsHashtable
+    $echo.tasks[0].expected.mustInclude = @('please')
+    $echo | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $echoSpec
+    & pwsh -NoProfile -File $bench -SpecPath $echoSpec -Claude $fake -DryRun 2>$null | Out-Null
+    Assert-True ($LASTEXITCODE -ne 0) 'a spec that requires a word its own prompt holds is refused (echoing the question would pass)'
 
     $slow = Invoke-Bench @('-TaskId', 'T-SLOW', '-ProfileId', 'P1-plain', '-Repeat', '1')
     $slowRow = @(Get-Content -LiteralPath (Join-Path $slow.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]
     Assert-True (-not $slowRow.success -and $slowRow.reasons -eq 'timed out' -and $slowRow.retries -eq 1 -and $slowRow.durationMs -ge 4000) 'a hung session is stopped at the time limit and retried once'
+    Assert-True ($slow.Code -ne 0 -and $slowRow.spendKnown -eq $false) 'a run with a session that never answered is incomplete (exit 1), and that spend is marked unknown'
+
+    # The sessions run in a copy without the benchmark: its spec holds every expected answer.
+    $before = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG).Count
+    $own = Invoke-Bench @('-TaskId', 'T-GOOD', '-ProfileId', 'P1-plain', '-Repeat', '1') -OwnWorkspace
+    $ownCall = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG | Select-Object -Skip $before | ForEach-Object { $_ | ConvertFrom-Json })[0]
+    Assert-True ($own.Code -eq 0 -and $ownCall.cwd -ne $root -and $ownCall.seesAgents -and -not $ownCall.seesSpec) "by default a session runs in a copy with AGENTS.md but not benchmark/ (ran in $($ownCall.cwd))"
+    Assert-True (-not (Test-Path -LiteralPath $ownCall.cwd)) 'the copy is deleted after the run'
 } finally {
     Remove-Item Env:CLAUDE_CODE_SESSION_ID, Env:FAKE_CLAUDE_STATE, Env:FAKE_CLAUDE_LOG -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

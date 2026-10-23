@@ -4,7 +4,7 @@
   "timeoutSeconds": 2,
   "repeat": 2,
   "retries": 1,
-  "maxCalls": 50,
+  "maxCalls": 100,
   "profiles": [
     { "id": "P1-plain" },
     { "id": "P2-scoped", "listContext": true, "maxTurns": 4, "appendSystemPrompt": "Be brief." },
@@ -16,6 +16,8 @@
     { "id": "T-MISS", "category": "comprehension", "title": "Miss", "prompt": "Say something.",
       "expected": { "mustInclude": ["beta"], "forbid": ["gamma"] }, "context": ["AGENTS.md"] },
     { "id": "T-FLAKY", "category": "debugging", "title": "Flaky", "prompt": "GARBAGE first, then fine.",
+      "expected": { "mustInclude": ["alpha"] } },
+    { "id": "T-TURNS", "category": "debugging", "title": "Turns", "prompt": "MAXTURNS before answering.",
       "expected": { "mustInclude": ["alpha"] } },
     { "id": "T-SLOW", "category": "debugging", "title": "Slow", "prompt": "SLOW to answer.",
       "expected": { "mustInclude": ["alpha"] } }
