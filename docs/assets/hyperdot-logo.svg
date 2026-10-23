@@ -35,14 +35,14 @@
     <path d="M186 128 C200 186 236 206 256 206 C276 206 312 186 326 128 C306 160 206 160 186 128 Z" fill="#3b7fc4"/>
     <path d="M238 140 H274" fill="none" stroke-width="9"/>
     <!-- Jawbreaker-style shield glasses -->
-    <path d="M155 76 L134 80 M357 76 L378 80" fill="none" stroke="#1d2a26" stroke-width="7"/>
     
-    <path d="M154 70 C200 57 312 57 358 70 L355 94 C353 116 340 130 320 132 C298 134 284 124 275 111 C268 101 262 98 256 98 C250 98 244 101 237 111 C228 124 214 134 192 132 C172 130 159 116 157 94 Z" fill="url(#prizm)" stroke="#1d2a26" stroke-width="7"/>
-    <rect x="249" y="56" width="14" height="6" rx="3" fill="#c6f432" stroke-width="5"/>
-    <circle cx="160" cy="80" r="4" fill="#c6f432" stroke-width="4"/><circle cx="352" cy="80" r="4" fill="#c6f432" stroke-width="4"/>
+    
+    <path d="M158 74 C202 63 310 63 354 74 L351 93 C349 112 338 124 320 126 C300 128 286 120 278 108 C270 99 262 96 256 96 C250 96 242 99 234 108 C226 120 212 128 192 126 C174 124 163 112 161 93 Z" fill="url(#prizm)" stroke="#1d2a26" stroke-width="10"/>
+    <rect x="248" y="60" width="16" height="7" rx="3" fill="#c6f432" stroke-width="5"/>
+    <circle cx="164" cy="82" r="4" fill="#c6f432" stroke-width="4"/><circle cx="348" cy="82" r="4" fill="#c6f432" stroke-width="4"/>
   </g>
-  <path d="M198 64 H226 M286 64 H314" stroke="#1d2a26" stroke-width="3" stroke-linecap="round"/>
-  <path d="M174 78 C198 70 222 68 242 68 L232 88 C212 88 194 92 178 100 Z" fill="#ffffff" opacity="0.38"/>
+  <path d="M200 68 H226 M286 68 H312" stroke="#5c6b66" stroke-width="3" stroke-linecap="round"/>
+  <path d="M178 80 C200 73 222 71 240 71 L231 89 C212 89 196 92 182 99 Z" fill="#ffffff" opacity="0.38"/>
   <path d="M298 76 L316 76 L296 106 L282 106 Z" fill="#ffffff" opacity="0.2"/>
   <path d="M100 210 C108 196 122 190 138 192" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
   <path d="M374 192 C390 190 404 196 412 210" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
