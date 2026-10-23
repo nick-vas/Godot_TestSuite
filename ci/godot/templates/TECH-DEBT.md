@@ -28,6 +28,9 @@ content may still be here.
 |---|---|---|---|
 | | | | |
 
+Mark each stand-in file in `assets.json` too (`"placeholder": true`, `"due": "yyyy-MM-dd"`), so `doctor` and `status` count
+them and `doctor` fails once one is past its date.
+
 ## Total and threshold
 
 Total: 0 hours, about 0 weeks at the weekly hours above.

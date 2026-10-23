@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- **Add-on licences without an `assets.json` entry** (`doctor`): an `addons/<name>/LICENSE*` whose add-on code no entry
+  covers is a warning, since `credits` then writes no notice for code that ships. The fix is the entry, with the licence
+  read from the text, `copyright` from its first `Copyright` line and `licenceFile`. GUT, gdUnit4 and the git plugin are
+  left out.
+- **Placeholders in `assets.json`**: `"placeholder": true`, with an optional `"due"` (yyyy-MM-dd) and `"status"` (`needed`
+  or `in-progress`). `doctor` warns with the list and fails for one past its due date, as for an ended quarantine;
+  `status` counts them (`placeholders`: `count`, `pastDue`, `entries[]`) and warns about those past due. The TECH-DEBT
+  template points at the field.
+- `doctor` reports MPL-2.0 entries (file-level copyleft) as INFO instead of an unrecognised licence.
 - **MPL-2.0 in `credits`** (gdext and other Rust bindings): the licence text ships with the kit
   (`ci/godot/templates/licences/MPL-2.0.txt`, SPDX 3.29.0), and the notice tells players where the source of those files
   is, as section 3.2(a) asks. An MPL entry whose `source` is not a URL fails (`source-offer-missing`); a modified one

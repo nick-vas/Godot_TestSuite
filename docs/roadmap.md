@@ -176,17 +176,12 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 
 - **Bug-report pins in the editor.** `godot-automation-hooks` asks reports to save scene, position and view; nothing
   shows them. A small C# `[Tool]` node that draws each report for the open scene.
-- **An add-on's code without an `assets.json` entry.** `credits` writes notices only for what `assets.json` lists. WARN
-  in `doctor` for `addons/<name>/LICENSE*` with no entry covering `addons/<name>/**`; fill `copyright` from the licence's
-  first `Copyright` line.
 - **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
   folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
   refreshed by `Invoke-Canary.ps1`.
 - **Plan gates for what is now prose:** `concept.risks` (`docs/RISKS.md`), an optional `concept.budget`, and
   `beta.placeholders`. Each needs `plan.json`, `tests/Test-Plan.ps1` and `docs/json.md` if the output changes.
 - **`plan -Do init -Profile jam`:** a plan sized in days with the jam gates (`Plan.ps1`, `Test-Plan.ps1`).
-- **Placeholders in `assets.json`** (`"placeholder": true`, `"due"`, `"status": "needed"`), counted by `doctor` and
-  `status`, so the TECH-DEBT table becomes checkable.
 - **First-session steps as stubs.** `status` reads only the GDD's pitch and features; the first-session steps could
   become flow and `playthrough.json` stubs that `/game` writes.
 - **`templates/ARCHITECTURE.md`:** autoloads, scene tree, signal catalogue, authored versus runtime data, save schema

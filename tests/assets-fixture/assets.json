@@ -11,6 +11,11 @@
     { "path": "art/boss/**", "source": "commissioned", "author": "Jane Doe", "licence": "proprietary", "rights": "assigned" },
     { "path": "art/logo.png", "source": "commissioned", "author": "Co-founder", "licence": "proprietary", "agreement": "founders-ip-assignment" },
     { "path": "music/theme.ogg", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music", "agreement": "MM-2026-01", "rights": "licensed" },
-    { "path": "music/menu.ogg", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music", "agreement": "MM-2026-02", "rights": "licensed", "uses": ["game", "store"] }
+    { "path": "music/menu.ogg", "source": "commissioned", "author": "Max Mo", "licence": "LicenseRef-MaxMo-Music", "agreement": "MM-2026-02", "rights": "licensed", "uses": ["game", "store"] },
+    { "path": "shaders/noise.gdshader", "source": "https://example.com/noise", "author": "Someone", "licence": "MPL-2.0" },
+    { "path": "art/stand_in/**", "source": "own", "licence": "own", "placeholder": true, "due": "2099-01-31", "status": "in-progress" },
+    { "path": "audio/boss_theme.ogg", "source": "own", "licence": "own", "placeholder": true, "due": "2020-01-31" },
+    { "path": "art/title.png", "source": "own", "licence": "own", "placeholder": true, "due": "next week", "status": "wanted" },
+    { "path": "addons/covered/**", "source": "https://example.com/covered", "author": "Someone", "licence": "MIT", "copyright": "2020 Someone" }
   ]
 }

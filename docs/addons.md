@@ -65,6 +65,7 @@ Godot also refuses an extension outside `compatibility_minimum` and `compatibili
 | The game uses an autoload an add-on's plugin registers, and `project.godot` lacks it | WARN |
 | `addons/gut`, `addons/gdUnit4` or `addons/godot-git-plugin` in a preset without an exclusion | WARN |
 | `forced_dd3d` in a preset's custom features (Debug Draw 3D drawing in release builds) | WARN |
+| `addons/<name>/LICENSE*` (or `LICENCE*`, `COPYING*`) and no `assets.json` entry covering the add-on's code; the fix is the entry, with the licence read from the text and `copyright` from its first `Copyright` line (`lib/Assets.ps1`; GUT, gdUnit4 and the git plugin are left out) | WARN |
 
 The autoload rule replaces "plugin not enabled", which would be wrong: `examples/gdscript` keeps `addons/gut` disabled
 and GUT's command-line runner works. What breaks a game is an autoload such as Dialogue Manager's `DialogueManager` that
@@ -127,6 +128,6 @@ for AI agents", not a game backend.
 ## Licences
 
 Every add-on's code ships with the game, so its licence notice does too: an `assets.json` entry for `addons/<name>/**`
-lets `credits` write it (`godot-asset-pipeline`). Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
+lets `credits` write it (`godot-asset-pipeline`), and `doctor` writes that entry for an add-on with a licence file and none. Some add-ons wrap SDKs with their own terms (FMOD, Steamworks, Epic Online
 Services, Steam Audio's "proprietary libraries"), ProtonScatter's textures "cannot redistribute them on their own", and
 EIRTeam.FFmpeg's h264 needs a check of patent law where the game sells.

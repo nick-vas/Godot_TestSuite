@@ -26,6 +26,7 @@ $script:LicenceKinds = [ordered]@{
     free        = @('CC0-1.0', 'Unlicense', '0BSD', 'proprietary', 'own')
     attribution = @('CC-BY-3.0', 'CC-BY-4.0', 'OGA-BY-3.0', 'OGA-BY-4.0', 'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', 'Zlib', 'ISC', 'OFL-1.1')
     shareAlike  = @('CC-BY-SA-3.0', 'CC-BY-SA-4.0')
+    fileCopyleft = @('MPL-2.0')
     copyleft    = @('GPL-2.0-only', 'GPL-2.0-or-later', 'GPL-3.0-only', 'GPL-3.0-or-later', 'LGPL-2.1-only', 'LGPL-3.0-only', 'AGPL-3.0-only')
     noDerivs    = @('CC-BY-ND-3.0', 'CC-BY-ND-4.0')
     nonCommercial = @('CC-BY-NC-3.0', 'CC-BY-NC-4.0', 'CC-BY-NC-SA-3.0', 'CC-BY-NC-SA-4.0', 'CC-BY-NC-ND-3.0', 'CC-BY-NC-ND-4.0')
@@ -118,3 +119,104 @@ function Get-PixelArtImportReport([string]$ProjectDir, [string]$ProjectGodot) {
     if ($ProjectGodot -notmatch '(?m)^window/stretch/scale_mode="integer"') { $report.stretch += 'window/stretch/scale_mode is not integer' }
     return $report
 }
+
+# The entries of assets.json as hashtables, or none when it is missing or not valid JSON (doctor reports that elsewhere).
+function Read-AssetManifestEntries([string]$ProjectDir) {
+    $path = Join-Path $ProjectDir 'assets.json'
+    if (-not (Test-Path -LiteralPath $path)) { return @() }
+    try { $doc = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable } catch { return @() }
+    if ($doc -isnot [hashtable] -or -not $doc.ContainsKey('assets')) { return @() }
+    return @($doc['assets'] | Where-Object { $_ -is [hashtable] })
+}
+
+# Placeholders: an entry with "placeholder": true covers stand-in files that the real asset replaces before release (the
+# Placeholders table of templates/TECH-DEBT.md). Optional "due" (yyyy-MM-dd, when the real one is due) and "status":
+# "needed" (nobody is making it yet, the default) or "in-progress". A placeholder entry is an ordinary entry too: the stand-in
+# has a source and a licence, since it ships if nobody replaces it. Returns { entries, problems }; each entry has path,
+# due, status, files (asset files it covers) and pastDue (due before today).
+$script:PlaceholderStatuses = @('needed', 'in-progress')
+function Get-AssetPlaceholders([string]$ProjectDir, [datetime]$Today = (Get-Date).Date) {
+    $result = [ordered]@{ entries = @(); problems = @() }
+    $placeholders = @(Read-AssetManifestEntries $ProjectDir | Where-Object { $_['placeholder'] -eq $true })
+    if ($placeholders.Count -eq 0) { return $result }
+    $files = @(Get-AssetFiles $ProjectDir)
+    $result.entries = @(foreach ($entry in $placeholders) {
+        $path = "$($entry['path'])"
+        $due = $null; $pastDue = $false
+        $dueText = "$($entry['due'])".Trim()
+        if ($entry['due'] -is [datetime]) { $dueText = $entry['due'].ToString('yyyy-MM-dd', [cultureinfo]::InvariantCulture) }
+        if ($dueText) {
+            $parsed = [datetime]::MinValue
+            if ([datetime]::TryParseExact($dueText, 'yyyy-MM-dd', [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                $due = $dueText; $pastDue = $parsed.Date -lt $Today.Date
+            } else { $result.problems += "placeholder $path has due '$dueText', not a yyyy-MM-dd date" }
+        }
+        $status = "$($entry['status'])".Trim()
+        if (-not $status) { $status = 'needed' }
+        elseif ($status -notin $script:PlaceholderStatuses) { $result.problems += "placeholder $path has status '$status' (use $($script:PlaceholderStatuses -join ' or '))" }
+        $regex = if ($path) { ConvertTo-AssetPathRegex $path } else { '^$' }
+        [ordered]@{ path = $path; due = $due; status = $status; files = @($files | Where-Object { $_ -match $regex }).Count; pastDue = $pastDue }
+    })
+    return $result
+}
+
+# The SPDX id of a licence file's text, from the phrases each licence's own text has; '<SPDX id>' when none fits.
+function Get-LicenceIdFromText([string]$Text) {
+    $flat = $Text -replace '\s+', ' '
+    if ($flat -match 'Mozilla Public License,? (Version |v\. ?)2\.0') { return 'MPL-2.0' }
+    if ($flat -match 'Apache License,? Version 2\.0') { return 'Apache-2.0' }
+    if ($flat -match 'Permission is hereby granted, free of charge') { return 'MIT' }
+    if ($flat -match 'Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted') {
+        return ($flat -match 'provided that the above copyright notice') ? 'ISC' : '0BSD'
+    }
+    if ($flat -match 'Redistribution and use in source and binary forms') { return ($flat -match 'Neither the name') ? 'BSD-3-Clause' : 'BSD-2-Clause' }
+    if ($flat -match "This software is provided 'as-is'") { return 'Zlib' }
+    if ($flat -match 'This is free and unencumbered software released into the public domain') { return 'Unlicense' }
+    if ($flat -match 'SIL OPEN FONT LICENSE Version 1\.1') { return 'OFL-1.1' }
+    if ($flat -match 'CC0 1\.0 Universal') { return 'CC0-1.0' }
+    return '<SPDX id>'
+}
+
+# The first "Copyright ..." line of a licence text without the word and the (c), as assets.json's copyright field takes
+# it ("2021 Sam Roe"); $null when there is none, or only a template's placeholder such as "<year> <copyright holders>".
+function Get-LicenceCopyright([string]$Text) {
+    foreach ($line in $Text -split "`r?`n") {
+        if ($line -notmatch '^\s*Copyright\b(?!\s+(notice|and|owner|holder|license|licence|law|\(c\)\s*$))') { continue }
+        $holder = ($line -replace '^\s*Copyright\s*(\(c\)|\(C\)|©)?\s*', '').Trim()
+        if (-not $holder -or $holder -match '[<\[]') { continue }
+        return $holder
+    }
+    return $null
+}
+
+# Add-ons whose folder has a licence file (LICENSE*, LICENCE*, COPYING*) but whose code no assets.json entry covers, so
+# credits writes no notice for code that ships in the game. Test and editor add-ons that are not exported (GUT, gdUnit4,
+# the git plugin; doctor warns separately when a preset ships them) are left out. Each gap has addon, licenceFile,
+# licence (guessed from the text), copyright (its first Copyright line) and entry, the assets.json entry to add.
+$script:DevOnlyAddons = @('gut', 'gdUnit4', 'godot-git-plugin')
+function Get-AddonLicenceGaps([string]$ProjectDir) {
+    $addonsDir = Join-Path $ProjectDir 'addons'
+    if (-not (Test-Path -LiteralPath $addonsDir)) { return @() }
+    $rules = @(foreach ($entry in Read-AssetManifestEntries $ProjectDir) { if ($entry['path']) { ConvertTo-AssetPathRegex "$($entry['path'])" } })
+    $codeExtensions = '.gd', '.cs', '.gdextension', '.gdshader', '.gdshaderinc', '.tscn', '.tres', '.so', '.dll', '.dylib', '.wasm', '.framework'
+    return @(foreach ($dir in @(Get-ChildItem -LiteralPath $addonsDir -Directory | Sort-Object Name)) {
+        if ($dir.Name -in $script:DevOnlyAddons -or (Test-Path -LiteralPath (Join-Path $dir.FullName '.gdignore'))) { continue }
+        $licenceFile = @(Get-ChildItem -LiteralPath $dir.FullName -File | Where-Object { $_.Name -match '^(LICEN[SC]E|COPYING)' } | Sort-Object Name)
+        if ($licenceFile.Count -eq 0) { continue }
+        $folder = "addons/$($dir.Name)"
+        $code = @(Get-ChildItem -LiteralPath $dir.FullName -Recurse -File | Where-Object { $_.Extension -in $codeExtensions } |
+            ForEach-Object { [System.IO.Path]::GetRelativePath($ProjectDir, $_.FullName) -replace '\\', '/' })
+        if ($code.Count -eq 0) { $code = @("$folder/$($licenceFile[0].Name)") }
+        $uncovered = @($code | Where-Object { $file = $_; -not @($rules | Where-Object { $file -match $_ }).Count })
+        if ($uncovered.Count -eq 0) { continue }
+        $text = [System.IO.File]::ReadAllText($licenceFile[0].FullName)
+        $licence = Get-LicenceIdFromText $text
+        $copyright = Get-LicenceCopyright $text
+        $entry = [ordered]@{ path = "$folder/**"; source = '<where you downloaded it>'; licence = $licence }
+        if ($copyright) { $entry.copyright = $copyright }
+        $entry.licenceFile = "$folder/$($licenceFile[0].Name)"
+        [pscustomobject]@{ Addon = $folder; LicenceFile = $entry.licenceFile; Licence = $licence; Copyright = $copyright
+            Uncovered = $uncovered.Count; Entry = ($entry | ConvertTo-Json -Compress) }
+    })
+}
+

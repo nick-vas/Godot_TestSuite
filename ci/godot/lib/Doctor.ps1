@@ -340,6 +340,7 @@ function Invoke-Doctor($Info) {
             if ($kinds.Contains('unknown')) { Add-Check WARN "Licence not recognised: $(& $list $kinds.unknown)" 'Use an SPDX identifier (CC0-1.0, CC-BY-4.0, MIT...), or LicenseRef-<name> for custom terms' }
             if ($kinds.Contains('noDerivs')) { Add-Check INFO "No-derivatives licence, so use these unchanged: $(& $list $kinds.noDerivs)" }
             if ($kinds.Contains('shareAlike')) { Add-Check INFO "Share-alike licence, so changed versions of these keep it: $(& $list $kinds.shareAlike)" }
+            if ($kinds.Contains('fileCopyleft')) { Add-Check INFO "File-level copyleft (MPL-2.0): tell players where the source of these files is, and publish your changes to them: $(& $list $kinds.fileCopyleft)" }
             if ($kinds.Contains('custom')) { Add-Check INFO "Custom licence terms to read before release: $(& $list $kinds.custom)" }
             if ($kinds.Contains('attribution')) { Add-Check INFO "$($kinds.attribution.Count) file(s) need a credit in the game (CC-BY, MIT and similar); build the credits screen from assets.json" }
             # Commissioned work belongs to whoever made it until a signed agreement says otherwise (godot-legal).
@@ -352,6 +353,24 @@ function Invoke-Doctor($Info) {
             if (-not $assets.uncovered -and -not $assets.invalid) { Add-Check OK "Assets: $($assets.files) file(s), each with a source and licence in assets.json" }
         }
     }
+    # Add-on code ships in the game, so its licence notice does too; credits writes notices only for assets.json entries.
+    foreach ($gap in @(Get-AddonLicenceGaps $project)) {
+        Add-Check WARN "$($gap.Addon) has a licence file ($($gap.LicenceFile)$(if ($gap.Licence -ne '<SPDX id>') { ", $($gap.Licence)" })) but no assets.json entry covers its code, so credits writes no notice for it" `
+            "Add this entry to assets.json with the real source: $($gap.Entry) (godot-addons)"
+    }
+    # Placeholders: stand-ins to replace before release. Past its due date one fails, as an ended quarantine does: the date
+    # was the team's own promise; replace the asset or set a new date.
+    $placeholders = Get-AssetPlaceholders $project
+    foreach ($problem in $placeholders.problems) { Add-Check WARN "assets.json: $problem" 'due is yyyy-MM-dd; status is needed or in-progress (godot-asset-pipeline)' }
+    $describe = {
+        param($Items)
+        $shown = @(foreach ($p in @($Items) | Select-Object -First 5) { "$($p.path) ($(if ($p.due) { "due $($p.due), " })$($p.status))" })
+        "$($shown -join ', ')$(if (@($Items).Count -gt 5) { " and $(@($Items).Count - 5) more" })"
+    }
+    $late = @($placeholders.entries | Where-Object { $_.pastDue })
+    $open = @($placeholders.entries | Where-Object { -not $_.pastDue })
+    if ($late) { Add-Check FAIL "Placeholders past their due date in assets.json: $(& $describe $late)" 'Replace each with the real asset and remove "placeholder" from its entry, or agree a new "due" date (godot-asset-pipeline)' }
+    if ($open) { Add-Check WARN "$($open.Count) placeholder(s) in assets.json to replace before release: $(& $describe $open)" 'Replace each with the real asset, then remove "placeholder" from its entry (godot-asset-pipeline)' }
 
     # Pixel art: Nearest filtering declared, so check the imports that would blur or smear it (godot-asset-pipeline).
     $pixel = Get-PixelArtImportReport $project $projectGodot

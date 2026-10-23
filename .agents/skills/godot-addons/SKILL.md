@@ -30,7 +30,8 @@ was measured on Godot 4.7.2.
    its autoloads (`DialogueManager`, `PhantomCameraManager`), which an export otherwise lacks.
 3. Exclude test and editor add-ons from every export preset (`addons/gut/*`, `addons/gdUnit4/*`,
    `addons/godot-git-plugin/*`).
-4. Add an `assets.json` entry for `addons/<name>/**` with its licence, so `credits` ships the notice (`godot-asset-pipeline`).
+4. Add an `assets.json` entry for `addons/<name>/**` with its licence, so `credits` ships the notice (`godot-asset-pipeline`);
+   `doctor` prints the entry for an add-on with a `LICENSE` file and none, with the licence and copyright line filled in.
 5. Run `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 doctor -Json` and fix every add-on line.
 
 ## 3. Why an add-on works in the editor but not in the export

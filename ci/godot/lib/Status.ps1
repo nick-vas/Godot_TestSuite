@@ -280,6 +280,11 @@ function Invoke-Status($Info) {
     $decisions = @(Get-Decisions $Info)
     foreach ($d in $decisions | Where-Object { $_.status -match '^Proposed' }) { $warnings.Add("Decision $($d.number) $($d.title) awaits the user's answer") }
 
+    # Placeholders in assets.json (stand-ins to replace before release; doctor fails on one past its due date).
+    $placeholderReport = Get-AssetPlaceholders $Info.ProjectDir
+    $placeholders = [ordered]@{ count = @($placeholderReport.entries).Count; pastDue = @($placeholderReport.entries | Where-Object { $_.pastDue }).Count
+        entries = @($placeholderReport.entries) }
+    foreach ($p in @($placeholderReport.entries | Where-Object { $_.pastDue })) { $warnings.Add("Placeholder $($p.path) was due on $($p.due) (assets.json): replace it, or agree a new date") }
     $git = Get-GitActivity $Info.ProjectDir
     $inventory = Get-ProjectInventory $Info
 
@@ -297,6 +302,7 @@ function Invoke-Status($Info) {
         [ordered]@{ runner = $q.Runner; name = $q.Name; owner = $q.Owner; until = $q.Until; reason = $q.Reason; expired = $q.Expired } })
     Set-JsonField git $git
     Set-JsonField inventory $inventory
+    Set-JsonField placeholders $placeholders
     Set-JsonField warnings @($warnings)
 
     if (-not $script:JsonMode) {
@@ -319,6 +325,7 @@ function Invoke-Status($Info) {
         if ($git) { Write-Console "Git: $($git.commits7Days) commit(s) this week, $($git.uncommitted) uncommitted change(s), last commit $($git.lastCommit)" }
         Write-Console "Look: $(if ($look.styleGuide) { "style guide ($($look.resolutions -join ', '))" } else { 'no style guide (/look writes one)' }); $(if ($look.juiceRules) { "$($look.juiceRules) juice rule(s)" } else { 'no juice.json' })"
         if ($decisions) { Write-Console "Decisions: $($decisions.Count) ($(@($decisions | Where-Object { $_.status -match '^Proposed' }).Count) awaiting you)" }
+        if ($placeholders.count) { Write-Console "Placeholders: $($placeholders.count) in assets.json ($($placeholders.pastDue) past due)" }
         Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }
     }

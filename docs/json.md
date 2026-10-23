@@ -360,9 +360,12 @@ see [plan.md](plan.md#release-dates)).
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
+- `placeholders`: `count` and `pastDue` (entries of `assets.json` with `"placeholder": true`, and those whose `due` date
+  has passed), `entries[]` (`path`, `due` (yyyy-MM-dd or `null`), `status` (`needed` when not set), `files` (asset files the
+  entry covers), `pastDue`). A placeholder past due is also a warning.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
   unknown kind of fun, features with no plan task, tags or tasks naming
   features the GDD does not have, a failed or missing latest test run, a plan.json that cannot be read, plan overruns, repeatedly flaky tests, ended
-  quarantines and a latest failure whose error predates the current commit.
+  quarantines, placeholders past their due date and a latest failure whose error predates the current commit.

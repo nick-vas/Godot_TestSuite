@@ -120,7 +120,9 @@ tool or the editor and commit it. Check the result with `bench`: `drawCalls` bef
 Every file that did not start in the project gets an entry in `assets.json`, with its source and licence, as soon as it is
 added (format in `docs/reference.md`). `doctor` warns about files without one, non-commercial and GPL licences, and counts
 the credits owed; build the credits screen from the same file (section 6). Work made for the game by a contractor or a co-founder is
-`"source": "commissioned"` with `agreement`, `rights` (`assigned` or `licensed`) and, if licensed, `uses` (`godot-legal`). Platform button glyphs are CC0 as drawings but remain the
+`"source": "commissioned"` with `agreement`, `rights` (`assigned` or `licensed`) and, if licensed, `uses` (`godot-legal`).
+A stand-in is an entry with `"placeholder": true` and a `"due"` date (yyyy-MM-dd): `doctor` and `status` count them, and
+`doctor` fails once one is past due. Platform button glyphs are CC0 as drawings but remain the
 platform holders' trademarks.
 
 ## 6. Credits and licence notices
