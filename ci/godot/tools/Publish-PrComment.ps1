@@ -36,14 +36,20 @@ if (Test-ForkPullRequest) {
     return
 }
 
-# Coverage of the newest run on the base branch, from its summary.json, for the comparison line.
+# Coverage of the newest push run on the base branch, from its summary.json, for the comparison line.
 function Get-BaselineCoverage {
     if (-not $env:GITHUB_BASE_REF) { return $null }
     try {
         $artifacts = (Invoke-RestMethod -Headers $headers "$api/repos/$repo/actions/artifacts?name=$([uri]::EscapeDataString($ArtifactName))&per_page=50").artifacts
         $baseline = $null
         foreach ($artifact in $artifacts) {
-            if (-not $artifact.expired -and $artifact.workflow_run.head_branch -eq $env:GITHUB_BASE_REF) { $baseline = $artifact; break }
+            $run = $artifact.workflow_run
+            if ($artifact.expired -or $run.head_branch -ne $env:GITHUB_BASE_REF) { continue }
+            # A branch name is not proof: a pull request from a fork's own main also runs with head_branch main and
+            # would set the number compared with. Only a push to this repository's branch counts.
+            if ($run.head_repository_id -ne $run.repository_id) { continue }
+            $details = Invoke-RestMethod -Headers $headers "$api/repos/$repo/actions/runs/$($run.id)"
+            if ($details.event -eq 'push' -and $details.head_repository.full_name -eq $repo) { $baseline = $artifact; break }
         }
         if (-not $baseline) { return $null }
         $zip = Join-Path ([IO.Path]::GetTempPath()) "baseline-$([guid]::NewGuid()).zip"
@@ -88,13 +94,15 @@ try {
     # Every page of comments, not only the first 100: on a busy pull request the summary would otherwise be missed and a
     # new one posted on each run. A page shorter than 100 is the last; the cap stops a server that ignores page=.
     # foreach, not Where-Object: Invoke-RestMethod returns a JSON array as one object (empty or not).
+    # Only the workflow token's own comment is the summary: anyone can post the marker, and adopting their comment
+    # would leave the real results unposted (the PATCH fails) on every run.
     $existing = $null
     for ($page = 1; -not $existing -and $page -le 100; $page++) {
         $comments = Invoke-RestMethod -Headers $headers "$api/repos/$repo/issues/$PullRequest/comments?per_page=100&page=$page"
         $count = 0
         foreach ($comment in $comments) {
             $count++
-            if ($comment.body -and $comment.body.StartsWith($marker)) { $existing = $comment; break }
+            if ($comment.body -and $comment.body.StartsWith($marker) -and $comment.user -and $comment.user.login -eq 'github-actions[bot]') { $existing = $comment; break }
         }
         if ($count -lt 100) { break }
     }
