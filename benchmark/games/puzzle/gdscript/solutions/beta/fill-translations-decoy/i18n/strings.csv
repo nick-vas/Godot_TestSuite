@@ -1,0 +1,32 @@
+keys,en,fr
+MENU_TITLE,Frostmote,Frostmote
+MENU_START,Play,Jouer
+MENU_DAILY,Daily drift,Glissade du jour
+MENU_SETTINGS,Settings,Réglages
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+SELECT_TITLE,Choose a level,Choisir un niveau
+SELECT_LEVEL,Level %d,Niveau %d
+SELECT_BEST,Best: %d,Record : %d
+SELECT_BACK,Back,Retour
+HUD_LEVEL,Level %d,Niveau %d
+HUD_DAILY,Daily drift %d,Glissade du jour %d
+HUD_MOVES,Moves: %d / par %d,Coups : %d / par %d
+HUD_STUCK,No way to the exit from here: undo or restart,Plus de chemin vers la sortie : annulez ou recommencez
+HUD_UNDO,Undo,Annuler
+HUD_RESTART,Restart,Recommencer
+HUD_PAUSE,Pause,Pause
+PAUSE_TITLE,Paused,En pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_QUIT,Quit to menu,Retour au menu
+SOLVED_FINISH,Finish,Terminer
+SOLVED_MENU,Back to menu,Retour au menu
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+VICTORY_TITLE,Every drift is clear,Toutes les glissades sont faites
+VICTORY_MESSAGE,Every level is solved: %d moves in all.,Tous les niveaux sont résolus : %d coups en tout.
+VICTORY_MENU,Back to menu,Retour au menu
