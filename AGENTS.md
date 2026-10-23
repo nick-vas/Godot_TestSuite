@@ -103,6 +103,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-SkillShaders.ps1` | shaders quoted in skills compile | Godot |
 | `Test-DocLinks.ps1` | links and quoted paths in the docs and skills | - |
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
+| `Test-OldState.ps1` | the one-time move of state from the names before Hypedot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting and retries (a stand-in CLI) | - |
 
 ## Targets

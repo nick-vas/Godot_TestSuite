@@ -97,6 +97,9 @@ jobs:
       - name: The plan's vertical-slice gates (tech debt automatic, frame budget manual), the gates the skill names, and the release timeline
         shell: pwsh
         run: ./tests/Test-Plan.ps1
+      - name: State from before the Hypedot rename moves once (history, GUT stamp, tools folder, workflow, plugin entry)
+        shell: pwsh
+        run: ./tests/Test-OldState.ps1
       - name: plan -Do sync against a stand-in Trello (cards, moves, archived cards, list names, credentials kept out of output)
         shell: pwsh
         run: ./tests/Test-TrelloSync.ps1
