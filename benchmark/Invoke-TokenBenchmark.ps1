@@ -72,6 +72,7 @@ function Read-BenchmarkSpec([string]$Path) {
         foreach ($term in $terms) {
             if (Test-BenchmarkTerm "$($t.title) $($t.prompt)" $term) { throw "Task '$($t.id)' requires '$term', which its own prompt or title contains" }
         }
+        if ($t.Contains('game')) { Assert-GameTask $spec $t (Split-Path $PSScriptRoot -Parent) }
     }
     return $spec
 }
@@ -84,7 +85,9 @@ function Get-ClaudeArguments($Spec, $ProfileSpec, [string]$SessionId, [int]$Step
         '--setting-sources', $Spec.settingSources, '--max-budget-usd', ([string]$Spec.maxBudgetUsdPerCall)) { $arguments.Add($a) }
     $arguments.Add('--allowedTools'); foreach ($tool in $Spec.tools) { $arguments.Add($tool) }
     if ($Plugin) { $arguments.Add('Skill') }
-    $arguments.Add('--disallowedTools'); foreach ($tool in 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch', 'Task', 'Agent') { $arguments.Add($tool) }
+    # Every tool the spec does not allow is refused outright, so a session cannot ask for it.
+    $arguments.Add('--disallowedTools')
+    foreach ($tool in 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch', 'Task', 'Agent') { if ($tool -notin $Spec.tools) { $arguments.Add($tool) } }
     if ($ProfileSpec.Contains('effort')) { $arguments.Add('--effort'); $arguments.Add($ProfileSpec.effort) }
     if ($Plugin) { $arguments.Add('--plugin-dir'); $arguments.Add($WorkDir) }
     if ($ProfileSpec.Contains('appendSystemPrompt')) { $arguments.Add('--append-system-prompt'); $arguments.Add($ProfileSpec.appendSystemPrompt) }
@@ -231,12 +234,19 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
     $prompts = Get-StepPrompts $ProfileSpec $TaskSpec
     $totals = [ordered]@{ input = 0L; cacheWrite = 0L; cacheRead = 0L; output = 0L; costUsd = 0.0; turns = 0; durationMs = 0 }
     $attempt = 0; $final = $null; $firstTtft = $null; $spendKnown = $true; $models = [System.Collections.Generic.HashSet[string]]::new()
+    $isGame = $TaskSpec.Contains('game'); $game = $null
     while ($true) {
         $sessionId = [guid]::NewGuid().ToString()
         $final = $null
+        # A game task starts every attempt from a fresh copy of the game; a retry must not see what the last one did.
+        if ($isGame) {
+            if ($game) { Remove-GameWorkspace $game.Dir }
+            $game = New-GameWorkspace $Spec $TaskSpec (Split-Path $PSScriptRoot -Parent)
+        }
+        $directory = if ($isGame) { $game.Dir } else { $WorkDir }
         for ($step = 0; $step -lt $prompts.Count; $step++) {
             $arguments = Get-ClaudeArguments $Spec $ProfileSpec $sessionId $step $prompts.Count $ModelName
-            $run = Invoke-ClaudeProcess $Claude $arguments $prompts[$step] ([int]$Spec.timeoutSeconds) $WorkDir
+            $run = Invoke-ClaudeProcess $Claude $arguments $prompts[$step] ([int]$Spec.timeoutSeconds) $directory
             $parsed = ConvertFrom-ClaudeOutput $run
             foreach ($key in 'input', 'cacheWrite', 'cacheRead', 'output', 'costUsd', 'turns') { $totals[$key] += $parsed[$key] }
             $totals.durationMs += $run.ElapsedMs
@@ -256,14 +266,26 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
         $attempt++
     }
     $reasons = if ($final.ok) { Test-BenchmarkAnswer $final.text $TaskSpec.expected } else { @($final.problem) }
+    # What a game session left behind is graded too; a session that ran out of turns still left a game to grade.
+    $gameReasons = @()
+    if ($isGame) {
+        try {
+            if ($ResponseDir) {
+                $diff = Get-GameDiff $game.Dir
+                Set-Content -LiteralPath (Join-Path $ResponseDir "$($ProfileSpec.id)-$($TaskSpec.id)-r$Repetition-a$attempt.diff") -Value $diff -Encoding utf8
+            }
+            if (-not $final.infrastructure) { $gameReasons = @(Test-GameResult $TaskSpec $game) }
+        } finally { Remove-GameWorkspace $game.Dir }
+    }
     return [pscustomobject][ordered]@{
         profile = $ProfileSpec.id; task = $TaskSpec.id; category = $TaskSpec.category; repetition = $Repetition; plugin = [bool]$Plugin
-        model = (@($models) | Sort-Object) -join '+'; success = ($final.ok -and @($reasons).Count -eq 0); retries = $attempt
+        model = (@($models) | Sort-Object) -join '+'; success = ($final.ok -and @($reasons).Count -eq 0 -and $gameReasons.Count -eq 0); retries = $attempt
         steps = $prompts.Count; turns = $totals.turns; infrastructure = [bool]$final.infrastructure; spendKnown = $spendKnown
         tokensInput = $totals.input; tokensCacheWrite = $totals.cacheWrite; tokensCacheRead = $totals.cacheRead; tokensOutput = $totals.output
         tokensTotal = $totals.input + $totals.cacheWrite + $totals.cacheRead + $totals.output
         costUsd = [Math]::Round($totals.costUsd, 6); durationMs = $totals.durationMs; ttftMs = $firstTtft
-        words = @($final.text -split '\s+' | Where-Object { $_ -match '[\p{L}\p{N}]' }).Count; reasons = (@($reasons) -join '; ')
+        words = @($final.text -split '\s+' | Where-Object { $_ -match '[\p{L}\p{N}]' }).Count; reasons = (@(@($reasons) + $gameReasons) -join '; ')
+        gameReasons = ($gameReasons -join '; ')
     }
 }
 
@@ -321,10 +343,11 @@ function Format-BenchmarkMarkdown($Summary, $Meta) {
     return ($md -join "`n") + "`n"
 }
 
-# Paths a session must not see: the spec holds every expected answer, results hold earlier answers, and the label and its
-# tests quote both. The EU label forbids a product that recognises its test; here the test cannot be read at all.
+# Paths a session must not see: the spec holds every expected answer, results hold earlier answers, the label and its
+# tests quote both, and evals/ holds the scenarios the game tasks were made from, with their graders. The EU label forbids a product that recognises its test; here the test cannot be read at all.
 $script:HiddenFromSessions = @('benchmark/', 'docs/token-benchmark.md', 'docs/label.md', 'docs/label/', 'tests/Test-TokenBenchmark.ps1',
-    'tests/token-benchmark/', 'tests/Test-HyperdotLabel.ps1', 'tests/label-fixture/', '.github/workflows/token-benchmark.yml')
+    'tests/token-benchmark/', 'tests/Test-HyperdotLabel.ps1', 'tests/label-fixture/', 'tests/Test-GameBenchmark.ps1', 'tests/game-benchmark/',
+    'evals/', '.github/workflows/token-benchmark.yml')
 
 # A copy of the repository's files (tracked and untracked, not ignored) without those paths, for the sessions to run in.
 function New-BenchmarkWorkspace([string]$RepoRoot) {
@@ -343,6 +366,171 @@ function New-BenchmarkWorkspace([string]$RepoRoot) {
         Copy-Item -LiteralPath $from -Destination $to
     }
     return $target
+}
+
+# ---- Game tasks ----
+# A task with a "game" block runs in its own copy of the spec's game (game.source, the files in game.files) with the task's
+# edits applied and committed, so every session starts from the same broken or unfinished game, with nothing of this
+# repository in sight. Afterwards the kit's own test runner grades what the session left: the files it was told to leave
+# alone are as they were, its tests fail on each mutant (the game with a known bug), and the game's tests and the task's
+# hidden ones pass.
+
+# Replaces the one place a text occurs in a file of the game; $false when it is not there exactly once.
+function Set-GameEdit([string]$Root, $Edit) {
+    $path = Join-Path $Root $Edit.file
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
+    $text = [System.IO.File]::ReadAllText($path)
+    $at = $text.IndexOf([string]$Edit.find, [StringComparison]::Ordinal)
+    if ($at -lt 0 -or $text.IndexOf([string]$Edit.find, $at + 1, [StringComparison]::Ordinal) -ge 0) { return $false }
+    [System.IO.File]::WriteAllText($path, $text.Substring(0, $at) + $Edit.replace + $text.Substring($at + $Edit.find.Length))
+    return $true
+}
+
+function Assert-GameTask($Spec, $TaskSpec, [string]$RepoRoot) {
+    $id = $TaskSpec.id
+    if (-not $Spec.Contains('game') -or -not $Spec.game.Contains('source') -or -not $Spec.game.Contains('files')) {
+        throw "Task '$id' works on a game, but the spec has no game.source and game.files"
+    }
+    $source = Join-Path $RepoRoot $Spec.game.source
+    foreach ($key in 'edits', 'mutants') {
+        foreach ($edit in @(if ($TaskSpec.game.Contains($key)) { $TaskSpec.game[$key] })) {
+            if (-not $edit.Contains('file') -or -not $edit.Contains('find') -or -not $edit.find -or -not $edit.Contains('replace')) {
+                throw "Task '$id': every one of its $key needs a file, a find and a replace"
+            }
+            $path = Join-Path $source $edit.file
+            $text = if (Test-Path -LiteralPath $path -PathType Leaf) { [System.IO.File]::ReadAllText($path) } else { '' }
+            $at = $text.IndexOf([string]$edit.find, [StringComparison]::Ordinal)
+            if ($at -lt 0 -or $text.IndexOf([string]$edit.find, $at + 1, [StringComparison]::Ordinal) -ge 0) {
+                throw "Task '$id': '$($edit.find)' is not in $($Spec.game.source)/$($edit.file) exactly once"
+            }
+        }
+    }
+    foreach ($file in @(if ($TaskSpec.game.Contains('hidden')) { $TaskSpec.game.hidden })) {
+        if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot $file) -PathType Leaf)) { throw "Task '$id': hidden test $file not found" }
+    }
+    if ($TaskSpec.game.Contains('mutants') -and -not $TaskSpec.game.Contains('mutantTests')) { throw "Task '$id' has mutants but no mutantTests to judge them" }
+}
+
+function Copy-GameFiles([string]$From, [string]$To, [string[]]$Files) {
+    foreach ($file in $Files) {
+        $source = Join-Path $From $file
+        $target = Join-Path $To $file
+        if (-not (Test-Path -LiteralPath $source)) { throw "The game has no $file ($From)" }
+        New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+        Copy-Item -LiteralPath $source -Destination $target -Recurse -Force
+    }
+}
+
+# The tests a game has: functions named test_* in its own scripts (not in an add-on).
+function Get-GameTestCount([string]$Root) {
+    $count = 0
+    foreach ($file in @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter '*.gd' | Where-Object { $_.FullName -notmatch '[\\/](addons|\.godot|\.git)[\\/]' })) {
+        $count += [regex]::Matches([System.IO.File]::ReadAllText($file.FullName), '(?m)^func\s+test_').Count
+    }
+    return $count
+}
+
+function Invoke-GameGit([string]$Dir, [string[]]$Arguments) {
+    $out = & git -C $Dir -c user.name=benchmark -c user.email=benchmark@example.invalid -c core.autocrlf=false @Arguments 2>$null
+    if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') failed in $Dir" }
+    return $out
+}
+
+function New-GameWorkspace($Spec, $TaskSpec, [string]$RepoRoot) {
+    $dir = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-game-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    Copy-GameFiles (Join-Path $RepoRoot $Spec.game.source) $dir @($Spec.game.files)
+    foreach ($edit in @(if ($TaskSpec.game.Contains('edits')) { $TaskSpec.game.edits })) {
+        if (-not (Set-GameEdit $dir $edit)) { throw "Task '$($TaskSpec.id)': '$($edit.find)' is not in $($edit.file) exactly once" }
+    }
+    [void](Invoke-GameGit $dir @('init', '-q'))
+    [void](Invoke-GameGit $dir @('add', '-A'))
+    [void](Invoke-GameGit $dir @('commit', '-qm', 'The game'))
+    $kept = @{}
+    foreach ($file in @(if ($TaskSpec.game.Contains('unchanged')) { $TaskSpec.game.unchanged })) { $kept[$file] = [System.IO.File]::ReadAllText((Join-Path $dir $file)) }
+    return [pscustomobject]@{ Dir = $dir; Kept = $kept; Tests = (Get-GameTestCount $dir) }
+}
+
+function Remove-GameWorkspace([string]$Dir) {
+    foreach ($path in @(Get-Item -Path "$Dir*" -Force -ErrorAction SilentlyContinue)) { Remove-Item -LiteralPath $path.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+# Everything the session changed, new files included, as one patch (the .godot cache and other ignored files left out).
+function Get-GameDiff([string]$Dir) {
+    [void](Invoke-GameGit $Dir @('add', '-A'))
+    return (@(Invoke-GameGit $Dir @('diff', '--cached', '--no-color', 'HEAD')) -join "`n")
+}
+
+# The kit's test command on a game: whether it passed, and what failed.
+function Invoke-GameSuite([string]$Dir, [string[]]$Runners, [string]$ResultsDir = "$Dir-results") {
+    $kit = Join-Path (Split-Path $PSScriptRoot -Parent) 'ci/godot/hyperdot.ps1'
+    $arguments = @('-NoProfile', '-File', $kit, 'test', '-Json', '-Quiet', '-Project', $Dir, '-Results', $ResultsDir)
+    if ($Runners) { $arguments += @('-Runners', ($Runners -join ',')) }
+    $out = & (Get-Process -Id $PID).Path @arguments 2>$null
+    $doc = $null
+    try { $doc = ($out -join "`n") | ConvertFrom-Json -AsHashtable } catch { $doc = $null }
+    if ($doc -isnot [System.Collections.IDictionary]) { return [pscustomobject]@{ Ok = $false; Failed = @("the kit's test gave no result (exit $LASTEXITCODE)") } }
+    if ($doc.ok) { return [pscustomobject]@{ Ok = $true; Failed = @() } }
+    $failed = [System.Collections.Generic.List[string]]::new()
+    foreach ($runner in @(if ($doc.Contains('runnerResults')) { $doc.runnerResults })) {
+        if ($runner.ok) { continue }
+        $named = @(if ($runner.Contains('failures')) { $runner.failures })
+        foreach ($f in $named) { $failed.Add("$($f.name)") }
+        if ($named.Count -eq 0) { $failed.Add("$($runner.runner) failed") }
+    }
+    if ($failed.Count -eq 0) { $failed.Add($(if ($doc.Contains('error') -and $doc.error) { "$($doc.error.code): $($doc.error.message)" } else { 'failed' })) }
+    return [pscustomobject]@{ Ok = $false; Failed = $failed.ToArray() }
+}
+
+# Why a game session's work does not count; empty when it does.
+function Test-GameResult($TaskSpec, $Game) {
+    $rules = $TaskSpec.game
+    $reasons = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in $Game.Kept.Keys) {
+        $path = Join-Path $Game.Dir $file
+        if (-not (Test-Path -LiteralPath $path) -or [System.IO.File]::ReadAllText($path) -ne $Game.Kept[$file]) { $reasons.Add("changed $file") }
+    }
+    foreach ($match in @(if ($rules.Contains('match')) { $rules.match })) {
+        $path = Join-Path $Game.Dir $match.file
+        if (-not (Test-Path -LiteralPath $path) -or -not [regex]::IsMatch([System.IO.File]::ReadAllText($path), $match.pattern)) { $reasons.Add("$($match.file) has no match for $($match.pattern)") }
+    }
+    if ($rules.Contains('newTests')) {
+        $added = (Get-GameTestCount $Game.Dir) - $Game.Tests
+        if ($added -lt [int]$rules.newTests) { $reasons.Add("$added new test(s), at least $($rules.newTests) asked for") }
+    }
+    # Mutants first, before the hidden tests are in the game: they are judged by the session's own tests alone.
+    $mutants = @(if ($rules.Contains('mutants')) { $rules.mutants })
+    if ($mutants.Count) {
+        $judges = @($rules.mutantTests)
+        $missing = @($judges | Where-Object { -not (Test-Path -LiteralPath (Join-Path $Game.Dir $_) -PathType Leaf) })
+        if ($missing.Count) { $reasons.Add("no $($missing -join ', ')") }
+        else {
+            $i = 0
+            foreach ($mutant in $mutants) {
+                $copy = "$($Game.Dir)-mutant$i"; $i++
+                Copy-Item -LiteralPath $Game.Dir -Destination $copy -Recurse -Force
+                Remove-Item -LiteralPath (Join-Path $copy '.git') -Recurse -Force -ErrorAction SilentlyContinue
+                if (-not (Set-GameEdit $copy $mutant)) { $reasons.Add("mutant '$($mutant.name)' does not apply"); continue }
+                foreach ($script in @(Get-ChildItem -LiteralPath $copy -Recurse -File -Filter '*.gd' | Where-Object { $_.FullName -notmatch '[\\/](addons|\.godot)[\\/]' })) {
+                    $relative = [System.IO.Path]::GetRelativePath($copy, $script.FullName) -replace '\\', '/'
+                    if ($relative -notin $judges -and [System.IO.File]::ReadAllText($script.FullName) -match '(?m)^extends\s+GutTest\b') { Remove-Item -LiteralPath $script.FullName -Force }
+                }
+                $run = Invoke-GameSuite $copy @('gut')
+                if ($run.Ok) { $reasons.Add("the tests miss a bug: $($mutant.name)") }
+                Remove-Item -LiteralPath $copy, "$copy-results" -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    $hidden = @(if ($rules.Contains('hidden')) { $rules.hidden })
+    foreach ($file in $hidden) {
+        $target = Join-Path $Game.Dir (Join-Path 'test' (Split-Path $file -Leaf))
+        New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+        Copy-Item -LiteralPath (Join-Path (Split-Path $PSScriptRoot -Parent) $file) -Destination $target -Force
+    }
+    if ($hidden.Count -or ($rules.Contains('suite') -and $rules.suite)) {
+        $run = Invoke-GameSuite $Game.Dir @()
+        if (-not $run.Ok) { $reasons.Add("tests fail: $(@($run.Failed | Select-Object -First 5) -join ', ')") }
+    }
+    return $reasons.ToArray()
 }
 
 # ---- Run ----
@@ -373,6 +561,16 @@ if ($DryRun) {
     exit 0
 }
 if ($worstCase -gt $limit) { throw "$calls sessions, $worstCase with retries, is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
+
+# The game must be green before sessions are asked to work on it, and the kit installs GUT into it on the way.
+if (@($tasks | Where-Object { $_.Contains('game') }).Count) {
+    if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN -PathType Leaf)) { throw 'Game tasks need Godot: set GODOT_BIN to it (hyperdot.ps1 setup does)' }
+    $preflight = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-game-preflight-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $check = Invoke-GameSuite (Join-Path (Split-Path $PSScriptRoot -Parent) $spec.game.source) @() $preflight
+    Remove-Item -LiteralPath $preflight -Recurse -Force -ErrorAction SilentlyContinue
+    if (-not $check.Ok) { throw "The game in $($spec.game.source) fails its own tests, so it cannot be measured: $($check.Failed -join ', ')" }
+    Write-BenchLog "The game in $($spec.game.source) passes its tests; Godot is $env:GODOT_BIN"
+}
 
 $ownWorkspace = -not $WorkDir
 if ($ownWorkspace) { $WorkDir = New-BenchmarkWorkspace (Split-Path $PSScriptRoot -Parent); Write-BenchLog "Sessions run in $WorkDir, a copy without the benchmark" }

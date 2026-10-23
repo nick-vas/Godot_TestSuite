@@ -1,7 +1,6 @@
 {
   "scale": "2026-10",
   "introduced": "2026-10-23",
-  "standardProfile": "A-baseline",
   "classes": [
     {
       "class": "A",
@@ -39,23 +38,42 @@
       "color": "#ed1c24"
     }
   ],
-  "standardTokensPerSolvedTask": {
-    "COMP-PS-001": 256000.0,
-    "COMP-GD-001": 73000.0,
-    "CODE-PS-001": 48000.0,
-    "CODE-PS-002": 86000.0,
-    "DEBUG-PS-001": 116000.0,
-    "DEBUG-GD-001": 93000.0,
-    "CI-PS-001": 56000.0,
-    "CI-PS-003": 66000.0
+  "programmes": {
+    "tool": {
+      "name": "Tool efficiency",
+      "spec": "benchmark/token-benchmark.json",
+      "standardProfile": "A-baseline",
+      "standardTokensPerSolvedTask": {
+        "COMP-PS-001": 256000.0,
+        "COMP-GD-001": 73000.0,
+        "CODE-PS-001": 48000.0,
+        "CODE-PS-002": 86000.0,
+        "DEBUG-PS-001": 116000.0,
+        "DEBUG-GD-001": 93000.0,
+        "CI-PS-001": 56000.0,
+        "CI-PS-003": 66000.0
+      },
+      "tolerance": {
+        "indexPercent": 20.0,
+        "successPoints": 10.0
+      },
+      "introducedFrom": "Hyperdot 0.1.0 at commit e4ccc2e: claude-sonnet-5-5 and claude-haiku-5-5, profiles A, B and C, and A with the plugin; 8 configurations, 216 sessions (GitHub Actions runs 39930259189 to 39930286282)"
+    },
+    "game": {
+      "name": "Game-making efficiency",
+      "spec": "benchmark/game-benchmark.json",
+      "standardProfile": "A-baseline",
+      "standardTokensPerSolvedTask": null,
+      "tolerance": {
+        "indexPercent": 20.0,
+        "successPoints": 10.0
+      },
+      "introducedFrom": null
+    }
   },
   "minimum": {
     "successPercent": 50,
     "everyTaskSolved": false
-  },
-  "tolerance": {
-    "indexPercent": 20.0,
-    "successPoints": 10.0
   },
   "rescale": {
     "topClassPercent": 30,
@@ -99,6 +117,5 @@
         "color": "#ed1c24"
       }
     ]
-  },
-  "introducedFrom": "Hyperdot 0.1.0 at commit e4ccc2e: claude-sonnet-5-5 and claude-haiku-5-5, profiles A, B and C, and A with the plugin; 8 configurations, 216 sessions (GitHub Actions runs 39930259189 to 39930286282)"
+  }
 }

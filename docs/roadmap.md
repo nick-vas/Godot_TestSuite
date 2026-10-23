@@ -146,9 +146,12 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Sonnet over its word limits.** All but one of Sonnet's failed benchmark answers are 10 to 30% over the limit their
   prompt states, which puts it in class F where Haiku is D. Whether a line in `AGENTS.md` ("keep to a stated length")
   changes that is a question for the next benchmark run, not a reason to change the grader.
-- **The plugin on Hyperdot's own code.** Loading it adds tokens to every session and helps none of the benchmark's
-  tasks (its skills are about games). A game-side standard programme, built from `evals/`, would rate what the plugin
-  is for; the label measures only work on this repository.
+- **The plugin on Hyperdot's own code.** Loading it adds tokens to every session and helps none of the tool
+  programme's tasks (its skills are about games). The game programme (`benchmark/game-benchmark.json`, built from
+  `evals/`) now rates what the plugin is for; each version gets a tool class and a game-making class.
+- **More of the game programme.** It covers one small GDScript game. Next: a C# task on `examples/csharp`, a task with a
+  scene and a flow file, and one that needs a runtime error read from the log. Sandboxing Bash (so a session cannot read
+  the checkout the benchmark runs from) would close the gap `docs/label.md` names.
 - **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
   surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
 - **Binding errors as JSON.** A bad value for a `ValidateSet` or `ValidateRange` parameter, or an unknown command, prints

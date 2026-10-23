@@ -60,8 +60,9 @@ a vague answer fails instead of passing on generic words.
 
 `claude -p --output-format json`, with the prompt on stdin (no shell sees it), in the repository, with:
 
-- `--allowedTools Read Grep Glob` and `--disallowedTools Bash Edit Write NotebookEdit WebFetch WebSearch Task Agent`:
-  read-only, offline, no subagents, so the benchmark cannot change the repository and measures one agent;
+- `--allowedTools` the spec's `tools` (here `Read Grep Glob`), and every other one of `Bash Edit Write NotebookEdit
+  WebFetch WebSearch Task Agent` refused: read-only, offline, no subagents, so the benchmark cannot change the
+  repository and measures one agent;
 - `--strict-mcp-config`: none of the user's MCP servers start (they add tokens and side effects);
 - `--setting-sources project`: the same instructions on every machine;
 - a fresh `--session-id` (and `--no-session-persistence` for one-step profiles); the variables that tie a process to a
@@ -71,9 +72,45 @@ a vague answer fails instead of passing on generic words.
   budget is a result: it is kept, with its tokens, and fails. A run in which a session still has no answer after its
   retries exits 1.
 - **in a copy of the repository without the benchmark**: the tracked and untracked files, minus `benchmark/`, this page,
-  `docs/label*` and their tests, deleted after the run. The spec holds every expected answer, and the results folder
+  `docs/label*`, `evals/` and their tests, deleted after the run. The spec holds every expected answer, and the results folder
   held earlier answers. `-WorkDir` runs the sessions elsewhere, as they are, with no copy;
 - profiles in an order that rotates with each repetition, so no profile always meets a cold prompt cache.
+
+## The game programme: `benchmark/game-benchmark.json`
+
+The tasks above are about Hyperdot's own code. The game programme measures the job Hyperdot is for: an agent working
+on a game. It is built from `evals/explain-failure` and `evals/fix-score-bug`, made deterministic, plus three new tasks:
+
+| Task | The session must | Graded by |
+|---|---|---|
+| `GAME-DIAG-001` | name the failing test, its file and line, expected and actual values, without editing | the answer's terms; game and tests unchanged |
+| `GAME-FIX-001` | fix a gameplay bug from a player's report | the game's tests and a hidden one; the existing test unchanged |
+| `GAME-FEAT-001` | add a best score and `reset()` with tests | a hidden test; at least one new test; the game's tests |
+| `GAME-TEST-001` | write tests for the scoring rules | five mutants of `score.gd`, each of which its tests must fail on; the game unchanged |
+| `GAME-TUNE-001` | expose a gameplay value to the editor without changing behaviour | a hidden test; the startup flow still scores 230 |
+
+```powershell
+pwsh ci/godot/hyperdot.ps1 setup -Project examples/gdscript    # Godot, and GODOT_BIN for the sessions and the grader
+pwsh benchmark/Invoke-TokenBenchmark.ps1 -SpecPath benchmark/game-benchmark.json -SaveResponses [-Plugin]
+```
+
+In the workflow, choose the `game` programme. What differs from the tool programme:
+
+- **Each session gets its own copy of the game**, made from the spec's `game.source` and `game.files`, with the task's
+  `edits` applied and committed in a fresh git repository, and nothing of the kit in it. A retry starts from a new copy.
+  With `-Plugin`, the kit (without the benchmark) is the plugin folder, so its skills, its Stop hook and its scripts
+  are there; without it, the session has the game, Godot (`GODOT_BIN`) and GUT, as a developer would.
+- **Bash, Edit and Write are allowed** (the spec's `tools`), so the session can run Godot and change the game. Sessions
+  get 40 turns and 15 minutes.
+- **The work is graded after the session**, with the kit's own `test` on what it left (`Test-GameResult`):
+  `unchanged` files must be byte for byte as they were; `match` patterns must be in a file; `newTests` counts new
+  `func test_`; each of the `mutants` is applied to a copy holding only the `mutantTests`, which must then fail; the
+  `hidden` tests are copied into `test/` and, with `suite`, the whole default test run must pass. The reasons go in the
+  row's `gameReasons` (and `reasons`); the session's diff is saved next to its answer as `<profile>-<task>-r<n>-a<n>.diff`.
+- **The game must be green first**: the run starts with the kit's `test` on `game.source`, which also installs GUT.
+
+`tests/Test-GameBenchmark.ps1` runs the real spec with a stand-in CLI that does every task once well and once badly: the
+good work must pass every check, and the bad work must fail each task for the reason the task is about.
 
 ## Reading the numbers
 

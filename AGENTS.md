@@ -14,8 +14,9 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `.agents/skills/*/SKILL.md` the skills shipped to games (`init -Agents` copies them; the plugin loads them in place).
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` and `godot-architect` subagents, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
-- `benchmark/` the token benchmark (`Invoke-TokenBenchmark.ps1`, `token-benchmark.json`); each real run costs money, `-DryRun` does not.
-  `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label ([docs/label.md](docs/label.md)).
+- `benchmark/` the token benchmark (`Invoke-TokenBenchmark.ps1`; programmes `token-benchmark.json`, Hyperdot's own code, and
+  `game-benchmark.json`, work on a small game graded by its tests, with hidden tests in `benchmark/game/`); each real run costs money, `-DryRun` does not.
+  `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label, one class per programme ([docs/label.md](docs/label.md)).
   Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
   the sessions must not be able to recognise the test.
 - `.github/actions/godot`, `.github/workflows/godot.yml` composite action and reusable workflow.
@@ -108,7 +109,8 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-LibNames.ps1` | function names across `ci/godot` (unique, no alias clashes) | - |
 | `Test-OldState.ps1` | the one-time move of state from the names before Hyperdot (history, GUT stamp, tools folder, workflow, plugin entry) | - |
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
-| `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification and rescaling (`label-fixture`, made-up runs) | - |
+| `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification, rescaling and the tool and game programmes (`label-fixture`, made-up runs) | - |
+| `Test-GameBenchmark.ps1` | the game programme (`benchmark/game-benchmark.json`): a copy of the game per session, grading by the kit's tests, hidden tests and mutants (`game-benchmark`, a stand-in CLI doing each task well and badly) | Godot |
 | `Test-ErrorCodes.ps1` | every documented error code no other self-test raises, raised and checked in the JSON | Godot, display, ffmpeg; `-NoGodot` for plan, init, detect, doctor and audio |
 | `Test-Detect.ps1` | the solution `detect` picks, in and out of git, past unrelated and empty solutions and scenes | - |
 | `Test-InstallAddon.ps1` | replacing GUT in a path with brackets (a stand-in git) | - |

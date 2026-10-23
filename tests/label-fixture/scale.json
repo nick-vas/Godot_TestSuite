@@ -1,7 +1,6 @@
 {
   "scale": "test",
   "introduced": "2026-10-23",
-  "standardProfile": "A-baseline",
   "classes": [
     {
       "class": "A",
@@ -39,17 +38,38 @@
       "color": "#ed1c24"
     }
   ],
-  "standardTokensPerSolvedTask": {
-    "T1": 1000,
-    "T2": 2000
+  "programmes": {
+    "tool": {
+      "name": "Tool efficiency",
+      "spec": "tests/label-fixture/spec.json",
+      "standardProfile": "A-baseline",
+      "standardTokensPerSolvedTask": {
+        "T1": 1000,
+        "T2": 2000
+      },
+      "tolerance": {
+        "indexPercent": 10,
+        "successPoints": 10
+      }
+    },
+    "game": {
+      "name": "Game-making efficiency",
+      "spec": "tests/label-fixture/spec.json",
+      "standardProfile": "A-baseline",
+      "standardTokensPerSolvedTask": {
+        "T1": 1000,
+        "T2": 2000
+      },
+      "tolerance": {
+        "indexPercent": 10,
+        "successPoints": 10
+      },
+      "introducedFrom": "made up"
+    }
   },
   "minimum": {
     "successPercent": 50,
     "everyTaskSolved": false
-  },
-  "tolerance": {
-    "indexPercent": 10,
-    "successPoints": 10
   },
   "rescale": {
     "topClassPercent": 30,

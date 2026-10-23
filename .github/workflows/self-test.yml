@@ -531,6 +531,9 @@ jobs:
       - name: Every documented error code no other test raises is raised and reported
         shell: pwsh
         run: ./tests/Test-ErrorCodes.ps1
+      - name: The game benchmark grades good and bad game work by the game's tests
+        shell: pwsh
+        run: ./tests/Test-GameBenchmark.ps1
 
       - name: Keep what this job's kit runs reached
         if: always()

@@ -2,7 +2,8 @@
 # Self-test of benchmark/Get-HyperdotLabel.ps1 on benchmark runs made up here (tests/label-fixture holds a two-task spec
 # and a scale whose standard tokens are 1,000 and 2,000): the index and class, answers graded again from what was saved,
 # a task never solved, the minimum requirements, sessions with unknown spend, the coverage class, the label files,
-# verification with its three-unit retest, the rescale trigger and a new scale's standard tokens. Calls no model.
+# verification with its three-unit retest, the rescale trigger, a new scale's standard tokens, and the game programme's
+# own label, where a session whose game failed its tests fails whatever it answered. Calls no model.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -23,18 +24,19 @@ function New-Run([string]$Name, [string]$Model, [object[]]$Sessions, [string]$Pr
     foreach ($s in $Sessions) {
         $task = $s[0]; $rep[$task] = 1 + $(if ($rep.ContainsKey($task)) { $rep[$task] } else { 0 })
         $known = -not ($s.Count -gt 3 -and $s[3] -eq 'hang')
+        $game = if ($s.Count -gt 4) { $s[4] } else { '' }
         # results.json says every session passed: the label must grade the saved answers itself.
         $rows += [ordered]@{ profile = $Profile; task = $task; repetition = $rep[$task]; model = $Model; plugin = [bool]$Plugin
             success = $true; retries = 0; steps = 1; tokensTotal = $s[1]; costUsd = $s[1] / 1e6; durationMs = 1000
-            reasons = $(if ($known) { '' } else { 'timed out' }); infrastructure = -not $known; spendKnown = $known }
+            reasons = $(if ($known) { $game } else { 'timed out' }); infrastructure = -not $known; spendKnown = $known; gameReasons = $game }
         Set-Content -LiteralPath (Join-Path $dir "responses/$Profile-$task-r$($rep[$task])-a0-s0.md") -Value $s[2]
     }
     ConvertTo-Json -InputObject @($rows) -Depth 4 | Set-Content -LiteralPath (Join-Path $dir 'results.json')
     @{ meta = @{ runId = $Name; claudeVersion = '9.9.9 (Claude Code)' } } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $dir 'summary.json')
     return $dir
 }
-function Invoke-Label([string[]]$Arguments) {
-    $out = & pwsh -NoProfile -File $tool -SpecPath (Join-Path $fixture 'spec.json') -ScalePath (Join-Path $fixture 'scale.json') -Version 9.9.9 -Json @Arguments 2>$null
+function Invoke-Label([string[]]$Arguments, [string]$Scale = (Join-Path $fixture 'scale.json')) {
+    $out = & pwsh -NoProfile -File $tool -SpecPath (Join-Path $fixture 'spec.json') -ScalePath $Scale -Version 9.9.9 -Json @Arguments 2>$null
     return [pscustomobject]@{ Code = $LASTEXITCODE; Json = $(if ($out) { ($out -join "`n") | ConvertFrom-Json -AsHashtable }) }
 }
 
@@ -75,18 +77,18 @@ try {
     Assert-True ($byModel['m-long'].successPercent -eq 83.3) 'the word limit is graded again too'
     Assert-True ($g.coverage.class -eq 'D' -and $g.coverage.index -eq 83.3) 'the coverage class averages functions, error codes and commands (83.3, D)'
     Assert-True (-not $rated.Json.rescaleReviewDue) 'no rescale review while the top classes are empty'
-    Assert-True ($g.badge -eq 'https://img.shields.io/badge/Hyperdot%209.9.9%20%C2%B7%20m--good-efficiency%20C-bed630' -and $rated.Json.testedBadge -match '/tested-class%20D-fff200$') 'a shields badge per configuration and one for the tested class, in the class colours'
+    Assert-True ($g.badge -eq 'https://img.shields.io/badge/Hyperdot%209.9.9%20%C2%B7%20m--good-tool%20efficiency%20C-bed630' -and $rated.Json.testedBadge -match '/tested-class%20D-fff200$') 'a shields badge per configuration and one for the tested class, in the class colours'
 
-    $svgPath = Join-Path $out 'hyperdot-9.9.9-m-good.svg'
-    Assert-True ((Test-Path -LiteralPath (Join-Path $out 'hyperdot-9.9.9-m-good.json')) -and (Test-Path -LiteralPath (Join-Path $out 'hyperdot-9.9.9-m-good.md'))) 'writes the information sheet as JSON and Markdown'
+    $svgPath = Join-Path $out 'hyperdot-9.9.9-tool-m-good.svg'
+    Assert-True ((Test-Path -LiteralPath (Join-Path $out 'hyperdot-9.9.9-tool-m-good.json')) -and (Test-Path -LiteralPath (Join-Path $out 'hyperdot-9.9.9-tool-m-good.md'))) 'writes the information sheet as JSON and Markdown'
     $svg = [xml](Get-Content -LiteralPath $svgPath -Raw)
     $texts = @($svg.GetElementsByTagName('text') | ForEach-Object { $_.InnerText })
     Assert-True ($svg.svg.'aria-label' -match 'class C' -and $texts -contains '960 tokens' -and @($texts | Where-Object { $_ -match 'Not an EU label' }).Count -eq 1) 'the label is valid SVG with the class, the tokens per solved task and that it is not an EU label'
-    $noClass = [xml](Get-Content -LiteralPath (Join-Path $out 'hyperdot-9.9.9-m-fail.svg') -Raw)
+    $noClass = [xml](Get-Content -LiteralPath (Join-Path $out 'hyperdot-9.9.9-tool-m-fail.svg') -Raw)
     Assert-True (@($noClass.GetElementsByTagName('text') | Where-Object { $_.InnerText -match 'below the minimum' }).Count -eq 1) 'a label without a class says why'
 
     # Verification, as Annex IX does it: one unit; outside the tolerance, three more whose mean decides.
-    $declared = Join-Path $out 'hyperdot-9.9.9-m-good.json'
+    $declared = Join-Path $out 'hyperdot-9.9.9-tool-m-good.json'
     $same = { param($n, $t1) New-Run $n 'm-good' @(@('T1', $t1, 'alpha'), @('T1', $t1, 'alpha'), @('T1', $t1, 'alpha'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'no second word')) }
     $ok1 = & $same 'v-ok' 600
     $bad1 = & $same 'v-bad' 900
@@ -108,6 +110,27 @@ try {
     $intro = Invoke-Label @('-Results', "$good,$poor,$fail,$hang,$best", '-Introduce')
     Assert-True ($intro.Json.standardTokensPerSolvedTask.T1 -eq 1000 -and $intro.Json.standardTokensPerSolvedTask.T2 -eq 2000) 'a new scale''s standard tokens are the median over the market, to the nearest 1,000'
     Assert-True ($intro.Json.topClassEmpty -eq $false) 'a new scale reports when its top class would not start empty'
+
+    # The game programme: its own label, and a right answer whose game fails its tests (gameReasons) is a failure.
+    $gameRun = New-Run 'game' 'm-game' @(@('T1', 600, 'alpha'), @('T1', 600, 'alpha', 'ok', 'tests fail: test_x'), @('T1', 600, 'alpha'),
+        @('T2', 1000, 'beta'), @('T2', 1000, 'beta'), @('T2', 1000, 'beta'))
+    $gameOut = Join-Path $temp 'game-labels'
+    $gl = Invoke-Label @('-Programme', 'game', '-Results', $gameRun, '-OutDir', $gameOut)
+    $gs = if ($gl.Json) { @($gl.Json.labels)[0] }
+    Assert-True ($gs -and $gs.successPercent -eq 83.3 -and $gs.programme -eq 'game') 'a session whose game fails its tests fails, however good its answer (5 of 6)'
+    Assert-True ($gs -and $gs.name -eq 'hyperdot-9.9.9-game-m-game' -and $gs.badge -match '-game--making%20efficiency%20[A-G]-') 'the game label is named and badged apart from the tool label'
+    $gameSvg = [xml](Get-Content -LiteralPath (Join-Path $gameOut 'hyperdot-9.9.9-game-m-game.svg') -Raw)
+    Assert-True ($gameSvg.svg.'aria-label' -match 'game-making efficiency') 'the game label says what it rates'
+    $cross = Invoke-Label @('-Programme', 'game', '-Results', $ok1, '-Verify', $declared)
+    Assert-True ($cross.Code -ne 0) 'a tool declaration is not verified against the game programme'
+    $bare = Join-Path $temp 'scale-no-game.json'
+    $scaleDoc = Get-Content -LiteralPath (Join-Path $fixture 'scale.json') -Raw | ConvertFrom-Json -AsHashtable
+    $scaleDoc.programmes.game.standardTokensPerSolvedTask = $null
+    $scaleDoc | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $bare
+    $notYet = Invoke-Label @('-Programme', 'game', '-Results', $gameRun) $bare
+    Assert-True ($notYet.Code -ne 0) 'a programme without standard tokens cannot be rated until it is introduced'
+    $introGame = Invoke-Label @('-Programme', 'game', '-Results', $gameRun, '-Introduce') $bare
+    Assert-True ($introGame.Code -eq 0 -and $introGame.Json.standardTokensPerSolvedTask.T1 -eq 1000) 'but it can be introduced'
 } finally {
     if (-not $env:KEEP_LABEL_TEMP) { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue } else { Write-Host "kept $temp" }
 }

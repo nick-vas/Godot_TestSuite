@@ -8,8 +8,13 @@ measurement, with a product information sheet, a label and a verification proced
 The method is docs/label.md; the numbers it uses (classes, standard tokens per task, minimum requirements, tolerances)
 are in benchmark/label-scale.json, the scale, which only changes as a whole with a new scale id.
 
+A version gets one label per programme, as an appliance gets one per function it is sold for: `tool`, the agent working on
+Hyperdot's own code (benchmark/token-benchmark.json), and `game`, the agent making a game with Hyperdot's help
+(benchmark/game-benchmark.json). Each programme has its own standard tokens, so the two classes are not comparable.
+
 The measurement is benchmark/Invoke-TokenBenchmark.ps1 run with -SaveResponses: every answer is graded again here with
-the spec's own grader, so all runs are judged by one rule. A configuration is a model, with or without the plugin; its
+the spec's own grader, so all runs are judged by one rule. What a game session left behind was graded by running the
+game's tests when it ran (the row's gameReasons); that verdict is kept as it is. A configuration is a model, with or without the plugin; its
 standard programme is the scale's profile over every task of the spec.
 
   Agent Efficiency Index (AEI) = 100 x geometric mean over tasks of (tokens per solved task / standard tokens)
@@ -27,7 +32,8 @@ Modes:
 
 .EXAMPLE
 pwsh benchmark/Get-HyperdotLabel.ps1 -Results benchmark/results -Coverage coverage.json -OutDir docs/label
-pwsh benchmark/Get-HyperdotLabel.ps1 -Results run1, run2, run3, run4 -Verify docs/label/hyperdot-0.1.0-sonnet.json
+pwsh benchmark/Get-HyperdotLabel.ps1 -Programme game -Results game-runs -Coverage coverage.json -OutDir docs/label
+pwsh benchmark/Get-HyperdotLabel.ps1 -Results run1, run2, run3, run4 -Verify docs/label/hyperdot-0.1.0-tool-sonnet.json
 #>
 [CmdletBinding(PositionalBinding = $false)]
 param(
@@ -36,8 +42,11 @@ param(
     # tests/Get-KitCoverage.ps1 -Json output.
     [string]$Coverage,
     [string]$Version,
+    # Which programme to rate: tool (Hyperdot's own code) or game (making a game with it).
+    [ValidateSet('tool', 'game')][string]$Programme = 'tool',
     [string]$ScalePath = (Join-Path $PSScriptRoot 'label-scale.json'),
-    [string]$SpecPath = (Join-Path $PSScriptRoot 'token-benchmark.json'),
+    # Default: the programme's spec in the scale.
+    [string]$SpecPath,
     [string]$OutDir,
     # Notes printed on the sheet, e.g. "adversarial review: 23 findings, 21 fixed".
     [string[]]$Note,
@@ -63,6 +72,9 @@ foreach ($name in 'Test-BenchmarkTerm', 'Test-BenchmarkAnswer') {
 }
 
 $scale = Get-Content -LiteralPath $ScalePath -Raw | ConvertFrom-Json -AsHashtable
+if (-not $scale.Contains('programmes') -or -not $scale.programmes.Contains($Programme)) { throw "The scale has no programme '$Programme'" }
+$prog = $scale.programmes[$Programme]
+if (-not $SpecPath) { $SpecPath = Join-Path $root $prog.spec }
 $spec = Get-Content -LiteralPath $SpecPath -Raw | ConvertFrom-Json -AsHashtable
 $specHash = (Get-FileHash -LiteralPath $SpecPath -Algorithm SHA256).Hash.Substring(0, 12).ToLowerInvariant()
 $tasks = @($spec.tasks | ForEach-Object { $_.id })
@@ -86,14 +98,16 @@ function Read-Sessions([string[]]$Folders) {
                 $text = Get-Content -LiteralPath $answer -Raw
                 # A session that never answered (time limit, not JSON, an API error) fails; running out of turns is a
                 # result and fails too, by the same rule. Either way its saved answer, if any, is not graded as a pass.
-                $broken = ($row.Contains('infrastructure') -and $row.infrastructure) -or [string]$row.reasons -match 'timed out|error|not JSON'
+                $gameReasons = if ($row.Contains('gameReasons') -and $row.gameReasons) { [string]$row.gameReasons } else { '' }
+                $sessionProblem = if ($gameReasons) { ([string]$row.reasons).Replace($gameReasons, '') } else { [string]$row.reasons }
+                $broken = ($row.Contains('infrastructure') -and $row.infrastructure) -or $sessionProblem -match 'timed out|error|not JSON'
                 # The grader returns its reasons as one array (`, $list`): assigned straight, never wrapped in @().
                 $reasons = if ($text) { Test-BenchmarkAnswer $text $expected[$row.task] } else { @('empty answer') }
                 [pscustomobject]@{
                     unit = $unit; runId = [string]$meta['runId']; cli = [string]$meta['claudeVersion']
                     model = [string]$row.model; plugin = [bool]($row.Contains('plugin') -and $row.plugin)
                     profile = [string]$row.profile; task = [string]$row.task
-                    success = (-not $broken) -and @($reasons).Count -eq 0
+                    success = (-not $broken) -and @($reasons).Count -eq 0 -and -not $gameReasons
                     tokens = [double]$row.tokensTotal; cost = [double]$row.costUsd; seconds = [double]$row.durationMs / 1000
                     spendKnown = -not ($row.Contains('spendKnown') -and -not $row.spendKnown)
                 }
@@ -127,7 +141,7 @@ function Get-Index($Energy) {
     $logSum = 0.0
     foreach ($task in $tasks) {
         if ($null -eq $Energy[$task]) { return $null }
-        $logSum += [math]::Log($Energy[$task] / [double]$scale.standardTokensPerSolvedTask[$task])
+        $logSum += [math]::Log($Energy[$task] / [double]$prog.standardTokensPerSolvedTask[$task])
     }
     return 100 * [math]::Exp($logSum / $tasks.Count)
 }
@@ -189,7 +203,7 @@ function Get-Spread([object[]]$Sessions, [int]$Samples = 2000) {
                 $pick = $runs[$random.Next($runs.Count)]
                 $spent += $pick.tokens; if ($pick.success) { $solved++ }
             }
-            $logSum += [math]::Log(($spent / [math]::Max([double]$solved, 0.5)) / [double]$scale.standardTokensPerSolvedTask[$task])
+            $logSum += [math]::Log(($spent / [math]::Max([double]$solved, 0.5)) / [double]$prog.standardTokensPerSolvedTask[$task])
             $passed += $solved; $count += $runs.Count
         }
         $indexChanges.Add(100 * ((100 * [math]::Exp($logSum / $tasks.Count)) / $base - 1))
@@ -215,7 +229,10 @@ foreach ($s in @($sessions | Where-Object { -not $_.spendKnown })) {
     $s.tokens = if ($peers.Count) { ($peers | Measure-Object tokens -Maximum).Maximum } else { ($sessions | Where-Object spendKnown | Measure-Object tokens -Maximum).Maximum }
     $s.cost = if ($peers.Count) { ($peers | Measure-Object cost -Maximum).Maximum } else { 0 }
 }
-$standardProfile = $scale.standardProfile
+$standardProfile = $prog.standardProfile
+if (-not $Introduce -and -not ($prog.Contains('standardTokensPerSolvedTask') -and $prog.standardTokensPerSolvedTask)) {
+    throw "The $Programme programme has no standard tokens yet: introduce it with -Introduce on the market's runs"
+}
 
 if ($Introduce) {
     # The market at introduction: every configuration and profile given. The standard tokens of a task are the median of
@@ -226,7 +243,7 @@ if ($Introduce) {
         $values = @(foreach ($g in $groups) { $e = (Get-TaskEnergy $g.Group)[$task]; if ($null -ne $e) { $e } })
         $standard[$task] = [math]::Round((Get-Median $values) / 1000) * 1000
     }
-    $scale.standardTokensPerSolvedTask = $standard
+    $prog.standardTokensPerSolvedTask = $standard
     $rated = @(foreach ($g in $groups) {
             $m = Measure-Configuration $g.Group
             $spread = Get-Spread $g.Group
@@ -250,10 +267,12 @@ if ($Verify) {
     # Annex IX of the washing-machine regulation, step for step: one unit; if it misses a tolerance, three more units,
     # whose arithmetic mean decides. The tolerances are for this check only; a declaration never adds them.
     $declared = Get-Content -LiteralPath $Verify -Raw | ConvertFrom-Json -AsHashtable
+    $declaredProgramme = if ($declared.Contains('programme')) { $declared.programme } else { 'tool' }
+    if ($declaredProgramme -ne $Programme) { throw "$Verify declares the $declaredProgramme programme; verify it with -Programme $declaredProgramme" }
     $units = @($sessions | Where-Object { $_.profile -eq $standardProfile -and $_.model -eq $declared.model -and $_.plugin -eq [bool]$declared.plugin } | Group-Object unit | Sort-Object { [int]$_.Name })
     if ($units.Count -eq 0) { throw "No runs of $($declared.model) $(if ($declared.plugin) { 'with' } else { 'without' }) the plugin under $standardProfile" }
     $measured = @(foreach ($u in $units) { $m = Measure-Configuration $u.Group; [ordered]@{ unit = [int]$u.Name; runId = $u.Group[0].runId; index = $m.index; successPercent = $m.successPercent } })
-    $tolerance = $scale.tolerance
+    $tolerance = $prog.tolerance
     $within = {
         param($m)
         $null -ne $m.index -and $m.index -le $declared.index * (1 + $tolerance.indexPercent / 100) -and
@@ -270,7 +289,7 @@ if ($Verify) {
         if (& $within $mean) { 'complies' } else { 'does-not-comply' }
     }
     $report = [ordered]@{
-        declared = [ordered]@{ version = $declared.version; model = $declared.model; plugin = $declared.plugin; index = $declared.index; successPercent = $declared.successPercent; class = $declared.class }
+        declared = [ordered]@{ version = $declared.version; programme = $declaredProgramme; model = $declared.model; plugin = $declared.plugin; index = $declared.index; successPercent = $declared.successPercent; class = $declared.class }
         tolerance = $tolerance; units = $measured; verdict = $verdict
         next = switch ($verdict) {
             'complies' { 'Nothing: the declared values hold.' }
@@ -308,11 +327,13 @@ $sheets = @(foreach ($config in @(Get-Configurations $sessions $standardProfile)
             supplier = 'nick-vas'
             product = 'Hyperdot'
             version = $Version
-            name = "hyperdot-$Version-$slug"
+            name = "hyperdot-$Version-$Programme-$slug"
+            programme = $Programme
+            programmeName = $prog.name
             model = $config.model
             plugin = $config.plugin
             scale = $scale.scale
-            standardProgramme = [ordered]@{ profile = $standardProfile; tasks = $tasks.Count; spec = 'benchmark/token-benchmark.json'; specSha256 = $specHash }
+            standardProgramme = [ordered]@{ profile = $standardProfile; tasks = $tasks.Count; spec = $prog.spec; specSha256 = $specHash }
             class = $m.class
             index = $m.index
             belowMinimum = $m.belowMinimum
@@ -345,12 +366,12 @@ function Get-ModelName([string]$Model) {
     return $Model
 }
 
-# A shields.io badge for a sheet: "Hyperdot <version> - <model> | <class>" (a middle dot between) in the class's colour. Shields reads '-' as a
+# A shields.io badge for a sheet: "Hyperdot <version> - <model> | <programme> <class>" (a middle dot between) in the class's colour. Shields reads '-' as a
 # separator, so a literal one is doubled.
 function Get-BadgeUrl($Sheet) {
     $escape = { param($t) [uri]::EscapeDataString(($t -replace '-', '--' -replace '_', '__')) }
     $label = "Hyperdot $($Sheet.version) $([char]0x00B7) $(Get-ModelName $Sheet.model)$(if ($Sheet.plugin) { ' + plugin' })"
-    $message = if ($Sheet.class) { "efficiency $($Sheet.class)" } else { 'efficiency: no class' }
+    $message = "$($Sheet.programmeName.ToLowerInvariant()) $(if ($Sheet.class) { $Sheet.class } else { 'no class' })"
     return "https://img.shields.io/badge/$(& $escape $label)-$(& $escape $message)-$((Get-ClassColor $Sheet.class $scale.classes).TrimStart('#'))"
 }
 
@@ -360,11 +381,11 @@ function New-LabelSvg($Sheet) {
     $svg = [System.Text.StringBuilder]::new()
     $add = { param($s) [void]$svg.AppendLine($s) }
     $esc = { param($s) [System.Security.SecurityElement]::Escape([string]$s) }
-    & $add "<svg xmlns=`"http://www.w3.org/2000/svg`" width=`"$w`" height=`"$h`" viewBox=`"0 0 $w $h`" font-family=`"Helvetica, Arial, sans-serif`" role=`"img`" aria-label=`"Hyperdot label: agent efficiency class $(if ($Sheet.class) { $Sheet.class } else { 'none' })`">"
+    & $add "<svg xmlns=`"http://www.w3.org/2000/svg`" width=`"$w`" height=`"$h`" viewBox=`"0 0 $w $h`" font-family=`"Helvetica, Arial, sans-serif`" role=`"img`" aria-label=`"Hyperdot label: $(& $esc $Sheet.programmeName.ToLowerInvariant()) class $(if ($Sheet.class) { $Sheet.class } else { 'none' })`">"
     & $add "<rect x=`"1`" y=`"1`" width=`"$($w - 2)`" height=`"$($h - 2)`" rx=`"10`" fill=`"#ffffff`" stroke=`"#1d1d1b`" stroke-width=`"2`"/>"
     & $add "<rect x=`"1`" y=`"1`" width=`"$($w - 2)`" height=`"58`" rx=`"10`" fill=`"#1f4e79`"/><rect x=`"1`" y=`"40`" width=`"$($w - 2)`" height=`"19`" fill=`"#1f4e79`"/>"
     & $add "<text x=`"20`" y=`"39`" font-size=`"26`" font-weight=`"bold`" fill=`"#ffffff`">HYPERDOT</text>"
-    & $add "<text x=`"$($w - 20)`" y=`"27`" font-size=`"12`" fill=`"#ffffff`" text-anchor=`"end`">agent efficiency</text>"
+    & $add "<text x=`"$($w - 20)`" y=`"27`" font-size=`"12`" fill=`"#ffffff`" text-anchor=`"end`">$(& $esc $Sheet.programmeName.ToLowerInvariant())</text>"
     & $add "<text x=`"$($w - 20)`" y=`"45`" font-size=`"12`" fill=`"#ffffff`" text-anchor=`"end`">scale $(& $esc $scale.scale)</text>"
     & $add "<text x=`"20`" y=`"84`" font-size=`"15`" font-weight=`"bold`" fill=`"#1d1d1b`">$(& $esc $Sheet.supplier)</text>"
     & $add "<text x=`"$($w - 20)`" y=`"84`" font-size=`"15`" font-weight=`"bold`" fill=`"#1d1d1b`" text-anchor=`"end`">$(& $esc "$($Sheet.product) $($Sheet.version)")</text>"
@@ -415,7 +436,7 @@ function New-LabelSvg($Sheet) {
 
 function New-SheetMarkdown($Sheet) {
     $lines = [System.Collections.Generic.List[string]]::new()
-    $lines.Add("# Product information sheet: $($Sheet.product) $($Sheet.version), $($Sheet.model)$(if ($Sheet.plugin) { ' with the plugin' })")
+    $lines.Add("# Product information sheet: $($Sheet.product) $($Sheet.version), $($Sheet.programmeName.ToLowerInvariant()), $($Sheet.model)$(if ($Sheet.plugin) { ' with the plugin' })")
     $lines.Add('')
     $lines.Add("![label]($($Sheet.name).svg)")
     $lines.Add('')
@@ -425,7 +446,7 @@ function New-SheetMarkdown($Sheet) {
     $lines.Add("| Model, plugin | $($Sheet.model), $(if ($Sheet.plugin) { 'loaded' } else { 'not loaded' }) |")
     $lines.Add("| Scale | $($Sheet.scale) ([method](../label.md)) |")
     $lines.Add("| Standard programme | $($Sheet.standardProgramme.profile), $($Sheet.standardProgramme.tasks) tasks of ``$($Sheet.standardProgramme.spec)`` (sha256 $($Sheet.standardProgramme.specSha256)), $($Sheet.sessions) sessions |")
-    $lines.Add("| Agent efficiency class | **$(if ($Sheet.class) { $Sheet.class } else { 'none' })**$(if ($Sheet.belowMinimum.Count) { ': ' + ($Sheet.belowMinimum -join '; ') }) |")
+    $lines.Add("| $($Sheet.programmeName) class | **$(if ($Sheet.class) { $Sheet.class } else { 'none' })**$(if ($Sheet.belowMinimum.Count) { ': ' + ($Sheet.belowMinimum -join '; ') }) |")
     $lines.Add((Format-Inv '| Agent Efficiency Index | {0} |' $Sheet.index))
     $lines.Add((Format-Inv '| Tokens per solved task | {0:N0} |' $Sheet.tokensPerSolvedTask))
     $lines.Add((Format-Inv '| Answers that pass | {0}% |' $Sheet.successPercent))
@@ -442,7 +463,7 @@ function New-SheetMarkdown($Sheet) {
     $lines.Add('|---|---:|---:|')
     foreach ($t in $tasks) {
         $v = $Sheet.tokensPerSolvedTaskByTask[$t]
-        $lines.Add((Format-Inv '| {0} | {1} | {2:N0} |' $t, $(if ($null -ne $v) { Format-Inv '{0:N0}' $v } else { 'never solved' }), $scale.standardTokensPerSolvedTask[$t]))
+        $lines.Add((Format-Inv '| {0} | {1} | {2:N0} |' $t, $(if ($null -ne $v) { Format-Inv '{0:N0}' $v } else { 'never solved' }), $prog.standardTokensPerSolvedTask[$t]))
     }
     if ($Sheet.otherProfiles.Count) {
         $lines.Add('')
@@ -459,7 +480,7 @@ function New-SheetMarkdown($Sheet) {
 }
 
 foreach ($s in $sheets) { $s['modelName'] = Get-ModelName $s.model; $s['badge'] = Get-BadgeUrl $s }
-$output = [ordered]@{ scale = $scale.scale; rescaleReviewDue = $rescaleDue; labels = $sheets }
+$output = [ordered]@{ scale = $scale.scale; programme = $Programme; rescaleReviewDue = $rescaleDue; labels = $sheets }
 if ($coverageBlock) {
     $output.testedBadge = "https://img.shields.io/badge/tested-class%20$($coverageBlock.class)-$((Get-ClassColor $coverageBlock.class $scale.coverage.classes).TrimStart('#'))"
 }

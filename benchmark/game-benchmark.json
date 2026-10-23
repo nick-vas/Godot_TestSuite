@@ -1,0 +1,186 @@
+{
+  "name": "hyperdot game-making benchmark",
+  "description": "Tokens, cost and time an agent spends on everyday game work in a small Godot 4.7 GDScript game, graded by running the game's tests and hidden ones, with and without Hyperdot.",
+  "model": "sonnet",
+  "timeoutSeconds": 900,
+  "maxTurns": 40,
+  "repeat": 3,
+  "retries": 1,
+  "maxCalls": 200,
+  "maxBudgetUsdPerCall": 4.0,
+  "settingSources": "project",
+  "tools": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Edit",
+    "Write"
+  ],
+  "game": {
+    "source": "examples/gdscript",
+    "files": [
+      "project.godot",
+      "main.gd",
+      "main.tscn",
+      "score.gd",
+      "test/test_score.gd",
+      "test/flows/startup.flow.json",
+      ".gitignore",
+      "addons/gut"
+    ]
+  },
+  "profiles": [
+    {
+      "id": "A-baseline",
+      "description": "The task as asked, in the game's folder"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "GAME-DIAG-001",
+      "category": "debugging",
+      "title": "Explain a failing test",
+      "prompt": "A test in this Godot 4.7 game fails. Run the tests to find out which, and do not change the game's code or its tests. Say which test fails, its file and line, what it expected and what it got, and whether the test or the game is wrong. Godot 4.7.2 is at the path in the environment variable GODOT_BIN; GUT is in addons/gut.",
+      "expected": {
+        "mustInclude": [
+          "test_every_fifth_hit_raises_the_multiplier",
+          "re:test_score\\.gd\\D{0,40}\\b7\\b",
+          "25",
+          "20"
+        ],
+        "maxWords": 220
+      },
+      "game": {
+        "edits": [
+          {
+            "file": "test/test_score.gd",
+            "find": "assert_eq(score.hit(10), 20)",
+            "replace": "assert_eq(score.hit(10), 25)"
+          }
+        ],
+        "unchanged": [
+          "score.gd",
+          "main.gd",
+          "test/test_score.gd"
+        ]
+      }
+    },
+    {
+      "id": "GAME-FIX-001",
+      "category": "bug_fix",
+      "title": "Fix a gameplay bug from a player report",
+      "prompt": "Players of this Godot 4.7 game say the score multiplier no longer goes up on the fifth hit in a row. Fix it, and check the fix with the game's tests. Godot 4.7.2 is at the path in the environment variable GODOT_BIN; GUT is in addons/gut.",
+      "expected": {
+        "maxWords": 220
+      },
+      "game": {
+        "edits": [
+          {
+            "file": "score.gd",
+            "find": "combo / 5",
+            "replace": "combo / 6"
+          }
+        ],
+        "unchanged": [
+          "test/test_score.gd"
+        ],
+        "hidden": [
+          "benchmark/game/hidden/test_hidden_multiplier.gd"
+        ],
+        "suite": true
+      }
+    },
+    {
+      "id": "GAME-FEAT-001",
+      "category": "feature",
+      "title": "Add a best score and a new game",
+      "prompt": "Add a best score to this Godot 4.7 game: Score gets an int property `best`, the highest `points` reached so far, and a method `reset()` that starts a new game (points and combo back to 0) and keeps `best`. Add GUT tests for it, and run the game's tests. Godot 4.7.2 is at the path in the environment variable GODOT_BIN; GUT is in addons/gut.",
+      "expected": {
+        "maxWords": 220
+      },
+      "game": {
+        "hidden": [
+          "benchmark/game/hidden/test_hidden_best.gd"
+        ],
+        "suite": true,
+        "newTests": 1
+      }
+    },
+    {
+      "id": "GAME-TEST-001",
+      "category": "testing",
+      "title": "Write tests that catch real bugs",
+      "prompt": "This Godot 4.7 game's scoring has thin tests. Write GUT tests for Score in test/test_score_rules.gd that pin down how it works: the multiplier steps, what a miss does, and how points add up over a long combo. Do not change score.gd. Run the game's tests. Godot 4.7.2 is at the path in the environment variable GODOT_BIN; GUT is in addons/gut.",
+      "expected": {
+        "maxWords": 220
+      },
+      "game": {
+        "unchanged": [
+          "score.gd"
+        ],
+        "suite": true,
+        "mutants": [
+          {
+            "name": "the multiplier steps every fourth hit",
+            "file": "score.gd",
+            "find": "combo / 5",
+            "replace": "combo / 4"
+          },
+          {
+            "name": "the multiplier steps one hit late",
+            "file": "score.gd",
+            "find": "(1 + combo / 5)",
+            "replace": "(1 + (combo - 1) / 5)"
+          },
+          {
+            "name": "a miss keeps the combo",
+            "file": "score.gd",
+            "find": "\tcombo = 0",
+            "replace": "\tpass"
+          },
+          {
+            "name": "a miss also clears the points",
+            "file": "score.gd",
+            "find": "\tcombo = 0",
+            "replace": "\tcombo = 0\n\tpoints = 0"
+          },
+          {
+            "name": "points are replaced, not added",
+            "file": "score.gd",
+            "find": "points += gained",
+            "replace": "points = gained"
+          }
+        ],
+        "mutantTests": [
+          "test/test_score_rules.gd"
+        ]
+      }
+    },
+    {
+      "id": "GAME-TUNE-001",
+      "category": "refactor",
+      "title": "Make a gameplay value editable without changing behaviour",
+      "prompt": "Designers want to tune how many points a hit is worth in this Godot 4.7 game from the editor. Make it an exported variable `hit_value` on the main scene's script, defaulting to the current value, without changing how the game behaves. Run the game's tests. Godot 4.7.2 is at the path in the environment variable GODOT_BIN; GUT is in addons/gut.",
+      "expected": {
+        "maxWords": 220
+      },
+      "game": {
+        "unchanged": [
+          "score.gd",
+          "test/test_score.gd"
+        ],
+        "match": [
+          {
+            "file": "main.gd",
+            "pattern": "@export\\s+var\\s+hit_value\\b"
+          }
+        ],
+        "hidden": [
+          "benchmark/game/hidden/test_hidden_tune.gd"
+        ],
+        "suite": true
+      }
+    }
+  ]
+}

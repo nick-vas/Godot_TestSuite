@@ -15,6 +15,13 @@
   Scale 2026-10 was set from 216 sessions of 0.1.0. Haiku 5.5 rates D (AEI 74.2, 96% of answers pass), Sonnet 5.5 F
   (92.8, 54%, nearly every failure over the stated word limit). The plugin makes both worse on these tasks, which are
   about Hyperdot's own code.
+- **The game programme** (`benchmark/game-benchmark.json`): five tasks on a small Godot game, built from `evals/` and
+  made deterministic (explain a failing test, fix a bug from a player report, add a feature with tests, write tests
+  that catch planted bugs, expose a value to the editor). Each session works in its own copy of the game with Bash,
+  Edit and Write, and is graded afterwards by the kit's own `test`: the game's tests and hidden ones, files that must not
+  change, and five mutants its tests must catch. The label now has two classes per version, **tool efficiency** and
+  **game-making efficiency** (`-Programme tool|game`), each with its own standard tokens. `tests/Test-GameBenchmark.ps1`
+  checks the grading with a stand-in that does every task well and badly.
 - Token benchmark: a grader that cannot be fooled.
   - Whole-word terms, `re:` regular expressions, `mustAdd` for a diff's added lines, forbidden commands found where a
     statement starts. Markup is not counted as words.
