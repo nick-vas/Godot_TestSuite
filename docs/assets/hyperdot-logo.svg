@@ -35,14 +35,14 @@
     <path d="M186 128 C200 186 236 206 256 206 C276 206 312 186 326 128 C306 160 206 160 186 128 Z" fill="#3b7fc4"/>
     <path d="M238 140 H274" fill="none" stroke-width="9"/>
     <!-- Jawbreaker-style shield glasses -->
-    <path d="M152 76 L134 80 M360 76 L378 80" fill="none" stroke="#1d2a26" stroke-width="10"/>
-    <path d="M152 72 C196 60 316 60 360 72 L356 90 C354 108 344 118 324 120 C304 122 288 114 278 104 C270 96 262 94 256 94 C250 94 242 96 234 104 C224 114 208 122 188 120 C168 118 158 108 156 90 Z" fill="#1d2a26"/>
-    <path d="M162 78 C204 69 308 69 350 78 L347 90 C345 104 336 111 322 112 C306 113 294 107 286 99 C278 92 268 89 256 89 C244 89 234 92 226 99 C218 107 206 113 190 112 C176 111 167 104 165 90 Z" fill="url(#prizm)" stroke-width="4"/>
-    <rect x="248" y="58" width="16" height="8" rx="3" fill="#c6f432" stroke-width="5"/>
-    <circle cx="160" cy="84" r="5" fill="#c6f432" stroke-width="4"/><circle cx="352" cy="84" r="5" fill="#c6f432" stroke-width="4"/>
+    <path d="M155 76 L134 80 M357 76 L378 80" fill="none" stroke="#1d2a26" stroke-width="7"/>
+    
+    <path d="M154 70 C200 57 312 57 358 70 L355 94 C353 116 340 130 320 132 C298 134 284 124 275 111 C268 101 262 98 256 98 C250 98 244 101 237 111 C228 124 214 134 192 132 C172 130 159 116 157 94 Z" fill="url(#prizm)" stroke="#1d2a26" stroke-width="7"/>
+    <rect x="249" y="56" width="14" height="6" rx="3" fill="#c6f432" stroke-width="5"/>
+    <circle cx="160" cy="80" r="4" fill="#c6f432" stroke-width="4"/><circle cx="352" cy="80" r="4" fill="#c6f432" stroke-width="4"/>
   </g>
-  <path d="M198 69 H226 M286 69 H314" stroke="#5c6b66" stroke-width="3" stroke-linecap="round"/>
-  <path d="M180 82 C200 77 222 75 240 75 L232 90 C214 90 198 93 184 98 Z" fill="#ffffff" opacity="0.38"/>
+  <path d="M198 64 H226 M286 64 H314" stroke="#1d2a26" stroke-width="3" stroke-linecap="round"/>
+  <path d="M174 78 C198 70 222 68 242 68 L232 88 C212 88 194 92 178 100 Z" fill="#ffffff" opacity="0.38"/>
   <path d="M298 76 L316 76 L296 106 L282 106 Z" fill="#ffffff" opacity="0.2"/>
   <path d="M100 210 C108 196 122 190 138 192" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
   <path d="M374 192 C390 190 404 196 412 210" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
