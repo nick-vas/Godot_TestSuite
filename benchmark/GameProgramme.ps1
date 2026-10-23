@@ -145,7 +145,21 @@ function New-GameWorkspace($Spec, $TaskSpec, [string]$RepoRoot) {
     [void](Invoke-GameGit $dir @('commit', '-qm', 'The game'))
     $kept = @{}
     foreach ($file in @(if ($TaskSpec.game.Contains('unchanged')) { $TaskSpec.game.unchanged })) { $kept[$file] = [System.IO.File]::ReadAllText((Join-Path $dir $file)) }
-    return [pscustomobject]@{ Dir = $dir; Kept = $kept; Tests = (Get-GameTestCount $dir) }
+    return [pscustomobject]@{ Dir = $dir; Kept = $kept; Tests = (Get-GameTestCount $dir); TestFiles = @(Get-GameTestFiles $dir) }
+}
+
+# The test files of a game, as paths relative to it.
+function Get-GameTestFiles([string]$Root) {
+    return @(foreach ($file in (Get-GameCodeFiles $Root)) {
+            if (Test-GameTestFile $file.FullName) { [System.IO.Path]::GetRelativePath($Root, $file.FullName) -replace '\\', '/' }
+        })
+}
+
+# The Godot project of a game copy: the copy itself, or its `project` folder when the copy is a whole repository (a C#
+# game whose solution sits above the project, in the field test).
+function Get-GameProjectDir($Rules, [string]$Dir) {
+    if ($Rules.Contains('project') -and $Rules.project -and $Rules.project -ne '.') { return Join-Path $Dir $Rules.project }
+    return $Dir
 }
 
 function Remove-GameWorkspace([string]$Dir) {
@@ -211,9 +225,11 @@ function Test-GameResult($TaskSpec, $Game) {
     # Mutants first, before the hidden tests are in the game: they are judged by the session's own tests alone.
     $mutants = @(if ($rules.Contains('mutants')) { $rules.mutants })
     if ($mutants.Count) {
-        $judges = @($rules.mutantTests)
+        # "new": the test files the session added are the judges (the field test does not say where tests go).
+        $judges = @(if ($rules.mutantTests -eq 'new') { Get-GameTestFiles $Game.Dir | Where-Object { $_ -notin $Game.TestFiles } } else { $rules.mutantTests })
         $missing = @($judges | Where-Object { -not (Test-Path -LiteralPath (Join-Path $Game.Dir $_) -PathType Leaf) })
-        if ($missing.Count) { $reasons.Add("no $($missing -join ', ')") }
+        if ($judges.Count -eq 0) { $reasons.Add('no new test files') }
+        elseif ($missing.Count) { $reasons.Add("no $($missing -join ', ')") }
         else {
             $i = 0
             foreach ($mutant in $mutants) {
@@ -225,7 +241,7 @@ function Test-GameResult($TaskSpec, $Game) {
                     $relative = [System.IO.Path]::GetRelativePath($copy, $script.FullName) -replace '\\', '/'
                     if ($relative -notin $judges -and (Test-GameTestFile $script.FullName)) { Remove-Item -LiteralPath $script.FullName -Force }
                 }
-                $run = Invoke-GameSuite $copy $(if ($rules.Contains('mutantRunners')) { @($rules.mutantRunners) } else { @('gut') })
+                $run = Invoke-GameSuite (Get-GameProjectDir $rules $copy) $(if ($rules.Contains('mutantRunners')) { @($rules.mutantRunners) } else { @('gut') }) "$copy-results"
                 if ($run.Ok) { $reasons.Add("the tests miss a bug: $($mutant.name)") }
                 Remove-Item -LiteralPath $copy, "$copy-results" -Recurse -Force -ErrorAction SilentlyContinue
             }
@@ -233,7 +249,7 @@ function Test-GameResult($TaskSpec, $Game) {
     }
     # Kit commands the work must satisfy, such as `doctor` (no FAIL) or `export -Preset Linux -Run` (the build starts).
     foreach ($check in @(if ($rules.Contains('kit')) { $rules.kit })) {
-        $result = Invoke-KitCommand $Game.Dir $check.command @(if ($check.Contains('args')) { $check.args })
+        $result = Invoke-KitCommand (Get-GameProjectDir $rules $Game.Dir) $check.command @(if ($check.Contains('args')) { $check.args }) "$($Game.Dir)-results"
         $want = -not ($check.Contains('expect') -and $check.expect -eq 'fail')
         if ($result.Ok -ne $want) { $reasons.Add("$($check.command) $(@(if ($check.Contains('args')) { $check.args }) -join ' '): $(if ($want) { $result.Why } else { 'passed, expected to fail' })".Trim()) }
     }
@@ -244,7 +260,7 @@ function Test-GameResult($TaskSpec, $Game) {
         Copy-Item -LiteralPath (Get-HiddenSource $file (Split-Path $PSScriptRoot -Parent)) -Destination $target -Force
     }
     if ($hidden.Count -or ($rules.Contains('suite') -and $rules.suite)) {
-        $run = Invoke-GameSuite $Game.Dir @()
+        $run = Invoke-GameSuite (Get-GameProjectDir $rules $Game.Dir) @() "$($Game.Dir)-results"
         if (-not $run.Ok) { $reasons.Add("tests fail: $(@($run.Failed | Select-Object -First 5) -join ', ')") }
     }
     return $reasons.ToArray()
@@ -254,6 +270,8 @@ function Test-GameResult($TaskSpec, $Game) {
 
 $script:StageRoot = $null
 $script:StageDirs = @{}
+# The field test's copy of the game and its trials (benchmark/FieldTest.ps1), removed with the stage fixtures.
+$script:FieldRoot = $null
 
 function Read-JsonFile([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Not found: $Path" }
@@ -360,7 +378,7 @@ function Resolve-EditCopy($Edit, [string]$CellDir) {
 }
 
 function Remove-StageFixtures {
-    if ($script:StageRoot) { Remove-Item -LiteralPath $script:StageRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    foreach ($root in @($script:StageRoot, $script:FieldRoot)) { if ($root) { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue } }
 }
 
 # A hidden file of a manifest: copied into the game at "to" (default test/<its name>) before grading.
@@ -381,7 +399,7 @@ function New-ProgrammeTask($Spec, $Cell, $Template, $Entry, [string]$StageDir, [
     $prompt = Format-Template $Template.prompt $values
     if ($prog.Contains('promptSuffix')) { $prompt += ' ' + (Format-Template $prog.promptSuffix $values) }
     $game = @{ source = $StageDir }
-    foreach ($k in 'edits', 'unchanged', 'match', 'mutants', 'mutantTests', 'mutantRunners', 'suite', 'newTests', 'runners', 'kit', 'judge') {
+    foreach ($k in 'edits', 'unchanged', 'match', 'mutants', 'mutantTests', 'mutantRunners', 'suite', 'newTests', 'runners', 'kit', 'judge', 'project') {
         if ($Entry.Contains($k)) { $game[$k] = $Entry[$k] } elseif ($Template.Contains($k)) { $game[$k] = $Template[$k] }
     }
     foreach ($k in 'edits', 'mutants') {

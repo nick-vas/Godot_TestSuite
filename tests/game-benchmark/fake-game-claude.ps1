@@ -1,13 +1,44 @@
 # A stand-in for the Claude Code CLI on the game programme (benchmark/game-benchmark.json): it does each task's work in the
 # folder it runs in, the way a session would, well when $env:FAKE_GAME_MODE is 'good' and badly when it is 'bad', so the
 # grader is tested against both. It also stands in for the judge (layers 3 and 4 of benchmark/PLAN.md). The prompt arrives on stdin; each call is appended to $env:FAKE_CLAUDE_LOG.
+#
+# For the isolation self-test (tests/Test-BenchmarkIsolation.ps1) it also reports who it ran as and whether it could read
+# each path in $env:FAKE_PROBE ('|'-separated; '..' is the folder its game is in), runs Godot with FAKE_RUN_GODOT, and on
+# request misbehaves: FAKE_LINGER leaves a process running, FAKE_HOSTILE plants a link at the path FAKE_HOSTILE_LINK
+# pointing to FAKE_CANARY and a git setting that would run a command when the grader runs git. For the field test (tests/Test-FieldTest.ps1) it does the
+# field templates, restoring the game's code from $env:FAKE_FIELD_ORIGINAL when it is good.
 $arguments = @($args)
 if ($arguments -contains '--version') { '9.9.9 (Claude Code)'; exit 0 }
 $prompt = [Console]::In.ReadToEnd()
 $good = $env:FAKE_GAME_MODE -eq 'good'
+function Test-Readable([string]$Path) {
+    try {
+        if (Test-Path -LiteralPath $Path -PathType Container) { Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop | Out-Null }
+        else { [IO.File]::ReadAllText($Path) | Out-Null }
+        return $true
+    } catch { return $false }
+}
+$probes = [ordered]@{}
+foreach ($path in @(if ($env:FAKE_PROBE) { $env:FAKE_PROBE -split '\|' | Where-Object { $_ } })) {
+    $probes[$path] = Test-Readable $(if ($path -eq '..') { Split-Path (Get-Location).Path } else { $path })
+}
+$pluginAt = [Array]::IndexOf($arguments, '--plugin-dir')
 [ordered]@{ prompt = $prompt; cwd = (Get-Location).Path; seesGame = (Test-Path -LiteralPath 'project.godot')
-    seesKit = (Test-Path -LiteralPath 'AGENTS.md') -or (Test-Path -LiteralPath 'benchmark'); args = $arguments } |
+    seesKit = (Test-Path -LiteralPath 'AGENTS.md') -or (Test-Path -LiteralPath 'benchmark'); args = $arguments
+    user = [Environment]::UserName; uid = $(if ($IsLinux) { "$(& id -u)" }); home = $HOME
+    godotVersion = $(if ($env:FAKE_RUN_GODOT) { "$(& $env:GODOT_BIN --headless --version 2>$null)".Trim() }); probes = $probes; godotBin = $env:GODOT_BIN
+    pluginReadable = $(if ($pluginAt -ge 0) { Test-Readable (Join-Path $arguments[$pluginAt + 1] 'AGENTS.md') } else { $null })
+    pluginHasBenchmark = $(if ($pluginAt -ge 0) { Test-Path -LiteralPath (Join-Path $arguments[$pluginAt + 1] 'benchmark') } else { $null })
+    token = [string]$env:CLAUDE_CODE_OAUTH_TOKEN; notPassed = [bool]$env:FAKE_NOT_PASSED } |
     ConvertTo-Json -Compress -Depth 4 | Add-Content -LiteralPath $env:FAKE_CLAUDE_LOG
+# Misbehaving is for sessions; the judge runs as the runner, outside any isolation.
+$judging = $prompt -match '^You are (grading|comparing)'
+if ($env:FAKE_LINGER -and -not $judging) { Start-Process -FilePath 'sleep' -ArgumentList '600' | Out-Null }
+if ($env:FAKE_HOSTILE -and -not $judging) {
+    New-Item -ItemType Directory -Force (Split-Path (Join-Path $PWD $env:FAKE_HOSTILE_LINK)) | Out-Null
+    New-Item -ItemType SymbolicLink -Path (Join-Path $PWD $env:FAKE_HOSTILE_LINK) -Target $env:FAKE_CANARY -Force | Out-Null
+    & git config core.fsmonitor "touch '$($env:FAKE_CANARY).git-ran'" 2>$null
+}
 
 function Edit-File([string]$Path, [string]$Find, [string]$Replace) {
     $text = [IO.File]::ReadAllText((Join-Path $PWD $Path))
@@ -95,6 +126,48 @@ func test_a_hit_scores():
 '@
         }
         $answer = 'Wrote test/test_score_rules.gd.'
+    }
+    'failed its tests since a recent change|can no longer finish it since a recent change' {
+        # The field test's planted bugs: the good session puts the game's own code back as it was.
+        if ($good) {
+            $original = $env:FAKE_FIELD_ORIGINAL
+            foreach ($file in @(Get-ChildItem -LiteralPath $original -Recurse -File -Include '*.gd', '*.cs' | Where-Object { $_.FullName -notmatch '[\\/](addons|\.godot|bin|obj)[\\/]' })) {
+                $relative = [IO.Path]::GetRelativePath($original, $file.FullName)
+                $here = Join-Path $PWD $relative
+                if ((Test-Path -LiteralPath $here) -and [IO.File]::ReadAllText($here) -ne [IO.File]::ReadAllText($file.FullName)) { Copy-Item -LiteralPath $file.FullName -Destination $here -Force }
+            }
+        }
+        $answer = 'Found the bug and fixed it; the tests pass.'
+    }
+    'has too few tests of (.+?): bugs' {
+        # The good session copies the tests of the named code into new files (C# classes renamed); the bad one writes a
+        # test that checks nothing.
+        $names = @($Matches[1] -split ', ' | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_) })
+        $tests = @(Get-ChildItem -LiteralPath $PWD -Recurse -File -Include '*.gd', '*.cs' | Where-Object {
+                $_.FullName -notmatch '[\\/](addons|\.godot|bin|obj)[\\/]' -and ([IO.File]::ReadAllText($_.FullName) -match '(?m)^extends\s+GutTest|\[(Test|Fact|TestCase|Theory)\b')
+            })
+        if ($good) {
+            $mine = @($tests | Where-Object { $t = [IO.File]::ReadAllText($_.FullName); @($names | Where-Object { $t -match [regex]::Escape($_) }).Count })
+            if ($mine.Count -eq 0) { $mine = $tests }
+            foreach ($test in $mine) {
+                $copy = Join-Path $test.DirectoryName ($test.BaseName + 'More' + $test.Extension)
+                $text = [IO.File]::ReadAllText($test.FullName)
+                if ($test.Extension -eq '.cs') {
+                    # Every class the file declares gets a new name, with its constructors and the file's references to it.
+                    foreach ($class in @([regex]::Matches($text, '\bclass\s+(\w+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)) {
+                        $text = [regex]::Replace($text, "\b$class\b", "${class}More")
+                    }
+                }
+                [IO.File]::WriteAllText($copy, $text)
+            }
+        } elseif (Test-Path -LiteralPath (Join-Path $PWD 'addons/gut')) {
+            Write-File 'test/test_more.gd' "extends GutTest`n`nfunc test_something():`n    assert_true(true)`n"
+        }
+        $answer = 'Wrote new tests.'
+    }
+    'Hyperdot''s checks report problems' {
+        if ($good -and (Test-Path -LiteralPath 'assets.json')) { Remove-Item -LiteralPath 'assets.json' -Force }
+        $answer = 'doctor is green.'
     }
     'Designers want' {
         Edit-File 'main.gd' "var score := Score.new()`n" "@export var hit_value := 10`n`nvar score := Score.new()`n"
