@@ -54,6 +54,7 @@
 | `-Quiet` | off | Godot and dotnet output only in `hyperdot.log` in the results folder (`-Results`, or `-Output` for `shot`), not on the console. Use with `-Json` for agents |
 | `-Do`, `-Id`, `-Game` | `status` | `plan`: `init`, `status`, `done -Id <gate>`, `add`, `move -Id <task> -Column`, `sync`, `link` |
 | `-Title`, `-Column`, `-Board` | | `plan add` title; `add`/`move` column; `sync` Trello board (experimental); `link -Column` the card's list, `link -Board` the plan's board |
+| `-Handoff`, `-Checked`, `-Verdict` | | `status`: record one subagent handoff (the subagent's name, what it checked, its verdict) in `.godot/hyperdot-handoffs.jsonl` instead of reporting; the newest 200 are kept and `status` returns them as `handoffs[]` ([json.md](json.md)) |
 | `-Feature`, `-Card` | | `plan add`/`link`: the GDD feature a task delivers (`F3`); `link`: the task's Trello card id |
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |

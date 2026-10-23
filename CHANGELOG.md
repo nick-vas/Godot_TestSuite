@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **Handoff log.** `status -Handoff <subagent> -Checked <what> -Verdict <answer>` appends one line (time, subagent,
+  what was checked, verdict, commit) to `.godot/hyperdot-handoffs.jsonl`, keeping the newest 200; `status` returns the 20
+  newest as `handoffs[]`. Both subagents record their handoff before replying, and `/game` and `/retro` read the log.
+  `tests/Test-Handoffs.ps1` checks it.
 - **Kit notes.** `init -Agents` and `-Plugin` create `docs/kit-notes.md` in the game (template
   `ci/godot/templates/kit-notes.md`): one line each time the kit gets in the way. The `game` skill and the game's
   `AGENTS.md` say to append a line; `/retro` and `weekly-review` read it, and the weekly review proposes up to three kit

@@ -29,5 +29,9 @@ Reply in at most 15 lines:
 2. Evidence: the numbers, or each failure as `file:line message`, or each screenshot problem as `screen: problem`.
 3. If it failed: the most likely cause in one line, and where to look first.
 
+Before replying, record the handoff, so `/game` and `status` can see later what was checked and what you answered (it
+writes only `.godot/hyperdot-handoffs.jsonl`, which is never committed):
+`pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Handoff godot-verifier -Checked '<the command you ran>' -Verdict '<PASS or FAIL: the main failure>'`.
+
 Never claim a check passed without the JSON saying `"ok": true`. If the kit cannot run (no Godot, no display for
 `shot`/`bench`), say so and what is missing.

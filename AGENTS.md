@@ -82,6 +82,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TestsNotRun.ps1` | the `dotnet` runner's guard against gdUnit4 tests found but not run (synthetic TRX) | - |
 | `Test-FailureDelta.ps1` | `test`'s failure delta against the previous run (synthetic history) | - |
 | `Test-TestDuration.ps1` | `status`'s test duration (synthetic history) | - |
+| `Test-Handoffs.ps1` | the handoff log: `status -Handoff` writes one line with the commit, keeps the newest 200, refuses bad arguments; `status` reads it back | git |
 | `Test-ProcessTimeout.ps1` | the process time limit | - |
 | `Test-CrashRetry.ps1` | the repeat of a crashed import or export (pwsh stands in for Godot) | - |
 | `Test-DownloadFailed.ps1` | the `download-failed` code (about 15 s) | - |

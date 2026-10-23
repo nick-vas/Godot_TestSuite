@@ -177,6 +177,11 @@ param(
     [string]$Feature,
     # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
     [string]$Card,
+    # status -Handoff <subagent> -Checked <what> -Verdict <answer>: record one subagent handoff in the project's handoff log
+    # (.godot/hyperdot-handoffs.jsonl, the newest 200 kept) instead of reporting; status reads the log back as handoffs[].
+    [string]$Handoff,
+    [string]$Checked,
+    [string]$Verdict,
     # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
     # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
@@ -543,6 +548,10 @@ function Test-ExportedBuild([string]$Name, [string]$Platform, [string]$File) {
 }
 
 Write-CiLog "Project $($info.ProjectDir) | Godot $($info.GodotVersion) | solution $(if ($info.Solution) { $info.Solution } else { 'none' }) | runners $(if ($info.Runners) { $info.Runners -join ',' } else { 'none' })"
+# Before any run log or history: flags that belong to another command.
+if (($Handoff -or $Checked -or $Verdict) -and ($Command -ne 'status' -or -not $Handoff)) {
+    Stop-GodotCi '-Handoff, -Checked and -Verdict go together, with status: status -Handoff <subagent> -Checked <what> -Verdict <answer>' 'invalid-arguments'
+}
 # Before any slow setup: refuse a -Results folder that wiping would hurt.
 if ($Command -eq 'test') { Assert-SafeToClear $Results }
 # bench and audio -Mix run one scene. -Scene a,b arrives as one "a,b" string with pwsh -File: split it as shot does, and
@@ -578,7 +587,7 @@ switch ($Command) {
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }
     'plan' { Invoke-Plan $info $Do $Id $Game $Title $Column $Board $Feature $Card }
-    'status' { Invoke-Status $info }
+    'status' { if ($Handoff) { Add-Handoff $info.ProjectDir $Handoff $Checked $Verdict } else { Invoke-Status $info } }
     'setup' { Invoke-Setup -WithTemplates:$Templates }
     'build' { Invoke-Setup; Invoke-Build }
     'test' { Invoke-Setup; Invoke-Build; Invoke-Tests }

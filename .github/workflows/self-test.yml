@@ -144,6 +144,9 @@ jobs:
       - name: status measures how long passing test runs take
         shell: pwsh
         run: ./tests/Test-TestDuration.ps1
+      - name: status -Handoff keeps the newest 200 subagent handoffs, and status reads them back
+        shell: pwsh
+        run: ./tests/Test-Handoffs.ps1
       - name: No function in ci/godot is defined twice or named like a built-in alias
         shell: pwsh
         run: ./tests/Test-LibNames.ps1

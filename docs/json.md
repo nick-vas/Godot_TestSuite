@@ -337,6 +337,13 @@ and `noticesFile`.
 see [plan.md](plan.md#release-dates)).
 `plan -Do add` also returns `task`; `plan -Do sync` (experimental) returns `sync` (`board`, `created`, `moved` (tasks moved to follow the board), `cardsMoved` (cards moved to follow the plan), `warnings`).
 
+**status -Handoff** `<subagent>` **-Checked** `<what>` **-Verdict** `<answer>` records one subagent handoff instead of
+reporting: one line in `.godot/hyperdot-handoffs.jsonl` (`time`, `subagent`, `checked`, `verdict`, `commit`; each text on
+one line, `checked` up to 500 characters, `verdict` up to 300), the newest 200 kept. It returns `handoff` (the line) and
+`handoffsKept`. A name that is not lowercase letters, digits and hyphens, a missing `-Checked` or `-Verdict`, or these flags
+on another command fail with `invalid-arguments`, before anything is written. `.godot/` is never committed (`init` puts it
+in `.gitignore`).
+
 **status** (read-only; it never fails on what it finds):
 - `gdd`: `path`, `draft`, `pitch`, `featureCount`, or `null` when the project has no `docs/GDD.md`.
 - `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
@@ -359,6 +366,9 @@ see [plan.md](plan.md#release-dates)).
 - `git`: `branch`, `lastCommit`, `commits7Days`, `commits28Days`, `filesChanged7Days`, `uncommitted`, `recent[]`; `null` outside git.
 - `inventory`: `mainScene`, `scenes[]` (up to 60), `sceneCount`, `scriptCount`, `testFileCount`, `autoloads[]`,
   `inputActions[]`, `todoCount`, `todos[]` (`file`, `line`, `text`; up to 15).
+- `handoffs[]`: the 20 newest lines of the handoff log, `.godot/hyperdot-handoffs.jsonl`, newest first: `time`, `subagent`,
+  `checked` (what it was asked to check), `verdict` (its answer, such as `PASS`, `FAIL: ...` or `Proposed 0003`),
+  `commit` (short hash, `null` outside git). Empty without a log.
 - `look`: `styleGuide` (path of `docs/STYLE.md`, or `null`), `resolutions[]` (from its `Resolutions:` line), `juiceRules` (rules
   in `juice.json`, 0 without one).
 - `warnings[]`: a draft GDD, must-have features with no tagged test, must and should features with no `Fun:` line or an
