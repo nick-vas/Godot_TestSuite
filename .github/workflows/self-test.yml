@@ -222,10 +222,11 @@ jobs:
     uses: ./.github/workflows/godot.yml
 
   # C# project: every detected runner, a coverage minimum, the Windows export launched on a Windows
-  # runner, and a release dry run (a real release on tags).
+  # runner, and a release dry run on branches. Never on a tag: a release there would publish the example game as the
+  # kit's own release (or add its zips to it), so the job also gets no write access to contents.
   csharp:
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     uses: ./.github/workflows/godot.yml
     with:
@@ -233,7 +234,7 @@ jobs:
       min-coverage: 40
       exports: all
       run-exports: true
-      release: true
+      release: ${{ github.ref_type != 'tag' }}
       retention-days: 3
 
   # Runners picked by hand.
