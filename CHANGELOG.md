@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **`deck`, the Steam Deck check in one command** (note 15 of the question round): at 1280x800, the `textsize` runner,
+  the `layout` runner on the new `steam_deck` profile (anything off screen), `shot`, and `bench` with a 33.3 ms (30 fps)
+  budget unless `-BudgetMs` is given. Every part runs even after one fails; one verdict (`deck-failed`) with each part's
+  own code in `deck.parts`. `-Scene` names the screens for all four. The parts are the existing commands and runners,
+  run in one process. `tests/Test-Deck.ps1` on `tests/deck-fixture`.
 - **`bench` holds three more budgets.** `-MaxDrawCalls` fails a scene that averages more draw calls a frame
   (`bench-over-draw-calls`); `loadMs`, with `loadBreakdownMs` (resource, instantiate, first frame), is the time from
   `load()` to the scene's first frame, and `-MaxLoadMs` fails a slower load (`bench-over-load-time`); `frameHistogram`

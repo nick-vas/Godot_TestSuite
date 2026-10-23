@@ -88,6 +88,10 @@ etc. not working", and a player falling out of the world.
 - "Some anti-cheat providers are currently unsupported" on Proton, which makes a game Unsupported.
 - "By default, we will test a Linux build if one is available", else Proton; results publish after about a week.
 
+The kit's `deck` command checks the measurable part at 1280x800 in one run: text size (`textsize`), nothing off screen
+(`layout`'s `steam_deck` profile), a screenshot, and a 33.3 ms (30 fps) `bench` budget on this machine
+([reference.md](reference.md)). Controls, glyphs, text entry, Proton and anti-cheat are still checked by hand.
+
 ## PlayStation and Nintendo (doc, academic; unconfirmed practitioner themes)
 
 - The requirement texts are under NDA. The Newcastle workshop: "The TRCs are not focused on finding bugs ... how a game

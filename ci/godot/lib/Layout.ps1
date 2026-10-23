@@ -9,6 +9,8 @@
 #     "checks": ["off-screen", "unsafe-area", "small-target", "small-control"] }
 # One JUnit case per profile, or per profile, scene and node when something is wrong.
 
+# Settings a command forces over layout.json for one run (deck: the steam_deck profile, off-screen only), by name.
+$script:LayoutOverride = @{}
 function Get-LayoutConfig([string]$ProjectDir) {
     $config = [ordered]@{ scenes = @(); profiles = @('phone_portrait', 'phone_landscape', 'tablet', 'ultrawide'); minTouchDp = 48.0
         minPointerPx = 24.0; minControlDp = 0.0; checks = @('off-screen', 'unsafe-area', 'small-target', 'small-control') }
@@ -21,6 +23,7 @@ function Get-LayoutConfig([string]$ProjectDir) {
             $config[$key] = $custom[$key]
         }
     }
+    foreach ($key in @($script:LayoutOverride.Keys)) { $config[$key] = $script:LayoutOverride[$key] }
     foreach ($check in @($config.checks)) {
         if ("$check" -notin 'off-screen', 'unsafe-area', 'small-target', 'small-control') { Stop-GodotCi "layout.json: unknown check '$check' (off-screen, unsafe-area, small-target, small-control)" 'invalid-arguments' }
     }

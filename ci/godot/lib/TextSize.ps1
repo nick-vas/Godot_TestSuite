@@ -13,6 +13,8 @@
 # One JUnit case per resolution; warnings go to findings.json. Integer scale mode with a base bigger than the window fails:
 # the canvas is drawn 1:1 and cut off.
 
+# Settings a command forces over textsize.json for one run (deck: 1280x800 only), by name.
+$script:TextSizeOverride = @{}
 function Get-TextSizeConfig([string]$ProjectDir) {
     $config = [ordered]@{ scenes = @(); resolutions = @('1280x800'); minPx = 9.0; wantPx = 12.0
         subtitleGroup = 'subtitles'; subtitleMinPx = 28.0; subtitleWantPx = 46.0 }
@@ -25,6 +27,7 @@ function Get-TextSizeConfig([string]$ProjectDir) {
             $config[$key] = $custom[$key]
         }
     }
+    foreach ($key in @($script:TextSizeOverride.Keys)) { $config[$key] = $script:TextSizeOverride[$key] }
     if ("$($config.subtitleGroup)" -notmatch '^[^\s,]+$') { Stop-GodotCi "textsize.json: subtitleGroup '$($config.subtitleGroup)' is not a node group name" 'invalid-arguments' }
     foreach ($res in @($config.resolutions)) {
         if ("$res" -notmatch '^\d+x\d+$') { Stop-GodotCi "textsize.json: resolution '$res' is not WIDTHxHEIGHT" 'invalid-arguments' }

@@ -449,6 +449,9 @@ jobs:
       - name: The layout runner catches screens that do not fit phones, tablets and ultrawides
         shell: pwsh
         run: ./tests/Test-Layout.ps1
+      - name: deck runs text size, layout, a screenshot and bench at 1280x800 and gives one verdict
+        shell: pwsh
+        run: ./tests/Test-Deck.ps1
       - name: UI flows rotate the window with an action held, and name every bad resize, hold and release
         shell: pwsh
         run: ./tests/Test-Flows.ps1

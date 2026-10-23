@@ -1,6 +1,7 @@
 test-results/
 build/
 bench-results/
+deck-results/
 screenshots/
 /.vs/slnx.sqlite
 /.vs/slnx.sqlite-journal

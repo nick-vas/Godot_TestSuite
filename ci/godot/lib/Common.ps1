@@ -170,8 +170,16 @@ function Write-JsonResult {
 }
 
 # Code is a stable, machine-readable reason: callers can branch on it, while Message is for people.
+# A command made of other commands' checks (deck) sets $script:CatchStops while it runs one of them: a stop is then thrown
+# as an exception carrying its code (Data['HyperdotCode']), so that command can record the part and go on to the next.
+$script:CatchStops = $false
 function Stop-GodotCi([string]$Message, [string]$Code = 'failed') {
     Add-KitCoverage "error:$Code"
+    if ($script:CatchStops) {
+        $stop = [System.Exception]::new($Message)
+        $stop.Data['HyperdotCode'] = $Code
+        throw $stop
+    }
     Write-Console "[hyperdot] ERROR: $Message" -ForegroundColor Red
     if ($script:RunLogPath -and $script:QuietMode) { Write-Console "[hyperdot] Full log: $script:RunLogPath" }
     Add-RunHistory $false $Code

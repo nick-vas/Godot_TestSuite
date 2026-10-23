@@ -24,10 +24,10 @@ in-process (`& ./hyperdot.ps1`) will not capture it in a variable.
 | Field | Type | |
 |---|---|---|
 | `schema` | string | `hyperdot/1`. Fields are only ever added within a schema version |
-| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` |
+| `command` | string | `test`, `build`, `export`, `setup`, `detect`, `doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest`, `deck` |
 | `ok` | bool | The verdict |
 | `error` | object, when `ok` is false | `{ "code": "<stable-code>", "message": "<for people>" }` |
-| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results` and `audio-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
+| `log` | string, for `setup`, `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` | Path of the full run log, `hyperdot.log` in the command's results folder: `-Results` (default `test-results`; `bench-results`, `soak-results`, `audio-results` and `deck-results` for those commands), or `-Output` for `shot` (default `screenshots`). Search it; don't read it whole |
 
 Branch on `error.code`; `message` can change.
 
@@ -55,6 +55,7 @@ Branch on `error.code`; `message` can change.
 | `bench-over-load-time` | `bench -MaxLoadMs <n>`: the scene took more than n ms from `load()` to its first frame drawn (after `bench-over-budget` and `bench-over-draw-calls`) | `bench.loadMs`, `bench.loadBreakdownMs` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
+| `deck-failed` | `deck`: one or more of its parts (`textsize`, `layout`, `shot`, `bench`) failed; every part still ran | `deck.parts[]` (each part's own `code`) |
 | `gpu-validation-errors` | `bench`, `shot` or `export -Run` with `-GpuValidation`: the graphics API's validation layer reported errors (Vulkan VUIDs such as `VUID-vkCmdDispatch-format-07753`); checked before the engine error check, which then leaves those lines out | `gpuValidation` (`exports[].gpuValidation` for `export`) |
 | `no-gpu-validation` | `-GpuValidation`, but nothing was validated: the project renders with OpenGL (the Compatibility renderer), the run was headless, or Vulkan's validation layer is not installed (Linux: `vulkan-validationlayers`; Windows, macOS: the Vulkan SDK) | `gpuValidation.driver`, `gpuValidation.layerLoaded` |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
@@ -201,7 +202,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak` and `credits` run also appends one line to `.godot/hyperdot-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` and `deck` run also appends one line to `.godot/hyperdot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
@@ -255,6 +256,15 @@ frame); the files were imported by the build step, so this is a load from `.godo
 and `percent`; the frames add up to `frames`. A run capped by V-Sync jitters around its refresh interval, so at 60 Hz
 some frames land just over 16.67: read the histogram of an `-Uncapped` run for headroom. The same object is written to
 `bench-results/bench.json`, and a row is appended to `bench-results/bench.csv`.
+
+**deck**: `deck` with `resolution` (`1280x800`), `budgetMs` (`-BudgetMs`, 33.3 by default), `ok`, and `parts[]`, one per
+part in the order run: `part` (`textsize`, `layout`, `shot`, `bench`), `ok`, `code` (`null` when it passed; `tests-failed`
+for a runner with failing cases, else the code the part stopped with, such as `bench-over-budget`, `shot-text` or
+`no-display`) and `message`. The runner parts add `total`, `failed`, `failures[]` (`name`, `message`: the runner's
+JUnit cases, such as `textsize.1280x800` and `layout.steam_deck res://ui/menu.tscn Quit`) and `warnings[]` (`rule`,
+`file`, `message`); `shot` adds `folder`, `bench` `p99Ms` and `fpsAvg`. The parts' own fields sit beside it as their
+commands write them: `shots[]` and `palette` from `shot`, `bench` from `bench`, `engineErrors[]` and, with
+`-GpuValidation`, `gpuValidation` from the last part that set them.
 
 **gpuValidation** (`bench`, `shot` and, per export, `exports[].gpuValidation`, with `-GpuValidation`): `driver` (`vulkan`,
 `opengl3`, `d3d12`, `metal`, or `null` when nothing was drawn), `layerLoaded` (Vulkan: whether the loader loaded

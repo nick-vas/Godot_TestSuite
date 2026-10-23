@@ -1,7 +1,15 @@
 # Reference
 
 **Script** (`ci/godot/hyperdot.ps1`): commands `test` (default), `build`, `export`, `setup`, `detect`,
-`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx` and `playtest`.
+`doctor`, `init`, `plan`, `bench`, `shot`, `status`, `audio`, `soak`, `credits`, `sfx`, `playtest` and `deck`.
+
+**`deck`** is the Steam Deck check in one run, at 1280x800: the `textsize` runner (its resolutions forced to 1280x800),
+the `layout` runner on the `steam_deck` profile with the `off-screen` check only, `shot`, and `bench` with `-BudgetMs`,
+33.3 ms (30 fps) by default. `-Scene` names the scenes for all four (`bench` measures the first; without it, `textsize`
+and `layout` take their JSON files' scenes or the main scene). Every part runs even when one before it failed; the run
+fails with `deck-failed`, and `deck.parts[]` gives each part's own code ([json.md](json.md)). `-Resolution` other than
+1280x800 is refused. Results go to `deck-results` (`textsize/`, `layout/`, `screenshots/`, `bench/`). `bench` measures
+this machine at the Deck's resolution, not a Deck's speed.
 
 | Parameter | Default | |
 |---|---|---|
@@ -18,13 +26,13 @@
 | `-Browser` | `chromium` | `export -Run` of a Web preset: `chromium`, `firefox`, `webkit` (Playwright's browsers: `npx playwright install --with-deps <name>`), `chrome`, `msedge` (the installed browsers); comma-separated. Needs Node.js; the playwright package comes from `HYPERDOT_PLAYWRIGHT`, the global npm folder, or is installed into the kit's tools folder. `HYPERDOT_WEB_HEADED=1` opens a browser window instead of running headless |
 | `-GameVersion` | | `export`: the game's version, e.g. the tag `v1.2.3-rc.1`: its numbers go into `config/version` for this export only (Windows file version, macOS and Android versions), all of it into the C# assembly's InformationalVersion, and Android presets get `version/code` major\*1,000,000 + minor\*1,000 + patch. `auto` reads it from git: the nearest `v*` tag and the commits since (`1.2.3.4`, `1.2.3+4.gabc1234`; without a tag `0.0.0.<commits>`); a shallow clone fails with `shallow-checkout` ([json.md](json.md)) |
 | `-GitHubOutput` | off | `detect`: also write what it found to `$GITHUB_OUTPUT`; `export`: write `version` and `android-version-code` there |
-| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `shot` to `screenshots`, `credits` to the project folder, `sfx` to `<project>/sounds/sfx`, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`). An `export`, `bench`, `shot`, `audio` or `soak` folder inside the project gets an empty `.gdignore`, so Godot neither imports nor exports it |
+| `-Results`, `-Output` | `test-results`, `build` | Where results and exports go (`bench` defaults to `bench-results`, `soak` to `soak-results`, `audio` to `audio-results`, `deck` to `deck-results`, `shot` to `screenshots`, `credits` to the project folder, `sfx` to `<project>/sounds/sfx`, `playtest` to `playtest-results`). The run log, `hyperdot.log`, goes in the command's results folder (`-Output` for `shot`). An `export`, `bench`, `shot`, `audio` or `soak` folder inside the project gets an empty `.gdignore`, so Godot neither imports nor exports it |
 | `-Frames` | `120` | How long smoke runs and launched exports play; how long `shot` waits before each picture |
 | `-FixedFps` | `0` | `smoke`: run at this fixed rate of game time (`--fixed-fps`), so `-Frames` is game time, as fast as the CPU allows and the same on every machine; `0` is real time |
 | `-GameArgs` | | Your game's flags, passed after `--` to smoke runs, the `juice` and `playthrough` runners (after their own `args`), `export -Run`, `bench`, `shot`, `soak` (every server and client) and `audio -Mix`; comma-separated |
-| `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
+| `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene), `deck` (every part; `bench` the first): `res://` paths |
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
-| `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
+| `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this; `deck`: the Deck's budget, default `33.3` |
 | `-MaxDrawCalls` | `0` (off) | `bench`: fail (`bench-over-draw-calls`) when the scene averages more draw calls a frame than this |
 | `-MaxLoadMs` | `0` (off) | `bench`: fail (`bench-over-load-time`) when the scene takes longer than this from `load()` to its first frame drawn (`loadMs`) |
 | `-GpuValidation` | off | `bench`, `shot`, `export -Run`: run with the graphics API's validation layers (`--gpu-validation`, `--accurate-breadcrumbs`) and fail on their errors (`gpu-validation-errors`, `gpuValidation`). Needs Vulkan (Forward+ or Mobile) and its validation layer (Linux: `vulkan-validationlayers`, and `mesa-vulkan-drivers` without a GPU; Windows, macOS: the Vulkan SDK); a run that was not validated fails with `no-gpu-validation`. `export -Run` then launches the build with a window, so it needs a display |
@@ -304,7 +312,8 @@ warns (`subtitle-below-recommended`). The numbers come from two GDC talks ([docs
 **`layout.json`** (optional, in the Godot project folder) turns on the `layout` runner, which lays out the listed scenes (the main
 scene by default), headless, at each profile and fails on controls that are off screen, outside the profile's safe area, or too small
 to touch (`minTouchDp`, 48) or click (`minPointerPx`, 24 CSS px). Profiles: `phone_portrait` (1080x2400 at 420 dpi, a 128 px top inset
-and 66 px bottom), `phone_landscape`, `tablet` (2048x1536 at 264 dpi) and `ultrawide` (3440x1440, mouse), or
+and 66 px bottom), `phone_landscape`, `tablet` (2048x1536 at 264 dpi), `ultrawide` (3440x1440, mouse) and `steam_deck` (1280x800 at 216 dpi;
+pointer targets, since the Deck is played with its controls and trackpads), or
 `name:WIDTHxHEIGHT@DPI[:touch][:insets=L,T,R,B]`. If the game has a `SafeArea` autoload with `set_insets`/`SetInsets(left, top, right,
 bottom)`, each profile's insets are passed to it first, so the game's own safe-area handling is measured. `checks` limits what is
 reported. `-Runners layout` runs it without the file, with the defaults.

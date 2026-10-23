@@ -5,8 +5,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 
 ## Layout
 
-- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest`, all with `-Json`.
-- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette.
+- `ci/godot/hyperdot.ps1` entry point: `test build export setup detect doctor init plan bench shot status audio soak credits sfx playtest deck`, all with `-Json`.
+- `ci/godot/lib/*.ps1` one concern per file: Common, Setup, Detect, Report, Runners, Doctor, Init, Plan, Measure, Status, Architecture, Juice, Audio, Assets, Localization, Soak, Data, TextSize, Layout, Credits, Store, Web, Platforms, Sfx, Playthrough, Version, Steam, Context, Addons, Playtest, Palette, Deck.
 - `ci/godot/tools/` `validate.gd`, `flows.gd`, `bench.gd`, `shot.gd`, `textsize.gd`, `layout.gd`, `notices.gd`, `glyphs.gd` (run inside Godot), `web-smoke.mjs` (Node.js and Playwright, for `export -Run` of Web presets), `Sfxr.cs` (bfxr2's sound synth in C#, compiled by `sfx` with `Add-Type`; Apache-2.0 and MIT), `Heatmap.cs` (PNG heat maps for `playtest`, compiled with `Add-Type`), `Palette.cs` (PNG reader and CIEDE2000 palette check, compiled by `shot` with `Add-Type`), `Test-Skills.ps1` (skill validator),
   `Update-Versions.ps1` and `Invoke-Canary.ps1` (the weekly check against new releases), release/PR-comment tools.
 - `tests/` self-tests, most with a deliberately broken fixture (`tests/<name>-fixture`); the table under "Self-tests" says what each covers and needs.
@@ -89,6 +89,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-ShotChanged.ps1` | `shot -MaxChangedPercent`; scenes that share a file name get their own pictures | Godot, display |
 | `Test-BenchHotspots.ps1` | `bench`'s hotspots, load time, draw calls, frame-time histogram and their limits (`bench-fixture`) | Godot, display |
 | `Test-GpuValidation.ps1` | `-GpuValidation` for `bench`, `shot` and `export -Run` (`gpuvalidation-fixture`, a deliberate Vulkan misuse; canned logs) | Godot, display, Vulkan and its validation layer (`mesa-vulkan-drivers`, `vulkan-validationlayers`); the export part Godot's templates (`-NoExport` skips it); `-NoGodot` for the log reading |
+| `Test-Deck.ps1` | `deck`, the Steam Deck check: every part runs, one verdict (`deck-fixture`, a 1080p UI at 1280x800) | Godot, display |
 | `Test-MonoAudio.ps1` | the mono option measured in the engine (`mono-fixture`) | Godot |
 | `Test-Capture.ps1` | the skill's capture mode (`capture-fixture`, C#) | Godot, display |
 | `Test-Credits.ps1` | `credits` (`credits-fixture`) | Godot |

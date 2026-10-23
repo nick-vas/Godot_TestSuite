@@ -24,6 +24,8 @@
     ./ci/godot/hyperdot.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
+.EXAMPLE
+    ./ci/godot/hyperdot.ps1 deck -Scene res://levels/Boss.tscn   # text size, layout, a screenshot and a 30 fps budget at 1280x800
 #>
 [CmdletBinding()]
 param(
@@ -37,8 +39,9 @@ param(
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
+    # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
     [Parameter(Position = 0)]
-    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest')]
+    [ValidateSet('test', 'build', 'export', 'setup', 'detect', 'doctor', 'init', 'plan', 'bench', 'shot', 'status', 'audio', 'soak', 'credits', 'sfx', 'playtest', 'deck')]
     [string]$Command = 'test',
 
     # Folder with project.godot. Default: the shallowest one under the current folder.
@@ -86,6 +89,7 @@ param(
     [double]$Seconds = 10,
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
+    # deck: the Deck budget, 33.3 (30 fps) unless given.
     [double]$BudgetMs = 0,
     # bench: fail when the scene averages more draw calls a frame than this (bench-over-draw-calls). 0: no limit.
     [double]$MaxDrawCalls = 0,
@@ -195,7 +199,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
+foreach ($lib in 'Common', 'Setup', 'Detect', 'Report', 'Runners', 'Doctor', 'Init', 'Plan', 'Measure', 'Status', 'Architecture', 'Juice', 'Audio', 'Assets', 'Localization', 'Soak', 'Data', 'TextSize', 'Layout', 'Credits', 'Store', 'Web', 'Platforms', 'Sfx', 'Playthrough', 'Version', 'Steam', 'Context', 'Addons', 'Playtest', 'Palette', 'Deck') { . (Join-Path $PSScriptRoot "lib/$lib.ps1") }
 Start-KitCoverage $Command
 if ($Json) {
     Enable-JsonMode $Command
@@ -570,23 +574,27 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+# deck runs everything at the Deck's own 1280x800.
+if ($Command -eq 'deck' -and $Resolution -and $Resolution -ne '1280x800') {
+    Stop-GodotCi "deck runs at the Steam Deck's 1280x800; leave out -Resolution $Resolution (bench and shot take other sizes)" 'invalid-arguments'
+}
 # A bench of no time measures no frames, and audio -Mix would pass Godot --quit-after 0, which never quits.
-if (($Command -eq 'bench' -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
+if (($Command -in @('bench', 'deck') -or ($Command -eq 'audio' -and $Mix)) -and $Seconds -le 0) {
     Stop-GodotCi "-Seconds must be above 0 for $Command, not $Seconds" 'invalid-arguments'
 }
 # Each command's results folder, which also holds its run log: -Results (test-results) for setup, build, test, export and
 # credits; bench, soak and audio default to their own folder, and shot writes to -Output (screenshots).
-$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results' }
+$commandDefaults = @{ bench = 'bench-results'; soak = 'soak-results'; audio = 'audio-results'; deck = 'deck-results' }
 $commandResultsDir = [System.IO.Path]::GetFullPath($(
         if ($Command -eq 'shot') { if ($PSBoundParameters.ContainsKey('Output')) { $Output } else { 'screenshots' } }
         elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
         else { $Results }))
-if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits') {
+if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits', 'deck') {
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
 # Screenshots, recordings and measurements run from the game's folder land inside it.
-if ($Command -in 'bench', 'shot', 'audio', 'soak') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
+if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }
@@ -612,6 +620,11 @@ switch ($Command) {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
             -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation
+    }
+    'deck' {
+        Invoke-Setup; Invoke-Build
+        Invoke-Deck -Info $info -Scene $Scene -Seconds $Seconds -Warmup $Warmup -Frames $Frames -BudgetMs $BudgetMs -MaxDrawCalls $MaxDrawCalls `
+            -MaxLoadMs $MaxLoadMs -GameArgs $GameArgs -Locale $Locale -Pseudo:$Pseudo -GpuValidation:$GpuValidation -ResultsDir $commandResultsDir
     }
     'soak' {
         Invoke-Setup; Invoke-Build

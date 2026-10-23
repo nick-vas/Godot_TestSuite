@@ -1,0 +1,21 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="Deck fixture"
+run/main_scene="res://good.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+; Made for 1080p and scaled down to the Deck's 1280x800 by 0.667.
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

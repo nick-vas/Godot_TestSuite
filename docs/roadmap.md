@@ -75,7 +75,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 | 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hyperdot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
 | 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
 | 14 | `/game` reports tests, not design or technical problems | `/game` adds a short design and architecture review |
-| 15 | Checking for the Steam Deck takes four commands | One Deck check: `textsize`, `layout`, `shot` at 1280x800 and `bench` with a Deck budget, one verdict |
 | 16 | Nothing records what `/game` asked the verifier and architect, or what they answered | One line per handoff in `.godot/` (time, subagent, what was checked, verdict, commit), last 200 kept, never committed; `status`, `/game` and `/retro` read it. Proposed 2026-10-23 |
 
 ### Trello

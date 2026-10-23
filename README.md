@@ -158,7 +158,9 @@ separate, headless tool.
 
 | Capability | Command | Result |
 |---|---|---|
-| **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, a hitch log, draw calls, GC |
+| **Measure frame pacing** | `bench -Scene X -BudgetMs 16.7` | 1% and 0.1% lows, p50/p99/max, a frame-time histogram, a hitch log, draw calls, load time, GC; `-MaxDrawCalls` and `-MaxLoadMs` budgets |
+| **Check for the Steam Deck** | `deck -Scene X,Y` | text size, layout, a screenshot and a 30 fps budget at 1280x800, one verdict |
+| **Validate the GPU calls** | `shot -GpuValidation` (also `bench`, `export -Run`) | Vulkan's validation layer on; fails on its errors, each with its VUID |
 | **See the screens** | `shot -Scene X,Y -Resolution 1920x1080 [-Baseline before]` | real PNG frames; with a baseline, the share changed and a diff image; `-Locale` for translations |
 | **Hear the mix** | `audio [-Mix]` | each sound file's loudness and true peak by category; with `-Mix`, the game's own mix against -24 LUFS and -1 dBTP |
 | **Hold up online** | `soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50` | one server and headless clients: crashes, engine errors, memory growth, a clean stop on SIGTERM |
