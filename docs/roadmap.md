@@ -179,8 +179,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **An add-on's code without an `assets.json` entry.** `credits` writes notices only for what `assets.json` lists. WARN
   in `doctor` for `addons/<name>/LICENSE*` with no entry covering `addons/<name>/**`; fill `copyright` from the licence's
   first `Copyright` line.
-- **MPL-2.0 in `credits`.** gdext (Rust) is MPL-2.0, which `Credits.ps1` has no rule for: read the licence's notice
-  rules, add the policy row and the SPDX text.
 - **Known-status list for add-ons.** godot-steam-audio (archived), PerfBullets (4.1 and 4.2) and others are detected by
   folder names that were not confirmed. Confirm each folder or `entry_symbol` from its release, then a small JSON
   refreshed by `Invoke-Canary.ps1`.

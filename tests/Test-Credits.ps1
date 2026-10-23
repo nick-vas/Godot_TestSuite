@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # Self-test of the credits generator on tests/credits-fixture (one of each case: a CC BY credit, a CC BY 3.0 credit without
 # its title, MIT from the standard text, OFL from the asset's own licence file, CC0 thanks, commissioned work assigned to the
-# studio and commissioned work under a credit licence, and three errors), then the `credits` command end to end on its
+# studio, commissioned work under a credit licence, MPL-2.0 with its source URL, and four errors), then the `credits` command end to end on its
 # clean sub-project, which reads the engine's notices from Godot (needs Godot).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -22,7 +22,10 @@ try {
     Assert-True ($errors -contains 'credit-author-missing art/no_author.png') 'CC BY without an author is an error'
     Assert-True ($errors -contains 'licence-blocked music/theme.ogg') 'a non-commercial licence is an error'
     Assert-True ($errors -contains 'copyright-missing shaders/water.gdshader') 'MIT without a copyright line is an error'
-    Assert-True ($errors.Count -eq 3) "only those three errors: $($errors -join ' | ')"
+    Assert-True ($errors -contains 'source-offer-missing addons/rust_ai/**') 'MPL-2.0 whose source is not a URL is an error'
+    Assert-True ($errors.Count -eq 4) "only those four errors: $($errors -join ' | ')"
+    Assert-True ($warnings -contains 'mpl-modified addons/rust_ai/**') 'modified MPL-2.0 files warn that the changes are MPL-2.0 too'
+    Assert-True (-not ($errors -match 'rust_physics') -and -not ($warnings -match 'rust_physics')) 'MPL-2.0 with a source URL and no copyright line is fine'
     Assert-True ($warnings -contains 'credit-title-missing art/castle/**') 'CC BY 3.0 without a title warns'
     Assert-True (-not ($warnings -match 'art/boss')) 'commissioned work under its agreement is not warned about as a bought asset'
     Assert-True (-not $r.ok) 'errors make the result not ok'
@@ -38,6 +41,7 @@ try {
     $notices = Get-Content -LiteralPath (Join-Path $out 'THIRD-PARTY-NOTICES.txt') -Raw
     Assert-True ($notices -match 'Copyright \(c\) 2021 Sam Roe' -and $notices -match 'Permission is hereby granted') 'MIT notices carry the copyright line and the licence text'
     Assert-True ($notices -notmatch '<year>|<copyright holders>') 'no template placeholders are left'
+    Assert-True ($notices -match 'The source code of these files is available at https://github\.com/example/rust-physics under the MPL 2\.0 licence' -and $notices -match 'Mozilla Public License Version 2\.0') 'MPL-2.0 notices say where the source is and carry the licence text'
     Assert-True ($notices -match 'Sample Sans Project Authors' -and $notices -match 'SIL Open Font License') 'the font ships its own licence file'
     Assert-True ($notices -match 'Godot Engine 4\.7\.2' -and $notices -match 'The FreeType Project' -and $notices -match 'based in part on the work of the FreeType Team') 'the engine''s notices and its components'' licences are included'
 
@@ -52,7 +56,7 @@ try {
     $engine = Get-Content -LiteralPath (Join-Path $cleanOut 'THIRD-PARTY-NOTICES.txt') -Raw
     Assert-True ($engine -match 'Godot Engine contributors' -and $engine -match 'FreeType') 'the command includes the engine''s real notices'
     $bad = pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') credits -Json -Project $fixture -Output (Join-Path $out 'bad') 2>$null | ConvertFrom-Json
-    Assert-True (-not $bad.ok -and $bad.error.code -eq 'credits-invalid' -and @($bad.credits.errors).Count -eq 3) 'the command fails with credits-invalid and lists the problems'
+    Assert-True (-not $bad.ok -and $bad.error.code -eq 'credits-invalid' -and @($bad.credits.errors).Count -eq 4) 'the command fails with credits-invalid and lists the problems'
 } finally {
     Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue
 }

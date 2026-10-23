@@ -31,6 +31,11 @@ $script:CreditPolicy = @{
     'Apache-2.0'   = @{ Credit = 'courtesy'; Notice = 'required'; Name = 'Apache 2.0' }
     'OFL-1.1'      = @{ Credit = 'courtesy'; Notice = 'required'; Name = 'SIL OFL 1.1' }
     'Zlib'         = @{ Credit = 'courtesy'; Notice = 'sourceOnly'; Name = 'zlib' }
+    # MPL-2.0 (read in SPDX's text, 2026-10-23): 3.2(a) asks whoever ships MPL files in executable form to make their
+    # source available and tell recipients how to get it; 3.4 keeps the source's notices; 3.3 lets the rest of the game
+    # keep its own licence. So the notice is the licence text plus where the source is, and since changes to MPL files are
+    # MPL-2.0 too (file-level copyleft), 'source' must point at the changed source when the files were modified.
+    'MPL-2.0'      = @{ Credit = 'courtesy'; Notice = 'required'; Name = 'MPL 2.0'; Url = 'https://mozilla.org/MPL/2.0/'; SourceOffer = $true }
 }
 # Non-commercial licences still require TASL credit; they are also blocked below for a game that is sold.
 foreach ($v in '3.0', '4.0') {
@@ -52,8 +57,9 @@ function Get-EntryValue([hashtable]$Entry, [string]$Key) {
 }
 
 # The licence text for a notice: the asset's own LICENSE file first (it carries the real copyright line), else the SPDX
-# template with its "<year> <owner>" line replaced by the entry's copyright.
-function Get-NoticeText([hashtable]$Entry, [string]$ManifestDir, [string]$LicenceTextDir, [System.Collections.Generic.List[object]]$Errors) {
+# template with its "<year> <owner>" line replaced by the entry's copyright. With -CopyrightOptional (MPL-2.0, whose
+# copyright notices live in the source files it points to) the text goes without one when the entry has none.
+function Get-NoticeText([hashtable]$Entry, [string]$ManifestDir, [string]$LicenceTextDir, [System.Collections.Generic.List[object]]$Errors, [switch]$CopyrightOptional) {
     $path = "$($Entry['path'])"
     $licenceFile = Get-EntryValue $Entry 'licenceFile'
     if ($licenceFile) {
@@ -63,7 +69,7 @@ function Get-NoticeText([hashtable]$Entry, [string]$ManifestDir, [string]$Licenc
         return $null
     }
     $copyright = Get-EntryValue $Entry 'copyright'
-    if (-not $copyright) {
+    if (-not $copyright -and -not $CopyrightOptional) {
         Add-CreditProblem $Errors 'copyright-missing' $path "$($Entry['licence']) needs the original copyright line: add 'copyright' or 'licenceFile'"
         return $null
     }
@@ -72,8 +78,9 @@ function Get-NoticeText([hashtable]$Entry, [string]$ManifestDir, [string]$Licenc
         Add-CreditProblem $Errors 'licence-text-missing' $path "no licence text for $($Entry['licence']): add 'licenceFile', or put the SPDX text in -LicenceTextDir"
         return $null
     }
-    $line = if ($copyright -match '^(?i)copyright') { $copyright } else { "Copyright (c) $copyright" }
     $text = (Get-Content -LiteralPath $template -Raw).TrimEnd()
+    if (-not $copyright) { return $text }
+    $line = if ($copyright -match '^(?i)copyright') { $copyright } else { "Copyright (c) $copyright" }
     if ($text -match '(?m)^.*<(year|owner|copyright holders)>.*$') { return ($text -replace '(?m)^.*<(year|owner|copyright holders)>.*$', $line) }
     return "$line`n`n$text"
 }
@@ -145,10 +152,17 @@ function New-GameCredits {
         if ($licence -eq 'proprietary' -and $source -ne 'commissioned') { Add-CreditProblem $warnings 'licence-proprietary' $path "'proprietary' bought assets: keep the purchase licence on file and check whether it asks for credit (consider LicenseRef-<vendor>)" }
 
         if ($policy.Notice -eq 'required' -or ($policy.Notice -eq 'sourceOnly' -and ((Get-EntryValue $entry 'copyright') -or (Get-EntryValue $entry 'licenceFile')))) {
-            $text = Get-NoticeText $entry $manifestDir $LicenceTextDir $errors
+            $text = Get-NoticeText $entry $manifestDir $LicenceTextDir $errors -CopyrightOptional:([bool]$policy['SourceOffer'])
             if ($text) {
                 $block = [System.Collections.Generic.List[string]]::new()
-                $block.Add(('=' * 78)); $block.Add("$(($item.title) ?? $path)"); $block.Add("Used in: $path"); $block.Add("Source: $source"); $block.Add("Licence: $licence"); $block.Add(('-' * 78)); $block.Add($text)
+                $block.Add(('=' * 78)); $block.Add("$(($item.title) ?? $path)"); $block.Add("Used in: $path"); $block.Add("Source: $source"); $block.Add("Licence: $licence")
+                if ($policy['SourceOffer']) {
+                    # MPL-2.0 3.2(a): players of the executable are told where the source is.
+                    $block.Add("The source code of these files is available at $source under the $($policy.Name) licence ($($policy.Url)).")
+                    if ($source -notmatch '^https?://') { Add-CreditProblem $errors 'source-offer-missing' $path "${licence}: players must be told where to get the source of these files: make 'source' the URL of that source" }
+                    if ($item.modified) { Add-CreditProblem $warnings 'mpl-modified' $path "${licence}: your changes to these files are under $licence too: publish the changed source and point 'source' at it" }
+                }
+                $block.Add(('-' * 78)); $block.Add($text)
                 if ($licence -eq 'Apache-2.0') {
                     $notice = Get-EntryValue $entry 'noticeFile'
                     if ($notice -and (Test-Path -LiteralPath (Join-Path $manifestDir $notice))) {

@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **MPL-2.0 in `credits`** (gdext and other Rust bindings): the licence text ships with the kit
+  (`ci/godot/templates/licences/MPL-2.0.txt`, SPDX 3.29.0), and the notice tells players where the source of those files
+  is, as section 3.2(a) asks. An MPL entry whose `source` is not a URL fails (`source-offer-missing`); a modified one
+  warns (`mpl-modified`) that the changes are MPL-2.0 too. `copyright` is optional for it.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

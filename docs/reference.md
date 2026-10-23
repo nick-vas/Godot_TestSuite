@@ -230,8 +230,9 @@ unless its `licence` asks for one. The rules: `godot-legal` section 4 and [gdc/c
 from the engine, and the .NET runtime's notices for a C# game). It fails (`credits-invalid`) when an entry lacks what its
 licence asks for. Optional fields help: `title`, `copyright` (the original copyright line), `modified` (what you changed),
 `licenceFile` and `noticeFile` (paths of the upstream licence and NOTICE files). Licence texts for MIT, ISC, BSD-2-Clause,
-BSD-3-Clause, Apache-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
-`THIRD-PARTY-NOTICES.txt` next to each executable. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
+BSD-3-Clause, Apache-2.0, MPL-2.0, OFL-1.1 and Zlib come with the kit (`ci/godot/templates/licences`). `export` copies
+`THIRD-PARTY-NOTICES.txt` next to each executable. An `MPL-2.0` entry (gdext and other Rust bindings) needs `source` to be
+the URL of its source code, which the notice gives players (MPL-2.0 section 3.2(a)); `copyright` is optional for it. The rules: the `godot-asset-pipeline` skill and [store-and-legal.md](store-and-legal.md).
 
 **`store/steam/`** (optional, in the Godot project folder, with an empty `store/.gdignore` so Godot does not ship it) holds
 the Steam store art. `doctor` checks the current sizes (`header_capsule` 920x430, `small_capsule` 462x174, `main_capsule`

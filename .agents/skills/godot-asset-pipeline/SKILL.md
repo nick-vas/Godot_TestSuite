@@ -150,13 +150,15 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 credits -Json -Quiet   # CREDIT
 | MIT, ISC, BSD | nothing required | the copyright line and the licence text |
 | Apache-2.0 | nothing required | the licence text, and the upstream NOTICE file's attributions |
 | OFL-1.1 (fonts) | nothing required | the copyright line and the licence text |
+| MPL-2.0 (gdext, Rust bindings) | nothing required | the licence text and where the source of those files is; your changes to them are MPL-2.0 too |
 | CC BY-NC, GPL family | refused by `credits` | |
 
 - A credit is not a notice: an MIT library needs its licence text shipped, even if it is also thanked on screen; a CC BY
   image needs a visible credit, not just a line in a file nobody opens.
 - `credits` fails (`credits-invalid`, the files are still written) for a credit without an author or a URL source, an
-  MIT/BSD/ISC/OFL/Apache entry without its `copyright` line or `licenceFile`, and non-commercial or copyleft licences; it
-  warns for a CC BY 3.0 credit without a title and for an Apache entry without its `noticeFile`.
+  MIT/BSD/ISC/OFL/Apache entry without its `copyright` line or `licenceFile`, an MPL-2.0 entry whose `source` is not the
+  URL of its source code, and non-commercial or copyleft licences; it warns for a CC BY 3.0 credit without a title, an
+  Apache entry without its `noticeFile` and a modified MPL-2.0 entry.
 - It writes `CREDITS.md` (required credits, then thanks, then the engine); `credits.json`, sections with translation-key
   headings (`CREDITS_THIRD_PARTY`, `CREDITS_THANKS`, `CREDITS_ENGINE`) and one line per work, for the credits screen; and
   `THIRD-PARTY-NOTICES.txt`: every notice, plus **Godot's** MIT text and its third-party components with their licence

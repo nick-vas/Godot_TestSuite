@@ -9,5 +9,7 @@
   { "path": "shaders/water.gdshader", "author": "Lu Li", "source": "https://godotshaders.com/shader/water", "licence": "MIT" },
   { "path": "art/player/**", "source": "own", "licence": "own" },
   { "path": "art/boss/**", "source": "commissioned", "author": "Ivy Ng", "licence": "proprietary", "agreement": "WFH-2026-03", "rights": "assigned" },
+  { "path": "addons/rust_physics/**", "title": "Rust Physics", "author": "Rae Kim", "source": "https://github.com/example/rust-physics", "licence": "MPL-2.0" },
+  { "path": "addons/rust_ai/**", "title": "Rust AI", "author": "Rae Kim", "source": "own fork", "licence": "MPL-2.0", "modified": "faster pathing" },
   { "path": "music/credits.ogg", "title": "Last Light", "source": "commissioned", "author": "Max Mo", "licence": "CC-BY-4.0", "agreement": "MM-2026-01", "rights": "licensed", "uses": ["game", "trailer"] }
 ] }
