@@ -1,0 +1,70 @@
+keys,en,fr
+MENU_TITLE,Lanternfen,Lanternfen
+MENU_START,Play,Jouer
+MENU_CONTINUE,Continue,Continuer
+MENU_SETTINGS,Settings,Réglages
+MENU_CREDITS,Credits,Crédits
+MENU_QUIT,Quit,Quitter
+MENU_VERSION,Version %s,Version %s
+SELECT_TITLE,Choose a rival,Choisir un rival
+SELECT_RIVAL,%d. %s,%d. %s
+SELECT_WINS,Wins: %d,Victoires : %d
+SELECT_BACK,Back,Retour
+RIVAL_1,Tallow the Novice,Suif le Novice
+RIVAL_2,Old Reedwife,La Vieille des Roseaux
+RIVAL_3,Brother Murk,Frère Fange
+RIVAL_4,The Heron Knight,Le Chevalier Héron
+RIVAL_5,Queen of the Fen,Reine du Marais
+HUD_LIGHT,Light: %d,Lumière : %d
+HUD_KINDLING,Kindling: %d / %d,Braise : %d / %d
+HUD_TURN,Turn %d: %s (%s),Tour %d : %s (%s)
+HUD_YOU,you,vous
+HUD_END_TURN,End turn,Fin du tour
+HUD_PAUSE,Pause,Pause
+PHASE_DRAW,Draw,Pioche
+PHASE_MAIN,Main,Jeu
+PHASE_CLASH,Clash,Choc
+PHASE_END,End,Fin
+PHASE_OVER,Over,Terminé
+CARD_COST,Cost %d,Coût %d
+CARD_EMBER_MOTE,Ember Mote,Escarbille
+CARD_REED_HOUND,Reed Hound,Chien des roseaux
+CARD_GLOW_IMP,Glow Imp,Lutin luisant
+CARD_BOG_WARDEN,Bog Warden,Gardien des tourbières
+CARD_FEN_STALKER,Fen Stalker,Rôdeur du marais
+CARD_LANTERN_HERON,Lantern Heron,Héron lanterne
+CARD_FLARE,Flare,Fusée
+CARD_MENDING_OIL,Mending Oil,Huile de soin
+CARD_MARSH_INSIGHT,Marsh Insight,Sagesse du marais
+CARD_DOUSE,Douse,Étouffoir
+CARD_REKINDLE,Rekindle,Rallumer
+EFFECT_BOLT,Burn %d,Brûle %d
+EFFECT_MEND,Mend %d,Soigne %d
+EFFECT_DRAW,Draw %d,Pioche %d
+EFFECT_DOUSE,Douse %d,Étouffe %d
+EFFECT_REKINDLE,Return %d wisp,Ramène %d feu
+PAUSE_TITLE,Paused,En pause
+PAUSE_RESUME,Resume,Reprendre
+PAUSE_QUIT,Quit to menu,Retour au menu
+RESULT_WON,Victory,Victoire
+RESULT_LOST,Defeat,Défaite
+RESULT_WON_MESSAGE,The rival's light is out.,La lumière du rival est éteinte.
+RESULT_LOST_MESSAGE,Your light is out.,Votre lumière est éteinte.
+RESULT_NEXT,Next rival,Rival suivant
+RESULT_FINISH,Finish,Terminer
+RESULT_REMATCH,Rematch,Revanche
+RESULT_MENU,Back to menu,Retour au menu
+SETTINGS_TITLE,Settings,Réglages
+SETTINGS_VOLUME,Volume,Volume
+SETTINGS_LANGUAGE,Language,Langue
+SETTINGS_BACK,Back,Retour
+LANG_EN,English,English
+LANG_FR,Français,Français
+VICTORY_TITLE,The fen is yours,Le marais est à vous
+VICTORY_MESSAGE,Every rival is beaten: %d wins in all.,Tous les rivaux sont battus : %d victoires en tout.
+VICTORY_MENU,Back to menu,Retour au menu
+CREDITS_TITLE,Credits,Crédits
+CREDITS_BACK,Back,Retour
+CREDITS_ENGINE,Engine,Moteur
+CREDITS_THIRD_PARTY,Third-party assets,Ressources tierces
+CREDITS_THANKS,Thanks,Remerciements

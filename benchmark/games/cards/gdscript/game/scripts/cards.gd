@@ -1,7 +1,7 @@
 class_name Cards
 extends RefCounted
 ## The card catalogue, read from data/cards.json: every card a deck may hold. A wisp stands in a lane and strikes in the
-## Clash; a rite acts once, when played, and goes to the discard pile. Read-only while a match runs.
+## Clash; a rite acts once, when played, and goes to the discard pile. Read-only while a duel runs.
 
 const PATH := "res://data/cards.json"
 const WISP := "wisp"

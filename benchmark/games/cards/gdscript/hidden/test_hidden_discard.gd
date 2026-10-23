@@ -53,10 +53,8 @@ func test_hidden_a_duel_played_on_keeps_its_discards_through_the_save():
 	while duel.turn < 9 and duel.phase != Duel.Phase.OVER:
 		if duel.phase == Duel.Phase.MAIN:
 			var index: int = ais[duel.active].choose(duel, duel.active)
-			if index < 0:
+			if index < 0 or not duel.play(duel.active, index):
 				duel.end_main()
-			else:
-				duel.play(duel.active, index)
 		else:
 			duel.advance()
 	assert_gt(duel.keepers[0].discard.size() + duel.keepers[1].discard.size(), 0, "cards were played")

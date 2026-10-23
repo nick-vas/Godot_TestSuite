@@ -1,0 +1,172 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/credits.gd"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the bot that plays it through (playthrough.json) stops in the middle of a duel against the first rival and never reaches the end"
+      },
+      "edits": [
+        {
+          "file": "scripts/ai.gd",
+          "find": "\t\tif not duel.can_play(seat, i):\n",
+          "replace": "\t\tif duel.cards.card(hand[i]).cost > duel.keepers[seat].kindling:\n"
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_ai_legal.gd"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "a wisp falling feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_play(_sfx_fall)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the panel shown at the end of a duel partly in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_WON_MESSAGE,The rival's light is out.,La lumière du rival est éteinte.\n",
+          "replace": "RESULT_WON_MESSAGE,The rival's light is out.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_LOST_MESSAGE,Your light is out.,Votre lumière est éteinte.\n",
+          "replace": "RESULT_LOST_MESSAGE,Your light is out.,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "RESULT_REMATCH,Rematch,Revanche\n",
+          "replace": "RESULT_REMATCH,Rematch,\n"
+        }
+      ],
+      "unchanged": [
+        "game/result_menu.gd",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "two players who replay a duel with the same --seed=N are dealt different cards, so a duel from a bug report cannot be replayed"
+      },
+      "edits": [
+        {
+          "file": "scripts/deck.gd",
+          "find": "\tfor i in range(out.size() - 1, 0, -1):\n\t\tvar j := rng.randi_range(0, i)\n\t\tvar swap := out[i]\n\t\tout[i] = out[j]\n\t\tout[j] = swap\n",
+          "replace": "\tout.shuffle()\n"
+        }
+      ],
+      "unchanged": [
+        "test/unit/test_deck.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_shuffle.gd"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "the player stops to think during their turn"
+      },
+      "edits": [
+        {
+          "file": "game/game.gd",
+          "find": "\t_ticks += 1\n\t_update_effects(delta)\n",
+          "replace": "\t_ticks += 1\n\t_update_effects(delta)\n\t_suggest()\n"
+        },
+        {
+          "file": "game/game.gd",
+          "find": "## Asks the AI which card it would play in the player's place, once per change: the HUD marks that card.",
+          "replace": "## Asks the AI which card it would play in the player's place: the HUD marks that card, always up to date."
+        }
+      ],
+      "hidden": [
+        "hidden/test_hidden_suggest_checks.gd"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Back button of the settings screen does nothing, so players are stuck there"
+      },
+      "edits": [
+        {
+          "file": "ui/settings.gd",
+          "find": "\t_back.pressed.connect(closed.emit)\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "rivals 4 and 5 in data/rivals.json with their own legal decks in data/decks.json, each beaten by the player's deck in some of twenty seeded duels between two AIs (Ai.play_out, seeds 1 to 20) and beating it in others; a bot: with --autoplay (after --) the game plays from the main scene with the AI in both seats, rival after rival from --rival=N (1 by default), prints [Run] rival N won or [Run] rival N lost after each duel, replays a lost duel with the next seed, and after the fifth rival prints [Run] victory and quits, every random choice from generators seeded by --seed=N and nothing saved with --no-save; juice: print [juice] event card_played <ms>, [juice] event keeper_hit <ms> and [juice] event wisp_fell <ms> in game time (ms), each answered within 100 ms by [juice] feedback sfx <ms> for a sound, and also [juice] feedback flash <ms> and [juice] feedback shake <ms> for keeper_hit and [juice] feedback pop <ms> for wisp_fell, for a visible flash, a camera shake and a ring where the wisp fell; and French: every visible text through tr() with an fr column in the translation table, menus, cards and rivals included, and a settings screen (Menu/SettingsButton opens a child of Main named Settings with a button Box/Languages/<Locale>Button per language, FrButton and EnButton, and Box/BackButton back to the menu)"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      {
+        "from": "game/test/flows/settings.flow.json",
+        "to": "test/flows/settings.flow.json"
+      },
+      "hidden/test_hidden_french.gd",
+      "hidden/test_hidden_five_rivals.gd"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

@@ -19,10 +19,8 @@ func _duel_in_play() -> Duel:
 	while not (duel.turn == 7 and duel.phase == Duel.Phase.MAIN):
 		if duel.phase == Duel.Phase.MAIN:
 			var index: int = ais[duel.active].choose(duel, duel.active)
-			if index < 0:
+			if index < 0 or not duel.play(duel.active, index):
 				duel.end_main()
-			else:
-				duel.play(duel.active, index)
 		else:
 			duel.advance()
 	return duel

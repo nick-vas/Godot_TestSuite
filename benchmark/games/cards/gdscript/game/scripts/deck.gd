@@ -1,7 +1,7 @@
 class_name Deck
 extends RefCounted
-## Decks: what makes one legal, and the shuffle. The shuffle draws only from the generator it is given (the match's own,
-## seeded), so a seed always deals the same cards and a bug report's --seed replays its match.
+## Decks: what makes one legal, and the shuffle. The shuffle draws only from the generator it is given (the duel's own,
+## seeded), so a seed always deals the same cards and a bug report's --seed replays its duel.
 
 const SIZE := 20
 const MAX_COPIES := 2
