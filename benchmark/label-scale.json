@@ -63,12 +63,18 @@
       "name": "Game-making efficiency",
       "spec": "benchmark/game-benchmark.json",
       "standardProfile": "A-baseline",
-      "standardTokensPerSolvedTask": null,
+      "standardTokensPerSolvedTask": {
+        "GAME-DIAG-001": 96000.0,
+        "GAME-FIX-001": 145000.0,
+        "GAME-FEAT-001": 162000.0,
+        "GAME-TEST-001": 173000.0,
+        "GAME-TUNE-001": 140000.0
+      },
       "tolerance": {
         "indexPercent": 20.0,
         "successPoints": 10.0
       },
-      "introducedFrom": null
+      "introducedFrom": "Pilot: Hyperdot 0.1.0 at commit c190ddc, the five prototype-stage tasks of benchmark/game-benchmark.json; claude-sonnet-5-5 and claude-haiku-5-5, with and without the plugin; 60 sessions (GitHub Actions runs 39948344584 to 39948357149). Replaced when the staged programme of benchmark/PLAN.md is introduced."
     }
   },
   "minimum": {

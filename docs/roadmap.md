@@ -149,9 +149,10 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **The plugin on Hyperdot's own code.** Loading it adds tokens to every session and helps none of the tool
   programme's tasks (its skills are about games). The game programme (`benchmark/game-benchmark.json`, built from
   `evals/`) now rates what the plugin is for; each version gets a tool class and a game-making class.
-- **More of the game programme.** It covers one small GDScript game. Next: a C# task on `examples/csharp`, a task with a
-  scene and a flow file, and one that needs a runtime error read from the log. Sandboxing Bash (so a session cannot read
-  the checkout the benchmark runs from) would close the gap `docs/label.md` names.
+- **The staged game programme.** The pilot (five tasks on one prototype) is too easy to tell configurations apart.
+  `benchmark/PLAN.md` holds the owner's decisions and the design: ten genres, four stages each (prototype, alpha, beta,
+  release candidate), GDScript and C#, everyday tasks and milestone runs as two results, grading from hard checks to a
+  pinned model judge and human review, min/mid/max tiers, a private field test, and sessions isolated as a separate user.
 - **Hold-out tasks.** The verification procedure could also run tasks that are not in the published spec, as market
   surveillance may test beyond the declared programme. That needs a private spec, and somewhere private to keep it.
 - **Binding errors as JSON.** A bad value for a `ValidateSet` or `ValidateRange` parameter, or an unknown command, prints
