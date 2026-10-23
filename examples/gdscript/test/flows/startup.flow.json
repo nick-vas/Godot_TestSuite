@@ -4,6 +4,6 @@
   "seed": 1,
   "steps": [
     { "wait": 2 },
-    { "assert": { "node": ".", "prop": "score:points", "gt": 0 } }
+    { "assert": { "node": ".", "prop": "score:points", "equals": 230 } }
   ]
 }

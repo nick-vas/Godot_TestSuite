@@ -14,4 +14,5 @@ func test_miss_resets_combo():
 
 func test_main_scene_scores_on_ready():
 	var main = add_child_autofree(load("res://main.tscn").instantiate())
-	assert_gt(main.score.points, 0)
+	# Twelve hits of 10: four at x1, five at x2, three at x3.
+	assert_eq(main.score.points, 230)
