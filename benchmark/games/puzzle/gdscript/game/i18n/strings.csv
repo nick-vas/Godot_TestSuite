@@ -33,7 +33,7 @@ LANG_EN,English,English,English
 LANG_FR,Français,Français,Français
 LANG_DE,Deutsch,Deutsch,Deutsch
 VICTORY_TITLE,Every drift is clear,Toutes les glissades sont faites,Alle Rutschen geschafft
-VICTORY_MESSAGE,All eight levels are solved in %d moves.,Les huit niveaux sont résolus en %d coups.,Alle acht Level sind in %d Zügen gelöst.
+VICTORY_MESSAGE,Every level is solved: %d moves in all.,Tous les niveaux sont résolus : %d coups en tout.,Alle Level sind gelöst: %d Züge insgesamt.
 VICTORY_MENU,Back to menu,Retour au menu,Zum Menü
 CREDITS_TITLE,Credits,Crédits,Mitwirkende
 CREDITS_BACK,Back,Retour,Zurück
