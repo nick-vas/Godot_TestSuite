@@ -1,0 +1,16 @@
+{
+  "id": "milestone",
+  "title": "Take the game from {from} to {to}",
+  "category": "milestone",
+  "kind": "milestone",
+  "prompt": "This {genre} game, written in {languageName}, is at the {from} stage. Take it to {to}: {goal}. The game's tests and checks must pass when you are done.",
+  "expected": {
+    "maxWords": 300
+  },
+  "suite": true,
+  "limits": {
+    "maxTurns": 150,
+    "timeoutSeconds": 2700,
+    "maxBudgetUsdPerCall": 15.0
+  }
+}

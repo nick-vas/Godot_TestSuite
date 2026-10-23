@@ -1,0 +1,10 @@
+{
+  "id": "fix-playthrough",
+  "title": "Make the game finishable",
+  "category": "progression",
+  "prompt": "Nobody can finish this {genre} game: {report}. Fix it so the game can be played to its ending, without making it trivial. Run the game's checks.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

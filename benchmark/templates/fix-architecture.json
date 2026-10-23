@@ -1,0 +1,10 @@
+{
+  "id": "fix-architecture",
+  "title": "Fix a structural problem without changing behaviour",
+  "category": "refactor",
+  "prompt": "The game's structure checks report a problem in this {genre} game: {problem}. Fix it without changing how the game behaves, and run the game's tests.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

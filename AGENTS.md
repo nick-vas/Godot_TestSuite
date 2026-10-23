@@ -112,6 +112,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-TokenBenchmark.ps1` | the token benchmark's counting, grader, retries and the copy its sessions run in (a stand-in CLI) | - |
 | `Test-HyperdotLabel.ps1` | the label: index, classes, minimum, verification, rescaling and the tool and game programmes (`label-fixture`, made-up runs) | - |
 | `Test-GameBenchmark.ps1` | the game programme (`benchmark/game-benchmark.json`): a copy of the game per session, grading by the kit's tests, hidden tests and mutants (`game-benchmark`, a stand-in CLI doing each task well and badly) | Godot |
+| `Test-GameProgramme.ps1` | every task of a staged game programme, without a model: the untouched game fails its grading, the task's reference solution passes, its decoy fails (`-SpecPath` for another programme; the self-test runs it on `game-benchmark/programme`) | Godot |
 | `Test-ErrorCodes.ps1` | every documented error code no other self-test raises, raised and checked in the JSON | Godot, display, ffmpeg; `-NoGodot` for plan, init, detect, doctor and audio |
 | `Test-Detect.ps1` | the solution `detect` picks, in and out of git, past unrelated and empty solutions and scenes | - |
 | `Test-InstallAddon.ps1` | replacing GUT in a path with brackets (a stand-in git) | - |

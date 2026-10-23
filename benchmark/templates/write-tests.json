@@ -1,0 +1,10 @@
+{
+  "id": "write-tests",
+  "title": "Write tests that catch real bugs",
+  "category": "testing",
+  "prompt": "This {genre} game's {subject} has thin tests. Write tests in {file} that pin down how it works: {rules}. Do not change {code}. Run the game's tests.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

@@ -1,0 +1,259 @@
+{
+  "name": "hyperdot staged game-making benchmark",
+  "description": "Everyday tasks and milestones on games of ten genres at four stages, in GDScript and C#, graded by the games' tests, hidden tests and the kit's checks (benchmark/PLAN.md).",
+  "model": "sonnet",
+  "timeoutSeconds": 900,
+  "maxTurns": 40,
+  "repeat": 3,
+  "retries": 1,
+  "maxCalls": 3000,
+  "maxBudgetUsdPerCall": 4.0,
+  "settingSources": "project",
+  "tools": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Edit",
+    "Write"
+  ],
+  "profiles": [
+    {
+      "id": "A-baseline",
+      "description": "The task as asked, in the game's folder"
+    }
+  ],
+  "programme": {
+    "genres": [
+      {
+        "id": "arcade",
+        "name": "arcade shooter",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "platformer",
+        "name": "platformer",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "puzzle",
+        "name": "puzzle game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "cards",
+        "name": "turn-based card game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "roguelite",
+        "name": "top-down roguelite",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "towerdefence",
+        "name": "tower defence game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "narrative",
+        "name": "narrative game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "racing",
+        "name": "racing game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "arena",
+        "name": "multiplayer arena game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      },
+      {
+        "id": "idle",
+        "name": "idle game",
+        "languages": [
+          "gdscript",
+          "csharp"
+        ]
+      }
+    ],
+    "stages": [
+      "prototype",
+      "alpha",
+      "beta",
+      "release"
+    ],
+    "languages": {
+      "gdscript": {
+        "languageName": "GDScript",
+        "tests": "GUT, in addons/gut",
+        "mutantRunners": [
+          "gut"
+        ]
+      },
+      "csharp": {
+        "languageName": "C#",
+        "tests": "gdUnit4, run through dotnet test",
+        "mutantRunners": [
+          "gdunit4"
+        ]
+      }
+    },
+    "promptSuffix": "Godot 4.7.2 is at the path in the environment variable GODOT_BIN; the game's tests use {tests}.",
+    "gamesDir": "benchmark/games",
+    "templatesDir": "benchmark/templates",
+    "costModel": "benchmark/cost-model.json",
+    "configurations": [
+      {
+        "model": "sonnet",
+        "plugin": false
+      },
+      {
+        "model": "sonnet",
+        "plugin": true
+      },
+      {
+        "model": "haiku",
+        "plugin": false
+      },
+      {
+        "model": "haiku",
+        "plugin": true
+      }
+    ],
+    "tiers": {
+      "min": {
+        "maxCostUsd": 10,
+        "repeat": 1,
+        "tasksPerStage": 2,
+        "cells": [
+          {
+            "genre": "arcade",
+            "language": "gdscript",
+            "stage": "*"
+          }
+        ],
+        "milestones": []
+      },
+      "mid": {
+        "maxCostUsd": 50,
+        "repeat": 3,
+        "tasksPerStage": 2,
+        "cells": [
+          {
+            "genre": "arcade",
+            "language": "gdscript",
+            "stage": "prototype"
+          },
+          {
+            "genre": "arcade",
+            "language": "csharp",
+            "stage": "alpha"
+          },
+          {
+            "genre": "arcade",
+            "language": "gdscript",
+            "stage": "beta"
+          },
+          {
+            "genre": "arcade",
+            "language": "csharp",
+            "stage": "release"
+          },
+          {
+            "genre": "narrative",
+            "language": "csharp",
+            "stage": "prototype"
+          },
+          {
+            "genre": "narrative",
+            "language": "gdscript",
+            "stage": "alpha"
+          },
+          {
+            "genre": "narrative",
+            "language": "csharp",
+            "stage": "beta"
+          },
+          {
+            "genre": "narrative",
+            "language": "gdscript",
+            "stage": "release"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "gdscript",
+            "stage": "prototype"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "gdscript",
+            "stage": "alpha"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "csharp",
+            "stage": "beta"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "csharp",
+            "stage": "release"
+          }
+        ],
+        "milestones": [
+          {
+            "genre": "arcade",
+            "language": "gdscript",
+            "from": "prototype"
+          },
+          {
+            "genre": "narrative",
+            "language": "gdscript",
+            "from": "alpha"
+          },
+          {
+            "genre": "towerdefence",
+            "language": "csharp",
+            "from": "beta"
+          }
+        ]
+      },
+      "max": {
+        "maxCostUsd": null,
+        "repeat": 5,
+        "cells": "*",
+        "milestones": "*"
+      }
+    }
+  }
+}

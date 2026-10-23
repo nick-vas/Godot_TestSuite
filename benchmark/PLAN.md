@@ -187,7 +187,7 @@ The workflow does this with `useradd` and file modes; the field test does the sa
 | # | Work | Done when |
 |---|---|---|
 | 1 | Runner: programmes made of fixtures x templates; tiers and selectors; cost estimate, ceiling and stop; a matrix of jobs in the workflow; per-session saves. **Done**: `GameProgramme.ps1`, `cost-model.json`, the workflow's `staged` programme; the label tool reading several jobs' results is stage 7 | `-DryRun` lists a mid run; the self-test covers selectors, tiers, the ceiling and milestones |
-| 2 | First genre (arcade shooter) in both languages; stage manifests; the generator; every template on it; a pilot run to measure difficulty and cost | each template passes its good stand-in and fails its bad one; the pilot keeps or drops each task by the difficulty rule |
+| 2 | `tests/Test-GameProgramme.ps1` (done): every task's untouched game fails, its reference passes, its decoy fails, no model needed. First genre (arcade shooter) in both languages; stage manifests; the generator; every template on it; a pilot run to measure difficulty and cost | each template passes its good stand-in and fails its bad one; the pilot keeps or drops each task by the difficulty rule |
 | 3 | Grading layers 2-4; pinned judge; rubrics; the blind review page; calibration | the label tool reads judged and human results; the self-test fakes a judge |
 | 4 | Milestone runs | prototype to alpha graded by the alpha gate, in both languages |
 | 5 | Isolation as separate users | a test session cannot read a hidden test |

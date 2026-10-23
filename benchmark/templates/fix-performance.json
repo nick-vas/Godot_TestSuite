@@ -1,0 +1,10 @@
+{
+  "id": "fix-performance",
+  "title": "Fix a slowdown",
+  "category": "performance",
+  "prompt": "This {genre} game slows down when {situation}. Find the cause and fix it without changing what the game does. Run the game's tests.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

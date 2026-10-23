@@ -1,0 +1,10 @@
+{
+  "id": "add-feedback",
+  "title": "Give an event the feedback it lacks",
+  "category": "feel",
+  "prompt": "Playtesters of this {genre} game say {report}. Give it feedback the player can see and hear, in time with the event. Run the game's checks.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

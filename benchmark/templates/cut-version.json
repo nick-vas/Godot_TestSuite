@@ -1,0 +1,10 @@
+{
+  "id": "cut-version",
+  "title": "Cut a release version",
+  "category": "release",
+  "prompt": "Prepare version {version} of this {genre} game for release: {details}. Run the game's checks.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

@@ -1,0 +1,10 @@
+{
+  "id": "fix-flow",
+  "title": "Fix a broken screen flow",
+  "category": "ui",
+  "prompt": "In this {genre} game, {report}. Fix it, and run the game's tests and UI flows.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

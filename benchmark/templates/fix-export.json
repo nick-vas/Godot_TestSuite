@@ -1,0 +1,10 @@
+{
+  "id": "fix-export",
+  "title": "Make the release build start",
+  "category": "release",
+  "prompt": "The release build of this {genre} game does not work: {report}. Fix it so the exported game starts and plays, and check it by exporting and running it.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

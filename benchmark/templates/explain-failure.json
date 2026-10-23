@@ -1,0 +1,9 @@
+{
+  "id": "explain-failure",
+  "title": "Explain a failing test",
+  "category": "debugging",
+  "prompt": "A test in this {genre} game, a Godot 4.7 {stage} written in {languageName}, fails. Run the tests to find out which, and do not change the game's code or its tests. Say which test fails, its file and line, what it expected and what it got, and whether the test or the game is wrong.",
+  "expected": {
+    "maxWords": 220
+  }
+}

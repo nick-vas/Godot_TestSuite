@@ -1,0 +1,11 @@
+{
+  "id": "add-feature",
+  "title": "Add a feature with tests",
+  "category": "feature",
+  "prompt": "Add this to the {genre} game, a Godot 4.7 {stage} written in {languageName}: {feature}. Add tests for it, and run the game's tests.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true,
+  "newTests": 1
+}

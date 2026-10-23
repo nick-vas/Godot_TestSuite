@@ -17,7 +17,8 @@
       ],
       "hidden": [
         "hidden/test_hidden_multiplier.gd"
-      ]
+      ],
+      "reference": "solutions/alpha/fix-bug"
     }
   ],
   "milestone": {
@@ -26,6 +27,7 @@
     },
     "hidden": [
       "hidden/test_hidden_best.gd"
-    ]
+    ],
+    "reference": "solutions/milestone"
   }
 }

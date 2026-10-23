@@ -1,0 +1,10 @@
+{
+  "id": "fill-translations",
+  "title": "Fill a translation gap",
+  "category": "localization",
+  "prompt": "Players of this {genre} game in {locale} see {report}. Fix the translations so every language is complete. Run the game's checks.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

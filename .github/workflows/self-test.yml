@@ -534,6 +534,11 @@ jobs:
       - name: The game benchmark grades good and bad game work by the game's tests
         shell: pwsh
         run: ./tests/Test-GameBenchmark.ps1
+      - name: Every staged programme task catches its defect, passes its reference and fails its decoy
+        shell: pwsh
+        run: |
+          ./tests/Test-GameProgramme.ps1 -SpecPath tests/game-benchmark/programme/programme.json
+          if (Test-Path benchmark/game-programme.json) { ./tests/Test-GameProgramme.ps1 }
 
       - name: Keep what this job's kit runs reached
         if: always()

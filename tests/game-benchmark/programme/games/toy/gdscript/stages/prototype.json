@@ -34,7 +34,9 @@
       ],
       "hidden": [
         "hidden/test_hidden_multiplier.gd"
-      ]
+      ],
+      "reference": "solutions/prototype/fix-bug",
+      "decoy": "solutions/prototype/fix-bug-decoy"
     },
     {
       "template": "write-tests",
@@ -63,7 +65,8 @@
           "find": "\tcombo = 0",
           "replace": "\tpass"
         }
-      ]
+      ],
+      "reference": "solutions/prototype/write-tests"
     }
   ]
 }

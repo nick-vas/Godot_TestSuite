@@ -1,0 +1,10 @@
+{
+  "id": "add-content",
+  "title": "Add content the game's checks accept",
+  "category": "content",
+  "prompt": "Add this to the {genre} game: {content}. The game's data checks, tests and flows must pass with it.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

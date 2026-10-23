@@ -1,0 +1,10 @@
+{
+  "id": "migrate-save",
+  "title": "Keep old saves working",
+  "category": "saves",
+  "prompt": "A player who updates this {genre} game loses their progress: {report}. Make saves from the previous version load correctly, without breaking new ones. Run the game's tests.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}

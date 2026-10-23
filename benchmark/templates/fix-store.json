@@ -1,0 +1,10 @@
+{
+  "id": "fix-store",
+  "title": "Get the store page and licences ready",
+  "category": "release",
+  "prompt": "This {genre} game is about to go on sale, and the release checks list problems: {report}. Fix them, and run the game's release checks.",
+  "expected": {
+    "maxWords": 220
+  },
+  "suite": true
+}
