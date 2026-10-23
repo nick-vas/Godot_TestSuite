@@ -54,6 +54,11 @@ Assert-True ($details[0].Key -ceq 'ERROR: Wave N spawned N enemies outside the a
     $details[0].File -eq 'res://main.gd' -and $details[0].Line -eq 7) "the same push_error with other numbers: one key, at the frame under it ($($details[0].Key))"
 Assert-True ($details[2].File -eq 'res://main.gd' -and $details[2].Line -eq 8 -and $details[2].Key -like '*of type ''Nil''. at res://main.gd') "a script error takes its at: line ($($details[2].Key))"
 Assert-True ($details[3].File -eq 'res://test/test_spawn.gd' -and $details[3].Line -eq 12) "frames in addons/ are skipped when the project has one: $($details[3].File)"
+# A game's own messages in other letter cases are not Godot's prefixes: neither the scan nor the details count them, so a run
+# never fails with engine-errors and an empty engineErrors[].
+$game = @('Error: no save file found, starting a new game', 'warning: failed to load script cache, rebuilding', 'error: retrying')
+Assert-True (@(Select-GodotErrors $game).Count -eq 0 -and @(Get-GodotErrorDetails $game).Count -eq 0) 'a game printing "Error:" or "failed to load script" is not an engine error'
+Assert-True (@(Select-GodotErrors @('USER ERROR: x', 'Unhandled exception. boom')).Count -eq 2) "Godot's prefixes and .NET's unhandled exception still count"
 
 # --- A run's keys -----------------------------------------------------------------------------------------------------
 $run = @($log) + @(
