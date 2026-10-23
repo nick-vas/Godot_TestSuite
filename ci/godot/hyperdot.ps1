@@ -444,16 +444,8 @@ function Invoke-Export {
 function Invoke-ExportPresets {
     $exports = @()
     $details = Get-ExportPresetDetails $info.ProjectDir
-    # Godot imports whatever lands inside the project, and the next export packs it (a web export's icons, a whole
-    # previous build): an output folder inside the project gets a .gdignore first.
-    $outputRoot = [System.IO.Path]::GetFullPath($Output)
-    $relative = [System.IO.Path]::GetRelativePath($info.ProjectDir, $outputRoot)
-    if ($relative -ne '.' -and -not $relative.StartsWith('..') -and -not [System.IO.Path]::IsPathRooted($relative) -and
-        -not (Test-Path -LiteralPath (Join-Path $outputRoot '.gdignore'))) {
-        New-Item -ItemType Directory -Force $outputRoot | Out-Null
-        New-Item -ItemType File -Path (Join-Path $outputRoot '.gdignore') | Out-Null
-        Write-CiLog "Added $(Join-Path $outputRoot '.gdignore'): the output folder is inside the project"
-    }
+    # A web export's icons or a whole previous build would be packed into the next export.
+    Add-OutputGdignore $Output $info.ProjectDir
     foreach ($name in $presets) {
         if (-not $details.Contains($name)) { Stop-GodotCi "Preset '$name' not found; the project has: $($info.Presets -join ', ')" 'preset-not-found' }
         $preset = $details[$name]
@@ -560,6 +552,8 @@ if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', '
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
+# Screenshots, recordings and measurements run from the game's folder land inside it.
+if ($Command -in 'bench', 'shot', 'audio', 'soak') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }
 switch ($Command) {
     'doctor' { Invoke-Doctor $info }

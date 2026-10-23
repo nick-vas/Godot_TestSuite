@@ -459,7 +459,21 @@ function Assert-GodotLogClean([string]$LogFile, [string]$What, [string[]]$Expect
 
 # File search that skips folders which never hold the user's own files (and are often huge).
 $script:PrunedDirs = @('.git', '.godot', 'addons', 'bin', 'obj', 'node_modules', '.godot-pipelines',
-    'test-results', 'TestResults')
+    'test-results', 'TestResults', 'audio-results')
+
+# Godot imports whatever lands inside the project, and the next export packs it (screenshots, a whole previous build):
+# an output folder the kit writes inside the project gets an empty .gdignore first. Find-ProjectFiles then skips it
+# too, so the next audio run does not measure the last one's mix.wav.
+function Add-OutputGdignore([string]$Dir, [string]$ProjectDir) {
+    $full = [System.IO.Path]::GetFullPath($Dir)
+    $relative = [System.IO.Path]::GetRelativePath($ProjectDir, $full)
+    if ($relative -eq '.' -or $relative.StartsWith('..') -or [System.IO.Path]::IsPathRooted($relative)) { return }
+    $marker = Join-Path $full '.gdignore'
+    if (Test-Path -LiteralPath $marker) { return }
+    New-Item -ItemType Directory -Force $full | Out-Null
+    New-Item -ItemType File -Path $marker | Out-Null
+    Write-CiLog "Added $($marker): the output folder is inside the project"
+}
 
 function Find-ProjectFiles {
     param([string]$Root, [string]$Filter)
