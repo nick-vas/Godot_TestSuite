@@ -1,56 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Hyperdot mascot: a muscular robot, chin up, fists down">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Hyperdot mascot: a muscular robot in wraparound sports sunglasses, chin up, fists together">
   <title>Hyperdot</title>
   <defs>
-    <linearGradient id="iridium" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ff8a3d"/>
-      <stop offset="0.45" stop-color="#c04cf0"/>
-      <stop offset="1" stop-color="#1b2140"/>
+    <linearGradient id="prizm" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0" stop-color="#a06cf2"/><stop offset="0.45" stop-color="#5fd0c8"/><stop offset="1" stop-color="#3fe08f"/>
     </linearGradient>
   </defs>
   <g stroke="#1f2328" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M150 236 C120 236 92 256 88 296 L78 352 C76 372 96 384 116 378 L146 300 Z" fill="#4f9ee8"/>
-    <ellipse cx="104" cy="300" rx="34" ry="50" fill="#4f9ee8"/>
-    <path d="M80 350 C70 380 66 404 70 420 L120 424 C124 404 126 380 124 352 Z" fill="#3b7fc4"/>
-    <rect x="56" y="404" width="72" height="56" rx="18" fill="#4f9ee8"/>
-    <path d="M70 446 H114 M84 446 V460 M100 446 V460" fill="none"/>
-    <circle cx="120" cy="236" r="48" fill="#4f9ee8"/>
-    <path d="M 362 236 C 392 236 420 256 424 296 L 434 352 C 436 372 416 384 396 378 L 366 300 Z" fill="#4f9ee8"/>
-    <ellipse cx="408" cy="300" rx="34" ry="50" fill="#4f9ee8"/>
-    <path d="M 432 350 C 442 380 446 404 442 420 L 392 424 C 388 404 386 380 388 352 Z" fill="#3b7fc4"/>
-    <rect x="384" y="404" width="72" height="56" rx="18" fill="#4f9ee8"/>
-    <path d="M 442 446 H 398 M 428 446 V 460 M 412 446 V 460" fill="none"/>
-    <circle cx="392" cy="236" r="48" fill="#4f9ee8"/>
-
-    <!-- trapezius: so big there is no neck -->
-    <path d="M196 140 C170 170 140 196 112 220 L400 220 C372 196 342 170 316 140 Z" fill="#3b7fc4"/>
-    <!-- torso -->
-    <path d="M128 222 C200 200 312 200 384 222 L340 410 C292 432 220 432 172 410 Z" fill="#4f9ee8"/>
-    <path d="M166 236 C204 222 244 226 252 248 C246 282 204 290 172 276 Z" fill="#8cc4f5"/>
-    <path d="M346 236 C308 222 268 226 260 248 C266 282 308 290 340 276 Z" fill="#8cc4f5"/>
-    <rect x="220" y="296" width="32" height="26" rx="8" fill="#8cc4f5"/>
-    <rect x="260" y="296" width="32" height="26" rx="8" fill="#8cc4f5"/>
-    <rect x="222" y="328" width="30" height="26" rx="8" fill="#8cc4f5"/>
-    <rect x="260" y="328" width="30" height="26" rx="8" fill="#8cc4f5"/>
-    <rect x="226" y="360" width="26" height="24" rx="8" fill="#8cc4f5"/>
-    <rect x="260" y="360" width="26" height="24" rx="8" fill="#8cc4f5"/>
-    <!-- champion belt -->
-    <rect x="166" y="396" width="180" height="42" rx="10" fill="#d9a521"/>
-    <circle cx="256" cy="417" r="29" fill="#f2c94c"/>
-    <circle cx="256" cy="417" r="11" fill="#ff8a3d"/>
-    <!-- head, chin up -->
-    <rect x="164" y="36" width="34" height="50" rx="12" fill="#3b7fc4" transform="rotate(-24 181 61)"/>
-    <rect x="314" y="36" width="34" height="50" rx="12" fill="#3b7fc4" transform="rotate(24 331 61)"/>
-    <rect x="182" y="52" width="148" height="128" rx="46" fill="#4f9ee8"/>
-    <path d="M190 150 C220 186 292 186 322 150 C318 176 296 194 256 194 C216 194 194 176 190 150 Z" fill="#3b7fc4"/>
-    <!-- wraparound shield glasses -->
-    <path d="M150 98 L182 96 M362 98 L330 96" fill="none" stroke-width="12"/>
-    <path d="M166 86 C204 76 308 76 346 86 L342 110 C336 136 300 144 280 134 C268 128 264 120 256 118 C248 120 244 128 232 134 C212 144 176 136 170 110 Z" fill="url(#iridium)"/>
-    <path d="M194 92 C214 88 236 86 252 86 L246 100 C226 100 208 104 194 110 Z" fill="#ffffff" stroke="none" opacity="0.45"/>
-    <path d="M272 90 L290 90 L268 124 L254 124 Z" fill="#ffffff" stroke="none" opacity="0.18"/>
-    <!-- smirk -->
-    <path d="M226 158 C244 168 270 168 292 150" fill="none" stroke-width="9"/>
+    <path id="trapL" d="M100 222 C112 182 150 146 194 120 C210 140 218 172 220 206 C186 220 142 226 100 222 Z" fill="#3b7fc4"/>
+    <use href="#trapL" transform="translate(512 0) scale(-1 1)"/>
+    <path d="M124 220 C200 198 312 198 388 220 L342 440 C292 462 220 462 170 440 Z" fill="#4f9ee8"/>
+    <path d="M164 234 C204 220 244 224 252 246 C246 280 204 288 170 274 Z" fill="#8cc4f5"/>
+    <path d="M348 234 C308 220 268 224 260 246 C266 280 308 288 342 274 Z" fill="#8cc4f5"/>
+    <rect x="222" y="294" width="30" height="24" rx="8" fill="#8cc4f5"/><rect x="260" y="294" width="30" height="24" rx="8" fill="#8cc4f5"/>
+    <rect x="224" y="324" width="28" height="22" rx="8" fill="#8cc4f5"/><rect x="260" y="324" width="28" height="22" rx="8" fill="#8cc4f5"/>
+    <rect x="166" y="436" width="180" height="40" rx="10" fill="#d9a521"/>
+    <circle cx="256" cy="456" r="26" fill="#f2c94c"/><circle cx="256" cy="456" r="10" fill="#ff8a3d"/>
+    <g id="arm">
+      <path d="M150 236 C110 244 82 276 76 312 C72 336 92 352 114 346 L156 290 Z" fill="#4f9ee8"/>
+      <ellipse cx="100" cy="286" rx="38" ry="46" fill="#4f9ee8" transform="rotate(20 100 286)"/>
+      <path d="M72 284 C60 318 84 348 118 364 C150 380 182 392 210 400 L202 430 C166 424 122 408 90 384 C62 362 54 326 72 284 Z" fill="#3b7fc4"/>
+      <rect x="198" y="380" width="58" height="62" rx="18" fill="#4f9ee8"/>
+      <path d="M240 392 V432 M226 394 H240 M226 412 H240 M226 430 H240" fill="none" stroke-width="6"/>
+      <circle cx="122" cy="232" r="48" fill="#4f9ee8"/>
+    </g>
+    <use href="#arm" transform="translate(512 0) scale(-1 1)"/>
+    <rect x="166" y="22" width="34" height="50" rx="12" fill="#3b7fc4" transform="rotate(-28 183 47)"/>
+    <rect x="312" y="22" width="34" height="50" rx="12" fill="#3b7fc4" transform="rotate(28 329 47)"/>
+    <rect x="184" y="36" width="144" height="132" rx="46" fill="#4f9ee8"/>
+    <path d="M186 128 C200 186 236 206 256 206 C276 206 312 186 326 128 C306 160 206 160 186 128 Z" fill="#3b7fc4"/>
+    <path d="M238 140 H274" fill="none" stroke-width="9"/>
+    <!-- Jawbreaker-style shield glasses -->
+    <path d="M150 70 L132 76 M362 70 L380 76" fill="none" stroke="#1d2a26" stroke-width="14"/>
+    <path d="M150 66 C196 50 316 50 362 66 L358 92 C356 116 344 130 322 132 C300 134 284 124 274 110 C268 102 262 98 256 98 C250 98 244 102 238 110 C228 124 212 134 190 132 C168 130 156 116 154 92 Z" fill="#1d2a26"/>
+    <path d="M164 76 C204 64 308 64 348 76 L344 94 C342 112 334 120 320 122 C304 124 292 116 284 104 C276 94 268 90 256 90 C244 90 236 94 228 104 C220 116 208 124 192 122 C178 120 170 112 168 94 Z" fill="url(#prizm)" stroke-width="5"/>
+    <rect x="246" y="52" width="20" height="10" rx="4" fill="#c6f432" stroke-width="5"/>
+    <circle cx="156" cy="84" r="6" fill="#c6f432" stroke-width="4"/><circle cx="356" cy="84" r="6" fill="#c6f432" stroke-width="4"/>
   </g>
-  <path d="M202 66 C216 58 232 56 248 56" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.55"/>
-  <path d="M92 222 C102 210 118 206 134 208" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
-  <path d="M378 208 C394 206 410 210 420 222" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+  <path d="M196 64 H228 M284 64 H316" stroke="#5c6b66" stroke-width="4" stroke-linecap="round"/>
+  <path d="M182 82 C200 76 222 74 240 74 L230 94 C214 94 198 98 186 104 Z" fill="#ffffff" opacity="0.38"/>
+  <path d="M296 76 L316 76 L292 112 L278 112 Z" fill="#ffffff" opacity="0.2"/>
+  <path d="M100 210 C108 196 122 190 138 192" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
+  <path d="M374 192 C390 190 404 196 412 210" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
+  <path d="M124 186 C138 168 154 154 172 142" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.35"/>
 </svg>

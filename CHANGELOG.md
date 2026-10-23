@@ -5,7 +5,7 @@
   game receives (`ci/godot/templates/`, the starter tests `init` writes) are MIT No Attribution
   (`ci/godot/templates/LICENSE.md`). `NOTICE` lists the third-party parts and their licences: Sfxr (Apache-2.0 and MIT),
   the University of Washington genre vocabulary (CC BY-NC-SA 4.0, with permission), Wikidata genres (CC0).
-- README: a mascot logo (`docs/assets/hyperdot-logo.svg`, a muscular robot in flat clip-art style), a one-line pitch, badges, a sample of the JSON an agent reads,
+- README: a mascot logo (`docs/assets/hyperdot-logo.svg`, a muscular robot in wraparound sports sunglasses, flat clip-art style), a one-line pitch, badges, a sample of the JSON an agent reads,
   collapsible prerequisites and FAQ, and a licence and trademark section.
 - **Renamed to Hyperdot (breaking, no aliases).** The script is `ci/godot/hyperdot.ps1`, the plugin `hyperdot`, the
   repository `nick-vas/hyperdot`, the environment variables `HYPERDOT_TIMEOUT`, `HYPERDOT_IGNORE_ERRORS`,

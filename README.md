@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hyperdot-logo.svg" alt="Hyperdot mascot: a muscular robot flexing" width="200">
+  <img src="docs/assets/hyperdot-logo.svg" alt="Hyperdot mascot: a muscular robot in wraparound sunglasses, fists together" width="200">
 </p>
 
 <h1 align="center">Hyperdot</h1>
