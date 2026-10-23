@@ -37,7 +37,8 @@ permissions:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # A game session may take 15 minutes and is graded with Godot afterwards.
+    timeout-minutes: ${{ inputs.programme == 'game' && 330 || 120 }}
     env:
       # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

@@ -589,6 +589,8 @@ for ($r = 1; $r -le $repeatCount; $r++) {
         foreach ($p in $order) {
             $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
             $rows.Add($row)
+            # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
+            $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
             Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
                 $(if ($row.success) { 'pass' } else { 'FAIL' }), $row.tokensTotal, $row.costUsd, $row.turns, $(if ($row.reasons) { "  ($($row.reasons))" }))
         }
