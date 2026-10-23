@@ -283,8 +283,8 @@ function Test-DataValue($Value, $Rule, [bool]$FromCsv) {
         if ($Rule.Contains('min') -and $number -lt [double]$Rule['min']) { return "is $number, below the minimum $($Rule['min'])" }
         if ($Rule.Contains('max') -and $number -gt [double]$Rule['max']) { return "is $number, above the maximum $($Rule['max'])" }
     }
-    if ($Rule.Contains('enum') -and "$Value" -notin @($Rule['enum'])) { return "is '$Value', not one of: $(@($Rule['enum']) -join ', ')$(Format-DidYouMean "$Value" @($Rule['enum']))" }
-    if ($Rule.Contains('pattern') -and "$Value" -notmatch $Rule['pattern']) { return "'$Value' does not match $($Rule['pattern'])" }
+    if ($Rule.Contains('enum') -and "$Value" -cnotin @($Rule['enum'])) { return "is '$Value', not one of: $(@($Rule['enum']) -join ', ')$(Format-DidYouMean "$Value" @($Rule['enum']))" }
+    if ($Rule.Contains('pattern') -and "$Value" -cnotmatch $Rule['pattern']) { return "'$Value' does not match $($Rule['pattern'])" }
     return $null
 }
 

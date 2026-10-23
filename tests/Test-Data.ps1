@@ -64,6 +64,11 @@ if ($cases['table recipes']) { $failures += "a misconfigured acyclic field shoul
 if ($cases['table enemies'] -match 'did you mean') { $failures += "'amulet' is near no item: $($cases['table enemies'])" }
 $enum = Test-DataValue 'comon' @{ enum = @('common', 'rare') } $false
 if ($enum -ne "is 'comon', not one of: common, rare; did you mean 'common'?") { $failures += "an enum typo should be suggested: $enum" }
+# Case matters: the game compares the strings exactly, so "Rare" is not "rare", and a lowercase pattern refuses "Sword".
+$enumCase = Test-DataValue 'Rare' @{ enum = @('common', 'rare') } $false
+if ($enumCase -notmatch "^is 'Rare', not one of: common, rare") { $failures += "an enum value in the wrong case should fail: '$enumCase'" }
+$patternCase = Test-DataValue 'Sword' @{ type = 'string'; pattern = '^[a-z_]+$' } $false
+if ($patternCase -ne "'Sword' does not match ^[a-z_]+$") { $failures += "a pattern should match case-sensitively: '$patternCase'" }
 foreach ($pair in @(@('jmup', 'jump', 1), @('kitten', 'sitting', 3), @('ca', 'abc', 3), @('', 'abc', 3), @('JUMP', 'jump', 0))) {
     $d = Get-EditDistance $pair[0] $pair[1]
     if ($d -ne $pair[2]) { $failures += "Get-EditDistance '$($pair[0])' '$($pair[1])' is $d, not $($pair[2]) (Example.Core's Suggest.Distance agrees with $($pair[2]))" }
