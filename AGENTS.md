@@ -84,7 +84,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-CrashRetry.ps1` | the repeat of a crashed import or export (pwsh stands in for Godot) | - |
 | `Test-DownloadFailed.ps1` | the `download-failed` code (about 15 s) | - |
 | `Test-SceneCount.ps1` | `bench`'s and `audio`'s refusal of several scenes | - |
-| `Test-ShotChanged.ps1` | `shot -MaxChangedPercent` | Godot, display |
+| `Test-ShotChanged.ps1` | `shot -MaxChangedPercent`; scenes that share a file name get their own pictures | Godot, display |
 | `Test-BenchHotspots.ps1` | `bench`'s hotspots (`bench-fixture`) | Godot, display |
 | `Test-MonoAudio.ps1` | the mono option measured in the engine (`mono-fixture`) | Godot |
 | `Test-Capture.ps1` | the skill's capture mode (`capture-fixture`, C#) | Godot, display |
