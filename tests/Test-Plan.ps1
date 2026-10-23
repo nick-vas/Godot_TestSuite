@@ -5,7 +5,8 @@
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
 # cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
 # count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
-# warning in `status`. `init` never overwrites an existing test/test_example.gd. No Godot needed.
+# warning in `status`. `init` never overwrites an existing test/test_example.gd, and pins its workflow at `@v1`. No Godot
+# needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -238,9 +239,13 @@ try {
     Set-Content -LiteralPath (Join-Path $starter 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Starter""`n"
     $mine = "extends ""res://addons/gut/test.gd""`n`nfunc test_mine():`n`tassert_true(true)`n"
     Set-Content -LiteralPath (Join-Path $starter 'test/test_example.gd') -Value $mine -NoNewline
+    & git -C $starter init -q
     $d = pwsh -NoProfile -File $ci init -Json -Project $starter 2>$null | ConvertFrom-Json
     Assert-True ((Get-Content -LiteralPath (Join-Path $starter 'test/test_example.gd') -Raw) -ceq $mine) 'init leaves an existing test/test_example.gd as it was'
     Assert-True (@($d.steps | Where-Object { $_.status -eq 'skipped' -and $_.message -match 'test_example\.gd exists' }).Count -eq 1) "init says it skipped it: $(@($d.steps | ForEach-Object message) -join ' | ')"
+    # The workflow init writes calls the kit's moving v1 tag, not main, so a kit change reaches a game only with a release.
+    $workflow = Get-Content -LiteralPath (Join-Path $starter '.github/workflows/hyperdot.yml') -Raw
+    Assert-True ($workflow -match 'uses: nick-vas/hyperdot/\.github/workflows/godot\.yml@v1\s' -and $workflow -notmatch '@main') 'init pins the workflow at @v1'
 } finally {
     Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
 }

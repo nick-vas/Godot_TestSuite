@@ -116,7 +116,7 @@ preset's value, so the credentials stay out of `export_credentials.cfg`.
 jobs:
   godot:
     permissions: { contents: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with: { exports: all, release: true, environment: release }
     secrets: inherit
 ```
@@ -124,7 +124,7 @@ jobs:
 **Your own workflow:** the composite action runs one command with setup and caching, then uploads the
 results or the build.
 ```yaml
-      - uses: nick-vas/hyperdot/.github/actions/godot@main
+      - uses: nick-vas/hyperdot/.github/actions/godot@v1
         with:
           command: export        # test, build or export
           preset: Windows

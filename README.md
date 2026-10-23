@@ -234,10 +234,12 @@ on: [push, pull_request]
 jobs:
   godot:
     permissions: { contents: read, pull-requests: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
 ```
-Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. The first release, 0.1.0, will
-publish a release tag to pin instead of `@main`. In this repository, a weekly canary tries new Godot, test-framework and GUT
+Tests on every push, a results comment on pull requests, optional coverage, exports and tagged releases. `@v1` is a
+moving tag that follows the kit's releases, so a kit change reaches a game only when a release moves the tag, and a game
+moves up on purpose. The tag is created with the first release, 0.1.0; until then use `@main`
+([docs/usage.md](docs/usage.md#3-the-same-tests-on-a-github-linux-runner-with-a-pr-comment)). In this repository, a weekly canary tries new Godot, test-framework and GUT
 releases on both examples and opens a pull request for those that pass. Free on public repositories; Linux runners are the
 cheapest on private ones. More: [docs/usage.md](docs/usage.md) and [docs/reference.md](docs/reference.md).
 

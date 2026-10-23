@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **`init` pins the kit's workflow at `@v1`** instead of `@main`, so a kit change reaches a game only when a release
+  moves the `v1` tag, and a game moves up on purpose. The docs' snippets use `@v1` too. The tag is created at the 0.1.0
+  release; a workflow `init` wrote earlier keeps its ref.
 - **Trello sync is marked experimental** wherever it is described (README, `docs/plan.md`, `docs/reference.md`,
   `docs/json.md`, the skills): it has met only a stand-in Trello, and it uses API keys, not the Trello connector.
 - **The Stop hook says what it checks.** The README, `docs/reference.md`, the hook, the plugin's description and

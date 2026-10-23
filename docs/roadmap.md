@@ -45,7 +45,8 @@ instead of 1.0: see [Versions](#versions).
    ([label.md](label.md)): an adversarial review of every area (62 findings: 59 fixed with regression tests), a grader
    that cannot be fooled, sessions that cannot read the test, and the 0.1.0 rating from 216 sessions.
 6. **Retro** over all of the above.
-7. **Release 0.1.0**: changelog, version, tag `v0.1.0` (the workflow snippet and `init` pin it instead of `@main`), a
+7. **Release 0.1.0**: changelog, version, tag `v0.1.0`; create and keep a moving `v1` tag (`init` and the docs already
+   write `@v1`, which does not resolve until then), a
    start-here page for working on a game (first use: Breakout Roguelike, `nick-vas/BreakoutTheBreakout`, in a new chat
    with the kit cloned beside it).
 
@@ -68,7 +69,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
-| 10 | A game's CI workflow calls the kit's `@main`, so every kit change reaches every game at once | `init` writes `@v1`; games move up on purpose |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
 | 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hyperdot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
 | 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
@@ -210,8 +210,8 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **Steam names held in constants.** `doctor`'s Steamworks checks read string literals only; following constants (as
   The C# example's `BreakoutProgress` uses) or code outside the Godot project needs a C# and GDScript parser.
 - **CI:** a GitLab CI template using the JUnit and Cobertura files the kit already writes, and a container image with
-  Godot, templates, PowerShell and .NET, refreshed by the canary. Tag the kit's releases and keep a moving `v1` tag (no
-  tags exist yet; `init` still writes `@main`).
+  Godot, templates, PowerShell and .NET, refreshed by the canary. `init` writes `@v1`; the tag itself is
+  created at the 0.1.0 release (step 7 above).
 - **Keeping aseprite-mcp's pins current.** `init` pins a commit and MCP SDK 1.30.0 (`docs/mcp.md`); the canary does not
   track git pins.
 

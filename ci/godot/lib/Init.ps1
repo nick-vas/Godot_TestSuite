@@ -47,6 +47,7 @@ function New-CiWorkflow([string]$ProjectDir) {
     New-Item -ItemType Directory -Force $workflows | Out-Null
     Set-Content -LiteralPath $file -Encoding utf8 -Value @"
 # Runs Hyperdot's checks on a GitHub Linux runner: https://github.com/nick-vas/hyperdot
+# @v1 follows the kit's releases; move to another tag or commit on purpose, in a commit of its own.
 name: Godot
 
 on:
@@ -64,7 +65,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write   # for the test summary comment on pull requests
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with:$projectInput
       coverage: true
 "@

@@ -63,7 +63,7 @@ on: { push: { tags: ['v*'] } }
 jobs:
   release:
     permissions: { contents: write }
-    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1
     with: { exports: Windows, run-exports: true, release: true }
 ```
 Tests run first; each preset is exported, launched on a runner of its own OS, zipped as
