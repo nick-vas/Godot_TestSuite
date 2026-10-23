@@ -6,6 +6,9 @@
 # start, end and delta, which is how a C# game shows "zero GC in the frame loop".
 # Each frame time is paired with where the camera was, so slow frames get a place as well as a time: "hotspots" are the
 # grid cells of camera positions with the worst 99th-percentile frame time (--bench-cell sets the cell size).
+# "loadMs" is how long the scene took from load() until its first frame was done: reading the resource, instantiating
+# it, adding it to the tree (its _ready) and drawing that frame. "frameHistogram" puts every frame in a fixed bucket by the
+# frame rate it would sustain: 120, 60, 30 and 20 fps (8.33, 16.67, 33.33 and 50 ms), and slower.
 extends SceneTree
 
 const MAX_HITCHES := 50
@@ -13,6 +16,8 @@ const MAX_HOTSPOTS := 10
 # Default hotspot cell: 10 m in 3D (a room, a stretch of road), 512 px in 2D (about a quarter of a 1080p screen's width).
 const CELL_3D := 10.0
 const CELL_2D := 512.0
+# Upper bounds of the frame-time histogram's buckets, in ms: a frame at most this long sustains 120, 60, 30 and 20 fps.
+const HISTOGRAM_MS := [1000.0 / 120.0, 1000.0 / 60.0, 1000.0 / 30.0, 1000.0 / 20.0]
 
 var _options := {}
 
@@ -29,15 +34,19 @@ func _initialize() -> void:
 	if scene_path == "":
 		_finish({"error": "no scene: pass -Scene or set a main scene"})
 		return
+	var load_start := Time.get_ticks_usec()
 	var packed := load(scene_path) as PackedScene
 	if packed == null:
 		_finish({"error": "cannot load %s" % scene_path})
 		return
+	var loaded := Time.get_ticks_usec()
 	var scene := packed.instantiate()
+	var instantiated := Time.get_ticks_usec()
 	root.add_child(scene)
 	current_scene = scene
 	# The scene's _ready runs on the next frame, not inside _initialize; custom monitors it registers exist only after that.
 	await process_frame
+	var first_frame := Time.get_ticks_usec()
 
 	# Warm-up: first frames compile pipelines and fill caches, and would otherwise dominate the worst-case numbers.
 	var warm_start := Time.get_ticks_usec()
@@ -122,6 +131,7 @@ func _initialize() -> void:
 			"p99": snappedf(_percentile(sorted, 0.99), 0.001),
 			"max": snappedf(sorted[count - 1], 0.001) if count > 0 else 0.0,
 		},
+		"frameHistogram": _histogram(sorted),
 		"over20ms": _count_over(sorted, 20.0),
 		"over33ms": _count_over(sorted, 33.0),
 		"hitchThresholdMs": snappedf(hitch_ms, 0.01),
@@ -130,6 +140,12 @@ func _initialize() -> void:
 		"camera": {3: "3d", 2: "2d"}.get(kind, "none"),
 		"hotspotCell": cell,
 		"hotspots": _hotspots(times, places, kinds, kind, cell),
+		"loadMs": snappedf((first_frame - load_start) / 1000.0, 0.1),
+		"loadBreakdownMs": {
+			"resource": snappedf((loaded - load_start) / 1000.0, 0.1),
+			"instantiate": snappedf((instantiated - loaded) / 1000.0, 0.1),
+			"firstFrame": snappedf((first_frame - instantiated) / 1000.0, 0.1),
+		},
 		"drawCalls": {"avg": snappedf(draw_total / maxi(count, 1), 0.1), "max": draw_max},
 		"primitives": _avg_max(primitives, 1.0),
 		"gpuMs": _avg_max(gpu_ms, 0.001),
@@ -245,6 +261,26 @@ func _slowest_mean(sorted: PackedFloat64Array, fraction: float) -> float:
 	for i in range(sorted.size() - n, sorted.size()):
 		total += sorted[i]
 	return total / n
+
+
+# Frames per bucket of HISTOGRAM_MS, each bucket (fromMs, toMs]; the last one has no upper bound (toMs null).
+func _histogram(sorted: PackedFloat64Array) -> Array:
+	var buckets := []
+	var low := 0.0
+	var i := 0
+	for edge in HISTOGRAM_MS + [INF]:
+		var n := 0
+		while i < sorted.size() and sorted[i] <= edge:
+			n += 1
+			i += 1
+		buckets.append({
+			"fromMs": snappedf(low, 0.01),
+			"toMs": snappedf(edge, 0.01) if edge != INF else null,
+			"frames": n,
+			"percent": snappedf(100.0 * n / maxi(sorted.size(), 1), 0.1),
+		})
+		low = edge
+	return buckets
 
 
 func _count_over(sorted: PackedFloat64Array, ms: float) -> int:

@@ -196,9 +196,8 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **`-GpuValidation`** for `shot`, `bench` and `export -Run`: pass `--gpu-validation` (and `--gpu-abort`,
   `--accurate-breadcrumbs`), fail on validation errors with a new code. Needs a Vulkan-capable runner (a GitHub GPU
   runner, or Mesa's lavapipe; neither checked).
-- **`bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram**, each with a new failure
-  code. `Measure.ps1` already has `drawCalls.avg`. Also a sweep helper for particle counts and quality tiers (the skill
-  shows the manual way with `-GameArgs`).
+- **A `bench` sweep helper** for particle counts and quality tiers (the skill shows the manual way with `-GameArgs`):
+  one run per value, one `bench.csv` row each, a table of p99 against the value.
 - **`doctor`: duplicate files under `res://`, occluders with occlusion culling off, and a build size breakdown on
   `export -Json`**, each with a fixture.
 - **A `doctor` warning for moving physics bodies with `physics/common/physics_interpolation` off**, only if it can be

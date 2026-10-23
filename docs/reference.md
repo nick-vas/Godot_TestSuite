@@ -25,6 +25,8 @@
 | `-Scene` | main scene | `bench` and `audio -Mix` (first scene), `shot` (every scene): `res://` paths |
 | `-Seconds`, `-Warmup` | `10`, `3` | `bench`: how long to measure, after a warm-up that is not counted; `audio -Mix`: how long to record (default 60); `soak`: how long to run after the warm-up |
 | `-BudgetMs` | `0` (off) | `bench`: fail when the p99 frame time is above this |
+| `-MaxDrawCalls` | `0` (off) | `bench`: fail (`bench-over-draw-calls`) when the scene averages more draw calls a frame than this |
+| `-MaxLoadMs` | `0` (off) | `bench`: fail (`bench-over-load-time`) when the scene takes longer than this from `load()` to its first frame drawn (`loadMs`) |
 | `-Label` | | `bench`: the run's name in `bench.csv` |
 | `-HotspotCell` | `0` (10 m in 3D, 512 px in 2D) | `bench`: the grid cell that frame times are grouped into by camera position, for `hotspots` (where it is slow). `playtest`: the heat maps' cell, over `playtest.json`'s (default 2 m on the `xz` plane, 64 px on `xy`) |
 | `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |

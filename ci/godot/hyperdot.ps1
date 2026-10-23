@@ -87,6 +87,11 @@ param(
     [double]$Warmup = 3,
     # bench: fail when the 99th-percentile frame time is above this many milliseconds (16.7 for 60 fps). 0: no budget.
     [double]$BudgetMs = 0,
+    # bench: fail when the scene averages more draw calls a frame than this (bench-over-draw-calls). 0: no limit.
+    [double]$MaxDrawCalls = 0,
+    # bench: fail when the scene takes longer than this many milliseconds to load, from load() to its first frame drawn
+    # (bench-over-load-time). 0: no limit.
+    [double]$MaxLoadMs = 0,
     # bench: the size of the grid cells, in metres (3D) or pixels (2D), that frames are grouped into by camera position for
     # "hotspots", the slowest places. 0: 10 m in 3D, 512 px in 2D. playtest: the heat maps' cell (0: playtest.json's, else
     # 2 m in 3D, 64 px in 2D).
@@ -586,7 +591,8 @@ switch ($Command) {
     'bench' {
         Invoke-Setup; Invoke-Build
         Invoke-Bench -Info $info -Scene ($scenes -join ',') -Seconds $Seconds -Warmup $Warmup -Resolution $Resolution -Uncapped:$Uncapped `
-            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir
+            -MaxFps $MaxFps -Headless:$Headless -BudgetMs $BudgetMs -Label $Label -GameArgs $GameArgs -HotspotCell $HotspotCell -ResultsDir $commandResultsDir `
+            -MaxDrawCalls $MaxDrawCalls -MaxLoadMs $MaxLoadMs
     }
     'shot' {
         Invoke-Setup; Invoke-Build

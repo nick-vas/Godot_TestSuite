@@ -31,8 +31,11 @@ function Get-WindowArgs([string]$Resolution, [switch]$Uncapped, [int]$MaxFps) {
 
 function Invoke-Bench {
     param($Info, [string]$Scene, [double]$Seconds, [double]$Warmup, [string]$Resolution, [switch]$Uncapped, [int]$MaxFps,
-        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell)
+        [switch]$Headless, [double]$BudgetMs, [string]$Label, [string]$ResultsDir, [string[]]$GameArgs, [double]$HotspotCell,
+        [double]$MaxDrawCalls, [double]$MaxLoadMs)
     if ($HotspotCell -lt 0) { Stop-GodotCi "-HotspotCell must be a size above 0 (or 0 for the default), not $HotspotCell" 'invalid-arguments' }
+    if ($MaxDrawCalls -lt 0) { Stop-GodotCi "-MaxDrawCalls must be 0 (no limit) or more, not $MaxDrawCalls" 'invalid-arguments' }
+    if ($MaxLoadMs -lt 0) { Stop-GodotCi "-MaxLoadMs must be 0 (no limit) or more, not $MaxLoadMs" 'invalid-arguments' }
     if (-not $Headless) { Assert-Display 'bench' }
     $tool = (Join-Path $PSScriptRoot '../tools/bench.gd' | Resolve-Path).Path -replace '\\', '/'
     $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution -Uncapped:$Uncapped -MaxFps $MaxFps)
@@ -55,6 +58,8 @@ function Invoke-Bench {
 
     $result['label'] = $Label
     $result['budgetMs'] = $BudgetMs
+    $result['maxDrawCalls'] = $MaxDrawCalls
+    $result['maxLoadMs'] = $MaxLoadMs
     $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ResultsDir 'bench.json') -Encoding utf8
     Add-BenchCsvRow (Join-Path $ResultsDir 'bench.csv') $result
     Set-JsonField bench $result
@@ -62,6 +67,9 @@ function Invoke-Bench {
     $summary = "{0} frames: avg {1} fps, 1% low {2}, 0.1% low {3}, p99 {4} ms, max {5} ms, {6} frame(s) over 33 ms, {7} hitch(es)" -f
         $result.frames, $result.fps.avg, $result.fps.low1, $result.fps.low01, $result.frameMs.p99, $result.frameMs.max, $result.over33ms, $result.hitchCount
     Write-CiLog $summary
+    Write-CiLog ("Loaded in {0} ms (resource {1}, instantiate {2}, first frame {3}); {4} draw calls a frame on average, {5} at most" -f
+        $result.loadMs, $result.loadBreakdownMs.resource, $result.loadBreakdownMs.instantiate, $result.loadBreakdownMs.firstFrame, $result.drawCalls.avg, $result.drawCalls.max)
+    Write-CiLog "Frame times: $((@($result.frameHistogram) | ForEach-Object { "$(if ($null -eq $_.toMs) { "over $($_.fromMs)" } else { "up to $($_.toMs)" }) ms $($_.percent)%" }) -join ', ')"
     if ($result.display -eq 'headless') { Write-CiLog 'Headless: nothing was drawn, so these are CPU timings only' }
     if ($result.camera -eq 'none') {
         Write-CiLog 'No active Camera3D or Camera2D in the root viewport, so no hotspots: frame times have no place'
@@ -74,9 +82,13 @@ function Invoke-Bench {
     foreach ($monitor in $result.customMonitors.GetEnumerator()) { Write-CiLog "  $($monitor.Key): +$($monitor.Value.delta)" }
     # After the numbers are saved and reported: errors the game printed while measured still fail the run.
     Assert-GodotLogClean $log 'The benchmark'
-    if ($BudgetMs -gt 0 -and $result.frameMs.p99 -gt $BudgetMs) {
-        Stop-GodotCi "p99 frame time $($result.frameMs.p99) ms is over the budget of $BudgetMs ms" 'bench-over-budget'
-    }
+    # Every limit that was crossed is named; the code is the first of them, in this order.
+    $over = @(
+        if ($BudgetMs -gt 0 -and $result.frameMs.p99 -gt $BudgetMs) { @{ code = 'bench-over-budget'; text = "p99 frame time $($result.frameMs.p99) ms is over the budget of $BudgetMs ms" } }
+        if ($MaxDrawCalls -gt 0 -and $result.drawCalls.avg -gt $MaxDrawCalls) { @{ code = 'bench-over-draw-calls'; text = "$($result.drawCalls.avg) draw calls a frame on average is over -MaxDrawCalls $MaxDrawCalls" } }
+        if ($MaxLoadMs -gt 0 -and $result.loadMs -gt $MaxLoadMs) { @{ code = 'bench-over-load-time'; text = "the scene took $($result.loadMs) ms to load, over -MaxLoadMs $MaxLoadMs" } }
+    )
+    if ($over.Count -gt 0) { Stop-GodotCi (@($over | ForEach-Object { $_.text }) -join '; ') $over[0].code }
 }
 
 # One row per run, so runs can be compared over time (label each one: -Label "vsync-on 1080p").

@@ -51,6 +51,8 @@ Branch on `error.code`; `message` can change.
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
 | `bench-over-budget` | `bench`: the 99th-percentile frame time is above `-BudgetMs` | `bench` |
+| `bench-over-draw-calls` | `bench -MaxDrawCalls <n>`: the scene averaged more than n draw calls a frame (when `-BudgetMs` is also crossed, that code wins; the message names both) | `bench.drawCalls` |
+| `bench-over-load-time` | `bench -MaxLoadMs <n>`: the scene took more than n ms from `load()` to its first frame drawn (after `bench-over-budget` and `bench-over-draw-calls`) | `bench.loadMs`, `bench.loadBreakdownMs` |
 | `bench-failed` | `bench` could not load the scene, Godot exited non-zero, no result was printed, or no frame was measured | `error.message` |
 | `shot-failed` | `shot` could not load a scene or save an image | `shots[]` (pictures that did work) |
 | `soak-failed` | `soak`: a process exited early, never printed `[soak] ready`, or printed `[soak] fail` | `soak.processes[]` |
@@ -241,8 +243,15 @@ cell, aligned to the origin, in metres or pixels, `-HotspotCell`, default 10 in 
 when `camera` is `none`), `drawCalls` (`avg`, `max`), `primitives` (`avg`, `max`: triangles, lines and points drawn per
 frame), `gpuMs` (`avg`, `max`: GPU time per frame; 0 when nothing is drawn), `textureMemoryMB` and `videoMemoryMB` (at the end), `objects` and `staticMemoryMB` (`start`, `end`), `customMonitors`
 (each custom monitor the game registered: `start`, `end`, `delta`), `display` (`headless` means CPU timings only), `renderer`,
-`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
-row is appended to `bench-results/bench.csv`.
+`driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`, `maxDrawCalls` and `maxLoadMs` (0 when not set). `loadMs` is
+the time from `load()` of the scene to its first frame drawn, and `loadBreakdownMs` splits it into `resource` (reading the
+scene and what it loads), `instantiate` and `firstFrame` (adding it to the tree, which runs `_ready`, and drawing that
+frame); the files were imported by the build step, so this is a load from `.godot/imported`, not from an exported `.pck`.
+`frameHistogram[]` puts every measured frame in one of five fixed buckets, `fromMs` (exclusive) to `toMs` (inclusive):
+0 to 8.33 (120 fps or better), to 16.67 (60), to 33.33 (30), to 50 (20), and over 50 (`toMs` `null`), each with `frames`
+and `percent`; the frames add up to `frames`. A run capped by V-Sync jitters around its refresh interval, so at 60 Hz
+some frames land just over 16.67: read the histogram of an `-Uncapped` run for headroom. The same object is written to
+`bench-results/bench.json`, and a row is appended to `bench-results/bench.csv`.
 
 **shot**: `shots[]` with `scene`, `file` (absolute path of the PNG, `<name>.png` after the scene, or after its path, `a_main.png`,
 when two scenes share a name), `width`, `height`, `locale` (`null` for the project's own,

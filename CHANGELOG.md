@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **`bench` holds three more budgets.** `-MaxDrawCalls` fails a scene that averages more draw calls a frame
+  (`bench-over-draw-calls`); `loadMs`, with `loadBreakdownMs` (resource, instantiate, first frame), is the time from
+  `load()` to the scene's first frame, and `-MaxLoadMs` fails a slower load (`bench-over-load-time`); `frameHistogram`
+  puts every frame in a fixed bucket: 120, 60, 30 and 20 fps or better, and slower. A run over several limits names them
+  all. `tests/bench-fixture/heavy.tscn` (a 300 ms `_ready`, 24 boxes with their own materials) checks each.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per
