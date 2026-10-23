@@ -2,7 +2,7 @@ using System;
 using Godot;
 
 // Autoload "CaptureMode": clean footage for trailers, GIFs and screenshots. Debug builds only.
-//   --capture=nohud+nomusic+nocursor+freeze+timescale=2   ('+' or ','; the flag may repeat)
+//   --capture=nohud+nomusic+nocursor+freeze+timescale=2   (join modes with '+': the kit's -GameArgs splits on ','; the flag may repeat)
 public partial class CaptureMode : Node
 {
 #if DEBUG
