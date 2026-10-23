@@ -636,6 +636,10 @@ jobs:
           Start-Process Xvfb -ArgumentList ':99', '-screen', '0', '1920x1080x24'
           Start-Sleep -Seconds 2
           ./tests/Test-Web.ps1 -Browser firefox
+      # The export templates are on the runner now.
+      - name: export -Json breaks the build size down by folder and kind of file, from the pack in or next to the executable
+        shell: pwsh
+        run: ./tests/Test-BuildSize.ps1
       - name: Keep what this job's kit runs reached
         if: always()
         uses: actions/upload-artifact@v7

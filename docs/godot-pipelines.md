@@ -117,6 +117,7 @@ ci/godot/lib/Init.ps1               `init`: starter tests, .gitignore, export fi
 ci/godot/lib/Plan.ps1               `plan`: phases and gates, tasks, Trello sync
 ci/godot/lib/Measure.ps1            `bench` and `shot`
 ci/godot/lib/Palette.ps1            `shot`'s palette check against docs/STYLE.md
+ci/godot/lib/BuildSize.ps1          `export`'s size breakdown: the output folder and the pack by folder and kind of file
 ci/godot/tools/validate.gd          the load check Godot runs for the validate runner
 ci/godot/tools/flows.gd             the UI-flow player Godot runs for the flows runner
 ci/godot/tools/bench.gd             frame-pacing measurement for bench

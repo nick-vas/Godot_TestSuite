@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **Build size breakdown** on `export -Json` (`exports[].size`, `ci/godot/lib/BuildSize.ps1`): the output folder item by
+  item, and Godot's pack (a `.pck`, one embedded in the executable, or one in a `.zip`) by top-level folder and by kind of
+  source file, with imported textures and sounds and compiled scripts counted as their sources. The log names the largest
+  folders. `tests/Test-BuildSize.ps1` reads a synthetic pack three ways and a real Linux export, separate and embedded.
 - **Three `doctor` warnings**, each with a case both ways in `tests/doctor-fixture` (`tests/Test-DoctorFixture.ps1`):
   - asset files with the same content (size, then SHA-256), outside `addons/` and `.godot/`;
   - `OccluderInstance3D` nodes while `rendering/occlusion_culling/use_occlusion_culling` is off, so they cull nothing;

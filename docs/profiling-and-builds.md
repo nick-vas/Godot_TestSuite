@@ -222,6 +222,12 @@ a temporary file deleted in an `always()` step, and passes no secret as a logged
   tick rate (60 by default) and judders on a faster screen. It stays quiet when the frame rate is capped at the tick rate
   (`application/run/max_fps`, or `Engine.max_fps` / `Engine.MaxFps` set in code to that number or to anything that is not
   a plain number), and skips test folders. A script that extends the body through a class of its own is not followed.
+- `export -Json` breaks each build's size down (`exports[].size`, `ci/godot/lib/BuildSize.ps1`): the output folder item by
+  item, and Godot's pack by folder and by kind of source file. The pack format was read from 4.7.2's exports (format 4:
+  "GDPC", version, engine version, flags, file base, directory offset; an embedded pack ends the executable with its size
+  and "GDPC"), and an imported file's bytes count under its source through the `.import` and `.remap` files in the pack.
+  Tested on Linux exports of a copy of `examples/gdscript`, separate and embedded (`tests/Test-BuildSize.ps1`); format 2
+  (Godot 4.0 to 4.3, directory right after the header) is read from memory of the source, not tested.
 - `.github/actions/godot/action.yml` caches `.godot/imported`, `.godot/uid_cache.bin` and
   `.godot/editor/filesystem_cache*` under `godot-import-<os>-<godot version>-<hash of *.import and project.godot>`, with
   the prefix without the hash as a restore key.

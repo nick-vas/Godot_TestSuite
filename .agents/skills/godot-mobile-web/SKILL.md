@@ -168,7 +168,8 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
   The PWA option "Ensure Cross Origin Isolation Headers" works around it, but needed a second reload here. `doctor`
   warns about threads builds.
 - **Size:** the engine alone is 38 MB, 9.9 MB gzipped (GitHub Pages compresses; itch.io does not). `export` reports
-  `exports[].web` (`rawMb`, `gzipMb`). Web portals cap downloads; CrazyGames, for example, allows 50 MB, or 20 MB for
+  `exports[].web` (`rawMb`, `gzipMb`), and `exports[].size.pack` what the game adds, by folder and kind of file
+  (`byFolder`, `byType`). Web portals cap downloads; CrazyGames, for example, allows 50 MB, or 20 MB for
   its mobile homepage.
 - **Export outside the project.** An export into `res://build/...` gets imported, and the next export packs it (the
   `.pck` grew tenfold here). `export` adds a `.gdignore` to an output folder inside the project; `doctor` warns about

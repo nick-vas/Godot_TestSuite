@@ -192,7 +192,6 @@ and the other topic pages), grouped by what it waits for. Done items are in `CHA
 - **`bench`: `-MaxDrawCalls`, load time (`loadMs`, `-MaxLoadMs`) and a frame-time histogram**, each with a new failure
   code. `Measure.ps1` already has `drawCalls.avg`. Also a sweep helper for particle counts and quality tiers (the skill
   shows the manual way with `-GameArgs`).
-- **A build size breakdown on `export -Json`**, with a fixture.
 - **`data` runner:** a rule that every currency has a sink (`EconomySim` checks it in code only); soft-lock levels as a
   `data.json` table (areas, passages, pickups, supplies, goals) so GDScript games can use `SoftLockCheck` too; per-locale
   lines (and voice files) in a responses table, checked for lines missing in a locale.
