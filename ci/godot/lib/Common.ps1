@@ -247,6 +247,11 @@ function Invoke-Logged {
             if ($writer) { $writer.WriteLine($line) }
             $line | ForEach-Object $show
         }
+        # Both pipes can close while the program runs on (it redirected its output elsewhere): wait only for the time left.
+        if (-not $timedOut -and $timeout -gt 0) {
+            $left = [Math]::Min([int]::MaxValue, [Math]::Max(0, $timeout * 1000 - $clock.ElapsedMilliseconds))
+            if (-not $process.WaitForExit([int]$left)) { $timedOut = $true }
+        }
         if ($timedOut) {
             try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }
             $message = "[hyperdot] $FilePath was still running after $timeout s and was stopped (raise HYPERDOT_TIMEOUT if it needs longer)"
@@ -331,6 +336,7 @@ $script:KnownNoise = @(
     '^\s*ERROR: No project icon specified'
 )
 
+# Godot's own prefixes, matched case-sensitively (-cmatch): a game that prints "Error: no save file yet" is not an engine error.
 $script:GodotErrorPattern = '^\s*(SCRIPT ERROR|SHADER ERROR|ERROR|USER ERROR):|Unhandled [Ee]xception|Failed to load script'
 
 # One regex for the error lines to leave out: the known noise and HYPERDOT_IGNORE_ERRORS. An invalid HYPERDOT_IGNORE_ERRORS
@@ -354,7 +360,7 @@ function Select-GodotErrors([string[]]$Lines) {
     $errors = @()
     foreach ($raw in $Lines) {
         $line = $raw -replace "`e\[[0-9;]*m", ''
-        if ($line -match $pattern) {
+        if ($line -cmatch $pattern) {
             if ($line -match $ignoreRegex) { Write-CiLog "Ignored known engine noise: $line" }
             else { $errors += $line }
         }
@@ -395,12 +401,12 @@ function Get-GodotErrorDetails([string[]]$Lines, [switch]$Lenient) {
         # A cheap test first: a log can run to many thousands of lines, and few are errors.
         if ($Lines[$i] -cnotmatch 'ERROR|xception|Failed to load') { continue }
         $line = $Lines[$i] -replace "`e\[[0-9;]*m", ''
-        if ($line -notmatch $script:GodotErrorPattern -or $line -match $ignoreRegex) { continue }
+        if ($line -cnotmatch $script:GodotErrorPattern -or $line -match $ignoreRegex) { continue }
         $at = [regex]::Match($line, $location)
         if (-not $at.Success) {
             $frames = @(for ($j = $i + 1; $j -lt [math]::Min($Lines.Count, $i + 8); $j++) {
                 $next = $Lines[$j] -replace "`e\[[0-9;]*m", ''
-                if ($next -notmatch '^\s' -or $next -match $script:GodotErrorPattern) { break }
+                if ($next -notmatch '^\s' -or $next -cmatch $script:GodotErrorPattern) { break }
                 foreach ($m in [regex]::Matches($next, $location)) { $m }
             })
             $own = @($frames | Where-Object { $_.Groups['file'].Value -notlike 'res://addons/*' })
@@ -529,8 +535,10 @@ function Get-DotnetDiagnostics([string]$LogFile) {
 
 # Where a failure happened: the first .cs/.gd location with a line number in the text, as an absolute path (C# stack
 # traces) or a res:// path (Godot backtraces). Frames inside addons/ (GUT, gdUnit4) are the framework, not the failure.
+# A .NET frame's path ("in C:\Users\Jane Doe\game\Test.cs:line 12") may hold spaces, so after " in " the path runs to
+# the first .cs:line N.
 function Get-FailureLocation([string]$Text) {
-    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
+    $pattern = '(?<![\w:/])(?<file>(?:[A-Za-z]:[\\/]|/)[^\s:]+\.(?:cs|gd))(?::line |:)(?<line>\d+)|(?<=\bin )(?<file>(?:[A-Za-z]:[\\/]|/)[^:\r\n]+?\.cs):line (?<line>\d+)|res://(?<res>[^\s:()]+\.(?:gd|cs|tscn|tres)):(?<rline>\d+)'
     foreach ($m in [regex]::Matches($Text, $pattern)) {
         if ($m.Groups['res'].Success) {
             if ($m.Groups['res'].Value -like 'addons/*') { continue }

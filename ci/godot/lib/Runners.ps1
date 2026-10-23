@@ -61,11 +61,15 @@ function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter
 
 # One case per file from tools/validate.gd's markers; errors printed between a file's markers fail it.
 function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate') {
-    $cases = @(); $current = $null; $buffer = @(); $outside = @()
-    foreach ($raw in Get-Content -LiteralPath $LogFile) {
-        $line = $raw -replace "`e\[[0-9;]*m", ''
+    $cases = @(); $current = $null; $buffer = @(); $outside = @(); $since = @()
+    $lines = @(Get-Content -LiteralPath $LogFile | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    # Godot 4.5+: validate.gd's logger prints each file's errors on stdout before its end marker ("@@validate error").
+    # stderr reaches the log out of order with stdout, so its lines between a file's markers may be another file's: then
+    # only the logger's lines are the file's, and stderr counts as outside any file.
+    $logged = @($lines | Where-Object { $_.StartsWith("@@$Marker error ") }).Count -gt 0
+    foreach ($line in $lines) {
         if ($line -match "^@@$Marker begin (?<path>.+)`$") {
-            $current = $Matches.path; $buffer = @()
+            $current = $Matches.path; $buffer = @(); $since = @()
         } elseif ($current -and $line.StartsWith("@@$Marker end $current ")) {
             # Matched by the known path rather than a regex: paths may contain spaces.
             $status = $line.Substring("@@$Marker end $current ".Length)
@@ -74,23 +78,54 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
             $cases += @{ Name = $current; Failure = ($problems -join "`n") }
             $current = $null
         } elseif ($current) {
-            $buffer += ($line -replace "^@@$Marker error ", '')
+            $since += $line
+            if ($line.StartsWith("@@$Marker error ")) { $buffer += $line.Substring("@@$Marker error ".Length) }
+            elseif ($logged) { $outside += $line }
+            else { $buffer += $line }
         } else {
             $outside += $line
         }
     }
-    # Errors before the first file (autoloads, project settings) belong to the project as a whole, unless a file already
-    # reported the same error (stderr can reach the log ahead of that file's markers).
+    # A file whose end marker never came stopped Godot (a crash, OS.crash, a time-out): it fails, with what was printed
+    # after its begin marker, rather than being left out.
+    if ($current) {
+        $crash = @($since | Where-Object { $_ -match 'Program crashed with signal|was still running after' } | ForEach-Object { $_.Trim() })
+        $cases += @{ Name = $current; Failure = (@("Godot stopped while checking this file") + $crash + @(Select-GodotErrors $since)) -join "`n" }
+    }
+    # Errors outside any file (before the first: autoloads, project settings; with the logger, all of stderr) belong to the
+    # project as a whole, unless a file already reported the same error (stderr can reach the log away from its file's markers).
     $reported = ($cases | ForEach-Object { $_.Failure }) -join "`n"
     $startup = @(Select-GodotErrors $outside | Where-Object { -not $reported.Contains(($_ -replace '^\s*(SHADER ERROR|SCRIPT ERROR|ERROR):\s*', '').Trim()) })
     if ($startup.Count -gt 0) { $cases += @{ Name = 'project startup'; Failure = ($startup -join "`n") } }
     return $cases
 }
 
+# GUT skips a test script that does not load (a parse error) with a warning, "Ignoring script ... because it does not
+# extend GutTest", and the run still passes. Such a script fails as a case named after the file, with its parse error when
+# the log has one: one that extends GutTest on disk, or that the log says failed to load (it may extend another test).
+function Get-GutLoadFailures([string]$LogFile, [string]$ProjectDir) {
+    $lines = @(Get-Content -LiteralPath $LogFile | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    $seen = @{}
+    foreach ($line in $lines) {
+        if ($line -notmatch 'Ignoring script (?<res>res://.+?) because it does not extend GutTest') { continue }
+        $res = $Matches.res
+        if ($seen.ContainsKey($res)) { continue }
+        $seen[$res] = $true
+        $why = @(for ($i = 0; $i -lt $lines.Count - 1; $i++) {
+            if ($lines[$i] -match '^\s*SCRIPT ERROR:' -and $lines[$i + 1].Contains("($res`:")) { "$($lines[$i].Trim()) $($lines[$i + 1].Trim())" }
+        })
+        $failedToLoad = @($lines | Where-Object { $_.Contains("Failed to load script `"$res`"") }).Count -gt 0
+        $file = Join-Path $ProjectDir $res.Substring(6)
+        $isTest = (Test-Path -LiteralPath $file) -and (Get-Content -LiteralPath $file -Raw) -match '(?m)^extends\s+GutTest\b'
+        if (-not ($isTest -or $failedToLoad -or $why)) { continue }
+        @{ Name = $res; Failure = (@("$res does not load, so GUT skipped its tests") + $why) -join "`n" }
+    }
+}
+
 function Invoke-TestRunner {
     param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs, [int]$FixedFps = 0)
 
-    if (Test-Path -LiteralPath $ResultsDir) { Remove-Item -Recurse -Force $ResultsDir }
+    if (Test-Path -LiteralPath $ResultsDir) { Remove-Item -LiteralPath $ResultsDir -Recurse -Force }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
     $godot = $env:GODOT_BIN
     $project = $Info.ProjectDir
@@ -147,6 +182,8 @@ function Invoke-TestRunner {
             Start-LogGroup 'GUT'
             $code = Invoke-Logged $godot $gutArgs (Join-Path $ResultsDir 'gut.log')
             Stop-LogGroup
+            $unloaded = @(Get-GutLoadFailures (Join-Path $ResultsDir 'gut.log') $project)
+            if ($unloaded.Count -gt 0) { Write-JUnitCases (Join-Path $ResultsDir 'gut-load.junit.xml') 'gut' $unloaded }
         }
         'validate' {
             $log = Join-Path $ResultsDir 'validate.log'
@@ -208,8 +245,10 @@ function Invoke-TestRunner {
     if ($Coverage) {
         $coverageDir = Join-Path $ResultsDir 'coverage'
         New-Item -ItemType Directory -Force $coverageDir | Out-Null
+        # Matched below the results folder only, as in Write-TestSummary.
+        $base = (Get-Item -LiteralPath $ResultsDir).FullName.TrimEnd('\', '/').Length
         Get-ChildItem -LiteralPath $ResultsDir -Recurse -File -Filter 'coverage.cobertura.xml' |
-            Where-Object { $_.FullName -notmatch '[\\/](coverage|In)[\\/]' } |
+            Where-Object { $_.FullName.Substring($base) -notmatch '[\\/](coverage|In)[\\/]' } |
             ForEach-Object { Move-Item -LiteralPath $_.FullName (Join-Path $coverageDir "$Runner-$($_.Directory.Name).cobertura.xml") }
     }
 

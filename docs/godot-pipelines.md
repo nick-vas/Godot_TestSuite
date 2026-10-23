@@ -67,7 +67,8 @@ GoDotTest versions target older Godot minors. Add a small scene whose script cal
 [`GoDotTestRunner.cs`](../examples/csharp/game/test/godottest/GoDotTestRunner.cs); the kit finds it.
 
 **GUT**: just write `test_*.gd` scripts that extend `GutTest`. The kit installs GUT v9.4.0–v9.7.1 to
-match Godot 4.4–4.7; for other versions, commit `addons/gut` yourself.
+match Godot 4.4–4.7; for other versions, commit `addons/gut` yourself. GUT skips a test script that does not load (a
+parse error) and passes; the kit fails the `gut` runner with a case named after that file.
 
 ### Keep tests out of release builds
 

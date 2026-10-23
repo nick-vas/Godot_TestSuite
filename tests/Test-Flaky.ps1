@@ -4,7 +4,8 @@
 # history, and status counts it; a test that fails every attempt still fails. A quarantined test still runs, is listed in
 # quarantined[] and does not fail the run, but never excuses another test, a crash or a runner that found nothing; once
 # its date has passed it counts again and doctor fails. The first part is synthetic (no Godot); the second runs the kit on
-# tests/flaky-fixture (GUT) and needs Godot (GODOT_BIN, or the kit installs it); -NoGodot runs only the first part.
+# tests/flaky-fixture (GUT) and needs Godot (GODOT_BIN, or the kit installs it); -NoGodot runs only the first part. The
+# synthetic part also checks that a GUT test script GUT skipped because it does not load fails the gut runner.
 param([switch]$NoGodot)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -37,6 +38,8 @@ Assert-True ((Format-Names $flaky) -eq '(runner)' -and $flaky[0].Message -match 
 $flaky = @(Get-FlakyTests @((New-Run 'gut' @('a')), (New-Run 'gut' @('a')), (New-Run 'gut' @())))
 Assert-True ((Format-Names $flaky) -eq 'a' -and $flaky[0].FailedAttempt -eq 1) "a test that failed twice, then passed, is listed once ($(Format-Names $flaky))"
 Assert-True (@(Get-FlakyTests @((New-Run 'gut' @('a')))).Count -eq 0) 'a single attempt has no flaky tests'
+$flaky = @(Get-FlakyTests @((New-Run 'gut' @('a')), (New-Run 'gut' @() 124 0)))
+Assert-True ($flaky.Count -eq 0) "a last attempt that crashed or timed out before any test ran says nothing about a: not flaky ($(Format-Names $flaky))"
 
 # --- Quarantine: only the named test of that runner, only while it lasts, never a crash -----------------------------
 $run = Set-RunQuarantine (New-Run 'gut' @('a', 'b')) @((New-Entry 'gut' 'a' '2099-01-01'))
@@ -94,6 +97,26 @@ $history = @(
 $offenders = Get-FlakyOffenders $history 30 $now
 $list = @($offenders.tests | ForEach-Object { "$($_.name)x$($_.count)" }) -join ','
 Assert-True ($offenders.testRuns -eq 3 -and $list -eq 'ax2,bx1') "status counts flaky tests over the test runs of the last 30 days, worst first: $list in $($offenders.testRuns) runs"
+
+# --- A GUT test script that does not load fails, named after its file --------------------------------------------------
+# As GUT 9.7.1 on Godot 4.7.2 logged a test script with a parse error: a warning, and the run passed.
+. (Join-Path $root 'ci/godot/lib/Runners.ps1')
+$gutProject = Join-Path ([IO.Path]::GetTempPath()) "gut-load-$PID"
+New-Item -ItemType Directory -Force (Join-Path $gutProject 'test') | Out-Null
+Set-Content -LiteralPath (Join-Path $gutProject 'test/test_broken.gd') -Value "extends GutTest`n`nfunc test_broken():`n`tvar x := `n"
+Set-Content -LiteralPath (Join-Path $gutProject 'test/test_helper.gd') -Value "extends Node`n"
+$gutLog = Join-Path $gutProject 'gut.log'
+Set-Content -LiteralPath $gutLog -Value @(
+    'SCRIPT ERROR: Parse Error: Expected expression for variable initial value after "=".',
+    '          at: GDScript::reload (res://test/test_broken.gd:4)',
+    "`e[33m[GUT WARNING]:  `e[0mIgnoring script res://test/test_broken.gd because it does not extend GutTest",
+    'ERROR: Failed to load script "res://test/test_broken.gd" with error "Parse error".',
+    "`e[33m[GUT WARNING]:  `e[0mIgnoring script res://test/test_helper.gd because it does not extend GutTest",
+    '3/3 passed.')
+$unloaded = @(Get-GutLoadFailures $gutLog $gutProject)
+Assert-True ($unloaded.Count -eq 1 -and $unloaded[0].Name -eq 'res://test/test_broken.gd' -and $unloaded[0].Failure -match 'Parse Error: .*test_broken\.gd:4') `
+    "a GutTest script that does not load fails with its parse error; a helper that is not a test does not ($(@($unloaded | ForEach-Object { $_.Name }) -join ', '))"
+Remove-Item -LiteralPath $gutProject -Recurse -Force
 
 if ($NoGodot) {
     if ($failures.Count -gt 0) { Write-Host "$($failures.Count) check(s) failed" -ForegroundColor Red; exit 1 }
