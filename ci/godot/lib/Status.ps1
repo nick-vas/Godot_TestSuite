@@ -114,6 +114,23 @@ function Get-LastRuns([string]$ProjectDir) {
     return $last
 }
 
+# The newest test run that ran every runner of the project without -Filter: a passing run of one runner or of a few
+# tests says nothing about features tagged elsewhere. A run that stopped before its runners (no scope) counts, as a failure.
+function Get-LastFullTestRun([object[]]$History, [string[]]$Runners) {
+    $last = $null
+    foreach ($entry in $History) {
+        if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test') { continue }
+        $scope = $entry.PSObject.Properties['scope'] ? $entry.scope : $null
+        if ($scope) {
+            if ($scope.PSObject.Properties['filter'] -and $scope.filter) { continue }
+            $ran = @($scope.PSObject.Properties['runners'] ? $scope.runners : @())
+            if (@($Runners | Where-Object { $_ -notin $ran }).Count -gt 0) { continue }
+        }
+        $last = $entry
+    }
+    return $last
+}
+
 # History times are UTC ISO strings, which ConvertFrom-Json turns into dates; print them back the same way.
 function Format-RunTime($Time) { ([datetime]$Time).ToUniversalTime().ToString('yyyy-MM-dd HH:mm') + ' UTC' }
 
@@ -178,6 +195,8 @@ function Invoke-Status($Info) {
     $tags = Find-FeatureTags $Info
     $runs = Get-LastRuns $Info.ProjectDir
     $lastTest = $runs.Contains('test') ? $runs['test'] : $null
+    $history = @(Read-RunHistory $Info.ProjectDir)
+    $lastFullTest = Get-LastFullTestRun $history @($Info.Runners)
 
     $plan = $null; $tasks = @(); $planDoc = $null
     $planPath = Get-PlanPath $Info
@@ -205,7 +224,7 @@ function Invoke-Status($Info) {
         $features = @(foreach ($f in $gdd.features) {
             $tagged = $tags.Contains($f.id) ? @($tags[$f.id]) : @()
             $linked = @($tasks | Where-Object { $_.feature -eq $f.id })
-            $passing = $tagged.Count -gt 0 -and $lastTest -and $lastTest.ok
+            $passing = $tagged.Count -gt 0 -and $lastFullTest -and $lastFullTest.ok
             if ($plan -and $linked.Count -eq 0 -and $f.priority -ne "won't" -and -not $passing) { $warnings.Add("$($f.id) $($f.title) has no plan task") }
             if ($f.priority -eq 'must' -and $tagged.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) is a must but no test is tagged GDD:$($f.id)") }
             if ($f.priority -in 'must', 'should' -and $f.fun.Count -eq 0) { $warnings.Add("$($f.id) $($f.title) does not say which kind of fun it serves (a ""Fun:"" line)") }
@@ -224,7 +243,6 @@ function Invoke-Status($Info) {
     if (-not $lastTest) { $warnings.Add('No test run is recorded yet; run test -Json -Quiet') }
 
     # Tests that passed only on a retry (test -Retry), most often first: each may hide a real bug in the test or the game.
-    $history = @(Read-RunHistory $Info.ProjectDir)
     $flaky = Get-FlakyOffenders $history
     foreach ($f in $flaky.tests | Where-Object { $_.count -ge 2 }) {
         $warnings.Add("$($f.runner) $($f.name) passed only on a retry in $($f.count) of the last $($flaky.testRuns) test runs ($($flaky.days) days): find the cause (timing, state left by another test, the network)")
