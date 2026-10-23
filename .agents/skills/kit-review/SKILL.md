@@ -12,7 +12,8 @@ The goal is a smaller, sharper kit: propose cuts as readily as additions. At mos
 
 - **Usage by skill, subagent and plugin**: ask the user to run `/usage` and paste the attribution section; you cannot read it.
 - **Friction**: the newest `/insights` report, `~/.claude/usage-data/report.html`, if the user has run `/insights` this month.
-- **Evals**: the newest folder in the kit's `evals/results/`; if older than a month, run `claude plugin eval . --runs 3`
+- **Evals**: the newest folder in the kit's `evals/results/`; if older than a month, run
+  `claude plugin eval . --runs 3 --scaffold --trust-plugin --allow-tools Bash Edit Write --no-publish`
   from the kit folder and use that.
 - **Size**: `pwsh <kit>/ci/godot/tools/Test-Skills.ps1 -Json` (findings) and the byte size of each `SKILL.md` and of
   `ci/godot/templates/AGENTS.md`.
