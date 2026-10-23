@@ -1,0 +1,32 @@
+keys,en
+MENU_TITLE,Frostmote
+MENU_START,Play
+MENU_SETTINGS,Settings
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+SELECT_TITLE,Choose a level
+SELECT_LEVEL,Level %d
+SELECT_BEST,Best: %d
+SELECT_BACK,Back
+HUD_LEVEL,Level %d
+HUD_MOVES,Moves: %d / par %d
+HUD_STUCK,No way to the exit from here: undo or restart
+HUD_UNDO,Undo
+HUD_RESTART,Restart
+HUD_PAUSE,Pause
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+SOLVED_TITLE,Solved!
+SOLVED_MOVES,%d moves (par %d)
+SOLVED_NEXT,Next level
+SOLVED_FINISH,Finish
+SOLVED_MENU,Back to menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English
+VICTORY_TITLE,Every drift is clear
+VICTORY_MESSAGE,Every level is solved: %d moves in all.
+VICTORY_MENU,Back to menu
