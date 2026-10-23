@@ -238,7 +238,8 @@ frame), `gpuMs` (`avg`, `max`: GPU time per frame; 0 when nothing is drawn), `te
 `driver`, `vsync`, `maxFps`, `resolution`, `label`, `budgetMs`. The same object is written to `bench-results/bench.json`, and a
 row is appended to `bench-results/bench.csv`.
 
-**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG), `width`, `height`, `locale` (`null` for the project's own,
+**shot**: `shots[]` with `scene`, `file` (absolute path of the PNG, `<name>.png` after the scene, or after its path, `a_main.png`,
+when two scenes share a name), `width`, `height`, `locale` (`null` for the project's own,
 else the `-Locale` entry or `pseudo`) and `text[]`: `node` (path from the scene root), `problem` (`cut off`, `off screen`,
 `missing glyphs`) and `detail`. With a fixed aspect ratio (`keep`), the
 picture is the game area without the black bars, so it can be smaller than `-Resolution`. With `-Baseline <folder>`, each shot
