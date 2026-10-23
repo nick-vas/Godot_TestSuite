@@ -170,7 +170,7 @@ function Invoke-ClaudeProcess([string]$Program, [string[]]$Arguments, [string]$P
     $info = [System.Diagnostics.ProcessStartInfo]::new()
     $isolated = $AsSession -and $script:Isolation
     if ($isolated) {
-        $start = Get-SessionStart $Arguments
+        $start = Get-SessionStart $Arguments $Directory
         $info.FileName = (Get-Command $start.FileName -CommandType Application)[0].Source
         foreach ($a in $start.Arguments) { $info.ArgumentList.Add($a) }
         $info.Environment.Clear()
@@ -186,7 +186,8 @@ function Invoke-ClaudeProcess([string]$Program, [string[]]$Arguments, [string]$P
         $info.FileName = $found[0].Source
     }
     foreach ($a in $Arguments) { $info.ArgumentList.Add($a) }
-    $info.WorkingDirectory = $Directory
+    # An isolated session enters its folder as its own user (Get-SessionStart); the launcher starts from the root.
+    $info.WorkingDirectory = if ($isolated) { '/' } else { $Directory }
     $info.UseShellExecute = $false
     $info.RedirectStandardInput = $true
     $info.RedirectStandardOutput = $true

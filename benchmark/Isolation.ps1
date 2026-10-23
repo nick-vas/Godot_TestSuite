@@ -153,15 +153,16 @@ function Get-SessionEnvironment {
     return $environment
 }
 
-# The program, arguments and environment that start the CLI as the session user.
-function Get-SessionStart([string[]]$Arguments) {
+# The program, arguments and environment that start the CLI as the session user, in $Directory. The session user
+# enters the game folder itself (env --chdir): only it may, so a runner that is not root could not start a process there.
+function Get-SessionStart([string[]]$Arguments, [string]$Directory) {
     $iso = $script:Isolation
     $environment = Get-SessionEnvironment
     $path = @(if ($iso.GodotBin) { Split-Path $iso.GodotBin }) + @(if ($iso.DotnetRoot) { $iso.DotnetRoot }) + @($env:PATH -split ':' | Where-Object { $_ }) -join ':'
     $set = @("PATH=$path", "HOME=$($iso.Home)", "USER=$($iso.User)", "LOGNAME=$($iso.User)", "TMPDIR=$(Join-Path $iso.Home 'tmp')")
     if ($iso.GodotBin) { $set += "GODOT_BIN=$($iso.GodotBin)" }
     if ($iso.DotnetRoot) { $set += "DOTNET_ROOT=$($iso.DotnetRoot)" }
-    $command = @('/usr/bin/env') + $set + @($iso.Program) + @($Arguments)
+    $command = @('/usr/bin/env', "--chdir=$Directory") + $set + @($iso.Program) + @($Arguments)
     if ($iso.Launcher -eq 'runuser') {
         $all = @($iso.Elevate) + @('runuser', '-u', $iso.User, '--') + $command
     } else {
