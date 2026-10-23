@@ -1,0 +1,204 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs",
+    "playthrough.json",
+    "juice.json",
+    "game/Bot.cs",
+    "test/flows/settings.flow.json",
+    "textsize.json",
+    "layout.json",
+    "levels/level_4.tscn",
+    "levels/level_5.tscn"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.5.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\")"
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// reached), best (score), settings (volume, locale). Version 2 is current; version 1 kept the furthest level as level\n/// and had no best or settings, and players still have such files.\n",
+      "replace": "/// reached), best (score), settings (volume, locale).\n"
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "        int version = raw[\"version\"]?.GetValue<int>() ?? 1;\n        if (version == 1)\n        {\n            data.Unlocked = Math.Max(1, raw[\"level\"]?.GetValue<int>() ?? 1);\n            return data;\n        }\n",
+      "replace": ""
+    },
+    {
+      "file": "scripts/SaveStore.cs",
+      "find": "/// <summary>Any version's data as the current version.</summary>",
+      "replace": "/// <summary>The saved data, with defaults for anything missing.</summary>"
+    },
+    {
+      "file": "test/SaveStoreTest.cs",
+      "find": "    [TestCase]\n    public void A_version_1_save_keeps_its_level()\n    {\n        File.WriteAllText(_path, \"\"\"{\"version\": 1, \"level\": 3}\"\"\");\n        AssertThat(new SaveStore(_path).Read().Unlocked).IsEqual(3);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "    private Bot? _bot;\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "        if (Options.Autoplay)\n            _bot = new Bot();\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "        _bot?.Setup(Current.PlatformBoxes());\n",
+      "replace": ""
+    },
+    {
+      "file": "game/Game.cs",
+      "find": "        float direction;\n        bool pressed;\n        bool held;\n        if (_bot != null)\n        {\n            (direction, pressed, held) = _bot.Decide(Player.Position, Player.Movement.OnFloor, Player.Movement.Velocity.Y > 0f, Current.Beetles.GetChildren());\n        }\n        else\n        {\n            direction = Input.GetAxis(MoveLeft, MoveRight);\n            pressed = Input.IsActionJustPressed(JumpAction);\n            held = Input.IsActionPressed(JumpAction);\n        }\n        Player.Advance(direction, pressed, held, delta);\n",
+      "replace": "        Player.Advance(Input.GetAxis(MoveLeft, MoveRight), Input.IsActionJustPressed(JumpAction), Input.IsActionPressed(JumpAction), delta);\n"
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "/// The title menu, and the holder of whatever screen is showing: the game, settings, credits, game over or victory.",
+      "replace": "/// The title menu, and the holder of whatever screen is showing: the game, settings, game over or victory."
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private PackedScene _creditsScene = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private Button _credits = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _creditsScene = GD.Load<PackedScene>(\"res://ui/credits.tscn\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits = GetNode<Button>(\"Menu/CreditsButton\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits.Pressed += ShowCredits;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits.Text = Tr(\"MENU_CREDITS\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    public void ShowCredits()\n    {\n        var credits = _creditsScene.Instantiate<Credits>();\n        credits.Name = \"Credits\";\n        credits.Closed += ShowMenu;\n        ShowScreen(credits);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "add-content",
+      "vars": {
+        "content": "level 4, Runner Bridge, between level 3 and the end of the game: a level scene levels/level_4.tscn listed as level 4 in data/levels.json, with at least six tufts of glowmoss, a checkpoint, the beacon at its end and two beetles of a new kind, the runner (speed 3.5, 80 points), added to data/beetles.json"
+      },
+      "hidden": [
+        "hidden/HiddenLevel4Test.cs",
+        {
+          "from": "hidden/level4.flow.json",
+          "to": "test/flows/level4.flow.json"
+        }
+      ],
+      "reference": "solutions/alpha/add-content"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the climber is often near or below the bottom edge of the screen, and at the start of The Climb (level 3) it cannot be seen at all"
+      },
+      "edits": [
+        {
+          "file": "game/CameraRig.cs",
+          "find": "return new Vector2(Size * view.X / Mathf.Max(view.Y, 1f) / 2f, Size / 2f);",
+          "replace": "return new Vector2(Size / 2f, Size * view.X / Mathf.Max(view.Y, 1f) / 2f);"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenCameraTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-bug",
+      "decoy": "solutions/alpha/fix-bug-decoy"
+    },
+    {
+      "template": "migrate-save",
+      "vars": {
+        "report": "Continue is gone from the menu and they must start again from level 1. The previous version saved user://save.json as {\"version\": 1, \"level\": <the furthest level reached>}, with no best score or settings"
+      },
+      "hidden": [
+        "hidden/HiddenSaveMigrationTest.cs"
+      ],
+      "reference": "solutions/alpha/migrate-save"
+    },
+    {
+      "template": "fix-architecture",
+      "vars": {
+        "problem": "the architecture runner fails with errors in level/Beetle.cs (parent-path, per-frame-lookup)"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        tuft.QueueFree();\n        UpdateHud();\n",
+          "replace": "        tuft.QueueFree();\n"
+        },
+        {
+          "file": "level/Beetle.cs",
+          "find": "    public override void _PhysicsProcess(double delta)\n    {\n",
+          "replace": "    public override void _PhysicsProcess(double delta)\n    {\n        GetNode<Label>(\"../../../HUD/MossLabel\").Text = TextFormat.Fill(Tr(\"HUD_MOSS\"), GetNode<Game>(\"../../..\").Rules.Moss);\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenMossLabelTest.cs"
+      ],
+      "reference": "solutions/alpha/fix-architecture"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "a title menu as the main scene res://main.tscn (root Main) with Menu/StartButton, Menu/SettingsButton and Menu/QuitButton, where Start adds the game scene res://game/game.tscn as a child of Main named Game and hides Menu; pause: the button HUD/PauseButton of the game (or Escape) shows its PauseMenu node (a CanvasLayer with ResumeButton and QuitButton) and pauses the tree, ResumeButton hides it and resumes; levels 2 and 3 after level 1, each a scene in levels/ (a Level with Start, Platforms, Moss, Beetles, Checkpoints and Beacon), listed in order by a Levels class (scripts/Levels.cs: static Levels FromFiles(), int Count, LevelRow? Level(int number) with LevelRow(string Id, int Number, string Scene, string Name), BeetleRow? Beetle(string id)) from data/levels.json and data/beetles.json; a data.json for the kit's data runner; and a save of the furthest level reached by a SaveStore class (scripts/SaveStore.cs: new SaveStore(string path), SaveData Read() and bool Write(SaveData data), SaveData with an int property Unlocked) in user://save.json"
+    },
+    "hidden": [
+      {
+        "from": "game/test/flows/start.flow.json",
+        "to": "test/flows/start.flow.json"
+      },
+      {
+        "from": "game/test/flows/pause.flow.json",
+        "to": "test/flows/pause.flow.json"
+      },
+      "hidden/HiddenThreeLevelsTest.cs",
+      {
+        "from": "game/data.json",
+        "to": "data.json"
+      }
+    ],
+    "reference": "solutions/milestone-alpha"
+  }
+}

@@ -1,0 +1,29 @@
+keys,en
+MENU_TITLE,Glowmoss Ridge
+MENU_START,Play
+MENU_CONTINUE,Continue from level %d
+MENU_SETTINGS,Settings
+MENU_QUIT,Quit
+MENU_VERSION,Version %s
+HUD_LEVEL,Level %d: %s
+HUD_MOSS,Glowmoss: %d
+HUD_HEARTS,Hearts: %d
+HUD_PAUSE,Pause
+LEVEL_1,Mossy Steps
+LEVEL_2,Thorn Hollow
+LEVEL_3,The Climb
+PAUSE_TITLE,Paused
+PAUSE_RESUME,Resume
+PAUSE_QUIT,Quit to menu
+SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_LANGUAGE,Language
+SETTINGS_BACK,Back
+LANG_EN,English
+GAMEOVER_TITLE,Out of hearts
+GAMEOVER_SCORE,Score: %d
+GAMEOVER_BEST,Best: %d
+GAMEOVER_MENU,Back to menu
+VICTORY_TITLE,The ridge is lit
+VICTORY_MESSAGE,All five beacons burn. Final score: %d
+VICTORY_MENU,Back to menu

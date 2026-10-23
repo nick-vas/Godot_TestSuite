@@ -1,0 +1,219 @@
+{
+  "remove": [
+    "store",
+    "export_presets.cfg",
+    "CREDITS.md",
+    "THIRD-PARTY-NOTICES.txt",
+    "credits.json",
+    "CHANGELOG.md",
+    "ui/credits.tscn",
+    "ui/Credits.cs"
+  ],
+  "edits": [
+    {
+      "file": "project.godot",
+      "find": "config/version=\"1.0.0\"",
+      "replace": "config/version=\"0.9.0\""
+    },
+    {
+      "file": "project.godot",
+      "find": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\", \"res://i18n/strings.de.translation\")",
+      "replace": "locale/translations=PackedStringArray(\"res://i18n/strings.en.translation\", \"res://i18n/strings.fr.translation\")"
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "/// The title menu, and the holder of whatever screen is showing: the game, settings, credits, game over or victory.",
+      "replace": "/// The title menu, and the holder of whatever screen is showing: the game, settings, game over or victory."
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private PackedScene _creditsScene = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    private Button _credits = null!;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _creditsScene = GD.Load<PackedScene>(\"res://ui/credits.tscn\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits = GetNode<Button>(\"Menu/CreditsButton\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits.Pressed += ShowCredits;\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "        _credits.Text = Tr(\"MENU_CREDITS\");\n",
+      "replace": ""
+    },
+    {
+      "file": "ui/Main.cs",
+      "find": "    public void ShowCredits()\n    {\n        var credits = _creditsScene.Instantiate<Credits>();\n        credits.Name = \"Credits\";\n        credits.Closed += ShowMenu;\n        ShowScreen(credits);\n    }\n\n",
+      "replace": ""
+    },
+    {
+      "file": "main.tscn",
+      "find": "[node name=\"CreditsButton\" type=\"Button\" parent=\"Menu\"]\ncustom_minimum_size = Vector2(0, 88)\ntheme_override_font_sizes/font_size = 28\ntext = \"Credits\"\n\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-playthrough",
+      "vars": {
+        "report": "the physics now runs at 120 ticks a second, for smoother movement on fast screens, and since then the bot that plays it through (playthrough.json) falls short of ledges it used to reach. Keep the 120 ticks"
+      },
+      "edits": [
+        {
+          "file": "project.godot",
+          "find": "common/physics_ticks_per_second=60",
+          "replace": "common/physics_ticks_per_second=120"
+        },
+        {
+          "file": "scripts/Movement.cs",
+          "find": "    public const float MaxFallSpeed = 18f;\n",
+          "replace": "    public const float MaxFallSpeed = 18f;\n    /// <summary>One physics tick, worked out once rather than every tick.</summary>\n    public const float Tick = 1f / 60f;\n"
+        },
+        {
+          "file": "scripts/Movement.cs",
+          "find": "_velocity.Y - Gravity * delta",
+          "replace": "_velocity.Y - Gravity * Tick"
+        }
+      ],
+      "match": [
+        {
+          "file": "project.godot",
+          "pattern": "(?m)^common/physics_ticks_per_second=120\\s*$"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenTickRateTest.cs"
+      ],
+      "reference": "solutions/beta/fix-playthrough",
+      "decoy": "solutions/beta/fix-playthrough-decoy"
+    },
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "one tuft of glowmoss in Beacon Crest, the last level, hangs too high to reach, so nobody can gather all of it"
+      },
+      "edits": [
+        {
+          "file": "levels/level_5.tscn",
+          "find": "position = Vector3(41, 5.6, 0)",
+          "replace": "position = Vector3(41, 7.6, 0)"
+        }
+      ],
+      "unchanged": [
+        "scripts/Movement.cs",
+        "placement.json"
+      ],
+      "hidden": [
+        "hidden/HiddenMossReachTest.cs"
+      ],
+      "reference": "solutions/beta/fix-bug",
+      "decoy": "solutions/beta/fix-bug-decoy"
+    },
+    {
+      "template": "add-feedback",
+      "vars": {
+        "report": "gathering glowmoss feels flat"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "        Event(\"moss_collected\");\n        Play(_sfxMoss);\n",
+          "replace": "        Event(\"moss_collected\");\n"
+        }
+      ],
+      "reference": "solutions/beta/add-feedback"
+    },
+    {
+      "template": "fill-translations",
+      "vars": {
+        "locale": "French",
+        "report": "the pause menu in English"
+      },
+      "edits": [
+        {
+          "file": "i18n/strings.csv",
+          "find": "PAUSE_TITLE,Paused,En pause\n",
+          "replace": "PAUSE_TITLE,Paused,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "PAUSE_RESUME,Resume,Reprendre\n",
+          "replace": "PAUSE_RESUME,Resume,\n"
+        },
+        {
+          "file": "i18n/strings.csv",
+          "find": "PAUSE_QUIT,Quit to menu,Retour au menu\n",
+          "replace": "PAUSE_QUIT,Quit to menu,\n"
+        }
+      ],
+      "unchanged": [
+        "game/PauseMenu.cs",
+        "game/game.tscn"
+      ],
+      "reference": "solutions/beta/fill-translations",
+      "decoy": "solutions/beta/fill-translations-decoy"
+    },
+    {
+      "template": "fix-performance",
+      "vars": {
+        "situation": "the climber has been running for a while"
+      },
+      "edits": [
+        {
+          "file": "game/Game.cs",
+          "find": "            if (puff.Age >= DustLife)\n            {\n                Effects.RemoveChild(puff);\n                puff.QueueFree();\n            }\n",
+          "replace": "            puff.Visible = puff.Age < DustLife;\n"
+        }
+      ],
+      "hidden": [
+        "hidden/HiddenDustTest.cs"
+      ],
+      "reference": "solutions/beta/fix-performance"
+    },
+    {
+      "template": "fix-flow",
+      "vars": {
+        "report": "the Quit to menu button of the pause menu does nothing, so players have to close the game to leave a level"
+      },
+      "edits": [
+        {
+          "file": "game/PauseMenu.cs",
+          "find": "        _quit.Pressed += OnQuit;\n",
+          "replace": ""
+        }
+      ],
+      "reference": "solutions/beta/fix-flow"
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "levels 4 and 5 (Runner Bridge with a new runner beetle, and Beacon Crest) listed in data/levels.json; a bot: with --autoplay (after --) it plays from the main scene and finishes all five levels, every random choice from one generator seeded by --seed=N, nothing saved with --no-save, --level=N starts at level N, and it prints [Run] level N done after each level, then [Run] victory or [Run] game over, and quits; juice: print [juice] event moss_collected <ms>, [juice] event beetle_stomped <ms> and [juice] event player_hurt <ms> in game time (ms), answered within 100 ms by [juice] feedback <kind> <ms> lines for what the player sees and hears: pop and sfx for glowmoss, shake and sfx for a stomp, flash, shake and sfx for a hurt; and French: every visible text through tr() with an fr column in the translation table, menus included"
+    },
+    "hidden": [
+      {
+        "from": "game/playthrough.json",
+        "to": "playthrough.json"
+      },
+      {
+        "from": "game/juice.json",
+        "to": "juice.json"
+      },
+      "hidden/HiddenFrenchTest.cs"
+    ],
+    "reference": "solutions/milestone-beta"
+  }
+}

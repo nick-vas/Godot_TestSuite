@@ -1,0 +1,5 @@
+[
+  { "id": "mossy_steps", "number": 1, "scene": "res://levels/level_1.tscn", "name": "LEVEL_1" },
+  { "id": "thorn_hollow", "number": 2, "scene": "res://levels/level_2.tscn", "name": "LEVEL_2" },
+  { "id": "the_climb", "number": 3, "scene": "res://levels/level_3.tscn", "name": "LEVEL_3" }
+]
