@@ -291,7 +291,8 @@ the pictures). Each `levels[]` entry: `level`, `sessions` (sessions with any eve
 `medianPerSession`, `maxPerSession`), `stuck` (`total`, `sessions` with one, `medianPerSession`, `medianSeconds`,
 `maxSeconds`), `revisits`, `solvedButStayed` (`total`, `medianSeconds`), `hints`, `items[]` (`item`, `sessions` that found it,
 `share` of the level's sessions). Per-session medians count sessions with none as 0; a median of nothing is `null`. Each
-`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`),
+`heatmaps[]` entry is one level and event type with positions: `level`, `event`, `file` (`<Results>/heatmaps/<level>.<event>.png`,
+`-2`, `-3` after the level when an earlier level id makes the same file name, case aside),
 `width`, `height`, `background` (the screenshot, or `null`), `plane` (`xy` or `xz`), `cell`, `origin` (the grid's corner), `cols`,
 `rows`, `count`, `outside` (events outside `bounds`, not drawn), `maxCount` and `hotCells[]` (up to 5, most events first, then
 by row and column: `col`, `row`, `count`, `from` and `to`, the cell's corners in the plane's coordinates). Only reports: no

@@ -203,6 +203,9 @@ function Invoke-Playtest {
     $mapsDir = Join-Path $ResultsDir 'heatmaps'
     if (Test-Path -LiteralPath $mapsDir) { Remove-Item -LiteralPath $mapsDir -Recurse -Force }
     New-Item -ItemType Directory -Force $mapsDir | Out-Null
+    # File names taken so far, ignoring case as Windows and macOS do: level ids that differ only in case (Cave, cave) or
+    # that make the same safe name (a b, a-b) would otherwise overwrite each other's maps.
+    $mapStems = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     $order = @(@($known | Where-Object { $levels.ContainsKey($_) }) + @(Get-OrdinalSorted @($levels.Keys | Where-Object { $_ -cnotin $known })))
     $levelResults = [System.Collections.Generic.List[object]]::new()
     $maps = [System.Collections.Generic.List[object]]::new()
@@ -270,6 +273,10 @@ function Invoke-Playtest {
             $scale = [int][Math]::Max(1, [Math]::Min(16, [Math]::Floor(1024 / [Math]::Max($cols, $rows))))
             $width = $cols * $scale; $height = $rows * $scale
         }
+        $stem = ConvertTo-SafeName $id
+        if (-not $stem) { $stem = 'level' }
+        $baseStem = $stem
+        for ($n = 2; -not $mapStems.Add($stem); $n++) { $stem = "$baseStem-$n" }
         foreach ($name in $script:PlaytestPlaced) {
             if (-not $l.Points.Contains($name)) { continue }
             $counts = [int[]]::new($cols * $rows)
@@ -284,7 +291,7 @@ function Invoke-Playtest {
             # A screenshot shows exactly the bounds; without one the picture shows the whole grid, a square per cell.
             $view = if ($lc.Image) { $lc.Bounds } else { @($u0, $v0, ($u0 + $cols * $size), ($v0 + $rows * $size)) }
             $rgba = [GodotCi.Heatmap]::Render($counts, $cols, $rows, $u0, $v0, $size, $view[0], $view[1], $view[2], $view[3], $width, $height, $background, 0.65)
-            $file = Join-Path $mapsDir "$(ConvertTo-SafeName $id).$name.png"
+            $file = Join-Path $mapsDir "$stem.$name.png"
             [System.IO.File]::WriteAllBytes($file, [GodotCi.Png]::Encode($rgba, $width, $height))
             $maps.Add([ordered]@{
                 level = $id; event = $name; file = $file; width = $width; height = $height; background = $lc.Image

@@ -1,9 +1,10 @@
 #!/usr/bin/env pwsh
 # Self-test of `playtest`: reads tests/playtest-fixture's synthetic sessions (one session split over a .json and a .jsonl
 # file, a batch sent twice, an event missing a field, another game event, a broken file, a level playtest.json does not
-# list) and checks the counts, medians, hot cells and PNG heat maps, alone and over a level screenshot. The PNGs are read
-# here with .NET's zlib and a CRC of this file's own, not with the kit's decoder; the screenshot is written here with all
-# five PNG row filters, as libpng (Godot's screenshots) uses them. No Godot, no network, about ten seconds.
+# list) and checks the counts, medians, hot cells and PNG heat maps, alone, over a level screenshot and for level ids that
+# differ only in case. The PNGs are read here with .NET's zlib and a CRC of this file's own, not with the kit's decoder;
+# the screenshot is written here with all five PNG row filters, as libpng (Godot's screenshots) uses them. No Godot, no
+# network, about ten seconds.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -208,6 +209,21 @@ try {
     $coarse = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'coarse'), '-HotspotCell', '128')
     $m = $coarse.playtest.heatmaps | Where-Object { $_.level -eq 'hub' -and $_.event -eq 'stuck' }
     Assert-Equal "$($m.cell) $($m.cols)x$($m.rows) $($m.hotCells[0].col),$($m.hotCells[0].row)x$($m.hotCells[0].count)" '128 2x2 0,0x2' '-HotspotCell 128'
+
+    # 4b. Level ids that differ only in case get a map each: on Windows and macOS one file would overwrite the other.
+    $cased = Join-Path $work 'cased'
+    New-Item -ItemType Directory -Force (Join-Path $cased 'playtests/sessions') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $fixture 'project.godot') -Destination $cased
+    $seq = 0
+    $deaths = @(foreach ($level in 'Cave', 'cave', 'cave-2') {
+        $seq++
+        [ordered]@{ event = 'death'; v = 1; seq = $seq; t = '2026-10-21T09:00:00.0000000Z'; fields = [ordered]@{ level = $level; x = 10; y = 10; z = 0; level_seconds = 5; checkpoint = 0 } }
+    })
+    [ordered]@{ schema = 1; session = 'c1'; build = '1'; events = $deaths } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $cased 'playtests/sessions/c1.json')
+    $twins = Invoke-PlaytestCommand $cased @('-Results', (Join-Path $work 'cased-results'))
+    $names = @($twins.playtest.heatmaps | ForEach-Object { "$($_.level)=$(Split-Path $_.file -Leaf)" }) -join ', '
+    Assert-Equal $names 'Cave=Cave.death.png, cave=cave-2.death.png, cave-2=cave-2-2.death.png' 'level ids that differ in case get their own heat maps'
+    Assert-Equal "$(@(Get-ChildItem -LiteralPath (Join-Path $work 'cased-results/heatmaps') -Filter '*.png').Count)" '3' 'three heat map files'
 
     # 5. Errors.
     $none = Invoke-PlaytestCommand $fixture @('-Results', (Join-Path $work 'none'), '-Sessions', (Join-Path $work 'no-such-folder'))
