@@ -237,7 +237,7 @@ function Assert-PlanColumn([string]$Column) {
 # in the URL, so they cannot end up in a log. TRELLO_API_URL overrides the base (for tests).
 function Invoke-Trello([string]$Method, [string]$Resource, [hashtable]$Body) {
     if (-not $env:TRELLO_KEY -or -not $env:TRELLO_TOKEN) {
-        Stop-GodotCi 'Set TRELLO_KEY and TRELLO_TOKEN (https://trello.com/app-key) to sync with Trello' 'trello-credentials'
+        Stop-GodotCi 'Set TRELLO_KEY and TRELLO_TOKEN (the API key and a token from https://trello.com/power-ups/admin) to sync with Trello' 'trello-credentials'
     }
     $base = $env:TRELLO_API_URL ? $env:TRELLO_API_URL : 'https://api.trello.com/1'
     $headers = @{ Authorization = "OAuth oauth_consumer_key=""$env:TRELLO_KEY"", oauth_token=""$env:TRELLO_TOKEN""" }

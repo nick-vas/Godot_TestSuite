@@ -79,9 +79,12 @@ Columns map onto the Work Loop board: `backlog` Backlog, `design` Design, `todo`
 - a card that is gone (archived or deleted) is reported and left alone;
 - it never imports cards you created on the board, and never deletes anything.
 
-Set `TRELLO_KEY` and `TRELLO_TOKEN` (from https://trello.com/app-key) in the environment. They are sent in a request header, never in a URL,
+Set `TRELLO_KEY` and `TRELLO_TOKEN` in the environment: on https://trello.com/power-ups/admin, make a Power-Up (any
+name), open its API key page and copy the key (32 hex characters), then use the Token link beside it. They are sent in a request header, never in a URL,
 and never written to a file. Lists are matched by name prefix, so `Done 🎉` matches `done`; override per column under `trello.lists` in plan.json.
-The API call paths were exercised against a local mock of the Trello API, not against a live board.
+`tests/Test-TrelloSync.ps1` runs these steps against a stand-in Trello on every change, and with `-Live` against the
+real API on a private board it creates and deletes (the Trello sync workflow, with the `TRELLO_KEY` and `TRELLO_TOKEN`
+repository secrets).
 
 ## Release dates
 

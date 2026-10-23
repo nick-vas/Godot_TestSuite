@@ -39,7 +39,7 @@ Notes from the question round, each to be fixed, built or written down before 1.
 |---|---|---|
 | 1 | The Stop hook is easy to read as a design check; it only checks that tests passed after the last edit | Say so plainly where the hook is described |
 | 2 | The README says eighteen skills; there are 55 | Done in the skills cleanup: the README names no count; 50 skills after five merges |
-| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental in 1.0 in `game`, `godot-game-plan`, `weekly-review`, `docs/plan.md` and the README; a real-board test is still to do |
+| 3 | Trello sync has only met a mock, and uses API keys, not the Trello connector | Marked experimental in 1.0 in `game`, `godot-game-plan`, `weekly-review`, `docs/plan.md` and the README; `tests/Test-TrelloSync.ps1` covers the sync against a stand-in, and `-Live` (the Trello sync workflow) against a real board once the repository has the two secrets |
 | 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 5 | `lost-in-level`: two of three answers left out testing with the minimap and markers off | Done: `godot-game-design` section 7 states it as the check |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |

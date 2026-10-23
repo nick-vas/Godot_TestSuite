@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `tests/Test-TrelloSync.ps1` tests `plan -Do sync`: cards created in the right lists (a prefix match on "Done" plus an
+  emoji), a second sync that changes nothing, a card moved on the board, an archived card, a short link as `-Board`, a
+  missing list, missing and rejected credentials, and no token in the output or a URL. It runs against a stand-in Trello
+  in the self-test, and with `-Live` against the real API (the manual Trello sync workflow, with the `TRELLO_KEY` and
+  `TRELLO_TOKEN` repository secrets). The credentials message and `docs/plan.md` point to trello.com/power-ups/admin,
+  which replaced the old app-key page.
 - Skills cleanup for 1.0: 55 skills become 50. `godot-test-frameworks` merged into `godot-test-loop`, `godot-ui-layout`
   into `godot-ui-accessibility` (`layout.md`), `godot-steam-deck` into `godot-console-cert`, `godot-credits` into
   `godot-asset-pipeline`, and `godot-architecture` into `godot-patterns`, its other sections going to `godot-procgen`,
