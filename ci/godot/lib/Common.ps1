@@ -247,6 +247,11 @@ function Invoke-Logged {
             if ($writer) { $writer.WriteLine($line) }
             $line | ForEach-Object $show
         }
+        # Both pipes can close while the program runs on (it redirected its output elsewhere): wait only for the time left.
+        if (-not $timedOut -and $timeout -gt 0) {
+            $left = [Math]::Min([int]::MaxValue, [Math]::Max(0, $timeout * 1000 - $clock.ElapsedMilliseconds))
+            if (-not $process.WaitForExit([int]$left)) { $timedOut = $true }
+        }
         if ($timedOut) {
             try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }
             $message = "[hyperdot] $FilePath was still running after $timeout s and was stopped (raise HYPERDOT_TIMEOUT if it needs longer)"
