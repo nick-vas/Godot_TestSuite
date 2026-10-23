@@ -2,7 +2,7 @@
 
 For rhythm-action (actions synced to the music, as in Hi-Fi Rush): the player presses whenever they like, and the game
 makes the action land on the beat. Tested helpers: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Audio/BeatSync.cs`
-(`BeatSync`, `MusicClock`) with `examples/csharp/tests/Example.Core.Tests/BeatSyncTests.cs`. Talk notes:
+(`BeatSync`, `MusicClock`) with `${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/BeatSyncTests.cs`. Talk notes:
 `${CLAUDE_PLUGIN_ROOT}/docs/gdc/hi-fi-rush-rhythm-action.md`.
 
 - **The clock is the song, not the frame count.** Godot's "Sync the gameplay with audio and music" page: the time the

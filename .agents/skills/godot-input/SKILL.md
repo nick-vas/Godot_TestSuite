@@ -8,7 +8,7 @@ description: Use when a Godot game takes keyboard, mouse or controller input, wh
 Gameplay reads actions, never devices; every device works at every moment; the player can rebind everything; prompts
 show the button the player will actually press. The tested implementation is in
 `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/Controls/` (`InputBindings`, `InputDevices`, `PromptGlyphs`, `Haptics`, `LinearMenu`) with its
-in-engine tests in `examples/csharp/game/test/gdunit4/ControlsTest.cs`. Sources: `${CLAUDE_PLUGIN_ROOT}/docs/input.md`.
+in-engine tests in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/test/gdunit4/ControlsTest.cs`. Sources: `${CLAUDE_PLUGIN_ROOT}/docs/input.md`.
 
 ## 1. Actions
 
@@ -103,7 +103,7 @@ Mobility settings (Karen Stevens, EA, GDC 2021; `${CLAUDE_PLUGIN_ROOT}/docs/gdc/
   drifting diagonal reads as straight up, down, left or right), sensitivity per axis that goes both lower and higher than
   the default (Xbox Accessibility Guideline 107: at least 50% each way), and a stick swap for whichever hand hurts today,
   each stick's settings following its role. Rescale past every deadzone: zeroing below it and passing the rest through
-  makes the output jump at the edge. Tested in `examples/csharp/src/Example.Core/Controls/StickSettings.cs`
+  makes the output jump at the edge. Tested in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Controls/StickSettings.cs`
   (`StickSettings.Apply`, `StickLayout`), saved with the bindings (`InputBindings.Sticks`). Feed it
   `Input.GetJoyAxis` values or `Input.GetVector(..., deadzone: 0f)`, or Godot's deadzone runs first and the two stack.
 - One-stick play where the genre allows (no camera stick, or a camera that follows), and few buttons: simple presses
@@ -131,15 +131,15 @@ cheap (no sound to record or load), and blind and deaf players both turn it on:
 - Settings per player: in local play each pad follows its own player's level and strength. Clamp magnitudes to 0..1:
   `StartJoyVibration` ignores the whole call otherwise, silently. Phones: `Input.VibrateHandheld(ms, amplitude)`
   (Android needs the VIBRATE permission).
-- Tested in `examples/csharp/src/Example.Core/Controls/Haptics.cs`, played per pulse by
-  `examples/csharp/game/Controls/Haptics.cs`. `Input.GetJoyVibrationStrength(device)` reads back the last request
+- Tested in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Controls/Haptics.cs`, played per pulse by
+  `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/Controls/Haptics.cs`. `Input.GetJoyVibrationStrength(device)` reads back the last request
   with no pad connected, so tests need no hardware.
 
 ## 8. Forgiveness
 
 Players press late, press early, forget they are holding a button and squeeze the pad in a panic; the rules should
 accept what they meant (Seth Coster on Levelhead, `${CLAUDE_PLUGIN_ROOT}/docs/gdc/forgiveness-mechanics.md`). The rules
-are tested in `examples/csharp/src/Example.Core/Platformer/Forgiveness.cs` and count physics ticks, never seconds.
+are tested in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Platformer/Forgiveness.cs` and count physics ticks, never seconds.
 Levelhead's values are starting points; export them so the user can tune them in play:
 
 | Rule | Levelhead | At 60 Hz |
@@ -157,7 +157,7 @@ Levelhead's values are starting points; export them so the user can tune them in
   larger, square ones. On contact, test the outcome good for the player first (a stomp box larger than the enemy,
   while falling), and harm only after it fails, with a smaller circle (`Contact.Resolve`).
 
-Wiring on a `CharacterBody2D`, tested in `examples/csharp/game/test/gdunit4/ForgivenessWiringTest.cs` (a body
+Wiring on a `CharacterBody2D`, tested in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/game/test/gdunit4/ForgivenessWiringTest.cs` (a body
 dropped onto a floor: a press 5 ticks before landing jumps on the landing tick, once; a press held from 25 ticks
 before landing never jumps):
 

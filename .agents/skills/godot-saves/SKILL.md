@@ -7,7 +7,7 @@ description: Use when a Godot game saves progress, settings or profiles, when a 
 
 A save must survive a crash in the middle of writing, a disk that flips a bit, the next five versions of the game and a
 second device. The working, tested version is `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Saves/SaveStore.cs`
-(plain .NET, no engine) with its tests in `examples/csharp/tests/Example.Core.Tests/SaveStoreTests.cs`; copy it and
+(plain .NET, no engine) with its tests in `${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/SaveStoreTests.cs`; copy it and
 change the schema. Sources and the measurements behind each rule: `${CLAUDE_PLUGIN_ROOT}/docs/saves.md`.
 
 ## 1. Where and with what to write

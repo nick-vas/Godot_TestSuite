@@ -1,6 +1,6 @@
 # Hiding lag in each mechanic: Halo: Reach (godot-multiplayer reference)
 
-Halo: Reach's rules for each mechanic (`docs/gdc/halo-reach-networking.md`):
+Halo: Reach's rules for each mechanic (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/halo-reach-networking.md`):
 
 - **Predict the look, let the host decide the outcome.** A grenade throw animates on the button press; the grenade
   exists only when the host creates it, a round trip after the release frame. Behind the moving arm, players did not

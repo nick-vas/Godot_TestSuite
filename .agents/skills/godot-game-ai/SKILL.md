@@ -8,7 +8,7 @@ description: Use when a Godot game has enemies, companions or opponents that dec
 Pick the simplest decision structure that holds, keep it in plain C# so it is tested without the engine, and wait for
 navigation before trusting a path. Tested implementations: `${CLAUDE_PLUGIN_ROOT}/examples/csharp/src/Example.Core/Ai/`
 (`Utility.cs`, `BehaviorTree.cs`, `Goap.cs`, `Steering.cs`, `Aim.cs`, `Perception.cs`) with
-`examples/csharp/tests/Example.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
+`${CLAUDE_PLUGIN_ROOT}/examples/csharp/tests/Example.Core.Tests/AiTests.cs` and `AimTests.cs`. Sources and measurements:
 `${CLAUDE_PLUGIN_ROOT}/docs/game-ai.md`.
 
 ## 1. Which structure
