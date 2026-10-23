@@ -159,7 +159,7 @@ chat, a speaking icon per player, incoming lines optionally read aloud; in the U
 Logic tests run without Godot over a simulated link (fast, seeded); `soak` runs the real game:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50 -Json -Quiet
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 soak -Clients 8 -Seconds 600 -MaxGrowthMbPerHour 50 -Json -Quiet
 ```
 
 The game takes part through flags and printed lines: it is started with `--soak-role=server|client`, `--soak-port`

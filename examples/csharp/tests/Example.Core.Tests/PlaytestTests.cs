@@ -158,7 +158,7 @@ public sealed class PlaytestTests
     [Fact]
     public void TheKitsTemplateDescribesTheSameEvents()
     {
-        // ci/godot/templates/playtest-events.json is what hypedot.ps1 playtest reads sessions with, and what a game in
+        // ci/godot/templates/playtest-events.json is what hyperdot.ps1 playtest reads sessions with, and what a game in
         // another language copies: it must say exactly what PlaytestEvents does.
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null && !File.Exists(Path.Combine(dir.FullName, "ci", "godot", "templates", "playtest-events.json"))) dir = dir.Parent;

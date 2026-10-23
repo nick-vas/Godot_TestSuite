@@ -1,4 +1,4 @@
-# A minimal networked game for `hypedot.ps1 soak`: one headless server, N headless clients over ENet on localhost.
+# A minimal networked game for `hyperdot.ps1 soak`: one headless server, N headless clients over ENet on localhost.
 # The kit starts each process with --soak-role=server|client, --soak-port and --soak-id; the game prints
 # "[soak] ready", "[soak] metric <name> <value>" and, when it finds something wrong, "[soak] fail <reason>".
 # --leak makes the server keep memory it never frees; --crash-after=<s> makes it quit early: the self-test's broken cases.

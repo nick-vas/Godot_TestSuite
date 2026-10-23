@@ -30,10 +30,10 @@ public static class Flags
 The kit passes the same flags everywhere with `-GameArgs` (comma-separated, so one value cannot contain a comma):
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners playthrough -GameArgs '--bot-skill=0.5'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 bench -Json -Quiet -GameArgs '--stress'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/Map.tscn -GameArgs '--seed=7'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners playthrough -GameArgs '--bot-skill=0.5'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 bench -Json -Quiet -GameArgs '--stress'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://ui/Map.tscn -GameArgs '--seed=7'
 ```
 
 These flags are debug tools, read only under `#if DEBUG` (`godot-debug-tools`). `test` (its `smoke` and `playthrough`
@@ -184,7 +184,7 @@ or physics change was known safe within the hour. Its recordings survived level 
   People still play it. It proves one route: NetEase's shortest path never jumped down the cliff that players could not
   climb back up, so add the seeded random bot. It proves nothing about pictures: Square Enix's passed on a black
   screen, so save `--shot` pictures at named steps and look at them.
-- A hung run (a deadlock, an `await` that never resumes) is stopped after `HYPEDOT_TIMEOUT` seconds (default 1800) and
+- A hung run (a deadlock, an `await` that never resumes) is stopped after `HYPERDOT_TIMEOUT` seconds (default 1800) and
   fails; set it a little above the run's real length so a hang is caught early.
 
 ## One log line per meaningful event

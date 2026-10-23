@@ -20,7 +20,7 @@ $api = if ($env:GITHUB_API_URL) { $env:GITHUB_API_URL } else { 'https://api.gith
 $repo = $env:GITHUB_REPOSITORY
 $headers = @{ Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
 $runUrl = "$env:GITHUB_SERVER_URL/$repo/actions/runs/$env:GITHUB_RUN_ID"
-$marker = "<!-- hypedot:$Name -->"
+$marker = "<!-- hyperdot:$Name -->"
 
 # A pull request from a fork runs with a read-only token, whatever the workflow's permissions say: the comment would
 # fail with a misleading hint. Say so once and leave the job summary, which forks do get, to carry the results.

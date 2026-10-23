@@ -8,5 +8,5 @@ description: Use when a fixture keeps a command that is not real in a side file.
 Everything here is valid; the broken command is in [notes.md](notes.md).
 
 ```powershell
-pwsh ci/godot/hypedot.ps1 test -Json -Quiet
+pwsh ci/godot/hyperdot.ps1 test -Json -Quiet
 ```

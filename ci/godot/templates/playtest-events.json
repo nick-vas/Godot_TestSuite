@@ -1,5 +1,5 @@
 {
-  "$comment": "Playtest telemetry events (godot-playtest, docs/telemetry.md). Analytics: record them only with the player's consent. A game sends them in the kit's batch format ({schema, session, build, consent, events: [{event, v, seq, t, fields}]}) and hypedot.ps1 playtest reads a folder of such files against this file. 'level' is a label: its allowed values are the game's level ids (playtest.json levels, or PlaytestEvents.Definitions(levels) in Example.Core). x, y, z: where it happened, in world units (z is 0 in 2D); level_seconds: game time since the level started. Example.Core's PlaytestTests keep this file and PlaytestEvents equal.",
+  "$comment": "Playtest telemetry events (godot-playtest, docs/telemetry.md). Analytics: record them only with the player's consent. A game sends them in the kit's batch format ({schema, session, build, consent, events: [{event, v, seq, t, fields}]}) and hyperdot.ps1 playtest reads a folder of such files against this file. 'level' is a label: its allowed values are the game's level ids (playtest.json levels, or PlaytestEvents.Definitions(levels) in Example.Core). x, y, z: where it happened, in world units (z is 0 in 2D); level_seconds: game time since the level started. Example.Core's PlaytestTests keep this file and PlaytestEvents equal.",
   "version": 1,
   "purpose": "analytics",
   "events": {

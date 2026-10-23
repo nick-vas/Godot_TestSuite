@@ -10,7 +10,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 foreach ($lib in 'Common', 'Report') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
-$kit = Join-Path $root 'ci/godot/hypedot.ps1'
+$kit = Join-Path $root 'ci/godot/hyperdot.ps1'
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
     if ($Condition) { Write-Host "ok     $What" } else { Write-Host "FAILED $What" -ForegroundColor Red; $failures.Add($What) }
@@ -57,11 +57,11 @@ Assert-True ($details[3].File -eq 'res://test/test_spawn.gd' -and $details[3].Li
 
 # --- A run's keys -----------------------------------------------------------------------------------------------------
 $run = @($log) + @(
-    '[hypedot] Godot reported errors:',
+    '[hyperdot] Godot reported errors:',
     '  ERROR: Wave 7 spawned 21 enemies outside the arena',
     '================================================================',
     'handle_crash: Program crashed with signal 11',
-    '[hypedot] /root/.hypedot/4.7.2-stable-mono/Godot_v4.7.2-stable_mono_linux.x86_64 was still running after 1800 s and was stopped (raise HYPEDOT_TIMEOUT if it needs longer)')
+    '[hyperdot] /root/.hyperdot/4.7.2-stable-mono/Godot_v4.7.2-stable_mono_linux.x86_64 was still running after 1800 s and was stopped (raise HYPERDOT_TIMEOUT if it needs longer)')
 $keys = @(Get-RunErrorKeys $run @('soak key'))
 Assert-True ($keys.Count -eq 6 -and $keys[0] -eq 'soak key' -and $keys[1] -ceq $details[0].Key) "distinct keys in order, given ones first; the kit's reprint without a location is not a second key: $($keys -join ' | ')"
 Assert-True ($keys -ccontains 'Program crashed with signal 11' -and $keys -ccontains 'Godot_v4.7.2-stable_mono_linux.x86_64 was still running at the time limit and was stopped') 'a crash (signal kept) and a time-out are keys too'
@@ -78,12 +78,12 @@ $script:JsonMode = $false; $script:JsonDoc = [ordered]@{}; $script:RunErrorKeys.
 $project = Join-Path ([IO.Path]::GetTempPath()) "errorkeys-$PID"
 New-Item -ItemType Directory -Force (Join-Path $project '.godot') | Out-Null
 try {
-    Start-RunLog (Join-Path $project 'test-results/hypedot.log')
+    Start-RunLog (Join-Path $project 'test-results/hyperdot.log')
     Start-RunHistory 'build' $project
     foreach ($line in $log) { Write-RunLog $line }
     Add-RunHistory $false 'engine-errors'
     $script:RunLogWriter.Dispose(); $script:RunLogWriter = $null; $script:RunLogPath = $null
-    $line = Get-Content -LiteralPath (Join-Path $project '.godot/hypedot-history.jsonl') | ConvertFrom-Json
+    $line = Get-Content -LiteralPath (Join-Path $project '.godot/hyperdot-history.jsonl') | ConvertFrom-Json
     Assert-True ($line.PSObject.Properties['commit'] -and $null -eq $line.commit -and @($line.errorKeys).Count -eq 3 -and $line.errorKeys[0] -ceq $details[0].Key) `
         "Add-RunHistory records the keys of the run log while it is still open, and commit null outside git: $(@($line.errorKeys) -join ' | ')"
 } finally {
@@ -140,7 +140,7 @@ try {
     Invoke-Git @('init', '-q'); Invoke-Git @('add', '-A'); Invoke-Git @('commit', '-q', '-m', 'one')
     $first = (& git -C $game rev-parse --short HEAD).Trim()
     $r = Invoke-Kit @('test')
-    $line = @(Get-Content -LiteralPath (Join-Path $game '.godot/hypedot-history.jsonl'))[-1] | ConvertFrom-Json
+    $line = @(Get-Content -LiteralPath (Join-Path $game '.godot/hyperdot-history.jsonl'))[-1] | ConvertFrom-Json
     Assert-True (-not $r.ok -and (@($line.errorKeys) -join ' | ') -ceq $wave -and $line.commit -eq $first) `
         "the smoke run printed the error twice with other numbers: one key, at commit $($line.commit) ($(@($line.errorKeys) -join ' | '))"
 

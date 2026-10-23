@@ -33,14 +33,14 @@ Remove-Item -Recurse -Force $temp
 if (-not $NoGodot) {
     $fixture = Join-Path $PSScriptRoot 'playthrough-fixture'
     function Invoke-Playthrough([string[]]$More) {
-        $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') test -Project $fixture -Runners playthrough -Json @More 2>$null
+        $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Project $fixture -Runners playthrough -Json @More 2>$null
         return ($json | Out-String | ConvertFrom-Json)
     }
     $good = Invoke-Playthrough @()
     if (-not $good.ok) { $failures += "the bot that finishes should pass: $($good | ConvertTo-Json -Depth 6 -Compress)" }
     $bad = Invoke-Playthrough @('-GameArgs', '--stuck')
     if ($bad.ok) { $failures += 'a bot stuck in level 1 should fail the playthrough' }
-    $detected = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') detect -Project $fixture -Json 2>$null | Out-String | ConvertFrom-Json
+    $detected = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Project $fixture -Json 2>$null | Out-String | ConvertFrom-Json
     if (@($detected.runners) -notcontains 'playthrough') { $failures += "playthrough.json should select the runner: $(@($detected.runners) -join ', ')" }
 }
 

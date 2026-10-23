@@ -6,8 +6,8 @@ to headless runs. Look at real frames.
 ## See it
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn -Resolution 1280x720 -Output screenshots/720p
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn -Resolution 1280x720 -Output screenshots/720p
 ```
 
 `shots[]` lists the PNG files. Screenshots fill context fast: for more than a couple of screens, ask the `godot-verifier`

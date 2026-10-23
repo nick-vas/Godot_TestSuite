@@ -7,7 +7,7 @@ Set-StrictMode -Version 3.0
 $root = Split-Path $PSScriptRoot
 $defined = @{}
 $failures = @()
-$files = @(Get-ChildItem (Join-Path $root 'ci/godot/lib') -Filter '*.ps1') + @(Get-Item (Join-Path $root 'ci/godot/hypedot.ps1'))
+$files = @(Get-ChildItem (Join-Path $root 'ci/godot/lib') -Filter '*.ps1') + @(Get-Item (Join-Path $root 'ci/godot/hyperdot.ps1'))
 foreach ($file in $files) {
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
     foreach ($fn in $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
@@ -18,12 +18,12 @@ foreach ($file in $files) {
         if ($builtin) { $failures += "$name ($($file.Name)) shadows the built-in $($builtin.CommandType.ToString().ToLowerInvariant()) $name" }
     }
 }
-# Every parameter docs/reference.md documents exists on hypedot.ps1: a lost edit once removed -FixedFps and
+# Every parameter docs/reference.md documents exists on hyperdot.ps1: a lost edit once removed -FixedFps and
 # -MaxChangedPercent from the script while the docs and tests still named them.
-$entry = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'ci/godot/hypedot.ps1'), [ref]$null, [ref]$null)
+$entry = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'ci/godot/hyperdot.ps1'), [ref]$null, [ref]$null)
 $parameters = @($entry.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
 $documented = @(Select-String -LiteralPath (Join-Path $root 'docs/reference.md') -Pattern '^\| `-(?<p>[A-Za-z]+)`' | ForEach-Object { $_.Matches[0].Groups['p'].Value } | Sort-Object -Unique)
-foreach ($p in $documented) { if ($p -notin $parameters) { $failures += "docs/reference.md documents -$p, which hypedot.ps1 does not have" } }
+foreach ($p in $documented) { if ($p -notin $parameters) { $failures += "docs/reference.md documents -$p, which hyperdot.ps1 does not have" } }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host "$($defined.Count) functions in ci/godot, each defined once and none named like a built-in alias or cmdlet; $($documented.Count) documented parameters, all on hypedot.ps1"
+Write-Host "$($defined.Count) functions in ci/godot, each defined once and none named like a built-in alias or cmdlet; $($documented.Count) documented parameters, all on hyperdot.ps1"
 exit 0

@@ -1,7 +1,7 @@
 # {{GAME}}: game design document
 
 <!-- Status: draft. /game proposes this from the code; it becomes the source of truth once each section is confirmed.
-     Feature headings are read by `hypedot.ps1 status`: keep the form "### F<number> <name>", and give each feature a
+     Feature headings are read by `hyperdot.ps1 status`: keep the form "### F<number> <name>", and give each feature a
      "Priority:" line (must, should, could or won't), a "Fun:" line naming the kinds of fun it serves (sensation, fantasy,
      narrative, challenge, fellowship, discovery, expression, submission) and "Done when:" lines. Tag the tests that prove a feature with
      GDD:F<number> in the test's name or a comment on it, so status can find them. A feature that keeps state has a

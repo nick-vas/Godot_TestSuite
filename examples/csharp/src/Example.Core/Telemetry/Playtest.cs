@@ -8,7 +8,7 @@ public enum LevelResult { Finished, Quit, Failed }
 /// are recorded only with the player's consent, and made of numbers and fixed labels only. Each event but
 /// <c>level_time</c> carries where it happened (<c>level</c>, <c>x</c>, <c>y</c>, <c>z</c>; <c>z</c> is 0 in 2D) and when
 /// (<c>level_seconds</c>, game time since the level started); the batch carries the session. The same definitions, for
-/// any engine language, are <c>ci/godot/templates/playtest-events.json</c>, which <c>hypedot.ps1 playtest</c> reads the
+/// any engine language, are <c>ci/godot/templates/playtest-events.json</c>, which <c>hyperdot.ps1 playtest</c> reads the
 /// sessions with; <c>PlaytestTests</c> keeps the two equal.
 /// </summary>
 public static class PlaytestEvents

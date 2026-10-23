@@ -32,7 +32,7 @@ measurements: `${CLAUDE_PLUGIN_ROOT}/docs/mobile-web.md`.
 ```
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Runners layout -Json -Quiet
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Runners layout -Json -Quiet
 ```
 
 A UI designed at 1280x720 and shown on a portrait phone shrinks: a 64 px button became 21 dp. Design phone UI in
@@ -185,7 +185,7 @@ by default. `ScreenSetOrientation` works only when the orientation setting is se
   The run fails (`web-run-failed`) when the engine does not start, or on any page error, failed request or `ERROR` /
   `SCRIPT ERROR` line. Without the browser it fails with `no-browser`; `npx playwright install --with-deps firefox`
   installs one. `chrome` and `msedge` use the browsers installed on the machine. On a machine without a GPU (GitHub's
-  runners) headless Firefox has no WebGL 2 and fails at start: give it a window, `HYPEDOT_WEB_HEADED=1` with Xvfb running
+  runners) headless Firefox has no WebGL 2 and fails at start: give it a window, `HYPERDOT_WEB_HEADED=1` with Xvfb running
   (the kit's self-test does this).
 
 ## 8. Done means

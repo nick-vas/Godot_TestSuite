@@ -1,6 +1,6 @@
 # Breakout: game design document
 
-<!-- The kit's example. Feature headings and GDD:F<n> tags in the tests are what `hypedot.ps1 status` reads. -->
+<!-- The kit's example. Feature headings and GDD:F<n> tags in the tests are what `hyperdot.ps1 status` reads. -->
 
 ## Pitch
 

@@ -35,7 +35,7 @@ function Start-FakeGitHub([int]$Port, [int]$Total, [int]$SummaryAt) {
                     $first = ($page - 1) * $size + 1
                     $last = [Math]::Min($Total, $page * $size)
                     $items = @(for ($i = $first; $i -le $last; $i++) {
-                        @{ id = $i; body = $(if ($i -eq $SummaryAt) { "<!-- hypedot:game -->`nold summary" } else { "comment $i" }) }
+                        @{ id = $i; body = $(if ($i -eq $SummaryAt) { "<!-- hyperdot:game -->`nold summary" } else { "comment $i" }) }
                     })
                     $body = ConvertTo-Json -InputObject $items -Depth 3 -Compress
                     if (-not $items.Count) { $body = '[]' }

@@ -17,7 +17,7 @@ foreach ($skill in Get-ChildItem (Join-Path $root '.agents/skills') -Filter SKIL
     }
 }
 if ($count -eq 0) { Write-Host 'FAIL no ```glsl block found in any skill'; exit 1 }
-$out = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') test -Json -Quiet -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null
+$out = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -Json -Quiet -Project $game -Runners validate -Results (Join-Path $game 'r') 2>$null
 $d = ($out -join "`n") | ConvertFrom-Json
 Remove-Item -Recurse -Force $game
 if (-not $d.ok) {

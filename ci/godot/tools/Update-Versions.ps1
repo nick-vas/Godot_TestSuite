@@ -48,7 +48,7 @@ $current['gut'] = $gutLine.Groups['t'].Value
 
 # --- What is newest ----------------------------------------------------------------------------------------------
 function Get-Json([string]$Url) {
-    $headers = @{ 'User-Agent' = 'hypedot' }
+    $headers = @{ 'User-Agent' = 'hyperdot' }
     if ($env:GITHUB_TOKEN -and $Url -like 'https://api.github.com/*') { $headers['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
     Invoke-RestMethod -Uri $Url -Headers $headers
 }
@@ -99,7 +99,7 @@ $godotPins = @(
     @{ File = 'examples/csharp/game/Example.csproj'; Pattern = 'Godot\.NET\.Sdk/{v}' }
     @{ File = '.agents/skills/godot-test-loop/SKILL.md'; Pattern = 'Godot\.NET\.Sdk/{v}|verified on Godot {v}' }
     @{ File = 'ci/godot/lib/Detect.ps1'; Pattern = "else \{ '{v}' \}" }
-    @{ File = 'ci/godot/hypedot.ps1'; Pattern = 'else {v}\.' }
+    @{ File = 'ci/godot/hyperdot.ps1'; Pattern = 'else {v}\.' }
     @{ File = '.github/actions/godot/action.yml'; Pattern = 'else {v}\)' }
     @{ File = '.github/workflows/godot.yml'; Pattern = 'else {v}\)' }
     @{ File = 'docs/reference.md'; Pattern = 'else `{v}`' }

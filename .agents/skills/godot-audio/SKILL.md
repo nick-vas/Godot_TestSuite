@@ -73,7 +73,7 @@ CreateTween().TweenMethod(Callable.From<float>(db => layers.SetSyncStreamVolume(
 
 Repetition is what makes game audio sound cheap; unlimited voices are what make it muddy.
 
-- No sounds yet: `hypedot.ps1 sfx -Sound jump,coin,hit -Count 3` writes placeholder WAVs to `sounds/sfx` (bfxr's synth,
+- No sounds yet: `hyperdot.ps1 sfx -Sound jump,coin,hit -Count 3` writes placeholder WAVs to `sounds/sfx` (bfxr's synth,
   each at -6 dBFS) with a `.bfxr` file that bfxr's editor opens; `sfx -Vary sounds/sfx/jump-1.bfxr -Count 5` makes
   variations of one sound for a randomizer.
 
@@ -159,8 +159,8 @@ Sony's ASWG-R001 (also the industry's IESD guidance for consoles), measured as t
 | Handheld | -18 LUFS ± 2 LU (IESD says -16 for phones) | at most -1 dBTP |
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 audio -Json -Quiet                          # every sound file
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 audio -Mix -Seconds 120 -GameArgs '--autoplay' -Json -Quiet   # the game's own mix
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 audio -Json -Quiet                          # every sound file
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 audio -Mix -Seconds 120 -GameArgs '--autoplay' -Json -Quiet   # the game's own mix
 ```
 
 - `audio` measures each file (category from its folder: `music/`, `voice/`, `ambience/`, `ui/`, else effects) and warns

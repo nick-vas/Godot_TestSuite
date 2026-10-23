@@ -89,7 +89,7 @@ folder and `pwsh` could not start. Two results stand:
 | lost-in-level | 0.33 | 0.00 | The skill fired every time, but two of three answers left out the check: play it again with the minimap and markers off |
 
 `fix-score-bug`'s `used-kit` grader also failed runs that did call the kit: its pattern stopped at the quote in
-`pwsh "<path>/hypedot.ps1" test -Json -Quiet`. It now allows a quote and space after the path.
+`pwsh "<path>/hyperdot.ps1" test -Json -Quiet`. It now allows a quote and space after the path.
 
 Run 7 (2026-10-22, `explain-failure` only, 1 run per arm, $0.16, on the fix branch): with `TMPDIR` set to the runner's
 temp folder the cases' folders are made there, writes work, and both arms imported the project and ran GUT to the real

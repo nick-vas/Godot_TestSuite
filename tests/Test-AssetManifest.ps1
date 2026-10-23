@@ -19,7 +19,7 @@ function Set-TextureImport([string]$File, [int]$Mode, [string]$Mipmaps) {
 Set-TextureImport 'art/kenney/button.png' 0 'true'
 Set-TextureImport 'art/player/idle.png' 2 'false'
 Set-TextureImport 'art/borrowed/hero.png' 0 'false'
-$out = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') doctor -Json -Project $game 2>$null
+$out = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Json -Project $game 2>$null
 $checks = @((($out -join "`n") | ConvertFrom-Json).checks | ForEach-Object { "$($_.status) $($_.message)" })
 $expected = [ordered]@{
     'no source'      = '^WARN assets\.json: an entry needs path, source and licence'

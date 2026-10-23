@@ -94,7 +94,7 @@ function Invoke-Sfx {
     # Only a folder below the project: <project>-assets is outside it, and the project root itself would claim every asset.
     $relative = if ($project) { ([System.IO.Path]::GetRelativePath($project, $full) -replace '\\', '/').TrimEnd('/') } else { '.' }
     if ($project -and $relative -ne '.' -and (Test-PathInside $full $project)) {
-        $entry = [ordered]@{ path = "$relative/**"; source = 'generated with hypedot sfx (bfxr synth)'; licence = 'own' }
+        $entry = [ordered]@{ path = "$relative/**"; source = 'generated with hyperdot sfx (bfxr synth)'; licence = 'own' }
         $manifest = Join-Path $project 'assets.json'
         if (Test-Path -LiteralPath $manifest) {
             $json = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json -AsHashtable

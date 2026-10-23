@@ -107,7 +107,7 @@ linux.release.x86_64 = {
     # End to end: doctor reports them and fails on the release library.
     Set-Content -LiteralPath (Join-Path $dir 'export_presets.cfg') "[preset.0]`n`nname=`"Web`"`nplatform=`"Web`"`nrunnable=true`ncustom_features=`"`"`nexport_filter=`"all_resources`"`ninclude_filter=`"`"`nexclude_filter=`"addons/gut/*`"`nexport_path=`"build/web/index.html`"`n`n[preset.0.options]`n`nvariant/thread_support=true`n"
     & git -C $dir init -q
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') doctor -Project $dir -Json 2>$null | Out-String | ConvertFrom-Json
     $messages = @($json.checks | ForEach-Object { "$($_.status) $($_.message)" }) -join "`n"
     Assert-True ($json.ok -eq $false -and $messages -match "FAIL res://addons/native/native\.gdextension has no library for export preset 'Web' \(release\)") "doctor fails on a release build with no library: $(($messages -split "`n" | Select-String 'gdextension|addons') -join ' | ')"
 } finally {

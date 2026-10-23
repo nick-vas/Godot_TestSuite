@@ -5,25 +5,25 @@
     parameters only override what was detected. Runs on Windows (locally) and Linux (GitHub runners).
 
 .EXAMPLE
-    ./ci/godot/hypedot.ps1                        # install Godot if needed, build, run every detected test
+    ./ci/godot/hyperdot.ps1                        # install Godot if needed, build, run every detected test
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 detect                 # show what was found, change nothing
+    ./ci/godot/hyperdot.ps1 detect                 # show what was found, change nothing
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 test -Runners gut -Filter test_combo
+    ./ci/godot/hyperdot.ps1 test -Runners gut -Filter test_combo
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 export -Preset Windows -Run    # export, then launch the build to check it starts
+    ./ci/godot/hyperdot.ps1 export -Preset Windows -Run    # export, then launch the build to check it starts
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 bench -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -BudgetMs 16.7
+    ./ci/godot/hyperdot.ps1 bench -Scene res://levels/Boss.tscn -GameArgs '--stress' -Seconds 30 -BudgetMs 16.7
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
+    ./ci/godot/hyperdot.ps1 shot -Scene res://ui/Menu.tscn,res://ui/Map.tscn -Resolution 1920x1080
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
+    ./ci/godot/hyperdot.ps1 audio -Mix -Seconds 60 -GameArgs '--autoplay' -TargetLufs -18   # loudness of the files and of the game's mix
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 soak -Clients 10 -Seconds 600 -MaxGrowthMbPerHour 50   # a headless server and 10 clients for 10 minutes
+    ./ci/godot/hyperdot.ps1 soak -Clients 10 -Seconds 600 -MaxGrowthMbPerHour 50   # a headless server and 10 clients for 10 minutes
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
+    ./ci/godot/hyperdot.ps1 sfx -Sound jump,coin,hit -Count 3 -Seed 7   # placeholder sounds in sounds/sfx: WAV and .bfxr
 .EXAMPLE
-    ./ci/godot/hypedot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
+    ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
 #>
 [CmdletBinding()]
 param(
@@ -177,9 +177,9 @@ param(
     [string]$Feature,
     # plan -Do link: the Trello card id of a task (set by /game when it creates the card through the Trello connector).
     [string]$Card,
-    # Print one JSON document on stdout (schema hypedot/1) and send all logs to stderr. For agents and scripts.
+    # Print one JSON document on stdout (schema hyperdot/1) and send all logs to stderr. For agents and scripts.
     [switch]$Json,
-    # Keep tool output (Godot, dotnet) off the console; it still goes to hypedot.log in the results folder. Pair it with -Json
+    # Keep tool output (Godot, dotnet) off the console; it still goes to hyperdot.log in the results folder. Pair it with -Json
     # so an agent reads the verdict, with failure messages, files and lines, instead of the whole log.
     [switch]$Quiet
 )
@@ -249,13 +249,13 @@ function Invoke-Setup([switch]$WithTemplates) {
     # A Godot you point at yourself (GODOT_BIN) is used as-is. Exports also need matching export templates; when they
     # are already installed (Godot's editor installs them into the same folder), your Godot is used for exports too.
     $templatesReady = Test-Path -LiteralPath (Join-Path (Get-GodotPaths $version ($release ? $release : 'stable') $info.IsCSharp).TemplatesDir 'version.txt')
-    if ($env:GODOT_BIN -and -not $env:HYPEDOT_INSTALLED -and (-not $WithTemplates -or $templatesReady)) {
+    if ($env:GODOT_BIN -and -not $env:HYPERDOT_INSTALLED -and (-not $WithTemplates -or $templatesReady)) {
         Write-CiLog "Using GODOT_BIN=$env:GODOT_BIN"
         return
     }
     if ($env:GODOT_BIN -and $WithTemplates) { Write-CiLog "No export templates for $($info.GodotVersion) yet; installing the kit's own Godot and its templates" }
     Install-GodotTools -Version $version -Release ($release ? $release : 'stable') -Templates:$WithTemplates -Mono $info.IsCSharp
-    $env:HYPEDOT_INSTALLED = '1'
+    $env:HYPERDOT_INSTALLED = '1'
 }
 
 function Invoke-Build {
@@ -265,7 +265,7 @@ function Invoke-Build {
         # An addon this suite installed carries a version stamp and is kept in step with the Godot version
         # (GUT releases are tied to one Godot minor). One without a stamp is the user's own and is left alone.
         $gut = Join-Path $info.ProjectDir 'addons/gut'
-        $userManaged = (Test-Path -LiteralPath (Join-Path $gut 'gut_cmdln.gd')) -and -not (Test-Path -LiteralPath (Join-Path $gut '.hypedot-version'))
+        $userManaged = (Test-Path -LiteralPath (Join-Path $gut 'gut_cmdln.gd')) -and -not (Test-Path -LiteralPath (Join-Path $gut '.hyperdot-version'))
         if (-not $userManaged) { Install-Addon $info.ProjectDir "gut@$(Get-GutTag $info.GodotVersion)" }
     }
     if ($info.Solution) {
@@ -327,7 +327,7 @@ function Invoke-Tests {
     }
     # Everything but the log this run is writing.
     if (Test-Path -LiteralPath $resultsDir) {
-        Get-ChildItem -LiteralPath $resultsDir -Force | Where-Object { $_.Name -ne 'hypedot.log' } | Remove-Item -Recurse -Force
+        Get-ChildItem -LiteralPath $resultsDir -Force | Where-Object { $_.Name -ne 'hyperdot.log' } | Remove-Item -Recurse -Force
     }
     $runs = @(foreach ($runner in $info.Runners) {
         Invoke-TestRunnerWithRetry -Runner $runner -Info $info -ResultsDir (Join-Path $resultsDir $runner) -Retry $Retry -Quarantine $quarantine.Entries `
@@ -556,7 +556,7 @@ $commandResultsDir = [System.IO.Path]::GetFullPath($(
         elseif ($commandDefaults.ContainsKey($Command) -and -not $PSBoundParameters.ContainsKey('Results')) { $commandDefaults[$Command] }
         else { $Results }))
 if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', 'soak', 'credits') {
-    Start-RunLog (Join-Path $commandResultsDir 'hypedot.log')
+    Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }

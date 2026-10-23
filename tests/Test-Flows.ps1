@@ -8,7 +8,7 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$kit = Join-Path $root 'ci/godot/hypedot.ps1'
+$kit = Join-Path $root 'ci/godot/hyperdot.ps1'
 $fixture = Join-Path $PSScriptRoot 'flows-fixture'
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {

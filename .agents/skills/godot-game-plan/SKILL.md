@@ -9,9 +9,9 @@ description: Use when starting a Godot game or a game jam entry, or when asked a
 and warns on timebox overruns. Genre-independent.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 plan -Do init -Game "My Game"     # once; never overwrites
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 plan -Json                        # where am I, what is next
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 plan -Do done -Id concept.scope   # mark a manual gate (you or the user decides, not the agent)
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do init -Game "My Game"     # once; never overwrites
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Json                        # where am I, what is next
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do done -Id concept.scope   # mark a manual gate (you or the user decides, not the agent)
 ```
 
 | Phase | Weeks | Exit gate in one line |
@@ -35,8 +35,8 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
 4. When `warnings` reports an overrun: propose cutting scope from the "could" tier; never cut testing or the gate.
 5. Work items are `tasks` in plan.json, edited with commands, not by hand:
    ```powershell
-   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 plan -Do add -Title "Paddle feel pass" -Feature F1 -Column todo   # -Feature: the GDD feature it delivers
-   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Feature F1 -Column todo   # -Feature: the GDD feature it delivers
+   pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refuses past wipLimit (default 2)
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
    "tests green" (`godot-verify-before-done`), not "a person reviewed it".
@@ -65,7 +65,7 @@ city chunks and never tried the places where three met; with its tech debt never
 weeks before launch. Saints Row: The Third's art slice polished single assets instead of a full scene, so performance was
 fixed in production. Hence `slice.debt` (automatic: `docs/TECH-DEBT.md`, from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/TECH-DEBT.md`,
 lists each hacked, stubbed or unstarted system with its cost at full size, and the total the user accepts), `slice.budget`
-(manual: `hypedot.ps1 bench -Scene <busiest scene> -BudgetMs <n>` passes with that scene filled as the finished game will be), and a
+(manual: `hyperdot.ps1 bench -Scene <busiest scene> -BudgetMs <n>` passes with that scene filled as the finished game will be), and a
 `slice.verdict` that rejects a feature list or a tech demo and takes more slice time while core gameplay is still moving.
 A plan made before these gates existed lacks them (plan.json is the game's after `init`): offer to add them.
 

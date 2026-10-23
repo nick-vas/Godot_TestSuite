@@ -1,13 +1,19 @@
 # Changelog
 
 ## Unreleased
-- **Renamed to Hypedot (breaking, no aliases).** The script is `ci/godot/hypedot.ps1`, the plugin `hypedot`, the
-  repository `nick-vas/hypedot`, the environment variables `HYPEDOT_TIMEOUT`, `HYPEDOT_IGNORE_ERRORS`,
-  `HYPEDOT_PLAYWRIGHT`, `HYPEDOT_STOP_GATE`, `HYPEDOT_WEB_HEADED` (`GODOT_BIN`, `GODOT_VERSION` and `GODOT_TOOLS_DIR` keep
-  their names), the log prefix `[hypedot]`, the run log `hypedot.log` and the JSON `schema` value `hypedot/1`. Error codes
-  keep their names. Old state moves once: `.godot/godot-ci-history.jsonl` to `.godot/hypedot-history.jsonl`, GUT's
-  `.godot-ci-version` stamp and `~/.godot-ci` on any run; on `init`, a game's `godot-ci.yml` workflow becomes `hypedot.yml`
-  calling `nick-vas/hypedot`, and `.claude/settings.json`'s `godot-agent-kit` plugin entry becomes `hypedot`. The C#
+- Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`); before this the repository had no licence. The files a
+  game receives (`ci/godot/templates/`, the starter tests `init` writes) are MIT No Attribution
+  (`ci/godot/templates/LICENSE.md`). `NOTICE` lists the third-party parts and their licences: Sfxr (Apache-2.0 and MIT),
+  the University of Washington genre vocabulary (CC BY-NC-SA 4.0, with permission), Wikidata genres (CC0).
+- README: a mascot logo (`docs/assets/hyperdot-logo.svg`, a muscular robot in wraparound sports sunglasses, flat clip-art style), a one-line pitch, badges, a sample of the JSON an agent reads,
+  collapsible prerequisites and FAQ, and a licence and trademark section.
+- **Renamed to Hyperdot (breaking, no aliases).** The script is `ci/godot/hyperdot.ps1`, the plugin `hyperdot`, the
+  repository `nick-vas/hyperdot`, the environment variables `HYPERDOT_TIMEOUT`, `HYPERDOT_IGNORE_ERRORS`,
+  `HYPERDOT_PLAYWRIGHT`, `HYPERDOT_STOP_GATE`, `HYPERDOT_WEB_HEADED` (`GODOT_BIN`, `GODOT_VERSION` and `GODOT_TOOLS_DIR` keep
+  their names), the log prefix `[hyperdot]`, the run log `hyperdot.log` and the JSON `schema` value `hyperdot/1`. Error codes
+  keep their names. Old state moves once: `.godot/godot-ci-history.jsonl` to `.godot/hyperdot-history.jsonl`, GUT's
+  `.godot-ci-version` stamp and `~/.godot-ci` on any run; on `init`, a game's `godot-ci.yml` workflow becomes `hyperdot.yml`
+  calling `nick-vas/hyperdot`, and `.claude/settings.json`'s `godot-agent-kit` plugin entry becomes `hyperdot`. The C#
   example is `examples/csharp` (`Example.sln`, `Example.Core`, project name "CSharp Example"), so it is no longer
   confused with Breakout Roguelike.
 - Docs cleanup for 1.0. README: a prerequisites section (Node.js for Web runs and two MCP servers, uv, ffmpeg, a

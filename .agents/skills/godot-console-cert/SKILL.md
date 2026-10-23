@@ -83,7 +83,7 @@ other SteamOS devices. Measured on Godot 4.7.2; sources: `${CLAUDE_PLUGIN_ROOT}/
 letters' height, so aim for 18 or more at a 1080p base (capitals about 9 px) and 24 for the recommended 12.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 test -Json -Quiet -Runners textsize   # main scene at 1280x800
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet -Runners textsize   # main scene at 1280x800
 ```
 
 - The `textsize` runner measures every visible text on each scene, headless: a font size under 9 px fails; capitals

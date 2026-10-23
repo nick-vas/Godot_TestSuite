@@ -10,7 +10,7 @@ param([switch]$Live, [switch]$KeepBoard)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$ci = Join-Path $root 'ci/godot/hypedot.ps1'
+$ci = Join-Path $root 'ci/godot/hyperdot.ps1'
 $dir = Join-Path ([IO.Path]::GetTempPath()) "trello-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $failures = [System.Collections.Generic.List[string]]::new()
 function Assert-True([bool]$Condition, [string]$What) {
@@ -120,7 +120,7 @@ try {
     Set-Content -LiteralPath (Join-Path $dir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Sync Fixture""`n"
     pwsh -NoProfile -File $ci plan -Do init -Project $dir 2>$null | Out-Null
 
-    $board = Invoke-Board POST 'boards' @{ name = "hypedot sync test $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm'))"; defaultLists = $false; prefs_permissionLevel = 'private' }
+    $board = Invoke-Board POST 'boards' @{ name = "hyperdot sync test $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm'))"; defaultLists = $false; prefs_permissionLevel = 'private' }
     Write-Host "Board $($board.id) ($($board.shortLink))"
     $lists = @{}
     $pos = 1

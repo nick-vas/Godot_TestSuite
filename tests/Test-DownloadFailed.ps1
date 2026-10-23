@@ -8,13 +8,13 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 $tools = Join-Path ([IO.Path]::GetTempPath()) "download-failed-$PID"
 $saved = @{}
-foreach ($name in @('GODOT_BIN', 'HYPEDOT_INSTALLED', 'GODOT_TOOLS_DIR', 'EVAL_GODOT_BIN')) {
+foreach ($name in @('GODOT_BIN', 'HYPERDOT_INSTALLED', 'GODOT_TOOLS_DIR', 'EVAL_GODOT_BIN')) {
     $saved[$name] = [Environment]::GetEnvironmentVariable($name)
     [Environment]::SetEnvironmentVariable($name, $null)
 }
 $env:GODOT_TOOLS_DIR = $tools
 try {
-    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hypedot.ps1') setup -Json -Quiet `
+    $json = & pwsh -NoProfile -File (Join-Path $root 'ci/godot/hyperdot.ps1') setup -Json -Quiet `
         -Project (Join-Path $root 'examples/gdscript') -GodotVersion 0.0.0 2>$null
     $code = $LASTEXITCODE
 } finally {

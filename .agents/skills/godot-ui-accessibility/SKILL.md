@@ -71,7 +71,7 @@ Layout bugs (blank labels, overflowing text, a game area stuck in a corner) are 
 runs: look at real frames, at the target resolution and at least one other aspect ratio, after every UI change.
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://ui/MainMenu.tscn,res://ui/Hud.tscn -Resolution 1920x1080
 ```
 
 Set a stretch mode first (`canvas_items` with `expand` for UI anchored to edges, `keep` for a fixed play area,

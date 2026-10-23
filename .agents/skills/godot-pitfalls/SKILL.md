@@ -16,7 +16,7 @@ description: Use when a Godot 4.x project works in the editor but fails or misbe
 | Flag has no effect | Godot ignores unknown CLI flags silently | Check spelling against `godot --help` for the pinned version |
 | GUT parse errors after upgrading Godot | `addons/gut` from the previous Godot minor | The kit stamps and reinstalls its own copy; if you committed GUT yourself, update it |
 | Tests pass locally, CI uses another Godot | `Godot.NET.Sdk/x.y.z` in the csproj decides the version | Pin it; `detect -Json` shows `godotVersion` |
-| Wrong Godot binary mixes steps | `GODOT_BIN` from a previous step | Unset it or let the kit install; installed builds are marked `HYPEDOT_INSTALLED=1` |
+| Wrong Godot binary mixes steps | `GODOT_BIN` from a previous step | Unset it or let the kit install; installed builds are marked `HYPERDOT_INSTALLED=1` |
 | `-Results .` deletes work | `-Results` is wiped each run | The kit refuses the project folder, cwd or parents (`unsafe-results-dir`) |
 | Zero tests "passes" | A runner that finds nothing is misconfigured | The kit fails it; wire the framework instead |
 | Windows build zip not executable on Linux | Zip lost the exec bit | The release tool re-adds it for ELF binaries |
@@ -26,7 +26,7 @@ description: Use when a Godot 4.x project works in the editor but fails or misbe
 | Movie-writer frames are the wrong size | The movie writer is tied to the startup window size | Use `shot -Resolution`, or save `GetViewport().GetTexture().GetImage()` after `RenderingServer.FramePostDraw` |
 | Screenshot of a headless run is empty | Headless draws nothing | Run `shot` with a display (a virtual one on Linux) |
 | Engine crashes on exit (`corrupted size`, exit 134) after adding a custom monitor | The monitor's callable outlives its node | `Performance.RemoveCustomMonitor` in `_ExitTree` |
-| `N resources still in use at exit` in a headless run | Usually the dummy audio driver at shutdown; harmless there | If it fails your runs, set `HYPEDOT_IGNORE_ERRORS='resources still in use at exit'`; investigate if it also appears with a real audio device |
+| `N resources still in use at exit` in a headless run | Usually the dummy audio driver at shutdown; harmless there | If it fails your runs, set `HYPERDOT_IGNORE_ERRORS='resources still in use at exit'`; investigate if it also appears with a real audio device |
 | `ERR_CANT_OPEN` from `audio_driver_alsa` on a server or CI machine | No sound device | `bench` and `shot` already use the dummy audio driver; pass `--audio-driver Dummy` to your own runs |
 | V-Sync on, yet thousands of FPS | The driver ignores V-Sync (seen: Compatibility renderer on NVIDIA) | Try Mobile on Vulkan with `fallback_to_opengl3`; cap `Engine.MaxFps` at the refresh rate as a safety net (`godot-performance`) |
 | A one-way platform blocks the wrong direction | One-way shapes block motion along their local +Y | Rotate the body 180 degrees to block upward motion |

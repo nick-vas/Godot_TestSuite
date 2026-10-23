@@ -1,5 +1,5 @@
 name: Godot
-description: Build, test or export a Godot 4 project (GDScript or C#) with ci/godot/hypedot.ps1. Detects the project, Godot version and test frameworks; caches everything.
+description: Build, test or export a Godot 4 project (GDScript or C#) with ci/godot/hyperdot.ps1. Detects the project, Godot version and test frameworks; caches everything.
 inputs:
   command:
     description: "test (default), build, or export"
@@ -71,7 +71,7 @@ runs:
     - id: detect
       shell: pwsh
       env:
-        CLI: ${{ github.action_path }}/../../../ci/godot/hypedot.ps1
+        CLI: ${{ github.action_path }}/../../../ci/godot/hyperdot.ps1
         PROJECT: ${{ inputs.project }}
         GODOT_VERSION_INPUT: ${{ inputs.godot-version }}
       run: |
@@ -139,8 +139,8 @@ runs:
     - id: godot-cache
       uses: actions/cache/restore@v6
       with:
-        path: ~/.hypedot
-        key: hypedot-${{ runner.os }}-${{ runner.arch }}-${{ steps.detect.outputs.godot-version }}-${{ steps.detect.outputs.csharp == 'true' && 'mono' || 'standard' }}
+        path: ~/.hyperdot
+        key: hyperdot-${{ runner.os }}-${{ runner.arch }}-${{ steps.detect.outputs.godot-version }}-${{ steps.detect.outputs.csharp == 'true' && 'mono' || 'standard' }}
 
     - id: templates-cache
       if: inputs.command == 'export'
@@ -184,7 +184,7 @@ runs:
     - id: run
       shell: pwsh
       env:
-        CLI: ${{ github.action_path }}/../../../ci/godot/hypedot.ps1
+        CLI: ${{ github.action_path }}/../../../ci/godot/hyperdot.ps1
         COMMAND: ${{ inputs.command }}
         PROJECT: ${{ steps.detect.outputs.project }}
         NAME: ${{ steps.detect.outputs.name }}
@@ -227,12 +227,12 @@ runs:
         if (Test-Path -LiteralPath (Join-Path $HOME '.gradle/caches')) { 'gradle=true' >> $env:GITHUB_OUTPUT }
         exit $code
 
-    # Only a complete install (Setup writes HYPEDOT_INSTALLED after it), never a half-finished download.
-    - if: always() && steps.godot-cache.outputs.cache-hit != 'true' && env.HYPEDOT_INSTALLED == '1'
+    # Only a complete install (Setup writes HYPERDOT_INSTALLED after it), never a half-finished download.
+    - if: always() && steps.godot-cache.outputs.cache-hit != 'true' && env.HYPERDOT_INSTALLED == '1'
       uses: actions/cache/save@v6
       continue-on-error: true
       with:
-        path: ~/.hypedot
+        path: ~/.hyperdot
         key: ${{ steps.godot-cache.outputs.cache-primary-key }}
 
     - if: always() && inputs.command == 'export' && steps.templates-cache.outputs.cache-hit != 'true' && steps.run.outcome == 'success'

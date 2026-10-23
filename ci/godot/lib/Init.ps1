@@ -16,7 +16,7 @@ function Add-GitignoreEntries([string]$ProjectDir, [string[]]$Entries) {
     $existing = (Get-GitignoreFiles $ProjectDir | ForEach-Object { Get-Content -LiteralPath $_ }) | ForEach-Object { $_.Trim() }
     $missing = @($Entries | Where-Object { $_ -notin $existing })
     if ($missing.Count -eq 0) { Write-InitStep skipped '.gitignore already has the kit''s entries'; return }
-    Add-Content -LiteralPath $file -Value (@('', '# Hypedot') + $missing)
+    Add-Content -LiteralPath $file -Value (@('', '# Hyperdot') + $missing)
     Write-InitStep updated ".gitignore: $($missing -join ', ')"
 }
 
@@ -24,29 +24,29 @@ function New-CiWorkflow([string]$ProjectDir) {
     $root = Get-GitRoot $ProjectDir
     if (-not $root) { Write-InitStep skipped 'CI workflow: not a git repository'; return }
     $workflows = Join-Path $root '.github/workflows'
-    # A workflow written before Hypedot calls the old repository name: it is moved once to the new name.
+    # A workflow written before Hyperdot calls the old repository name: it is moved once to the new name.
     foreach ($old in @(Get-ChildItem -LiteralPath $workflows -File -ErrorAction SilentlyContinue)) {
         $text = Get-Content -LiteralPath $old.FullName -Raw
         if ($text -notmatch 'Godot_TestSuite/\.github/workflows/godot\.yml') { continue }
-        Set-Content -LiteralPath $old.FullName -Encoding utf8 -NoNewline -Value ($text -replace 'nick-vas/Godot_TestSuite', 'nick-vas/hypedot')
-        $target = Join-Path $workflows 'hypedot.yml'
+        Set-Content -LiteralPath $old.FullName -Encoding utf8 -NoNewline -Value ($text -replace 'nick-vas/Godot_TestSuite', 'nick-vas/hyperdot')
+        $target = Join-Path $workflows 'hyperdot.yml'
         if ($old.Name -eq 'godot-ci.yml' -and -not (Test-Path -LiteralPath $target)) {
             Move-Item -LiteralPath $old.FullName -Destination $target
-            Write-InitStep updated '.github/workflows/godot-ci.yml is now hypedot.yml and calls nick-vas/hypedot'
+            Write-InitStep updated '.github/workflows/godot-ci.yml is now hyperdot.yml and calls nick-vas/hyperdot'
         } else {
-            Write-InitStep updated ".github/workflows/$($old.Name) calls nick-vas/hypedot"
+            Write-InitStep updated ".github/workflows/$($old.Name) calls nick-vas/hyperdot"
         }
     }
     $existing = @(Get-ChildItem -LiteralPath $workflows -File -ErrorAction SilentlyContinue |
-        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'hypedot/\.github/workflows/godot\.yml' })
+        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'hyperdot/\.github/workflows/godot\.yml' })
     if ($existing) { Write-InitStep skipped "CI workflow: $($existing[0].Name) already calls the kit"; return }
-    $file = Join-Path $workflows 'hypedot.yml'
-    if (Test-Path -LiteralPath $file) { Write-InitStep skipped 'CI workflow: .github/workflows/hypedot.yml exists'; return }
+    $file = Join-Path $workflows 'hyperdot.yml'
+    if (Test-Path -LiteralPath $file) { Write-InitStep skipped 'CI workflow: .github/workflows/hyperdot.yml exists'; return }
     $relative = [System.IO.Path]::GetRelativePath($root, $ProjectDir) -replace '\\', '/'
     $projectInput = if ($relative -ne '.') { "`n      project: $relative" } else { '' }
     New-Item -ItemType Directory -Force $workflows | Out-Null
     Set-Content -LiteralPath $file -Encoding utf8 -Value @"
-# Runs Hypedot's checks on a GitHub Linux runner: https://github.com/nick-vas/hypedot
+# Runs Hyperdot's checks on a GitHub Linux runner: https://github.com/nick-vas/hyperdot
 name: Godot
 
 on:
@@ -64,11 +64,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write   # for the test summary comment on pull requests
-    uses: nick-vas/hypedot/.github/workflows/godot.yml@main
+    uses: nick-vas/hyperdot/.github/workflows/godot.yml@main
     with:$projectInput
       coverage: true
 "@
-    Write-InitStep added ".github/workflows/hypedot.yml (tests on every push to main and every pull request)"
+    Write-InitStep added ".github/workflows/hyperdot.yml (tests on every push to main and every pull request)"
 }
 
 function Add-CSharpTestSetup([string]$ProjectDir, $Info) {
@@ -85,7 +85,7 @@ function Add-CSharpTestSetup([string]$ProjectDir, $Info) {
         return
     } else {
         $block = @'
-  <!-- Hypedot: test packages and test code stay out of release exports. -->
+  <!-- Hyperdot: test packages and test code stay out of release exports. -->
   <PropertyGroup>
     <IncludeTests Condition="'$(Configuration)' != 'ExportRelease'">true</IncludeTests>
   </PropertyGroup>
@@ -128,8 +128,8 @@ using System.Threading.Tasks;
 using GdUnit4;
 using static GdUnit4.Assertions;
 
-// Starter tests from Hypedot. Plain tests run without the engine (fast); mark tests that
-// need Godot with [RequireGodotRuntime]. Run them all with: pwsh ci/godot/hypedot.ps1
+// Starter tests from Hyperdot. Plain tests run without the engine (fast); mark tests that
+// need Godot with [RequireGodotRuntime]. Run them all with: pwsh ci/godot/hyperdot.ps1
 [TestSuite]
 public class ExampleTest
 {
@@ -155,8 +155,8 @@ func test_main_scene_loads():
     New-Item -ItemType Directory -Force (Split-Path $testFile) | Out-Null
     Set-Content -LiteralPath $testFile -Encoding utf8 -Value @"
 extends GutTest
-## Starter tests from Hypedot. GUT runs every test_*.gd; the kit installs GUT itself.
-## Run them with: pwsh ci/godot/hypedot.ps1
+## Starter tests from Hyperdot. GUT runs every test_*.gd; the kit installs GUT itself.
+## Run them with: pwsh ci/godot/hyperdot.ps1
 
 
 func test_arithmetic():
@@ -241,9 +241,9 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
     # With the plugin, skills, the verifier subagent and the Stop hook come from the kit itself and stay up to date;
     # copies would only duplicate them.
     if ($Plugin) { Add-PluginSettings $root $suiteRoot; return }
-    # Skills and agents name the kit as ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1, which Claude Code fills in for the
+    # Skills and agents name the kit as ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1, which Claude Code fills in for the
     # plugin. Copies get this machine's path instead.
-    $placeholder = '${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1'
+    $placeholder = '${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1'
     # Other kit files (templates) are named from the kit's folder.
     $rootPlaceholder = '${CLAUDE_PLUGIN_ROOT}'
     $kitRoot = $suiteRoot -replace '\\', '/'
@@ -281,21 +281,21 @@ function Add-PluginSettings([string]$Root, [string]$SuiteRoot) {
     if (-not $settings) { $settings = [ordered]@{} }
     $marketplaces = if ($settings.Contains('extraKnownMarketplaces')) { $settings['extraKnownMarketplaces'] } else { [ordered]@{} }
     $enabled = if ($settings.Contains('enabledPlugins')) { $settings['enabledPlugins'] } else { [ordered]@{} }
-    # Before Hypedot the plugin was godot-agent-kit: its entries are replaced once.
+    # Before Hyperdot the plugin was godot-agent-kit: its entries are replaced once.
     $renamed = $marketplaces.Contains('godot-agent-kit') -or $enabled.Contains('godot-agent-kit@godot-agent-kit')
     $marketplaces.Remove('godot-agent-kit'); $enabled.Remove('godot-agent-kit@godot-agent-kit')
-    if (-not $renamed -and $marketplaces.Contains('hypedot') -and $enabled.Contains('hypedot@hypedot')) {
-        Write-InitStep skipped '.claude/settings.json already enables the hypedot plugin'
+    if (-not $renamed -and $marketplaces.Contains('hyperdot') -and $enabled.Contains('hyperdot@hyperdot')) {
+        Write-InitStep skipped '.claude/settings.json already enables the hyperdot plugin'
         return
     }
     if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file "$file.bak" -Force }
-    $marketplaces['hypedot'] = [ordered]@{ source = [ordered]@{ source = 'directory'; path = ($SuiteRoot -replace '\\', '/') } }
-    $enabled['hypedot@hypedot'] = $true
+    $marketplaces['hyperdot'] = [ordered]@{ source = [ordered]@{ source = 'directory'; path = ($SuiteRoot -replace '\\', '/') } }
+    $enabled['hyperdot@hyperdot'] = $true
     $settings['extraKnownMarketplaces'] = $marketplaces
     $settings['enabledPlugins'] = $enabled
     New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
     $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $file -Encoding utf8
-    Write-InitStep updated ".claude/settings.json: hypedot plugin from $SuiteRoot (Claude Code asks to install it on the next start)"
+    Write-InitStep updated ".claude/settings.json: hyperdot plugin from $SuiteRoot (Claude Code asks to install it on the next start)"
 }
 
 # aseprite-mcp (diivi/aseprite-mcp, MIT) at a reviewed commit. It has no release and no lock uvx reads: unpinned, its

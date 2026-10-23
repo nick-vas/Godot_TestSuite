@@ -7,7 +7,7 @@ ones); the pull requests and `CHANGELOG.md` are the record of what was built. Th
 
 | Phase | State |
 |---|---|
-| 1. Self-improvement | Built: the plugin, `retro`, the run history (`.godot/hypedot-history.jsonl`), the weekly canary (Fridays 18:47 UTC), `kit-review`, and the ten agent-efficiency items in [research.md](research.md). Evals: run 7, the first where the sandbox could run Godot, scored `explain-failure` 1.00 with and without the plugin (1 run per arm); run 6 stands for `review-publishing-deal` (1.00 against 0.78) and `lost-in-level` (0.33 against 0.00). Open: below |
+| 1. Self-improvement | Built: the plugin, `retro`, the run history (`.godot/hyperdot-history.jsonl`), the weekly canary (Fridays 18:47 UTC), `kit-review`, and the ten agent-efficiency items in [research.md](research.md). Evals: run 7, the first where the sandbox could run Godot, scored `explain-failure` 1.00 with and without the plugin (1 run per arm); run 6 stands for `review-publishing-deal` (1.00 against 0.78) and `lost-in-level` (0.33 against 0.00). Open: below |
 | 2. `/game` | Built: `status`, the GDD format and feature tags, plan links to features and cards, the `game` and `weekly-review` skills. Open: below |
 | 3. Architecture | Built: the `architecture` runner in `test` (warnings by default), the `godot-patterns` skill, the `godot-architect` subagent with decisions in `docs/decisions/`, shown by `status` and `/game` |
 | 4. Look and feel | Built: `shot -Baseline`, `shot`'s palette check against `docs/STYLE.md` (`-MaxOffPalettePercent`), the `juice` runner and `juice.json`, the style guide template, the `look` and `godot-juice` skills. Open: writing Breakout Roguelike's `docs/STYLE.md` with the owner, and its first `juice.json` |
@@ -21,9 +21,9 @@ Still open from phases 1 and 2:
 - A first real `/game` run on Breakout Roguelike: a confirmed GDD, a `plan/STATUS.md` the owner agrees with, and a board
   that matches it.
 
-## 1.0: Hypedot
+## 1.0: Hyperdot
 
-Agreed in a question round with the owner on 2026-10-22. The kit becomes **Hypedot**, a Godot-specific game development
+Agreed in a question round with the owner on 2026-10-22. The kit becomes **Hyperdot**, a Godot-specific game development
 interface, and ships as 1.0 once these steps are done, in this order. Each step is one or more pull requests.
 
 1. **Sanity check.** Every self-test, both examples, `doctor` and `plan` on both, the Windows job; an inventory of the
@@ -31,11 +31,11 @@ interface, and ships as 1.0 once these steps are done, in this order. Each step 
 2. **Cleanup.** Merge or cut overlapping skills and docs (focused skills beat many big ones); clear finished roadmap
    items; fix stale counts. Done so far: five skill merges (55 to 50), this page cut to what is open, and
    `docs/strategies.md` folded into [What was decided](#what-was-decided).
-3. **Rename, clean break.** Done in code: plugin `hypedot`, `ci/godot/hypedot.ps1`, `HYPEDOT_*` variables, the `[hypedot]`
-   log prefix, the `hypedot/1` JSON schema, `.godot/hypedot-history.jsonl`, `~/.hypedot`, and `examples/csharp` (was
+3. **Rename, clean break.** Done in code: plugin `hyperdot`, `ci/godot/hyperdot.ps1`, `HYPERDOT_*` variables, the `[hyperdot]`
+   log prefix, the `hyperdot/1` JSON schema, `.godot/hyperdot-history.jsonl`, `~/.hyperdot`, and `examples/csharp` (was
    `examples/breakout`, whose name clashed with Breakout Roguelike). No aliases; error codes keep their names. Old state
    moves once: the history file, the GUT stamp and `~/.godot-ci` on any run; a game's workflow file and plugin entry on
-   `init`. Left to the owner: renaming the repository `nick-vas/Godot_TestSuite` to `nick-vas/hypedot` in GitHub's
+   `init`. Left to the owner: renaming the repository `nick-vas/Godot_TestSuite` to `nick-vas/hyperdot` in GitHub's
    settings when the rename pull request merges (the code already calls the new name).
 4. **Fixes and features from the question round** (the notes below).
 5. **Benchmark.** Evals with 3 runs per arm (the first run where all four cases can run commands), the token benchmark
@@ -55,7 +55,7 @@ Notes from the question round still open, each to be fixed, built or written dow
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
 | 10 | A game's CI workflow calls the kit's `@main`, so every kit change reaches every game at once | `init` writes `@v1`; games move up on purpose |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
-| 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hypedot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
+| 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hyperdot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
 | 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |
 | 14 | `/game` reports tests, not design or technical problems | `/game` adds a short design and architecture review |
 | 15 | Checking for the Steam Deck takes four commands | One Deck check: `textsize`, `layout`, `shot` at 1280x800 and `bench` with a Deck budget, one verdict |
@@ -104,7 +104,7 @@ Bugs found in the connector test, still open (`ci/godot/lib/Plan.ps1`):
 ## Principles that keep it future-proof
 
 1. **Facts in the CLI, judgement in Claude.** Anything that can be computed (tests, gates, git stats, bench numbers) is a
-   `hypedot.ps1` command with `-Json` output. Anything that needs judgement (is this feature done, is this screen readable)
+   `hyperdot.ps1` command with `-Json` output. Anything that needs judgement (is this feature done, is this screen readable)
    is a skill, slash command or subagent that reads that JSON. The CLI survives model changes; the skills are cheap to rewrite.
 2. **Ship as a Claude Code plugin.** Skills, subagents and the Stop hook load from this repository as a plugin and are
    updated with `/plugin update`. The game keeps only what is about the game: `AGENTS.md`, `docs/GDD.md`,

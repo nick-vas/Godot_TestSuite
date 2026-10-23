@@ -13,7 +13,7 @@ user has moved a card, the user's move wins.
 ## 1. Facts
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hypedot.ps1 status -Json      # add -Project <dir> when the game is not the current folder
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 status -Json      # add -Project <dir> when the game is not the current folder
 ```
 
 `features[]` (with `taggedTests`, `tasks`, `testedAndPassing`), `plan` (phase, open gates, tasks with `cardId` and

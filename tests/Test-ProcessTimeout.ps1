@@ -9,7 +9,7 @@ $pwshPath = (Get-Process -Id $PID).Path
 $log = Join-Path ([IO.Path]::GetTempPath()) "process-timeout-$PID.log"
 $failures = @()
 
-$env:HYPEDOT_TIMEOUT = '3'
+$env:HYPERDOT_TIMEOUT = '3'
 $clock = [Diagnostics.Stopwatch]::StartNew()
 # The child starts a grandchild that would outlive it, as a game's helper process might.
 $hang = "Write-Output started; Start-Process '$pwshPath' -ArgumentList '-NoProfile', '-Command', 'Start-Sleep 120' -NoNewWindow; Start-Sleep 120"
@@ -20,7 +20,7 @@ if ($code -ne 124) { $failures += "hung program returned $code, expected 124" }
 if ($seconds -gt 30) { $failures += "hung program was stopped after $([int]$seconds) s, expected about 3" }
 if ($text -notmatch 'started' -or $text -notmatch 'was still running after 3 s') { $failures += "hung program's log: $text" }
 
-Remove-Item Env:HYPEDOT_TIMEOUT
+Remove-Item Env:HYPERDOT_TIMEOUT
 $code = Invoke-Logged $pwshPath @('-NoProfile', '-Command', 'Write-Output out; [Console]::Error.WriteLine(''err''); exit 3') $log
 $lines = @(Get-Content -LiteralPath $log)
 if ($code -ne 3) { $failures += "finished program returned $code, expected 3" }

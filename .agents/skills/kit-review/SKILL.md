@@ -16,7 +16,7 @@ The goal is a smaller, sharper kit: propose cuts as readily as additions. At mos
   from the kit folder and use that.
 - **Size**: `pwsh <kit>/ci/godot/tools/Test-Skills.ps1 -Json` (findings) and the byte size of each `SKILL.md` and of
   `ci/godot/templates/AGENTS.md`.
-- **Recurring failures**: `.godot/hypedot-history.jsonl` in each game the user names.
+- **Recurring failures**: `.godot/hyperdot-history.jsonl` in each game the user names.
 - **Upstream**: the newest Godot release and the Claude Code changelog (`claude --version`, then the release notes).
   A new Claude Code feature counts only if it removes kit code or a kit instruction.
 
