@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Start with `/game`.** The README's quick start, `docs/usage.md`, `docs/plan.md` and the game's `AGENTS.md` template
+  say to start every Claude Code session in a game with `/game`.
 - **`init` pins the kit's workflow at `@v1`** instead of `@main`, so a kit change reaches a game only when a release
   moves the `v1` tag, and a game moves up on purpose. The docs' snippets use `@v1` too. The tag is created at the 0.1.0
   release; a workflow `init` wrote earlier keeps its ref.

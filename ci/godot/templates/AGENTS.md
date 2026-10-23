@@ -2,6 +2,8 @@
 
 Godot 4.7.2 game. Tests, builds and checks go through Hyperdot (`{{SUITE}}`, PowerShell 7).
 
+Start each session with `/game`: where the game stands and what to do next.
+
 ## Commands
 
 ```powershell

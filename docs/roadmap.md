@@ -66,7 +66,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 
 | # | Note | What to do |
 |---|---|---|
-| 4 | Nothing says to start a session with `/game` | The start-here page and the game's `AGENTS.md` say it |
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
 | 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |

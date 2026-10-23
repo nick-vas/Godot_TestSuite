@@ -117,7 +117,9 @@ separate, headless tool.
    game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
    updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hyperdot@hyperdot`.
 3. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
-4. Ask your agent to work. It reads `AGENTS.md`, runs `plan -Json` to see what is next and `test -Json` to check itself.
+4. Open Claude Code in the game's folder and **start every session with `/game`**: it reads where the game stands (GDD,
+   plan, tests, git), writes `plan/STATUS.md` and ends with the three best next tasks to pick from. Then ask the agent to
+   work; it reads `AGENTS.md` and runs `test -Json` to check itself.
 
 ## What it gives an agent
 

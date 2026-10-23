@@ -121,7 +121,7 @@ failing costs, content counts and length, open questions, changes) are for peopl
 pitch and the features.
 
 `status -Json` reads all of that, plus the plan, the latest runs, git activity and an inventory of the project, without
-judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging:
+judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judging; start every session with it:
 1. the first time, it drafts the GDD from the code and confirms it with you section by section;
 2. it marks each feature missing, started, works or proven, with evidence, in `plan/STATUS.md`;
 3. it adds a plan task (`plan -Do add -Feature F3`) for each feature that is not proven;
