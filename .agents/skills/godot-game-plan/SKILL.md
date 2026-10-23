@@ -40,7 +40,7 @@ Timeboxes are defaults for ~10 hours a week; set `weeklyHours` and resize at the
    ```
    Columns: `backlog, design, todo, doing, verify, done`: the solo version of a Kanban work loop, with Verify meaning
    "tests green" (`godot-verify-before-done`), not "a person reviewed it".
-6. Trello is optional and plan.json stays the source of truth. With the Trello connector, `/game` keeps the board in step
+6. Trello is optional and experimental in 1.0 (tested only against a mock); plan.json stays the source of truth. With the Trello connector, `/game` keeps the board in step
    (the `game` skill). Without it, `plan -Do sync -Board <id or short link>` creates a card per new task and pulls back cards
    the user dragged; it needs `TRELLO_KEY` and `TRELLO_TOKEN` in the environment, never in a file. Lists are matched by
    prefix: Backlog, Design, To Do, Doing, Testing, Done.

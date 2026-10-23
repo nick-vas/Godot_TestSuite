@@ -15,7 +15,7 @@ what to build next. This kit supplies both:
   plays your UI flows, exports and launches the build, and reports in **JSON an agent can read**. It runs on your Windows machine
   and, packed into a GitHub workflow, on a Linux runner.
 - **Author**: an editor-bridge MCP server lets the agent see and drive the live Godot editor and the running game.
-- **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync.
+- **Plan**: a seven-phase plan from concept to post-launch, with gates the project can check, tasks, and optional Trello sync (experimental in 1.0).
 - **Measure and look**: frame-pacing benchmarks and real screenshots, so an agent can check performance and layout, not just logic.
 - **Teach**: `AGENTS.md` and the skills in `.agents/skills`, which make the agent work test first and prove it is done before it says so.
 - **Stay lean and get better**: a Claude Code plugin with a verifier subagent and a Stop hook, quiet JSON output that keeps

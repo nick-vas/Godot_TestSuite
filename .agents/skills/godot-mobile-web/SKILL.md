@@ -130,8 +130,9 @@ steps, `godot-ui-flows`), and check text at the smallest aspect ratio in each or
 - `display/window/energy_saving/keep_screen_on` is on by default; turn it off for idle games and menus.
 - Android frame pacing (Swappy) is on by default.
 - Godot 4.7 has no thermal API (Android's thermal headroom needs a plugin).
-- **Save on `NotificationApplicationPaused`** (Android and iOS). iOS gives about 5 seconds and then kills the app
-  (`godot-saves`). Pause the game there and resume on `NotificationApplicationResumed`.
+- **Save on `NotificationApplicationPaused`** (Android and iOS only). iOS gives about 5 seconds and then kills the app
+  (`godot-saves`). Desktops, Steam Deck and consoles send nothing before a suspend: save often there instead
+  (`godot-console-cert`). Pause the game there and resume on `NotificationApplicationResumed`.
 - `OS.GetMemoryInfo()` gives physical, free and available memory for telemetry. Godot has no memory budget API.
 
 ## 5. Android export

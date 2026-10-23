@@ -31,10 +31,15 @@ The kit passes the same flags everywhere with `-GameArgs` (comma-separated, so o
 
 ```powershell
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners smoke -GameArgs '--autoplay','--seed=42','--no-save'
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 export -Json -Quiet -Preset Windows -Run -GameArgs '--autoplay','--no-save'
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners playthrough -GameArgs '--bot-skill=0.5'
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 bench -Json -Quiet -GameArgs '--stress'
 pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://ui/Map.tscn -GameArgs '--seed=7'
 ```
+
+These flags are debug tools, read only under `#if DEBUG` (`godot-debug-tools`). `test` (its `smoke` and `playthrough`
+runners), `bench` and `shot` run the project with the editor binary, a debug build, so the flags work there. `export -Run`
+launches the release export: it proves that build starts and runs without errors, and a bot flag passed to it does
+nothing.
 
 ## Flags worth having
 
@@ -45,7 +50,7 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 shot -Json -Quiet -Scene res://
 | `--no-save` | test runs never touch the player's save |
 | `--act=N`, `--start-floor=N`, `--level=X` | jump straight to the content under test |
 | `--stress` | the worst case for `bench` (`godot-performance`) |
-| `--no-hud` | hides the HUD, minimap and waypoint markers: navigation playtests run with it (`godot-game-design` section 7) |
+| `--capture=nohud` | hides everything in group `hud` (put the minimap and waypoint markers there too): navigation playtests run with it (`godot-game-design` section 7); capture mode is `godot-debug-tools` section 7 |
 | `--shot=path --shot-at=seconds` | the game saves its own screenshot (inside a real run, with game state); `shot` covers single scenes |
 | `--playback=<file>`, `--skip-to-frame=N` | replays an `InputLog` the game saved on quit or on an error (`godot-determinism`); the skip plays N ticks undrawn, then hands control back, still recording |
 
@@ -164,9 +169,10 @@ or physics change was known safe within the hour. Its recordings survived level 
   `place Box_1 on Socket_2`, `use Door_3`), never raw input or coordinates.
 - `--replay=<file>` walks to each target with `NavigationAgent3D`, performs the step, and logs `[Run] level=<name> solved`.
   By hand, run it under `--fixed-fps 60` (fast-forward with fixed physics steps).
-- A `smoke` run passes on a bot stuck in the first room. Until the kit checks for an ending, give it enough frames
-  (`test -Runners smoke -Frames 216000 -GameArgs '--replay=all','--no-save'`; smoke counts frames, not game time, so
-  size `-Frames` from a local run) and fail CI yourself: `grep -q '\[Run\] ending reached' test-results/smoke/smoke.log`.
+- A `smoke` run passes on a bot stuck in the first room; the `playthrough` runner does not. Put the replay in
+  `playthrough.json` (`"args": ["--replay=all", "--no-save"]`, `"expect"` with each level's `[Run] level=<name> solved`
+  and the ending last, `"frames"` sized from a local run): it fails when a milestone is missing (Prove the bot finishes,
+  above).
 - Let small content changes through (Final Fantasy VII Remake's replays, Square Enix, GDC): a step marked `optional` (a
   first-time tutorial) is dropped when it never comes, an unexpected scene the game can skip (a new cutscene or fight) is
   skipped instead of failing, and a step times out at a multiple of its recorded duration, not a fixed limit. When the

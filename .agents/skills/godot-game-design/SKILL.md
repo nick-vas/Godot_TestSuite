@@ -134,7 +134,7 @@ Hold every level to this with a `levels` table for the `data` runner (`godot-dat
 
 A level fails with no `solution` or an empty one, with a second sentence (`.`, `!` or `?` followed by more words, so write
 no abbreviations), or with a `purpose` or `kind` not in the list. Run it alone with
-`pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`. The `mechanics` column also shows which pairs of mechanics
+`pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners data`. The `mechanics` column also shows which pairs of mechanics
 no level combines yet.
 
 ## 7. Levels players find their way in
@@ -153,8 +153,9 @@ it is not one yet, so make it clearer.
 | **Nodes** (hubs, junctions) | many ways meet but there is no reason to stay: make it a place, not a pass-through |
 
 - Lay the elements out top-down first, then play the level to check each still reads at eye level.
-- Playtest navigation with the HUD, minimap and waypoint markers off (`--no-hud`, `godot-automation-hooks`): turn-by-turn
-  guidance lowers route memory, so it hides a layout that does not guide.
+- **The check is always a playtest with the minimap, markers and waypoint arrows turned off** (`--capture=nohud`, with
+  them in group `hud`: `godot-debug-tools`). Never judge a layout with them on: turn-by-turn guidance lowers route
+  memory, so it hides a layout that does not guide.
 - In 3D, check it every run: put landmarks in group `landmark` and the routes players travel (`Path3D`) in group `route`;
   `placement_check.gd` (`godot-data` section 6) fails a landmark that moves or is seen from fewer than two stretches of
   route, and a route that, walked either way, has a landmark in view ahead on less than a quarter of it.

@@ -171,7 +171,8 @@ A one-frame spike the first time something appears (first enemy hit, first popup
 
 - `MultiMesh` for repeated static props: one draw call per kind. Watch `drawCalls` in `bench`.
 - Billboards should not cast shadows (their shadow is a flat silhouette).
-- VRAM-compressed textures with mipmaps; particle textures at most 256 px; audio as mono QOA around 32 kHz.
+- In 3D, VRAM-compressed textures with mipmaps (never for pixel art or UI: `godot-asset-pipeline`); particle textures at
+  most 256 px; audio as mono QOA around 32 kHz.
 - Shadow map 2048 with low soft-shadow quality is enough for a tilted top-down camera.
 - Content that rarely changes (a board drawn on the floor): a `SubViewport` with `UpdateMode.Once`, re-triggered only on change.
 - Turn fog off on additive particle materials (fog darkens them).

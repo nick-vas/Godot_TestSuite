@@ -84,7 +84,7 @@ From Thomas and Johnston's *The Illusion of Life*; review a key animation (an at
 | Slow in and slow out | `Tween` easing, `XfadeCurve`, camera moves |
 | Arcs | swings, lobs, jumps and head turns follow curves |
 | Secondary action | breathing, blinks (a `OneShot`), footstep dust, weapon sway |
-| Timing | frame counts for startup, active and recovery; hit-stop of 2 to 6 frames (`godot-juice`) |
+| Timing | frame counts for startup, active and recovery; hit-stop on big hits (its length: `godot-juice`) |
 | Exaggeration | bigger flashes, knockback and poses than reality, so they read at gameplay zoom |
 | Solid drawing | weight and volume; no perfectly mirrored poses |
 | Appeal | a distinct silhouette for the player, each enemy and each boss |

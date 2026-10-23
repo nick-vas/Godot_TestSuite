@@ -102,7 +102,7 @@ every row without Godot and writes one JUnit case per table:
   `"names"` at the top level (misspelt proper nouns in dialogue, translations and scenes: `godot-narrative`).
 - Dialogue rules: a table of `"kind": "responses"` (`godot-narrative` section 4); `"type": "criteria"` checks the same
   criteria grammar (`health<25;!seen_tank`) in any table, such as quest or unlock conditions.
-- Run it alone: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners data`.
+- Run it alone: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners data`.
 - Puzzle levels: `godot-game-design` section 6 has a `levels` table that requires a one-sentence solution and a purpose
   for every level.
 
@@ -157,4 +157,4 @@ group and fails once, one line per finding: scene, node path, position, rule, me
 - On 4.7.2 headless, navigation answered after 9 to 11 physics frames for the first level of a GUT run and 3 or 4 for
   the next; the helper polls, capped. The checks take about 10 ms per 1,000 nodes.
 - A check at commit time does not replace the full run: data fine on day one breaks on day ten through another change.
-- Run it: `pwsh ci/godot/godot-ci.ps1 test -Project game -Runners gut -Filter test_every_level`.
+- Run it: `pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/godot-ci.ps1 test -Json -Quiet -Runners gut -Filter test_every_level`.

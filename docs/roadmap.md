@@ -80,8 +80,10 @@ Notes from the question round, each to be fixed, built or written down before 1.
    `AGENTS.md`, `docs/GDD.md`, `docs/decisions/`, `plan/`, its tests. A fix to a skill then reaches every game at once.
 3. **Every claim is checked.** The skill validator already checks that quoted commands, flags, codes and versions exist. New
    content follows the same rule: a lesson cites its evidence, a pattern cites the Godot API it uses, a version is tested.
-4. **Upkeep budget.** Skills stay under their 16 KB budget; a new skill must replace or shrink an old one when the total passes
-   200 KB; every command has a self-test job; a feature nobody used for three months is proposed for removal.
+4. **Upkeep budget.** Each `SKILL.md` stays under 16 KB (the skill validator fails it at 16 KB and warns from 15.5 KB);
+   detail goes to side files in the skill's folder, whose kit commands the validator checks too. A new skill that shares
+   a trigger with an old one is merged into it instead; every command has a self-test job; a feature nobody used for
+   three months is proposed for removal.
 5. **The owner sees the reasoning.** Plans, assessments and decisions are written to files in the game repository and mirrored
    to Trello, not left in a chat transcript.
 
@@ -131,8 +133,8 @@ One slash command that answers "where is this project, and what next", in the op
    content, screens) and asks the owner to confirm it section by section. Breakout Roguelike is the first case.
 3. **Assessment.** Claude maps each GDD feature to *missing*, *started*, *works* (code exists, smoke passes) or *proven* (a
    test, flow or bench covers it), and writes `plan/STATUS.md` with the evidence for each mark.
-4. **Trello through MCP.** One card per GDD feature and per open gate; the card description carries `plan-id: <id>` so
-   matching survives renames. Claude creates and moves cards from the assessment; before writing, it reads the board, and a
+4. **Trello through MCP.** One card per GDD feature and per open gate; the card description carries `plan task <id>, phase <phase>`
+   (as `plan -Do sync` writes it) so matching survives renames. Claude creates and moves cards from the assessment; before writing, it reads the board, and a
    card the owner moved since the last sync keeps the owner's column. Every write is listed in `STATUS.md`.
 5. **Then it works with the owner.** It ends with a multiple-choice question: the top three next tasks with reasons, plus
    "something else".
