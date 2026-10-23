@@ -375,7 +375,7 @@ Missing: everything from Nakamura/Game Preservation Society onwards (Yotsui, Kos
 30. **To win the composer you want, send something playable and say why it has to be them.**
     "We sent him a copy of D no Shokutaku while he was still in England, and he played it and thought it was good." (Katsutoshi Eguchi on Michael Nyman, 587); "why it had to be Michael Nyman, over and over again" (582)
     NEW.
-    Apply (`godot-audio`, not added: that skill is at its size limit): a commission request carries a playable build or video and a one-page "why you".
+    Apply (`godot-audio`, its `commissioning.md`): a commission request carries a playable build or video and a one-page "why you".
 
 31. **Give the boot logo a short signature sound.**
     "there should be a “turning on”" (Katsutoshi Eguchi on Eno and the Dreamcast's start-up sound, which Ryuichi Sakamoto wrote, 629)

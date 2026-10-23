@@ -14,6 +14,8 @@
 - **Lights per mesh on phones in `godot-mobile-web`.** The Mobile renderer's limit, 8 OmniLights and 8 SpotLights per
   mesh instance, is not a project setting: it is read from 4.7.2's Mobile scene shader, which packs each instance's lights
   as 8-bit indices in two 32-bit words (`sc_omni_lights(8)`). Compatibility's two settings sit beside it.
+- **Commissioning a composer in `godot-audio`** (`commissioning.md`, from Untold History lesson 30): send something
+  playable, say why it has to be them, hand over the adaptive plan and settle the rights.
 - **The Hyperdot label** (`docs/label.md`, `benchmark/Get-HyperdotLabel.ps1`, `benchmark/label-scale.json`), modelled on
   the EU energy label (Regulation (EU) 2017/1369; washing machines, 2019/2014):
   - an agent-efficiency class from A to G, from the Agent Efficiency Index: tokens per solved task over a standard, per

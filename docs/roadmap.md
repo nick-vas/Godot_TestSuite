@@ -235,8 +235,8 @@ In the skills:
 
 - A dialogue tool for `godot-narrative` (Ink, Yarn Spinner or Dialogic): read each licence and latest release, try each in
   a copy of the C# example on 4.7.2; if none fits, a JSON dialogue graph checked by the `data` and `l10n` runners.
-- Untold lesson 30 (commissioning a composer) in `godot-audio`, and Lars Liden's "Artificial Stupidity" cited in
-  `godot-game-ai`; both skills are at their size limit, so each needs a cut first.
+- Lars Liden's "Artificial Stupidity" cited in `godot-game-ai`; the skill is at its size limit, so it needs a cut or a
+  side file first.
 - Smaller design prompts not yet placed: saving as a difficulty lever, pressure against stalling, sinks players want,
   fixed costs pegged to a share of wealth, hidden charges on limited-use items (`godot-progression`); a camera cost
   checklist (`concept.decisions`); a five-Ws premise and the player's verbs in bold in the story summary; a turn written

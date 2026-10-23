@@ -68,6 +68,7 @@ CreateTween().TweenMethod(Callable.From<float>(db => layers.SetSyncStreamVolume(
   in the Import dock). On a WAV clip they switch at once. Use Ogg for music.
 - `GetStreamPlayback()` fails until the player is playing. Drive music from game state ("in combat" for at least two
   seconds, not each hit), so it does not flicker between sections.
+- Hiring a composer: [commissioning.md](commissioning.md) (a playable build, why them, the adaptive plan, the rights).
 
 ## 3. Variation and voice limits
 
