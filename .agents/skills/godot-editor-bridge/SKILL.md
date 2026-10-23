@@ -18,7 +18,7 @@ once it is saved and `test -Json` agrees (`godot-verify-before-done`).
 ## Setup
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 init -Agents -Mcp godot-mcp     # writes .mcp.json (adds only), prints the addon steps
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 init -Mcp godot-mcp     # writes .mcp.json (adds only), prints the addon steps
 ```
 Default server: **satelliteoflove/godot-mcp** (MIT; Godot 4.5+, Node 20+). Tools include `godot_scene`, `godot_node_read`/`godot_node_edit`,
 `godot_editor_read`/`godot_editor_edit` (run/stop, screenshots, editor errors), `godot_runtime_state`, `godot_game_time` (freeze and step
