@@ -54,6 +54,7 @@ try {
     Assert-True (@($calls | Where-Object { $_.args -notcontains '--strict-mcp-config' }).Count -eq 0) 'every session skips the user''s MCP servers'
     Assert-True (@($calls | Where-Object { $_.args -contains 'Bash' -and [Array]::IndexOf($_.args, '--disallowedTools') -lt 0 }).Count -eq 0) 'no session may run Bash or edit'
     Assert-True (@($calls | Where-Object { $_.sessionEnv }).Count -eq 0) 'the parent session id does not reach the benchmark sessions'
+    Assert-True (@($calls | Where-Object { $_.args -contains '--plugin-dir' -or $_.args -contains 'Skill' }).Count -eq 0) 'without -Plugin no session loads the plugin or its skills'
     $resumed = @($calls | Where-Object { $_.args -contains '--resume' })
     $started = @($calls | Where-Object { $_.args -contains '--session-id' } | ForEach-Object { $_.args[[Array]::IndexOf($_.args, '--session-id') + 1] })
     Assert-True ($resumed.Count -gt 0 -and @($resumed | Where-Object { $_.args[[Array]::IndexOf($_.args, '--resume') + 1] -notin $started }).Count -eq 0) 'the second step resumes the first step''s session'
@@ -72,6 +73,24 @@ try {
     Assert-True (@($summary.cells).Count -eq 9) 'one summary cell per task and profile'
     foreach ($file in 'results.csv', 'summary.json', 'summary.md') { Assert-True (Test-Path -LiteralPath (Join-Path $summary.folder $file)) "writes $file" }
     Assert-True (@(Get-ChildItem -LiteralPath (Join-Path $summary.folder 'responses') -Filter '*.md').Count -gt 18) 'keeps every answer with -SaveResponses'
+
+    $before = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG).Count
+    $withPlugin = Invoke-Bench @('-TaskId', 'T-GOOD', '-ProfileId', 'P1-plain', '-Repeat', '1', '-Plugin')
+    $pluginCalls = @(Get-Content -LiteralPath $env:FAKE_CLAUDE_LOG | Select-Object -Skip $before | ForEach-Object { $_ | ConvertFrom-Json })
+    $pluginDir = @($pluginCalls | ForEach-Object { $_.args[[Array]::IndexOf($_.args, '--plugin-dir') + 1] })
+    Assert-True ($pluginCalls.Count -eq 1 -and $pluginCalls[0].args -contains 'Skill' -and $pluginDir[0] -eq $root) "-Plugin loads this repository as a plugin and allows the Skill tool (got $($pluginDir -join ', '))"
+    $pluginRow = @(Get-Content -LiteralPath (Join-Path $withPlugin.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]
+    Assert-True ($pluginRow.plugin -eq $true -and $withPlugin.Json.meta.plugin -eq $true -and (Get-Content -LiteralPath (Join-Path $withPlugin.Json.folder 'summary.md') -Raw) -match 'loaded as a plugin') 'rows and the summary say the plugin was loaded'
+
+    # Forbidden words count in an answer's code, not in its notes about the code.
+    $parsed = [System.Management.Automation.Language.Parser]::ParseFile($bench, [ref]$null, [ref]$null)
+    $grader = $parsed.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Test-BenchmarkAnswer' }, $true)
+    . ([scriptblock]::Create($grader.Extent.Text))
+    $fence = '`' * 3
+    $rule = @{ forbid = @('Write-Output') }
+    Assert-True ((Test-BenchmarkAnswer "${fence}powershell`nfunction Get-X { 1 }`n${fence}`nNo Write-Output: the value is returned." $rule).Count -eq 0) 'a forbidden word in the notes beside the code passes'
+    Assert-True ((Test-BenchmarkAnswer "${fence}powershell`nWrite-Output 1`n${fence}" $rule) -contains "contains 'Write-Output'") 'a forbidden word in the code fails'
+    Assert-True ((Test-BenchmarkAnswer 'Use Write-Output here.' $rule) -contains "contains 'Write-Output'") 'without code blocks the whole answer counts'
 
     $slow = Invoke-Bench @('-TaskId', 'T-SLOW', '-ProfileId', 'P1-plain', '-Repeat', '1')
     $slowRow = @(Get-Content -LiteralPath (Join-Path $slow.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]

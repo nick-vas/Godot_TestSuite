@@ -34,6 +34,9 @@ param(
     [string]$Claude = 'claude',
     # The folder the sessions run in. Default: the repository root.
     [string]$WorkDir = (Split-Path $PSScriptRoot -Parent),
+    # Load this repository as a Claude Code plugin (its skills) in every session; run once with and once without to
+    # see what the skills change. Rows and the summary say which.
+    [switch]$Plugin,
     [switch]$SaveResponses,
     [switch]$DryRun,
     # Print summary.json on stdout (logs go to stderr).
@@ -71,8 +74,10 @@ function Get-ClaudeArguments($Spec, $ProfileSpec, [string]$SessionId, [int]$Step
     foreach ($a in '-p', '--output-format', 'json', '--model', $ModelName, '--max-turns', "$turns", '--strict-mcp-config',
         '--setting-sources', $Spec.settingSources, '--max-budget-usd', ([string]$Spec.maxBudgetUsdPerCall)) { $arguments.Add($a) }
     $arguments.Add('--allowedTools'); foreach ($tool in $Spec.tools) { $arguments.Add($tool) }
+    if ($Plugin) { $arguments.Add('Skill') }
     $arguments.Add('--disallowedTools'); foreach ($tool in 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch', 'Task', 'Agent') { $arguments.Add($tool) }
     if ($ProfileSpec.Contains('effort')) { $arguments.Add('--effort'); $arguments.Add($ProfileSpec.effort) }
+    if ($Plugin) { $arguments.Add('--plugin-dir'); $arguments.Add((Split-Path $PSScriptRoot -Parent)) }
     if ($ProfileSpec.Contains('appendSystemPrompt')) { $arguments.Add('--append-system-prompt'); $arguments.Add($ProfileSpec.appendSystemPrompt) }
     if ($StepIndex -eq 0) {
         $arguments.Add('--session-id'); $arguments.Add($SessionId)
@@ -168,8 +173,12 @@ function Test-BenchmarkAnswer([string]$Text, $Expected) {
         foreach ($word in @(if ($Expected.Contains('mustInclude')) { $Expected.mustInclude })) {
             if ($Text.IndexOf([string]$word, [StringComparison]::OrdinalIgnoreCase) -lt 0) { $reasons.Add("missing '$word'") }
         }
+        # A forbidden word is looked for in the answer's code blocks when it has any: a note saying "no Write-Output" is
+        # not a use of it.
+        $blocks = @([regex]::Matches($Text, '(?s)```[^\n]*\n(.*?)```') | ForEach-Object { $_.Groups[1].Value })
+        $code = if ($blocks.Count -gt 0) { $blocks -join "`n" } else { $Text }
         foreach ($word in @(if ($Expected.Contains('forbid')) { $Expected.forbid })) {
-            if ($Text.IndexOf([string]$word, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $reasons.Add("contains '$word'") }
+            if ($code.IndexOf([string]$word, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $reasons.Add("contains '$word'") }
         }
         $words = @($Text -split '\s+' | Where-Object { $_ }).Count
         if ($Expected.Contains('maxWords') -and $words -gt [int]$Expected.maxWords) { $reasons.Add("$words words, limit $($Expected.maxWords)") }
@@ -222,7 +231,7 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
     }
     $reasons = if ($final.ok) { Test-BenchmarkAnswer $final.text $TaskSpec.expected } else { @($final.problem) }
     return [pscustomobject][ordered]@{
-        profile = $ProfileSpec.id; task = $TaskSpec.id; category = $TaskSpec.category; repetition = $Repetition
+        profile = $ProfileSpec.id; task = $TaskSpec.id; category = $TaskSpec.category; repetition = $Repetition; plugin = [bool]$Plugin
         model = (@($models) | Sort-Object) -join '+'; success = ($final.ok -and @($reasons).Count -eq 0); retries = $attempt
         steps = $prompts.Count; turns = $totals.turns
         tokensInput = $totals.input; tokensCacheWrite = $totals.cacheWrite; tokensCacheRead = $totals.cacheRead; tokensOutput = $totals.output
@@ -268,7 +277,7 @@ function Get-BenchmarkSummary([object[]]$AllRows, [string[]]$ProfileOrder, [stri
 function Format-BenchmarkMarkdown($Summary, $Meta) {
     $md = [System.Collections.Generic.List[string]]::new()
     $md.Add("# Token benchmark $($Meta.runId)"); $md.Add('')
-    $md.Add("Model $($Meta.models), $($Meta.repeat) run(s) per task and profile, $($Meta.calls) session(s), CLI $($Meta.claudeVersion).")
+    $md.Add("Model $($Meta.models), $($Meta.repeat) run(s) per task and profile, $($Meta.calls) session(s), CLI $($Meta.claudeVersion), $(if ($Meta.plugin) { 'with this repository loaded as a plugin (its skills)' } else { 'without the plugin' }).")
     $md.Add('Tokens include cache reads and writes; cost is Claude Code''s own figure.'); $md.Add('')
     $md.Add('| Profile | Runs | Success % | Median tokens | P90 tokens | Median output | Median turns | Median cost | Total cost | Successes per $ | Median time (s) |')
     $md.Add('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
@@ -300,7 +309,7 @@ $limit = if ($MaxCalls -gt 0) { $MaxCalls } else { [int]$spec.maxCalls }
 $calls = 0
 foreach ($p in $profiles) { $calls += (Get-StepPrompts $p $tasks[0]).Count * $tasks.Count * $repeatCount }
 
-Write-BenchLog "$($profiles.Count) profile(s) x $($tasks.Count) task(s) x $repeatCount run(s) = $calls session(s) (more with retries), model $modelName"
+Write-BenchLog "$($profiles.Count) profile(s) x $($tasks.Count) task(s) x $repeatCount run(s) = $calls session(s) (more with retries), model $modelName$(if ($Plugin) { ', with the plugin' })"
 if ($DryRun) {
     foreach ($p in $profiles) {
         $arguments = Get-ClaudeArguments $spec $p '<session>' 0 (Get-StepPrompts $p $tasks[0]).Count $modelName
@@ -331,7 +340,7 @@ for ($r = 1; $r -le $repeatCount; $r++) {
 
 $summary = Get-BenchmarkSummary $rows.ToArray() @($profiles.id) @($tasks.id)
 $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath).Path; repeat = $repeatCount; calls = $calls
-    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = $modelName; claudeVersion = $claudeVersion }
+    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = $modelName; claudeVersion = $claudeVersion; plugin = [bool]$Plugin }
 $rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8
 $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
 $document = [ordered]@{ meta = $meta; profiles = $summary.profiles; cells = $summary.cells; folder = $runDir }

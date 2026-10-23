@@ -29,6 +29,7 @@ CLI's raw JSON. `-Json` prints `summary.json` on stdout.
 | `-Repeat`, `-Model`, `-MaxCalls` | Override the spec |
 | `-Claude` | The CLI to run (default `claude`); a `.ps1` runs with pwsh, which is how the self-test uses a stand-in |
 | `-WorkDir` | Where the sessions run (default: the repository root) |
+| `-Plugin` | Load this repository as a Claude Code plugin (`--plugin-dir`, and the `Skill` tool allowed), so its skills can trigger. Run the same spec with and without it to see what the skills change; rows and `summary.md` say which. In the workflow: the `plugin` input |
 
 ## The spec: `benchmark/token-benchmark.json`
 
@@ -39,8 +40,10 @@ CLI's raw JSON. `-Json` prints `summary.json` on stdout.
 - `profiles[]`: `id`, `description`, and any of `appendSystemPrompt`, `listContext` (add the task's `context` paths to
   the prompt), `maxTurns`, `effort`, and `steps` (prompts sent one after another in the same session, by resuming it).
 - `tasks[]`: `id`, `category`, `title`, `prompt`, `context` (paths in this repository), and `expected`: `mustInclude`
-  (each must appear, ignoring case), `forbid`, `maxWords`. A task passes when the session ends without an error and
-  the answer meets `expected`.
+  (each must appear, ignoring case), `forbid` (looked for in the answer's code blocks when it has any, so a note such as
+  "no `Write-Output`" does not fail it), `maxWords` (stated in the prompt as "Answer in at most N words.", so the limit
+  the answer is checked against is never a secret). A task passes when the session ends without an error and the answer
+  meets `expected`.
 
 The tasks name real files and expect answers grounded in them (`HYPERDOT_TIMEOUT`, `process_frame`, `Stop-GodotCi`), so
 a vague answer fails instead of passing on generic words.

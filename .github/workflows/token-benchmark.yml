@@ -20,6 +20,10 @@ on:
       tasks:
         description: Comma-separated task ids (empty for all)
         default: ''
+      plugin:
+        description: Load this repository as a Claude Code plugin (its skills); run once with and once without to compare
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,12 +58,14 @@ jobs:
           REPEAT: ${{ inputs.repeat }}
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
+          PLUGIN: ${{ inputs.plugin }}
         run: |
           $params = @{ OutputDir = 'benchmark/results'; SaveResponses = $true }
           if ($env:MODEL) { $params.Model = $env:MODEL }
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
           if ($env:PROFILES) { $params.ProfileId = $env:PROFILES }
           if ($env:TASKS) { $params.TaskId = $env:TASKS }
+          if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
