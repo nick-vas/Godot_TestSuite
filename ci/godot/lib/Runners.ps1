@@ -90,7 +90,7 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
 function Invoke-TestRunner {
     param([string]$Runner, $Info, [string]$ResultsDir, [string]$Filter, [bool]$Coverage, [int]$Frames, [string[]]$GameArgs, [int]$FixedFps = 0)
 
-    if (Test-Path -LiteralPath $ResultsDir) { Remove-Item -Recurse -Force $ResultsDir }
+    if (Test-Path -LiteralPath $ResultsDir) { Remove-Item -LiteralPath $ResultsDir -Recurse -Force }
     New-Item -ItemType Directory -Force $ResultsDir | Out-Null
     $godot = $env:GODOT_BIN
     $project = $Info.ProjectDir

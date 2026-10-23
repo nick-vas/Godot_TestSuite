@@ -7,7 +7,7 @@ function Save-Download([string]$Url, [string]$Destination) {
     for ($attempt = 1; ; $attempt++) {
         try {
             Invoke-WebRequest -Uri $Url -OutFile "$Destination.part" -MaximumRedirection 10
-            Move-Item -Force "$Destination.part" $Destination
+            Move-Item -Force -LiteralPath "$Destination.part" -Destination $Destination
             return
         } catch {
             if ($attempt -ge 4) { throw }
@@ -149,7 +149,7 @@ function Install-GodotTools {
         } else {
             Expand-Zip $zip $paths.ToolsDir
         }
-        Remove-Item -Force $zip
+        Remove-Item -Force -LiteralPath $zip
         if (-not (Test-Path -LiteralPath $paths.Bin)) {
             $found = @(Get-ChildItem -LiteralPath $paths.ToolsDir | ForEach-Object Name)
             Stop-GodotCi "$($paths.Package).zip has no $([System.IO.Path]::GetRelativePath($paths.ToolsDir, $paths.Bin)) (it holds: $($found -join ', '))"
@@ -167,7 +167,7 @@ function Install-GodotTools {
             Expand-Zip $tpz $tmp
             New-Item -ItemType Directory -Force $paths.TemplatesDir | Out-Null
             Copy-Item -Recurse -Force (Join-Path $tmp 'templates/*') $paths.TemplatesDir
-            Remove-Item -Recurse -Force $tmp, $tpz
+            Remove-Item -Recurse -Force -LiteralPath $tmp, $tpz
         }
     }
 
@@ -214,11 +214,13 @@ function Install-Addon([string]$ProjectDir, [string]$Spec) {
         '--filter=blob:none', '--sparse', "https://github.com/$repo.git", $tmp)
     Invoke-Checked git @('-C', $tmp, 'sparse-checkout', 'set', $addon)
     if (-not (Test-Path -LiteralPath (Join-Path $tmp $addon))) { Stop-GodotCi "$repo@$ref has no $addon folder" }
-    if (Test-Path -LiteralPath $dest) { Remove-Item -Recurse -Force $dest }
+    # -LiteralPath throughout: a project path with [ or ] is a wildcard to -Path, which then removes nothing and the copy
+    # below nests the new add-on inside the old one.
+    if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Recurse -Force }
     New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
-    Copy-Item -Recurse (Join-Path $tmp $addon) $dest
+    Copy-Item -Recurse -LiteralPath (Join-Path $tmp $addon) -Destination $dest
     Set-Content -LiteralPath $stamp -Value "$repo@$ref"
-    Remove-Item -Recurse -Force $tmp
+    Remove-Item -LiteralPath $tmp -Recurse -Force
 }
 
 # GUT release that matches the Godot minor version.
