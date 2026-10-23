@@ -1,0 +1,3 @@
+{ "id": "fix-bug", "title": "Fix a bug a player reported", "category": "bug_fix",
+  "prompt": "Players of this {genre} game, a Godot 4.7 {stage} in {language}, report: {report}. Fix it, and check the fix with the game's tests.",
+  "expected": { "maxWords": 220 }, "suite": true }

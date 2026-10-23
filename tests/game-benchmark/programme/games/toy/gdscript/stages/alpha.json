@@ -1,0 +1,31 @@
+{
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the score multiplier no longer goes up on the fifth hit in a row"
+      },
+      "edits": [
+        {
+          "file": "score.gd",
+          "find": "combo / 5",
+          "replace": "combo / 6"
+        }
+      ],
+      "unchanged": [
+        "test/test_score.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_multiplier.gd"
+      ]
+    }
+  ],
+  "milestone": {
+    "vars": {
+      "goal": "Add a best score: Score gets an int property best, the highest points so far, and reset() starts a new game and keeps best"
+    },
+    "hidden": [
+      "hidden/test_hidden_best.gd"
+    ]
+  }
+}

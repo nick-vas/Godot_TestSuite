@@ -110,7 +110,55 @@ In the workflow, choose the `game` programme. What differs from the tool program
 - **The game must be green first**: the run starts with the kit's `test` on `game.source`, which also installs GUT.
 
 `tests/Test-GameBenchmark.ps1` runs the real spec with a stand-in CLI that does every task once well and once badly: the
-good work must pass every check, and the bad work must fail each task for the reason the task is about.
+good work must pass every check, and the bad work must fail each task for the reason the task is about. It also runs a
+one-genre, two-stage test programme (`tests/game-benchmark/programme/`), checking tiers, selectors, the estimate, the
+ceiling, the stop past it, stages built from the whole game, and a milestone reached and missed.
+
+## The staged game programme
+
+The pilot above is one prototype. The staged programme (`benchmark/PLAN.md`) covers genres, four stages each
+(prototype, alpha, beta, release candidate) and both languages. Its spec has a `programme` block instead of a task
+list; `benchmark/GameProgramme.ps1` turns what a run selects into ordinary tasks.
+
+```
+<gamesDir>/<genre>/<language>/game/                 the genre's whole game, at release-candidate level
+<gamesDir>/<genre>/<language>/stages/<stage>.json   how to make the stage from it, and the stage's tasks
+<gamesDir>/<genre>/<language>/stages/<stage>/       files laid over the stage (optional)
+<templatesDir>/<template>.json                      a kind of task: title, category, prompt with {placeholders}, limits
+```
+
+- **A stage** is the whole game minus what its manifest `remove`s, with its `edits`, and its overlay on top. It is built
+  once per run in a temporary folder, and it must pass its own tests before any session starts.
+- **A task** is an entry of the stage manifest: a `template`, the `vars` that fill its prompt, the defects it plants
+  (`edits`) and how it is graded (`hidden`, `unchanged`, `match`, `mutants` with `mutantTests`, `suite`, `newTests`). Its
+  id is `<genre>.<stage>.<language>.<template>`.
+- **A milestone** is the next stage's `milestone` entry: a session on this stage, graded by the next stage's acceptance
+  files. Its id is `<genre>.<from>-to-<to>.<language>.milestone`, and its `limits` (turns, time, budget) are larger.
+- **Placeholders** come from the genre (`{genre}`), the stage (`{stage}`), the language (`{language}` and the
+  programme's `languages` values, such as `{tests}`) and the task's `vars`. One left unfilled is an error.
+- **Genres not written yet** are listed and skipped, so the programme can name all ten genres before they exist.
+
+| Parameter | |
+|---|---|
+| `-Tier min\|mid\|max` | the programme's tier: its cells (genre, language and stage combinations), `tasksPerStage`, `repeat`, milestones and `maxCostUsd` |
+| `-Genre`, `-Stage`, `-Language` | narrow the tier; lists or comma-separated, wildcards allowed |
+| `-TaskId` | full ids, wildcards allowed (`*.fix-bug`, `*.milestone`) |
+| `-BudgetUsd` | the most the run may cost |
+
+**Cost.** `benchmark/cost-model.json` gives each kind of session an expected cost by model, plugin and kind (task or
+milestone). The runner estimates the run from it. The ceiling is `-BudgetUsd`, or the tier's `maxCostUsd` shared over
+the programme's `configurations` in proportion to their estimates, so that four parallel jobs together stay under it.
+
+- A run, or a dry run, whose estimate is over its ceiling is refused before any session starts.
+- During the run the actual cost is added up. Once it passes the ceiling no new session starts, the missed ones are
+  listed in `notRun`, and the run exits 1.
+
+`summary.json` records the tier, the selection, the estimate, the ceiling and what was spent. `standard` is true only
+for an unnarrowed, complete `mid` run, the one that can set a class.
+
+**In the workflow**, choose the `staged` programme, a tier, any selectors, and `configurations: all`. A plan job dry-runs
+each configuration (Sonnet and Haiku, with and without the plugin) and fails before anything is spent if one is over
+its share. Then one job per configuration runs in parallel.
 
 ## Reading the numbers
 

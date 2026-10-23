@@ -69,6 +69,45 @@ try {
     Assert-True ($test -and ([regex]::Matches($test.gameReasons, 'the tests miss a bug')).Count -eq 5) 'a weak test misses all five mutants'
     $diag = Get-Row $bad 'GAME-DIAG-001'
     Assert-True ($diag -and -not $diag.reasons.Contains('missing')) 'a right answer with a forbidden edit fails on the edit alone'
+
+    # The staged programme (benchmark/PLAN.md), on a one-genre, two-stage test programme.
+    $programme = Join-Path $PSScriptRoot 'game-benchmark/programme/programme.json'
+    function Invoke-Programme([string[]]$Arguments, [string]$Mode = 'good', [string]$Spec = $programme) {
+        $env:FAKE_GAME_MODE = $Mode
+        $out = & pwsh -NoProfile -File $bench -SpecPath $Spec -Claude $fake -OutputDir (Join-Path $work "programme-$Mode") -SaveResponses -Json @Arguments 2>$null
+        $code = $LASTEXITCODE
+        $doc = @($out | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
+        return [pscustomobject]@{ Code = $code; Json = $(if ($doc) { $doc | ConvertFrom-Json }) }
+    }
+    $min = Invoke-Programme @('-Tier', 'min', '-DryRun')
+    Assert-True ($min.Code -eq 0 -and ($min.Json.tasks -join ',') -eq 'toy.prototype.gdscript.fix-bug,toy.alpha.gdscript.fix-bug') "the min tier takes its cells and tasks a stage ($($min.Json.tasks -join ', '))"
+    $mid = Invoke-Programme @('-Tier', 'mid', '-DryRun')
+    Assert-True ($mid.Code -eq 0 -and @($mid.Json.tasks).Count -eq 4 -and $mid.Json.tasks -contains 'toy.prototype-to-alpha.gdscript.milestone') 'the mid tier adds every task and its milestone; genres not written yet are skipped'
+    Assert-True ([math]::Abs($mid.Json.estimateUsd - 0.016) -lt 1e-9 -and [math]::Abs($mid.Json.budgetUsd - 5 * 0.016 / 0.0528) -lt 1e-9) "the estimate comes from the cost model, the ceiling is the tier's shared by expected cost ($($mid.Json.estimateUsd), $($mid.Json.budgetUsd))"
+    $narrow = Invoke-Programme @('-Tier', 'mid', '-Stage', 'alpha', '-DryRun')
+    Assert-True (($narrow.Json.tasks -join ',') -eq 'toy.alpha.gdscript.fix-bug') 'selectors narrow a tier'
+    $wild = Invoke-Programme @('-Tier', 'mid', '-TaskId', '*.fix-bug', '-DryRun')
+    Assert-True (@($wild.Json.tasks).Count -eq 2) 'task ids take wildcards'
+    $over = Invoke-Programme @('-Tier', 'min', '-BudgetUsd', '0.0001', '-DryRun')
+    Assert-True ($over.Code -eq 1 -and $over.Json.overBudget) 'a dry run over its ceiling fails'
+    Assert-True ((Invoke-Programme @('-Tier', 'huge', '-DryRun')).Code -ne 0) 'an unknown tier is refused'
+    Assert-True ((Invoke-Programme @('-Tier', 'min', '-DryRun') 'good' $spec).Code -ne 0) 'tiers belong to staged programmes only'
+
+    $staged = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1')
+    $stagedRows = if ($staged.Json) { @(Get-Content -LiteralPath (Join-Path $staged.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
+    Assert-True ($staged.Code -eq 0 -and $stagedRows.Count -eq 4 -and @($stagedRows | Where-Object success).Count -eq 4) "good work passes every staged task and the milestone ($(@($stagedRows | Where-Object { -not $_.success } | ForEach-Object { "$($_.task): $($_.reasons)" }) -join '; '))"
+    Assert-True ($staged.Json -and $staged.Json.meta.tier -eq 'mid' -and -not $staged.Json.meta.standard) 'a run with its repeats changed is not the standard programme'
+    $milestoneDiff = if ($staged.Json) { Get-Content -LiteralPath (Join-Path $staged.Json.folder 'responses/A-baseline-toy.prototype-to-alpha.gdscript.milestone-r1-a0.diff') -Raw } else { '' }
+    Assert-True ($milestoneDiff -match '(?m)^\+var best') 'a stage is built from the whole game: the prototype has no best score until the milestone adds it'
+    Assert-True (@(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Directory -Filter 'hyperdot-stages-*').Count -eq 0) 'the stage fixtures are removed'
+
+    $badMilestone = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1', '-TaskId', '*.milestone') 'bad'
+    $badRows = if ($badMilestone.Json) { @(Get-Content -LiteralPath (Join-Path $badMilestone.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
+    Assert-True ($badRows.Count -eq 1 -and -not $badRows[0].success -and $badRows[0].gameReasons -match 'hidden_') 'a milestone not reached fails on the next stage''s acceptance tests'
+
+    $stopped = Invoke-Programme @('-Tier', 'mid', '-Repeat', '1', '-BudgetUsd', '0.015')
+    $stoppedRows = if ($stopped.Json) { @(Get-Content -LiteralPath (Join-Path $stopped.Json.folder 'results.json') -Raw | ConvertFrom-Json) } else { @() }
+    Assert-True ($stopped.Code -eq 1 -and $stoppedRows.Count -eq 2 -and @($stopped.Json.meta.notRun).Count -eq 2) "past the ceiling nothing new starts, and the run is incomplete ($($stoppedRows.Count) run, exit $($stopped.Code))"
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item Env:FAKE_GAME_MODE, Env:FAKE_CLAUDE_LOG -ErrorAction SilentlyContinue

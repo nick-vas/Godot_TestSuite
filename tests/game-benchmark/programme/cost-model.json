@@ -1,0 +1,14 @@
+{
+  "note": "Made up for the self-test: small enough that a run's estimate stays under its ceiling while the stand-in's real cost (0.01 a session) passes it.",
+  "fallbackUsd": 0.01,
+  "sessions": [
+    { "model": "sonnet", "plugin": false, "kind": "task", "usd": 0.001 },
+    { "model": "sonnet", "plugin": true, "kind": "task", "usd": 0.002 },
+    { "model": "haiku", "plugin": false, "kind": "task", "usd": 0.0001 },
+    { "model": "haiku", "plugin": true, "kind": "task", "usd": 0.0002 },
+    { "model": "sonnet", "plugin": false, "kind": "milestone", "usd": 0.005 },
+    { "model": "sonnet", "plugin": true, "kind": "milestone", "usd": 0.01 },
+    { "model": "haiku", "plugin": false, "kind": "milestone", "usd": 0.0005 },
+    { "model": "haiku", "plugin": true, "kind": "milestone", "usd": 0.001 }
+  ]
+}

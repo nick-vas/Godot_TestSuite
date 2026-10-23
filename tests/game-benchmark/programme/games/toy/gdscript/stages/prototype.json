@@ -1,0 +1,69 @@
+{
+  "edits": [
+    {
+      "file": "score.gd",
+      "find": "var best := 0\n",
+      "replace": ""
+    },
+    {
+      "file": "score.gd",
+      "find": "\tbest = maxi(best, points)\n",
+      "replace": ""
+    },
+    {
+      "file": "score.gd",
+      "find": "\nfunc reset() -> void:\n\tpoints = 0\n\tcombo = 0\n",
+      "replace": ""
+    }
+  ],
+  "tasks": [
+    {
+      "template": "fix-bug",
+      "vars": {
+        "report": "the score multiplier no longer goes up on the fifth hit in a row"
+      },
+      "edits": [
+        {
+          "file": "score.gd",
+          "find": "combo / 5",
+          "replace": "combo / 6"
+        }
+      ],
+      "unchanged": [
+        "test/test_score.gd"
+      ],
+      "hidden": [
+        "hidden/test_hidden_multiplier.gd"
+      ]
+    },
+    {
+      "template": "write-tests",
+      "vars": {
+        "subject": "scoring",
+        "file": "test/test_score_rules.gd",
+        "rules": "the multiplier steps, what a miss does, and how points add up over a long combo",
+        "code": "score.gd"
+      },
+      "unchanged": [
+        "score.gd"
+      ],
+      "mutantTests": [
+        "test/test_score_rules.gd"
+      ],
+      "mutants": [
+        {
+          "name": "the multiplier steps every fourth hit",
+          "file": "score.gd",
+          "find": "combo / 5",
+          "replace": "combo / 4"
+        },
+        {
+          "name": "a miss keeps the combo",
+          "file": "score.gd",
+          "find": "\tcombo = 0",
+          "replace": "\tpass"
+        }
+      ]
+    }
+  ]
+}

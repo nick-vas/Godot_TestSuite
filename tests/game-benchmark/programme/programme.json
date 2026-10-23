@@ -1,0 +1,33 @@
+{
+  "name": "test programme",
+  "description": "A one-genre staged programme for tests/Test-GameBenchmark.ps1.",
+  "model": "sonnet",
+  "timeoutSeconds": 120,
+  "maxTurns": 10,
+  "repeat": 1,
+  "retries": 0,
+  "maxCalls": 50,
+  "maxBudgetUsdPerCall": 1.0,
+  "tools": ["Read", "Grep", "Glob", "Bash", "Edit", "Write"],
+  "profiles": [ { "id": "A-baseline", "description": "As asked" } ],
+  "programme": {
+    "genres": [
+      { "id": "toy", "name": "toy arcade", "languages": ["gdscript"] },
+      { "id": "ghost", "name": "ghost", "languages": ["gdscript", "csharp"] }
+    ],
+    "stages": ["prototype", "alpha"],
+    "languages": { "gdscript": { "tests": "GUT, in addons/gut" } },
+    "promptSuffix": "Godot 4.7.2 is at the path in the environment variable GODOT_BIN; the tests use {tests}.",
+    "gamesDir": "tests/game-benchmark/programme/games",
+    "templatesDir": "tests/game-benchmark/programme/templates",
+    "costModel": "tests/game-benchmark/programme/cost-model.json",
+    "configurations": [
+      { "model": "sonnet", "plugin": false }, { "model": "sonnet", "plugin": true },
+      { "model": "haiku", "plugin": false }, { "model": "haiku", "plugin": true }
+    ],
+    "tiers": {
+      "min": { "maxCostUsd": 1.0, "repeat": 1, "tasksPerStage": 1, "cells": [ { "genre": "toy", "language": "gdscript", "stage": "*" } ], "milestones": [] },
+      "mid": { "maxCostUsd": 5.0, "repeat": 2, "cells": "*", "milestones": [ { "genre": "toy", "language": "gdscript", "from": "prototype" } ] }
+    }
+  }
+}

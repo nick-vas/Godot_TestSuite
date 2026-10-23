@@ -15,7 +15,8 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
 - `.claude-plugin/`, `agents/`, `hooks/` the Claude Code plugin: manifest and marketplace, the `godot-verifier` and `godot-architect` subagents, the Stop hook.
 - `evals/` `claude plugin eval` cases (with and without the plugin); `docs/research.md` the measurements behind them.
 - `benchmark/` the token benchmark (`Invoke-TokenBenchmark.ps1`; programmes `token-benchmark.json`, Hyperdot's own code, and
-  `game-benchmark.json`, work on a small game graded by its tests, with hidden tests in `benchmark/game/`); each real run costs money, `-DryRun` does not.
+  `game-benchmark.json`, work on a small game graded by its tests, with hidden tests in `benchmark/game/`; the staged game programme
+  of `PLAN.md` in `GameProgramme.ps1`, priced by `cost-model.json`); each real run costs money, `-DryRun` does not.
   `Get-HyperdotLabel.ps1` and `label-scale.json` rate a version from its runs, like the EU energy label, one class per programme ([docs/label.md](docs/label.md)).
   Nothing outside `benchmark/`, `docs/token-benchmark.md`, `docs/label*` and their tests may name a benchmark task or profile:
   the sessions must not be able to recognise the test.

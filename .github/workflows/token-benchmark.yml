@@ -1,9 +1,16 @@
 # Measures the tokens, cost and time Claude Code spends on the tasks of a programme under each profile
-# (benchmark/Invoke-TokenBenchmark.ps1): `tool`, questions about this kit's own code (benchmark/token-benchmark.json), or
-# `game`, work on a small Godot game graded by its tests (benchmark/game-benchmark.json, which installs Godot first). Manual only: each run calls the model. Authenticates with a Claude subscription,
-# not an API key: the repository secret CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals
-# workflow uses). Runs count against that plan's usage, meant for ordinary individual use, so keep runs small (one task,
-# -Repeat 1) and start them by hand. The cost columns are Claude Code's own figure, not a charge on the plan.
+# (benchmark/Invoke-TokenBenchmark.ps1):
+#   tool    questions about this kit's own code (benchmark/token-benchmark.json)
+#   game    the pilot: five tasks on a small Godot game graded by its tests (benchmark/game-benchmark.json)
+#   staged  the staged game programme (benchmark/game-programme.json, benchmark/PLAN.md): genres x stages x languages,
+#           chosen by a tier (min, mid, max) and narrowed by genre, stage and language
+# Manual only: each run calls the model. Authenticates with a Claude subscription, not an API key: the repository secret
+# CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (the same one the Evals workflow uses). Runs count against that plan's
+# usage, meant for ordinary individual use. The cost columns are Claude Code's own figure, not a charge on the plan.
+#
+# `configurations: all` runs every configuration of the programme (Sonnet and Haiku, with and without the plugin) as
+# parallel jobs; the plan job checks the whole run's estimate against the tier's ceiling first, so nothing is spent on a
+# run that is over it.
 name: Token benchmark
 
 on:
@@ -12,33 +19,102 @@ on:
       programme:
         description: Which programme to run
         type: choice
-        options: [tool, game]
+        options: [tool, game, staged]
         default: tool
+      configurations:
+        description: One configuration (the model and plugin inputs) or all of the programme's
+        type: choice
+        options: [one, all]
+        default: one
       model:
-        description: Model alias or id (empty for the spec's)
+        description: Model alias or id, for one configuration (empty for the spec's)
+        default: ''
+      plugin:
+        description: Load this repository as a Claude Code plugin, for one configuration
+        type: boolean
+        default: false
+      tier:
+        description: Staged programme only, min, mid (the standard programme) or max
+        default: ''
+      genre:
+        description: Staged only, comma-separated genres (empty for the tier's)
+        default: ''
+      stage:
+        description: Staged only, comma-separated stages (empty for the tier's)
+        default: ''
+      language:
+        description: Staged only, gdscript, csharp or both (empty for the tier's)
         default: ''
       repeat:
-        description: Runs per task and profile (empty for the spec's)
+        description: Runs per task and profile (empty for the spec's or the tier's)
         default: ''
       profiles:
         description: Comma-separated profile ids (empty for all)
         default: ''
       tasks:
-        description: Comma-separated task ids (empty for all)
+        description: Comma-separated task ids, wildcards allowed (empty for all)
         default: ''
-      plugin:
-        description: Load this repository as a Claude Code plugin (its skills); run once with and once without to compare
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 jobs:
-  benchmark:
+  plan:
     runs-on: ubuntu-latest
-    # A game session may take 15 minutes and is graded with Godot afterwards.
-    timeout-minutes: ${{ inputs.programme == 'game' && 330 || 120 }}
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      spec: ${{ steps.matrix.outputs.spec }}
+    steps:
+      - uses: actions/checkout@v7
+      # One job per configuration; with `all`, a dry run of each first: one over its share of the tier's ceiling fails
+      # here, before any session runs.
+      - name: Configurations and their estimated cost
+        id: matrix
+        shell: pwsh
+        env:
+          PROGRAMME: ${{ inputs.programme }}
+          CONFIGURATIONS: ${{ inputs.configurations }}
+          MODEL: ${{ inputs.model }}
+          PLUGIN: ${{ inputs.plugin }}
+          TIER: ${{ inputs.tier }}
+          GENRE: ${{ inputs.genre }}
+          STAGE: ${{ inputs.stage }}
+          LANGUAGE: ${{ inputs.language }}
+          REPEAT: ${{ inputs.repeat }}
+          PROFILES: ${{ inputs.profiles }}
+          TASKS: ${{ inputs.tasks }}
+        run: |
+          $spec = switch ($env:PROGRAMME) { 'game' { 'benchmark/game-benchmark.json' } 'staged' { 'benchmark/game-programme.json' } default { 'benchmark/token-benchmark.json' } }
+          $doc = Get-Content $spec -Raw | ConvertFrom-Json -AsHashtable
+          $configs = if ($env:CONFIGURATIONS -eq 'all' -and $doc.Contains('programme') -and $doc.programme.Contains('configurations')) { @($doc.programme.configurations) }
+            elseif ($env:CONFIGURATIONS -eq 'all') { @(@{ model = 'sonnet'; plugin = $false }, @{ model = 'sonnet'; plugin = $true }, @{ model = 'haiku'; plugin = $false }, @{ model = 'haiku'; plugin = $true }) }
+            else { @(@{ model = $(if ($env:MODEL) { $env:MODEL } else { $doc.model }); plugin = ($env:PLUGIN -eq 'true') }) }
+          $total = 0.0
+          foreach ($c in $configs) {
+            $params = @{ SpecPath = $spec; Model = $c.model; DryRun = $true; Json = $true }
+            if ($c.plugin) { $params.Plugin = $true }
+            foreach ($pair in @(@('TIER', 'Tier'), @('GENRE', 'Genre'), @('STAGE', 'Stage'), @('LANGUAGE', 'Language'), @('PROFILES', 'ProfileId'), @('TASKS', 'TaskId'))) {
+              $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
+            }
+            if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
+            $out = ./benchmark/Invoke-TokenBenchmark.ps1 @params
+            if ($LASTEXITCODE) { throw "$($c.model)$(if ($c.plugin) { ' with the plugin' }): the dry run failed (over its ceiling, or a bad selection)" }
+            $estimate = ($out | Select-Object -Last 1 | ConvertFrom-Json).estimateUsd
+            if ($null -ne $estimate) { $total += $estimate }
+          }
+          "Estimated cost of the whole run: $([math]::Round($total, 2)) USD over $($configs.Count) configuration(s)" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "matrix=$(@{ include = @($configs | ForEach-Object { @{ model = $_.model; plugin = [bool]$_.plugin } }) } | ConvertTo-Json -Compress -Depth 4)" | Add-Content $env:GITHUB_OUTPUT
+          "spec=$spec" | Add-Content $env:GITHUB_OUTPUT
+
+  benchmark:
+    needs: plan
+    runs-on: ubuntu-latest
+    # A game session may take 15 minutes, a milestone 45, and each is graded with Godot afterwards.
+    timeout-minutes: ${{ inputs.programme == 'tool' && 120 || 330 }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       # An ANTHROPIC_API_KEY in the environment would take precedence over the token, so none is set here.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -49,11 +125,12 @@ jobs:
         run: |
           if (-not $env:CLAUDE_CODE_OAUTH_TOKEN) { throw 'Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (from claude setup-token) to run the benchmark' }
           npm install -g @anthropic-ai/claude-code
-      # The game programme's sessions run Godot, and its grader runs the game's tests; setup sets GODOT_BIN for both.
-      - name: Godot for the game programme
-        if: inputs.programme == 'game'
+      # The game programmes' sessions run Godot, and their grader runs the game's tests; setup sets GODOT_BIN for both.
+      # The staged programme has C# games too, so it takes the .NET build of Godot, which runs GDScript as well.
+      - name: Godot for the game programmes
+        if: inputs.programme != 'tool'
         shell: pwsh
-        run: ./ci/godot/hyperdot.ps1 setup -Project examples/gdscript
+        run: ./ci/godot/hyperdot.ps1 setup -Project $(if ('${{ inputs.programme }}' -eq 'staged') { 'examples/csharp/game' } else { 'examples/gdscript' })
       # One small request first: a token that is malformed or revoked fails here, by name, instead of as a run of 0 scores.
       - name: The subscription token works
         shell: pwsh
@@ -66,25 +143,28 @@ jobs:
       - name: Run the benchmark
         shell: pwsh
         env:
-          MODEL: ${{ inputs.model }}
+          SPEC: ${{ needs.plan.outputs.spec }}
+          MODEL: ${{ matrix.model }}
+          PLUGIN: ${{ matrix.plugin }}
+          TIER: ${{ inputs.tier }}
+          GENRE: ${{ inputs.genre }}
+          STAGE: ${{ inputs.stage }}
+          LANGUAGE: ${{ inputs.language }}
           REPEAT: ${{ inputs.repeat }}
           PROFILES: ${{ inputs.profiles }}
           TASKS: ${{ inputs.tasks }}
-          PLUGIN: ${{ inputs.plugin }}
-          PROGRAMME: ${{ inputs.programme }}
         run: |
-          $params = @{ OutputDir = 'benchmark/results'; SaveResponses = $true }
-          if ($env:PROGRAMME -eq 'game') { $params.SpecPath = 'benchmark/game-benchmark.json' }
-          if ($env:MODEL) { $params.Model = $env:MODEL }
-          if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
-          if ($env:PROFILES) { $params.ProfileId = $env:PROFILES }
-          if ($env:TASKS) { $params.TaskId = $env:TASKS }
+          $params = @{ SpecPath = $env:SPEC; OutputDir = 'benchmark/results'; SaveResponses = $true; Model = $env:MODEL }
           if ($env:PLUGIN -eq 'true') { $params.Plugin = $true }
+          foreach ($pair in @(@('TIER', 'Tier'), @('GENRE', 'Genre'), @('STAGE', 'Stage'), @('LANGUAGE', 'Language'), @('PROFILES', 'ProfileId'), @('TASKS', 'TaskId'))) {
+            $value = [Environment]::GetEnvironmentVariable($pair[0]); if ($value) { $params[$pair[1]] = $value }
+          }
+          if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
           ./benchmark/Invoke-TokenBenchmark.ps1 @params
           Get-ChildItem benchmark/results -Recurse -Filter summary.md | Get-Content -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: token-benchmark-${{ inputs.programme }}
+          name: token-benchmark-${{ inputs.programme }}-${{ matrix.model }}${{ matrix.plugin && '-plugin' || '' }}
           path: benchmark/results/
           retention-days: 30

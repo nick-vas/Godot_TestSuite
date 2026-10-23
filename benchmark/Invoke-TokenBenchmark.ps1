@@ -38,6 +38,14 @@ param(
     # Load this repository as a Claude Code plugin (its skills) in every session; run once with and once without to
     # see what the skills change. Rows and the summary say which.
     [switch]$Plugin,
+    # A staged game programme (benchmark/PLAN.md): a tier fixes what runs and its cost ceiling; the selectors narrow it,
+    # each a list or comma-separated, wildcards allowed. A narrowed run is informative and sets no class.
+    [string]$Tier,
+    [string[]]$Genre,
+    [string[]]$Stage,
+    [string[]]$Language,
+    # The most this run may cost (Claude Code's own figure). Default: the tier's ceiling, shared over its configurations.
+    [double]$BudgetUsd = 0,
     [switch]$SaveResponses,
     [switch]$DryRun,
     # Print summary.json on stdout (logs go to stderr).
@@ -49,9 +57,19 @@ $ErrorActionPreference = 'Stop'
 
 function Write-BenchLog([string]$Message) { [Console]::Error.WriteLine("[benchmark] $Message") }
 
+. (Join-Path $PSScriptRoot 'GameProgramme.ps1')
+
 function Read-BenchmarkSpec([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { throw "Spec not found: $Path" }
     $spec = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable
+    if ($spec.Contains('programme')) {
+        $expanded = Expand-GameProgramme $spec (Split-Path $PSScriptRoot -Parent) $Tier $Genre $Stage $Language
+        foreach ($m in $expanded.Missing) { Write-BenchLog "Not written yet, skipped: $m" }
+        $spec.tasks = @($expanded.Tasks)
+        $spec.selectedTier = $expanded.Tier
+    } elseif ($Tier -or $Genre -or $Stage -or $Language) {
+        throw "-Tier, -Genre, -Stage and -Language select from a staged game programme; $Path is not one"
+    }
     foreach ($key in 'profiles', 'tasks') {
         if (-not $spec.Contains($key) -or @($spec[$key]).Count -eq 0) { throw "The spec has no $key" }
     }
@@ -78,11 +96,17 @@ function Read-BenchmarkSpec([string]$Path) {
 }
 
 # The Claude Code arguments for one step; the prompt itself goes on stdin, so no shell ever sees it.
-function Get-ClaudeArguments($Spec, $ProfileSpec, [string]$SessionId, [int]$StepIndex, [int]$StepCount, [string]$ModelName) {
-    $turns = if ($ProfileSpec.Contains('maxTurns')) { $ProfileSpec.maxTurns } else { $Spec.maxTurns }
+# A task's own limit (a milestone's longer one) wins over the spec's.
+function Get-TaskLimit($Spec, $TaskSpec, [string]$Name) {
+    if ($TaskSpec -and $TaskSpec.Contains('limits') -and $TaskSpec.limits.Contains($Name)) { return $TaskSpec.limits[$Name] }
+    return $Spec[$Name]
+}
+
+function Get-ClaudeArguments($Spec, $ProfileSpec, [string]$SessionId, [int]$StepIndex, [int]$StepCount, [string]$ModelName, $TaskSpec = $null) {
+    $turns = if ($ProfileSpec.Contains('maxTurns')) { $ProfileSpec.maxTurns } else { Get-TaskLimit $Spec $TaskSpec 'maxTurns' }
     $arguments = [System.Collections.Generic.List[string]]::new()
     foreach ($a in '-p', '--output-format', 'json', '--model', $ModelName, '--max-turns', "$turns", '--strict-mcp-config',
-        '--setting-sources', $Spec.settingSources, '--max-budget-usd', ([string]$Spec.maxBudgetUsdPerCall)) { $arguments.Add($a) }
+        '--setting-sources', $Spec.settingSources, '--max-budget-usd', ([string](Get-TaskLimit $Spec $TaskSpec 'maxBudgetUsdPerCall'))) { $arguments.Add($a) }
     $arguments.Add('--allowedTools'); foreach ($tool in $Spec.tools) { $arguments.Add($tool) }
     if ($Plugin) { $arguments.Add('Skill') }
     # Every tool the spec does not allow is refused outright, so a session cannot ask for it.
@@ -245,8 +269,8 @@ function Invoke-BenchmarkCell($Spec, $ProfileSpec, $TaskSpec, [int]$Repetition, 
         }
         $directory = if ($isGame) { $game.Dir } else { $WorkDir }
         for ($step = 0; $step -lt $prompts.Count; $step++) {
-            $arguments = Get-ClaudeArguments $Spec $ProfileSpec $sessionId $step $prompts.Count $ModelName
-            $run = Invoke-ClaudeProcess $Claude $arguments $prompts[$step] ([int]$Spec.timeoutSeconds) $directory
+            $arguments = Get-ClaudeArguments $Spec $ProfileSpec $sessionId $step $prompts.Count $ModelName $TaskSpec
+            $run = Invoke-ClaudeProcess $Claude $arguments $prompts[$step] ([int](Get-TaskLimit $Spec $TaskSpec 'timeoutSeconds')) $directory
             $parsed = ConvertFrom-ClaudeOutput $run
             foreach ($key in 'input', 'cacheWrite', 'cacheRead', 'output', 'costUsd', 'turns') { $totals[$key] += $parsed[$key] }
             $totals.durationMs += $run.ElapsedMs
@@ -388,10 +412,10 @@ function Set-GameEdit([string]$Root, $Edit) {
 
 function Assert-GameTask($Spec, $TaskSpec, [string]$RepoRoot) {
     $id = $TaskSpec.id
-    if (-not $Spec.Contains('game') -or -not $Spec.game.Contains('source') -or -not $Spec.game.Contains('files')) {
-        throw "Task '$id' works on a game, but the spec has no game.source and game.files"
+    if (-not $TaskSpec.game.Contains('source') -and (-not $Spec.Contains('game') -or -not $Spec.game.Contains('source') -or -not $Spec.game.Contains('files'))) {
+        throw "Task '$id' works on a game, but neither it nor the spec names one (game.source, game.files)"
     }
-    $source = Join-Path $RepoRoot $Spec.game.source
+    $source = Get-GameSource $Spec $TaskSpec $RepoRoot
     foreach ($key in 'edits', 'mutants') {
         foreach ($edit in @(if ($TaskSpec.game.Contains($key)) { $TaskSpec.game[$key] })) {
             if (-not $edit.Contains('file') -or -not $edit.Contains('find') -or -not $edit.find -or -not $edit.Contains('replace')) {
@@ -401,17 +425,48 @@ function Assert-GameTask($Spec, $TaskSpec, [string]$RepoRoot) {
             $text = if (Test-Path -LiteralPath $path -PathType Leaf) { [System.IO.File]::ReadAllText($path) } else { '' }
             $at = $text.IndexOf([string]$edit.find, [StringComparison]::Ordinal)
             if ($at -lt 0 -or $text.IndexOf([string]$edit.find, $at + 1, [StringComparison]::Ordinal) -ge 0) {
-                throw "Task '$id': '$($edit.find)' is not in $($Spec.game.source)/$($edit.file) exactly once"
+                throw "Task '$id': '$($edit.find)' is not in $source/$($edit.file) exactly once"
             }
         }
     }
     foreach ($file in @(if ($TaskSpec.game.Contains('hidden')) { $TaskSpec.game.hidden })) {
-        if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot $file) -PathType Leaf)) { throw "Task '$id': hidden test $file not found" }
+        $from = Get-HiddenSource $file $RepoRoot
+        if (-not (Test-Path -LiteralPath $from -PathType Leaf)) { throw "Task '$id': hidden test $from not found" }
     }
     if ($TaskSpec.game.Contains('mutants') -and -not $TaskSpec.game.Contains('mutantTests')) { throw "Task '$id' has mutants but no mutantTests to judge them" }
 }
 
+# The folder a game task starts from: its own (a stage of a staged programme) or the spec's.
+function Get-GameSource($Spec, $TaskSpec, [string]$RepoRoot) {
+    $source = if ($TaskSpec.game.Contains('source')) { $TaskSpec.game.source } else { $Spec.game.source }
+    if ([System.IO.Path]::IsPathRooted($source)) { return $source }
+    return Join-Path $RepoRoot $source
+}
+
+# A hidden file is a path (repository-relative, copied to test/<its name>) or { from, to }.
+function Get-HiddenSource($Entry, [string]$RepoRoot) {
+    $from = if ($Entry -is [System.Collections.IDictionary]) { $Entry.from } else { [string]$Entry }
+    if ([System.IO.Path]::IsPathRooted($from)) { return $from }
+    return Join-Path $RepoRoot $from
+}
+
+function Get-HiddenTarget($Entry) {
+    if ($Entry -is [System.Collections.IDictionary] -and $Entry.Contains('to')) { return $Entry.to }
+    $from = if ($Entry -is [System.Collections.IDictionary]) { $Entry.from } else { [string]$Entry }
+    return Join-Path 'test' (Split-Path $from -Leaf)
+}
+
+# Copies the named files and folders of a game, or all of it (but its import cache and build output) when none are named.
 function Copy-GameFiles([string]$From, [string]$To, [string[]]$Files) {
+    # An empty list arrives as $null, which @() makes one item: count only real names.
+    $Files = @($Files | Where-Object { $_ })
+    if ($Files.Count -eq 0) {
+        New-Item -ItemType Directory -Force $To | Out-Null
+        foreach ($item in @(Get-ChildItem -LiteralPath $From -Force | Where-Object { $_.Name -notin '.godot', 'bin', 'obj', '.git' })) {
+            Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $To $item.Name) -Recurse -Force
+        }
+        return
+    }
     foreach ($file in $Files) {
         $source = Join-Path $From $file
         $target = Join-Path $To $file
@@ -438,7 +493,8 @@ function Invoke-GameGit([string]$Dir, [string[]]$Arguments) {
 
 function New-GameWorkspace($Spec, $TaskSpec, [string]$RepoRoot) {
     $dir = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-game-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    Copy-GameFiles (Join-Path $RepoRoot $Spec.game.source) $dir @($Spec.game.files)
+    $files = if ($TaskSpec.game.Contains('source')) { @(if ($TaskSpec.game.Contains('files')) { $TaskSpec.game.files }) } else { @($Spec.game.files) }
+    Copy-GameFiles (Get-GameSource $Spec $TaskSpec $RepoRoot) $dir $files
     foreach ($edit in @(if ($TaskSpec.game.Contains('edits')) { $TaskSpec.game.edits })) {
         if (-not (Set-GameEdit $dir $edit)) { throw "Task '$($TaskSpec.id)': '$($edit.find)' is not in $($edit.file) exactly once" }
     }
@@ -522,9 +578,9 @@ function Test-GameResult($TaskSpec, $Game) {
     }
     $hidden = @(if ($rules.Contains('hidden')) { $rules.hidden })
     foreach ($file in $hidden) {
-        $target = Join-Path $Game.Dir (Join-Path 'test' (Split-Path $file -Leaf))
+        $target = Join-Path $Game.Dir (Get-HiddenTarget $file)
         New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-        Copy-Item -LiteralPath (Join-Path (Split-Path $PSScriptRoot -Parent) $file) -Destination $target -Force
+        Copy-Item -LiteralPath (Get-HiddenSource $file (Split-Path $PSScriptRoot -Parent)) -Destination $target -Force
     }
     if ($hidden.Count -or ($rules.Contains('suite') -and $rules.suite)) {
         $run = Invoke-GameSuite $Game.Dir @()
@@ -534,42 +590,81 @@ function Test-GameResult($TaskSpec, $Game) {
 }
 
 # ---- Run ----
+$splitList = { param($List) @($List | ForEach-Object { $_ -split ',' } | ForEach-Object Trim | Where-Object { $_ }) }
+$ProfileId = & $splitList $ProfileId
+$TaskId = & $splitList $TaskId
+$Genre = & $splitList $Genre
+$Stage = & $splitList $Stage
+$Language = & $splitList $Language
 $spec = Read-BenchmarkSpec $SpecPath
-$ProfileId = @($ProfileId | ForEach-Object { $_ -split ',' } | ForEach-Object Trim | Where-Object { $_ })
-$TaskId = @($TaskId | ForEach-Object { $_ -split ',' } | ForEach-Object Trim | Where-Object { $_ })
 $profiles = @($spec.profiles | Where-Object { -not $ProfileId -or $_.id -in $ProfileId })
-$tasks = @($spec.tasks | Where-Object { -not $TaskId -or $_.id -in $TaskId })
-foreach ($id in @($ProfileId) + @($TaskId)) {
-    if ($id -and $id -notin (@($spec.profiles.id) + @($spec.tasks.id))) { throw "No profile or task '$id' in $SpecPath" }
-}
-if ($profiles.Count -eq 0 -or $tasks.Count -eq 0) { throw 'Nothing to run: no profile or no task selected' }
-$repeatCount = if ($Repeat -gt 0) { $Repeat } else { [int]$spec.repeat }
+$tasks = @($spec.tasks | Where-Object { $t = $_; -not $TaskId -or @($TaskId | Where-Object { $t.id -like $_ }).Count })
+foreach ($id in $ProfileId) { if ($id -notin @($spec.profiles.id)) { throw "No profile '$id' in $SpecPath" } }
+foreach ($id in $TaskId) { if (@($spec.tasks | Where-Object { $_.id -like $id }).Count -eq 0) { throw "No task matches '$id' in $SpecPath" } }
+if ($profiles.Count -eq 0 -or $tasks.Count -eq 0) { Remove-StageFixtures; throw 'Nothing to run: no profile or no task selected' }
+$tierSpec = if ($spec.Contains('selectedTier')) { $spec.selectedTier } else { $null }
+$repeatCount = if ($Repeat -gt 0) { $Repeat } elseif ($tierSpec -and $tierSpec.Contains('repeat')) { [int]$tierSpec.repeat } else { [int]$spec.repeat }
 $modelName = if ($Model) { $Model } else { $spec.model }
 $limit = if ($MaxCalls -gt 0) { $MaxCalls } else { [int]$spec.maxCalls }
 $calls = 0
-foreach ($p in $profiles) { $calls += (Get-StepPrompts $p $tasks[0]).Count * $tasks.Count * $repeatCount }
+foreach ($p in $profiles) { foreach ($t in $tasks) { $calls += (Get-StepPrompts $p $t).Count * $repeatCount } }
 # The limit holds even if every session is retried.
 $worstCase = $calls * (1 + [int]$spec.retries)
 
-Write-BenchLog "$($profiles.Count) profile(s) x $($tasks.Count) task(s) x $repeatCount run(s) = $calls session(s) (more with retries), model $modelName$(if ($Plugin) { ', with the plugin' })"
+# What the run should cost, from the spec's cost model, and the most it may: -BudgetUsd, or the tier's ceiling shared
+# over the tier's configurations in proportion to what each is expected to cost.
+$costModelPath = if ($spec.Contains('programme') -and $spec.programme.Contains('costModel')) { $spec.programme.costModel } elseif ($spec.Contains('costModel')) { $spec.costModel } else { $null }
+$costModel = if ($costModelPath) { Read-JsonFile (Join-Path (Split-Path $PSScriptRoot -Parent) $costModelPath) } else { $null }
+$estimateUsd = $null; $budget = $null; $tierEstimateUsd = $null
+if ($costModel) {
+    $estimateUsd = Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $modelName ([bool]$Plugin)
+    $configurations = @(if ($spec.Contains('programme') -and $spec.programme.Contains('configurations')) { $spec.programme.configurations })
+    $tierEstimateUsd = 0.0
+    foreach ($c in $configurations) { $tierEstimateUsd += Get-RunEstimateUsd $costModel $tasks $profiles $repeatCount $c.model ([bool]$c.plugin) }
+    if ($tierEstimateUsd -le 0) { $tierEstimateUsd = $estimateUsd }
+}
+if ($BudgetUsd -gt 0) { $budget = $BudgetUsd }
+elseif ($tierSpec -and $tierSpec.Contains('maxCostUsd') -and $null -ne $tierSpec.maxCostUsd -and $null -ne $estimateUsd) {
+    $budget = [double]$tierSpec.maxCostUsd * $(if ($tierEstimateUsd -gt 0) { $estimateUsd / $tierEstimateUsd } else { 1 })
+}
+
+Write-BenchLog "$($profiles.Count) profile(s), $($tasks.Count) task(s), $repeatCount run(s): $calls session(s) (more with retries), model $modelName$(if ($Plugin) { ', with the plugin' })"
+if ($null -ne $estimateUsd) {
+    Write-BenchLog ("Estimated cost {0:N2} USD for this configuration{1}{2}" -f $estimateUsd,
+        $(if ($tierEstimateUsd -and [math]::Abs($tierEstimateUsd - $estimateUsd) -gt 1e-9) { (', {0:N2} USD for all the tier''s configurations' -f $tierEstimateUsd) }),
+        $(if ($null -ne $budget) { (', ceiling {0:N2} USD' -f $budget) }))
+}
+$overBudget = $null -ne $budget -and $null -ne $estimateUsd -and $estimateUsd -gt $budget
+$overMessage = if ($overBudget) { "The run is expected to cost {0:N2} USD, over its ceiling of {1:N2} USD (the tier's maxCostUsd, or -BudgetUsd)" -f $estimateUsd, $budget }
 if ($DryRun) {
     foreach ($p in $profiles) {
-        $arguments = Get-ClaudeArguments $spec $p '<session>' 0 (Get-StepPrompts $p $tasks[0]).Count $modelName
+        $arguments = Get-ClaudeArguments $spec $p '<session>' 0 (Get-StepPrompts $p $tasks[0]).Count $modelName $tasks[0]
         Write-BenchLog "  $($p.id): claude $($arguments -join ' ')"
     }
-    if ($Json) { [ordered]@{ dryRun = $true; calls = $calls; limit = $limit } | ConvertTo-Json -Compress }
+    foreach ($t in $tasks) { Write-BenchLog "  task $($t.id)" }
+    Remove-StageFixtures
+    if ($Json) {
+        [ordered]@{ dryRun = $true; calls = $calls; limit = $limit; tasks = @($tasks | ForEach-Object { $_.id })
+            estimateUsd = $estimateUsd; tierEstimateUsd = $tierEstimateUsd; budgetUsd = $budget; overBudget = $overBudget } | ConvertTo-Json -Compress
+    }
+    if ($overBudget) { Write-BenchLog $overMessage; exit 1 }
     exit 0
 }
-if ($worstCase -gt $limit) { throw "$calls sessions, $worstCase with retries, is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
+if ($worstCase -gt $limit) { Remove-StageFixtures; throw "$calls sessions, $worstCase with retries, is over the limit of $limit (maxCalls in the spec, or -MaxCalls); each costs money" }
+if ($overBudget) { Remove-StageFixtures; throw $overMessage }
 
-# The game must be green before sessions are asked to work on it, and the kit installs GUT into it on the way.
-if (@($tasks | Where-Object { $_.Contains('game') }).Count) {
-    if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN -PathType Leaf)) { throw 'Game tasks need Godot: set GODOT_BIN to it (hyperdot.ps1 setup does)' }
-    $preflight = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-game-preflight-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $check = Invoke-GameSuite (Join-Path (Split-Path $PSScriptRoot -Parent) $spec.game.source) @() $preflight
-    Remove-Item -LiteralPath $preflight -Recurse -Force -ErrorAction SilentlyContinue
-    if (-not $check.Ok) { throw "The game in $($spec.game.source) fails its own tests, so it cannot be measured: $($check.Failed -join ', ')" }
-    Write-BenchLog "The game in $($spec.game.source) passes its tests; Godot is $env:GODOT_BIN"
+# Every game the tasks start from must be green before sessions are asked to work on it, and the kit installs GUT into
+# it on the way.
+$gameSources = @($tasks | Where-Object { $_.Contains('game') } | ForEach-Object { Get-GameSource $spec $_ (Split-Path $PSScriptRoot -Parent) } | Sort-Object -Unique)
+if ($gameSources.Count) {
+    if (-not $env:GODOT_BIN -or -not (Test-Path -LiteralPath $env:GODOT_BIN -PathType Leaf)) { Remove-StageFixtures; throw 'Game tasks need Godot: set GODOT_BIN to it (hyperdot.ps1 setup does)' }
+    foreach ($source in $gameSources) {
+        $preflight = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-game-preflight-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+        $check = Invoke-GameSuite $source @() $preflight
+        Remove-Item -LiteralPath $preflight -Recurse -Force -ErrorAction SilentlyContinue
+        if (-not $check.Ok) { Remove-StageFixtures; throw "The game in $source fails its own tests, so it cannot be measured: $($check.Failed -join ', ')" }
+    }
+    Write-BenchLog "$($gameSources.Count) game(s) pass their tests; Godot is $env:GODOT_BIN"
 }
 
 $ownWorkspace = -not $WorkDir
@@ -581,14 +676,18 @@ $responseDir = if ($SaveResponses) { New-Item -ItemType Directory -Force (Join-P
 $claudeVersion = try { (Invoke-ClaudeProcess $Claude @('--version') '' 30 $WorkDir).Stdout.Trim() } catch { 'unknown' }
 
 $rows = [System.Collections.Generic.List[object]]::new()
+$spentUsd = 0.0; $notRun = [System.Collections.Generic.List[string]]::new()
 try {
 for ($r = 1; $r -le $repeatCount; $r++) {
     # The profile that runs first meets a cold prompt cache; rotating the order each repetition spreads that cost.
     $order = @(for ($i = 0; $i -lt $profiles.Count; $i++) { $profiles[($i + $r - 1) % $profiles.Count] })
     foreach ($t in $tasks) {
         foreach ($p in $order) {
+            # Past the ceiling nothing new starts; what was not run is listed, and the run is incomplete.
+            if ($null -ne $budget -and $spentUsd -ge $budget) { $notRun.Add("$($p.id) $($t.id) #$r"); continue }
             $row = Invoke-BenchmarkCell $spec $p $t $r $modelName $responseDir
             $rows.Add($row)
+            $spentUsd += $row.costUsd
             # Saved as it goes, so a run stopped from outside (a job's time limit) still leaves what it measured.
             $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
             Write-BenchLog ("{0,-12} {1,-12} #{2} {3} {4,9:N0} tokens  `${5:N4}  {6} turn(s){7}" -f $p.id, $t.id, $r,
@@ -598,11 +697,16 @@ for ($r = 1; $r -le $repeatCount; $r++) {
 }
 } finally {
     if ($ownWorkspace) { Remove-Item -LiteralPath $WorkDir -Recurse -Force -ErrorAction SilentlyContinue }
+    Remove-StageFixtures
 }
 
 $summary = Get-BenchmarkSummary $rows.ToArray() @($profiles.id) @($tasks.id)
 $meta = [ordered]@{ runId = $runId; spec = (Resolve-Path -LiteralPath $SpecPath).Path; repeat = $repeatCount; calls = $calls
-    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = $modelName; claudeVersion = $claudeVersion; plugin = [bool]$Plugin }
+    models = ((@($rows | ForEach-Object model | Where-Object { $_ }) | Sort-Object -Unique) -join ', '); requestedModel = $modelName; claudeVersion = $claudeVersion; plugin = [bool]$Plugin
+    tier = $Tier; selection = [ordered]@{ genre = $Genre; stage = $Stage; language = $Language; task = $TaskId; profile = $ProfileId }
+    estimateUsd = $estimateUsd; budgetUsd = $budget; spentUsd = [Math]::Round($spentUsd, 6); notRun = $notRun.ToArray()
+    # Only the standard tier, unnarrowed and complete, can set a class (the label tool checks this).
+    standard = [bool]($Tier -and $Tier -eq 'mid' -and -not ($Genre -or $Stage -or $Language -or $TaskId -or $ProfileId) -and $Repeat -eq 0 -and $notRun.Count -eq 0) }
 $rows | Export-Csv -LiteralPath (Join-Path $runDir 'results.csv') -NoTypeInformation -Encoding utf8
 $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'results.json') -Encoding utf8
 $document = [ordered]@{ meta = $meta; profiles = $summary.profiles; cells = $summary.cells; folder = $runDir }
@@ -613,4 +717,5 @@ if ($Json) { $document | ConvertTo-Json -Depth 6 -Compress }
 # A session that never produced an answer to grade (the network, a rate limit, the time limit) makes the run incomplete.
 $ungraded = @($rows | Where-Object infrastructure)
 if ($ungraded.Count) { Write-BenchLog "$($ungraded.Count) session(s) produced no answer to grade, even after retrying: the run is incomplete"; exit 1 }
+if ($notRun.Count) { Write-BenchLog ("{0} session(s) not run: the ceiling of {1:N2} USD was reached at {2:N2} USD; the run is incomplete" -f $notRun.Count, $budget, $spentUsd); exit 1 }
 exit 0

@@ -1,0 +1,3 @@
+{ "id": "milestone", "title": "Take the game from {from} to {to}", "category": "milestone", "kind": "milestone",
+  "prompt": "This {genre} game is at the {from} stage. Take it to {to}: {goal}. Run the game's tests.",
+  "expected": { "maxWords": 300 }, "suite": true, "limits": { "maxTurns": 20, "timeoutSeconds": 300 } }

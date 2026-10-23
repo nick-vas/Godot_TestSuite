@@ -22,6 +22,12 @@
   change, and five mutants its tests must catch. The label now has two classes per version, **tool efficiency** and
   **game-making efficiency** (`-Programme tool|game`), each with its own standard tokens. `tests/Test-GameBenchmark.ps1`
   checks the grading with a stand-in that does every task well and badly.
+- **The staged game programme, stage 1** (`benchmark/PLAN.md`): the benchmark runs programmes made of genres, stages
+  (prototype to release candidate), languages and task templates, chosen by a tier (min under $10, mid under $50, max)
+  and narrowed by genre, stage, language or task. A stage is built from the genre's whole game. Milestones take a game
+  to the next stage. The runner estimates a run's cost (`benchmark/cost-model.json`), refuses one over its ceiling, and
+  stops starting sessions once the real cost passes it. The workflow runs all four configurations in parallel after a
+  dry run of each.
 - Token benchmark: a grader that cannot be fooled.
   - Whole-word terms, `re:` regular expressions, `mustAdd` for a diff's added lines, forbidden commands found where a
     statement starts. Markup is not counted as words.
