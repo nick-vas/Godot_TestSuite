@@ -58,9 +58,9 @@
 | `-McpDiagnostics` | off | `init`: also register minimal-godot-mcp (GDScript diagnostics, game console) |
 | `-McpAseprite` | none | `init`: also register aseprite-mcp for this Aseprite (the program, or its folder such as `C:\Program Files\Aseprite`) |
 | `-Mcp` | `none` | `init`: `godot-mcp` registers that editor MCP server; `godot-ai` prints its steps |
-| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, the skills and the subagents (`godot-verifier`, `godot-architect`) |
+| `-Agents` | off | `init`: also add AGENTS.md, CLAUDE.md, `docs/kit-notes.md` (one line each time the kit gets in the way), the skills and the subagents (`godot-verifier`, `godot-architect`) |
 | `-Templates` | off | `setup`: also install the export templates (`export` installs them when it needs them) |
-| `-Plugin` | off | `init`: AGENTS.md and CLAUDE.md, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
+| `-Plugin` | off | `init`: AGENTS.md, CLAUDE.md and `docs/kit-notes.md`, and enable this kit as a Claude Code plugin in `.claude/settings.json` instead of copying skills |
 
 **Environment variables**, all optional:
 

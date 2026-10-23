@@ -67,7 +67,6 @@ Notes from the question round still open, each to be fixed, built or written dow
 | # | Note | What to do |
 |---|---|---|
 | 6 | An eval grader was wrong for three runs before anyone looked | Test graders against real transcripts when they are written |
-| 7 | Kit friction in a game chat is lost unless it is in that chat or a failed run | `docs/kit-notes.md` in the game: one line per problem with the kit; `/retro` and `weekly-review` read it; a weekly scheduled review proposes kit changes for the owner to approve |
 | 11 | No quick way to see why CI and the owner's PC disagree | Later: compare the two runs' JSON results |
 | 12 | No help command | `/kit` lists every command, skill and subagent in one line each; `/kit <name>` shows a static page; `hyperdot.ps1 help [command]` prints the same text; a self-test fails when anything has no entry |
 | 13 | A gate cannot be reopened without editing `plan.json` | `plan -Do reopen -Id <gate>` |

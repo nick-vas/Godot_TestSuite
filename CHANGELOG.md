@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **Kit notes.** `init -Agents` and `-Plugin` create `docs/kit-notes.md` in the game (template
+  `ci/godot/templates/kit-notes.md`): one line each time the kit gets in the way. The `game` skill and the game's
+  `AGENTS.md` say to append a line; `/retro` and `weekly-review` read it, and the weekly review proposes up to three kit
+  changes for the owner to approve.
 - **Start with `/game`.** The README's quick start, `docs/usage.md`, `docs/plan.md` and the game's `AGENTS.md` template
   say to start every Claude Code session in a game with `/game`.
 - **`init` pins the kit's workflow at `@v1`** instead of `@main`, so a kit change reaches a game only when a release

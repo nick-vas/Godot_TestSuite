@@ -14,6 +14,7 @@ A short, written look back at the week and forward at the next one. Read the fac
 - `.godot/hyperdot-history.jsonl`: this week's runs; failure codes that recur.
 - The previous `plan/STATUS.md` and the last file in `plan/reviews/`, to see what moved since then.
 - `bench-results/bench.csv`, if present: compare this week's rows with earlier ones under the same label.
+- `docs/kit-notes.md`: the lines added this week, and older ones with no pull request link yet.
 
 ## 2. Write `plan/reviews/<yyyy-mm-dd>.md`
 
@@ -26,6 +27,9 @@ A short, written look back at the week and forward at the next one. Read the fac
   feedback (TumbleSeed postmortem). Ask whether the user still wants to play the current build: work they no
   longer care about wears out the one person the game depends on.
 - **Risks:** at most three, each with one concrete mitigation.
+- **Kit changes:** from `docs/kit-notes.md`, at most three proposed changes to Hyperdot, each with the notes behind it and
+  the smallest place it fits (a `doctor` check, a line in a skill, a script fix), as `retro` step 3 sorts them. A note
+  that came back three times or more goes first.
 - **Next week:** three to five proposed tasks, must-have features and phase gates first, within the user's weekly hours
   (`weeklyHours` in `plan/plan.json`) and the work-in-progress limit.
 
@@ -33,4 +37,9 @@ A short, written look back at the week and forward at the next one. Read the fac
 
 One multiple-choice question (multi-select) with the proposed tasks. Add the chosen ones with
 `plan -Do add -Title ... -Feature F<n> -Column todo` and put them on the Trello board (experimental) the way `game` step 5 describes.
+Then one multiple-choice question per proposed kit change: "Open a kit PR", "Later", "Drop it". The owner approves
+every kit change: when this review runs as the scheduled Friday task, nobody is there to answer, so write the proposals
+under **Kit changes** in the review file and stop; the owner answers when reading it, and `/retro` opens the approved
+pull requests the way its step 5 describes. Never open one unapproved.
+
 If the week produced a lesson worth keeping, suggest running `/retro`.

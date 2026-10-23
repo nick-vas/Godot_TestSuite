@@ -132,6 +132,9 @@ judging anything ([json.md](json.md)). The `game` skill (`/game`) does the judgi
 Scope rule: before building anything the GDD does not contain, the agent asks whether to add it as a feature or drop it.
 
 The `weekly-review` skill writes `plan/reviews/<date>.md` (done, health, phase, risks) and proposes next week's tasks.
+It also reads `docs/kit-notes.md`, the line the agent appends each time the kit got in the way (`init -Agents` or
+`-Plugin` creates the file), and proposes up to three kit changes for you to approve; approved ones become kit pull
+requests through `/retro`, never on their own.
 Run it every Friday as a **local scheduled task in the Claude desktop app**, which can reach the game folder, the kit and the
 Trello connector at once (a cloud task gets only a fresh clone of a GitHub repository):
 1. Code tab → **Scheduled** → **New task** → **Set up manually**.

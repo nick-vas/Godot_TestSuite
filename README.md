@@ -111,7 +111,7 @@ separate, headless tool.
    pwsh $kit init -Agents -Mcp godot-mcp -Project $game
    ```
    `init` adds a starter test, a GitHub workflow, `.gitignore` lines, test exclusions in the export presets, `AGENTS.md`,
-   `CLAUDE.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
+   `CLAUDE.md`, `docs/kit-notes.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
    and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
 2. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
    game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
@@ -185,7 +185,7 @@ separate, headless tool.
 
 | Capability | Command | Result |
 |---|---|---|
-| **Improve the kit** | `/retro`, `/kit-review`, `evals/` | lessons with evidence become kit pull requests, each measured with and without the plugin |
+| **Improve the kit** | `/retro`, `/kit-review`, `evals/`, `docs/kit-notes.md` | lessons with evidence, and the game's one-line notes each time the kit got in the way, become kit pull requests you approve, each measured with and without the plugin |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens, cost and time per task, as medians over repeated runs |
 
 `test` picks its runners from the project: `validate` and `architecture` always; `dotnet`, `godottest`, `gut`, `flows` and

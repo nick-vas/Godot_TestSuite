@@ -93,3 +93,11 @@ one, move it to `doing` in the plan and on the board, and start it with `godot-t
   with those that serve none of the game's main kinds of fun. Never propose cutting tests.
 - **Is it fun:** a new feature names the kind of fun it serves before it is built; if it serves none of the game's main
   kinds, say so when you ask whether to add it (`godot-game-design`).
+
+## Kit notes
+
+When the kit gets in the way during the session (a command or flag that is wrong or missing, a confusing error, a check
+that misses or misfires, a skill that sent you the wrong way, a step that took several tries), append one line to
+`docs/kit-notes.md` in the game, in the format at its top: `yyyy-mm-dd <command, skill or subagent>: <what got in the
+way> - <what would have helped>`. Create the file from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/kit-notes.md` if it is
+missing. Do not change the kit from the game's chat; `/retro` and the weekly review turn the notes into proposals.

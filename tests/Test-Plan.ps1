@@ -5,8 +5,8 @@
 # the plan or any skill quotes exists. The release timeline (plan.json "release") warns on fixed days when Steam's dates
 # cannot be kept, and `plan -Json` reports it. The `tests` gate and doctor's test check
 # count test frameworks only (not data tables or flows). A hand-broken plan.json fails `plan` with invalid-plan and is a
-# warning in `status`. `init` never overwrites an existing test/test_example.gd, and pins its workflow at `@v1`. No Godot
-# needed.
+# warning in `status`. `init` never overwrites an existing test/test_example.gd, and pins its workflow at `@v1`; with
+# -Plugin it writes docs/kit-notes.md once. No Godot needed.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -246,6 +246,13 @@ try {
     # The workflow init writes calls the kit's moving v1 tag, not main, so a kit change reaches a game only with a release.
     $workflow = Get-Content -LiteralPath (Join-Path $starter '.github/workflows/hyperdot.yml') -Raw
     Assert-True ($workflow -match 'uses: nick-vas/hyperdot/\.github/workflows/godot\.yml@v1\s' -and $workflow -notmatch '@main') 'init pins the workflow at @v1'
+    # With the agent files comes docs/kit-notes.md, where the agent notes each time the kit got in the way; never overwritten.
+    pwsh -NoProfile -File $ci init -Plugin -Project $starter 2>$null | Out-Null
+    $notes = Join-Path $starter 'docs/kit-notes.md'
+    Assert-True ((Test-Path -LiteralPath $notes) -and (Get-Content -LiteralPath $notes -Raw) -match '# Kit notes') 'init -Plugin writes docs/kit-notes.md'
+    Add-Content -LiteralPath $notes -Value '2026-10-23 test: a note'
+    $again = pwsh -NoProfile -File $ci init -Plugin -Json -Project $starter 2>$null | ConvertFrom-Json
+    Assert-True ((Get-Content -LiteralPath $notes -Raw) -match 'a note' -and @($again.steps | Where-Object { $_.message -match 'kit-notes\.md exists' }).Count -eq 1) 'a second init keeps the notes'
 } finally {
     Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
 }
