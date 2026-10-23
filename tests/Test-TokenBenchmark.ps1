@@ -141,3 +141,5 @@ try {
 
 if ($failures.Count) { throw "$($failures.Count) token benchmark check(s) failed" }
 Write-Host 'Token benchmark self-test passed'
+# Some runs above failed on purpose; GitHub's pwsh wrapper would end the step with their exit code.
+exit 0

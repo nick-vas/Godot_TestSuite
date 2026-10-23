@@ -146,3 +146,5 @@ try {
 }
 if ($failures.Count) { Write-Host "$($failures.Count) check(s) failed" -ForegroundColor Red; exit 1 }
 Write-Host 'All game benchmark checks passed'
+# Some runs above failed on purpose; GitHub's pwsh wrapper would end the step with their exit code.
+exit 0
