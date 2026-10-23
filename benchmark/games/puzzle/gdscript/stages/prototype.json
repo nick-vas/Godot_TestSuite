@@ -169,8 +169,8 @@
         "mustInclude": [
           "test_a_slide_stops_before_the_wall",
           "re:test_board\\.gd\\D{0,40}\\b8\\b",
-          "re:\\b4\\b",
-          "re:\\b5\\b"
+          "re:(?<!\\.)\\b4\\b(?!\\.\\d)",
+          "re:(?<!\\.)\\b5\\b(?!\\.\\d)"
         ]
       },
       "reference": "solutions/prototype/explain-failure"
